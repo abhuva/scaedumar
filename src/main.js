@@ -105,6 +105,12 @@ void main() {
   vec3 sunLit = base * (sunDiffuse * sunShadow * uSunStrength) * uSunColor;
   vec3 moonLit = base * (moonDiffuse * moonShadow * uMoonStrength) * uMoonColor;
   vec3 lit = clamp(ambientLit + sunLit + moonLit, 0.0, 1.0);
+  float diffuse = max(dot(n, uSunDir), 0.0);
+  float shadow = calcShadow(uv, uSunDir);
+
+  vec3 ambientLit = base * (uAmbient * uAmbientColor);
+  vec3 sunLit = base * (diffuse * shadow) * uSunColor;
+  vec3 lit = clamp(ambientLit + sunLit, 0.0, 1.0);
   outColor = vec4(lit, 1.0);
 }`;
 
@@ -460,6 +466,7 @@ canvas.addEventListener("auxclick", (e) => {
 
 async function tryAutoLoadAssets() {
   const loaded = [];
+  const failed = [];
 
   try {
     const splat = await loadImageFromUrl("./assets/splat.png");
@@ -468,6 +475,9 @@ async function tryAutoLoadAssets() {
     resetCamera();
     loaded.push("splat.png");
   } catch {
+  } catch (err) {
+    console.warn("Failed to load splat.png", err);
+    failed.push("splat.png");
     const fallbackSplat = createFallbackSplat(512);
     uploadImageToTexture(splatTex, fallbackSplat);
     setSplatSizeFromImage(fallbackSplat);
@@ -479,6 +489,9 @@ async function tryAutoLoadAssets() {
     uploadImageToTexture(normalsTex, normals);
     loaded.push("normals.png");
   } catch {
+  } catch (err) {
+    console.warn("Failed to load normals.png", err);
+    failed.push("normals.png");
     uploadImageToTexture(normalsTex, defaultNormalImage);
   }
 
@@ -488,12 +501,21 @@ async function tryAutoLoadAssets() {
     setHeightSizeFromImage(height);
     loaded.push("height.png");
   } catch {
+  } catch (err) {
+    console.warn("Failed to load height.png", err);
+    failed.push("height.png");
     uploadImageToTexture(heightTex, defaultHeightImage);
     setHeightSizeFromImage(defaultHeightImage);
   }
 
   if (loaded.length > 0) {
     setStatus(`Loaded default assets: ${loaded.join(", ")}`);
+  if (loaded.length > 0 && failed.length > 0) {
+    setStatus(`Loaded defaults: ${loaded.join(", ")} | Fallback used for: ${failed.join(", ")}`);
+  } else if (loaded.length > 0) {
+    setStatus(`Loaded default assets: ${loaded.join(", ")}`);
+  } else if (failed.length > 0) {
+    setStatus(`Using fallback textures for: ${failed.join(", ")}. Add PNGs to assets/ or load via file pickers.`);
   } else {
     setStatus("Using fallback textures. Add PNGs to assets/ or load via file pickers.");
   }
@@ -616,6 +638,14 @@ function render(nowMs) {
   gl.clearColor(0, 0, 0, 1);
   gl.clear(gl.COLOR_BUFFER_BIT);
 
+  const ambientBase = Number(ambientInput.value);
+  const ambientFinal = ambientBase * sun.ambientScale;
+
+  cycleInfoEl.textContent = `Time: ${formatHour(cycleState.hour)} | Speed: ${cycleSpeedHoursPerSec.toFixed(2)} h/s`;
+
+  gl.clearColor(0, 0, 0, 1);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
   gl.useProgram(program);
   gl.activeTexture(gl.TEXTURE0);
   gl.bindTexture(gl.TEXTURE_2D, splatTex);
@@ -639,6 +669,7 @@ function render(nowMs) {
   gl.uniform3f(uniforms.uMoonColor, moonColor[0], moonColor[1], moonColor[2]);
   gl.uniform1f(uniforms.uMoonStrength, moonStrength);
   gl.uniform3f(uniforms.uAmbientColor, ambientColor[0], ambientColor[1], ambientColor[2]);
+  gl.uniform3f(uniforms.uAmbientColor, sun.ambientColor[0], sun.ambientColor[1], sun.ambientColor[2]);
   gl.uniform1f(uniforms.uAmbient, ambientFinal);
   gl.uniform1f(uniforms.uHeightScale, Number(heightScaleInput.value));
   gl.uniform1f(uniforms.uShadowStrength, Number(shadowStrengthInput.value));
@@ -659,4 +690,7 @@ void tryAutoLoadAssets().catch((error) => {
   setStatus(`Auto-load failed: ${message}`);
 });
 setStatus(`${statusEl.textContent} | Day cycle: speed slider (0..1 h/s), diffuse slider, wheel zoom, middle-drag pan.`);
+requestAnimationFrame(render);
+await tryAutoLoadAssets();
+setStatus(`${statusEl.textContent} | Day cycle: speed slider (0..1 h/s), wheel zoom, middle-drag pan.`);
 requestAnimationFrame(render);
