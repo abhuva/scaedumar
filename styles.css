@@ -1,8 +1,10 @@
 :root {
   color-scheme: dark;
-  --panel-bg: rgba(12, 17, 23, 0.9);
+  --panel-bg: rgba(10, 15, 22, 0.95);
+  --panel-bg-soft: rgba(17, 24, 34, 0.9);
   --panel-border: rgba(255, 255, 255, 0.14);
   --text: #d7e2ed;
+  --muted: #9db0c2;
 }
 
 * {
@@ -27,32 +29,114 @@ body {
   height: 100vh;
   display: block;
   cursor: crosshair;
+  z-index: 0;
 }
 
-.hud {
+#overlayCanvas {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  display: block;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.topic-dock {
   position: fixed;
   top: 12px;
   left: 12px;
-  width: min(360px, calc(100vw - 24px));
-  padding: 12px;
-  border-radius: 10px;
-  border: 1px solid var(--panel-border);
-  background: var(--panel-bg);
-  backdrop-filter: blur(4px);
-  z-index: 2;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.hud h1 {
-  margin: 0 0 8px;
+.topic-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 9px;
+  border: 1px solid var(--panel-border);
+  background: var(--panel-bg-soft);
+  color: var(--text);
   font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.topic-btn.active,
+.topic-btn:hover {
+  background: rgba(255, 255, 255, 0.17);
+}
+
+.topic-panel {
+  position: fixed;
+  top: 12px;
+  left: 64px;
+  z-index: 2;
+  width: min(460px, calc(100vw - 76px));
+  max-height: calc(100vh - 24px);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  background: var(--panel-bg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.topic-panel.hidden {
+  display: none;
+}
+
+.topic-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.topic-panel-header h1 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.topic-panel-header button {
+  border: 1px solid var(--panel-border);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 5px 9px;
+  cursor: pointer;
+}
+
+.topic-panel-header button:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.topic-panel-body {
+  padding: 12px;
+  overflow: auto;
+}
+
+.topic-card {
+  display: none;
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  padding: 10px;
+  background: var(--panel-bg-soft);
+}
+
+.topic-card.active {
+  display: block;
 }
 
 .row {
   display: grid;
-  grid-template-columns: 110px 1fr;
+  grid-template-columns: 138px 1fr;
   gap: 8px;
   align-items: center;
-  margin-bottom: 7px;
+  margin-bottom: 8px;
 }
 
 input[type="range"],
@@ -60,9 +144,94 @@ input[type="file"] {
   width: 100%;
 }
 
-.help,
-.status {
-  margin: 6px 0 0;
+.row input[type="text"] {
+  width: 100%;
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  padding: 5px 8px;
+}
+
+.inline-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.row-action-btn {
+  border: 1px solid var(--panel-border);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 5px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.row-action-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.inline-control span {
+  min-width: 48px;
+  text-align: right;
   font-size: 12px;
-  opacity: 0.9;
+  color: var(--muted);
+}
+
+.help,
+.status,
+.light-editor-empty,
+.light-editor-coord {
+  margin: 0 0 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.light-editor-fields {
+  display: none;
+}
+
+.light-editor-fields.active {
+  display: block;
+}
+
+.light-editor-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-bottom: 10px;
+}
+
+.light-editor-actions button,
+.light-persist-actions button {
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.light-editor-actions button:hover,
+.light-persist-actions button:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.light-persist-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+@media (max-width: 760px) {
+  .topic-panel {
+    left: 12px;
+    width: calc(100vw - 24px);
+  }
+
+  .row {
+    grid-template-columns: 1fr;
+  }
 }

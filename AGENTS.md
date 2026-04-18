@@ -1,5 +1,7 @@
 # AGENTS.md
 
+ALWAYS read AI_CONTEXT.md first.
+
 ## Project Goal
 
 Build a self-contained prototype for top-down terrain rendering from Gaea-exported maps:
@@ -28,22 +30,45 @@ Build a self-contained prototype for top-down terrain rendering from Gaea-export
 
 ## Map Conventions (Current Prototype)
 
-- `assets/splat.png`: base color terrain image
-- `assets/normals.png`: tangent/object-space normal map encoded in RGB
-- `assets/height.png`: grayscale height map (optional but used for shadows)
+- Use per-map subfolders: `assets/<mapName>/`
+- `assets/<mapName>/splat.png`: base color terrain image
+- `assets/<mapName>/normals.png`: tangent/object-space normal map encoded in RGB
+- `assets/<mapName>/height.png`: grayscale height map (optional but used for shadows)
+- `assets/<mapName>/pointlights.json`: optional saved point-light set for that map
+- `assets/<mapName>/lighting.json`: optional saved lighting controls (`heightScale`, `shadowStrength`, `useShadows`, `ambient`, `diffuse`)
+- `assets/<mapName>/fog.json`: optional saved fog controls
 
 
 ## Lighting Model (Prototype)
 
-- Directional sun (not point light)
+- Directional sun/moon + optional baked point lights
 - Simulated day/night cycle:
   - Hour over day drives azimuth and altitude from a simple lookup table
   - Cycle speed is adjustable from `0` to `1` hour per second
+  - A minute-resolution `Time of Day` slider (`0..24`) live-tracks the clock and supports immediate time jumps on user scrub
   - Lower altitudes add warm sunrise/sunset ambience
 - Moon phase:
   - Secondary directional moon light keeps nights readable
   - Moon ambient tint is cool and dim, with dusk/dawn overlap
+  - A small blue ambient night-floor prevents fully black nights
 - Height-based shadow raymarch in texture space
+- Optional editable point-light system:
+  - Placement mode via UI toggle
+  - Point lights are map-pixel anchored (`x`, `y`, `range`, `intensity`, `color`, `heightOffset`)
+  - Light source bake height is `terrain height at light + heightOffset`
+  - Linear radius falloff uses `range`; brightness is controlled independently via `intensity` (default range `30`, intensity `1.0`, color orange)
+  - Overlap accumulation uses a saturating blend to prevent additive overblown colors
+  - Editor supports live rebake-on-edit toggle vs save-only apply
+  - `Save All`/`Load All` JSON persistence via `pointlights.json` (save has explicit confirmation step)
+  - Per-light normal interaction baked into a map-space texture on change
+  - Main render pass samples baked point-light texture for fast runtime
+- Optional live cursor-light mode:
+  - Cursor position is used as a single real-time point light
+  - Rendered directly in shader (no per-move bake)
+  - Uses linear falloff and normal interaction
+- Optional parallax illusion from height map (continuous + banded)
+- Optional height fog illusion based on zoom-derived camera height vs terrain height
+- Map-level `Save All` writes point lights + lighting + fog JSON alongside map textures
 
 
 ## Quality Bar for Iteration

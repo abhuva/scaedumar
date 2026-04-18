@@ -7,59 +7,234 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <div class="hud">
-      <h1>Terrain Prototype</h1>
-      <div class="row">
-        <label for="splatInput">Splat</label>
-        <input id="splatInput" type="file" accept="image/png,image/jpeg" />
+    <nav class="topic-dock" aria-label="Settings topics">
+      <button class="topic-btn" type="button" data-topic="map" title="Load Map" aria-label="Load map">M</button>
+      <button class="topic-btn" type="button" data-topic="interaction" title="Interaction" aria-label="Interaction settings">I</button>
+      <button class="topic-btn" type="button" data-topic="lighting" title="Main Lighting" aria-label="Main lighting">L</button>
+      <button class="topic-btn" type="button" data-topic="parallax" title="Parallax" aria-label="Parallax settings">P</button>
+      <button class="topic-btn" type="button" data-topic="fog" title="Height Fog" aria-label="Height fog">F</button>
+      <button class="topic-btn" type="button" data-topic="editor" title="Point Light Editor" aria-label="Point light editor">E</button>
+      <button class="topic-btn" type="button" data-topic="info" title="Info" aria-label="Information">?</button>
+    </nav>
+
+    <aside id="topicPanel" class="topic-panel hidden">
+      <div class="topic-panel-header">
+        <h1 id="topicPanelTitle">Settings</h1>
+        <button id="topicPanelClose" type="button">Close</button>
       </div>
-      <div class="row">
-        <label for="normalInput">Normals</label>
-        <input id="normalInput" type="file" accept="image/png,image/jpeg" />
+      <div class="topic-panel-body">
+        <section class="topic-card" data-topic="map" data-title="Load Map">
+          <div class="row">
+            <label for="mapPathInput">Map Path</label>
+            <div class="inline-control">
+              <input id="mapPathInput" type="text" value="assets/map1/" />
+              <button id="mapPathLoadBtn" class="row-action-btn" type="button">Load</button>
+            </div>
+          </div>
+          <div class="row">
+            <label for="mapFolderInput">Map Folder</label>
+            <input id="mapFolderInput" type="file" webkitdirectory multiple />
+          </div>
+          <div class="row">
+            <label for="mapSaveAllBtn">Map Data</label>
+            <button id="mapSaveAllBtn" class="row-action-btn" type="button">Save All</button>
+          </div>
+        </section>
+
+        <section class="topic-card" data-topic="interaction" data-title="Interaction">
+          <div class="row">
+            <label for="circleRadius">Circle Radius</label>
+            <div class="inline-control">
+              <input id="circleRadius" type="range" min="0.5" max="50" step="0.5" value="20" />
+              <span id="circleRadiusValue">20 px</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="lightingModeToggle">Lighting Mode</label>
+            <input id="lightingModeToggle" type="checkbox" />
+          </div>
+          <div class="row">
+            <label for="cursorLightModeToggle">Cursor Light</label>
+            <input id="cursorLightModeToggle" type="checkbox" />
+          </div>
+          <div class="row">
+            <label for="cursorLightFollowHeightToggle">Cursor Height Mode</label>
+            <input id="cursorLightFollowHeightToggle" type="checkbox" checked />
+          </div>
+          <div class="row">
+            <label for="cursorLightColor">Cursor Color</label>
+            <input id="cursorLightColor" type="color" value="#ff9b2f" />
+          </div>
+          <div class="row">
+            <label for="cursorLightStrength">Cursor Strength</label>
+            <div class="inline-control">
+              <input id="cursorLightStrength" type="range" min="1" max="200" step="1" value="30" />
+              <span id="cursorLightStrengthValue">30 px</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="cursorLightHeightOffset">Cursor Height</label>
+            <div class="inline-control">
+              <input id="cursorLightHeightOffset" type="range" min="0" max="120" step="1" value="8" />
+              <span id="cursorLightHeightOffsetValue">8</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="cursorLightGizmoToggle">Cursor Gizmo</label>
+            <input id="cursorLightGizmoToggle" type="checkbox" />
+          </div>
+        </section>
+
+        <section class="topic-card" data-topic="lighting" data-title="Main Lighting">
+          <div class="row">
+            <label for="cycleSpeed">Day Speed</label>
+            <input id="cycleSpeed" type="range" min="0" max="1" step="0.01" value="0.08" />
+          </div>
+          <div class="row">
+            <label for="cycleHour">Time of Day</label>
+            <div class="inline-control">
+              <input id="cycleHour" type="range" min="0" max="24" step="0.0166667" value="9.5" />
+              <span id="cycleHourValue">09:30</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="shadowsToggle">Shadows</label>
+            <input id="shadowsToggle" type="checkbox" checked />
+          </div>
+          <div class="row">
+            <label for="heightScale">Height Scale</label>
+            <input id="heightScale" type="range" min="1" max="300" value="80" />
+          </div>
+          <div class="row">
+            <label for="shadowStrength">Shadow Strength</label>
+            <input id="shadowStrength" type="range" min="0" max="1" step="0.01" value="0.6" />
+          </div>
+          <div class="row">
+            <label for="ambient">Ambient</label>
+            <input id="ambient" type="range" min="0" max="1" step="0.01" value="0.35" />
+          </div>
+          <div class="row">
+            <label for="diffuse">Diffuse</label>
+            <input id="diffuse" type="range" min="0" max="2" step="0.01" value="1" />
+          </div>
+        </section>
+
+        <section class="topic-card" data-topic="parallax" data-title="Parallax">
+          <div class="row">
+            <label for="parallaxToggle">Parallax</label>
+            <input id="parallaxToggle" type="checkbox" />
+          </div>
+          <div class="row">
+            <label for="parallaxStrength">Parallax Strength</label>
+            <div class="inline-control">
+              <input id="parallaxStrength" type="range" min="0" max="1" step="0.01" value="0.35" />
+              <span id="parallaxStrengthValue">0.35</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="parallaxBands">Parallax Bands</label>
+            <div class="inline-control">
+              <input id="parallaxBands" type="range" min="2" max="256" step="1" value="6" />
+              <span id="parallaxBandsValue">6</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="topic-card" data-topic="fog" data-title="Height Fog">
+          <div class="row">
+            <label for="fogToggle">Height Fog</label>
+            <input id="fogToggle" type="checkbox" />
+          </div>
+          <div class="row">
+            <label for="fogColor">Fog Color</label>
+            <input id="fogColor" type="color" value="#7f8d99" />
+          </div>
+          <div class="row">
+            <label for="fogMinAlpha">Fog Min Alpha</label>
+            <div class="inline-control">
+              <input id="fogMinAlpha" type="range" min="0" max="1" step="0.01" value="0.06" />
+              <span id="fogMinAlphaValue">0.06</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="fogMaxAlpha">Fog Max Alpha</label>
+            <div class="inline-control">
+              <input id="fogMaxAlpha" type="range" min="0" max="1" step="0.01" value="0.55" />
+              <span id="fogMaxAlphaValue">0.55</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="fogFalloff">Fog Falloff</label>
+            <div class="inline-control">
+              <input id="fogFalloff" type="range" min="0.2" max="4" step="0.05" value="1.20" />
+              <span id="fogFalloffValue">1.20</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="fogStartOffset">Fog Start Offset</label>
+            <div class="inline-control">
+              <input id="fogStartOffset" type="range" min="0" max="1" step="0.01" value="0.00" />
+              <span id="fogStartOffsetValue">0.00</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="topic-card" data-topic="editor" data-title="Point Light Editor" aria-live="polite">
+          <p id="lightEditorEmpty" class="light-editor-empty">No light selected.</p>
+          <div id="lightEditorFields" class="light-editor-fields">
+            <p id="lightCoord" class="light-editor-coord">Coord: (-, -)</p>
+            <div class="row">
+              <label for="pointLightColor">Color</label>
+              <input id="pointLightColor" type="color" value="#ff9b2f" />
+            </div>
+            <div class="row">
+              <label for="pointLightStrength">Range</label>
+              <div class="inline-control">
+                <input id="pointLightStrength" type="range" min="1" max="200" step="1" value="30" />
+                <span id="pointLightStrengthValue">30 px</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="pointLightIntensity">Intensity</label>
+              <div class="inline-control">
+                <input id="pointLightIntensity" type="range" min="0" max="4" step="0.01" value="1" />
+                <span id="pointLightIntensityValue">1.00x</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="pointLightHeightOffset">Height</label>
+              <div class="inline-control">
+                <input id="pointLightHeightOffset" type="range" min="-120" max="240" step="1" value="8" />
+                <span id="pointLightHeightOffsetValue">8 px</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="pointLightLiveUpdateToggle">Live Update</label>
+              <input id="pointLightLiveUpdateToggle" type="checkbox" />
+            </div>
+            <div class="light-editor-actions">
+              <button id="lightSaveBtn" type="button">Save</button>
+              <button id="lightCancelBtn" type="button">Cancel</button>
+              <button id="lightDeleteBtn" type="button">Delete</button>
+            </div>
+          </div>
+          <div class="light-persist-actions">
+            <button id="pointLightsSaveAllBtn" type="button">Save All</button>
+            <button id="pointLightsLoadAllBtn" type="button">Load All</button>
+            <input id="pointLightsLoadInput" type="file" accept="application/json,.json" aria-label="Load point lights from JSON file" hidden />
+          </div>
+        </section>
+
+        <section class="topic-card" data-topic="info" data-title="Info">
+          <p class="help">Lighting mode off: left click sets marker. Lighting mode on: left click adds/selects point lights. Cursor light mode turns your mouse into a live point light.</p>
+          <p id="cycleInfo" class="status">Time: --:-- | Speed: -- h/s</p>
+          <p id="status" class="status">Initializing...</p>
+        </section>
       </div>
-      <div class="row">
-        <label for="heightInput">Height</label>
-        <input id="heightInput" type="file" accept="image/png,image/jpeg" />
-        <input id="splatInput" type="file" accept="image/png" />
-      </div>
-      <div class="row">
-        <label for="normalInput">Normals</label>
-        <input id="normalInput" type="file" accept="image/png" />
-      </div>
-      <div class="row">
-        <label for="heightInput">Height</label>
-        <input id="heightInput" type="file" accept="image/png" />
-      </div>
-      <div class="row">
-        <label for="cycleSpeed">Day Speed</label>
-        <input id="cycleSpeed" type="range" min="0" max="1" step="0.01" value="0.08" />
-      </div>
-      <div class="row">
-        <label for="shadowsToggle">Shadows</label>
-        <input id="shadowsToggle" type="checkbox" checked />
-      </div>
-      <div class="row">
-        <label for="heightScale">Height Scale</label>
-        <input id="heightScale" type="range" min="1" max="300" value="80" />
-      </div>
-      <div class="row">
-        <label for="shadowStrength">Shadow Strength</label>
-        <input id="shadowStrength" type="range" min="0" max="1" step="0.01" value="0.6" />
-      </div>
-      <div class="row">
-        <label for="ambient">Ambient</label>
-        <input id="ambient" type="range" min="0" max="1" step="0.01" value="0.35" />
-      </div>
-      <div class="row">
-        <label for="diffuse">Diffuse</label>
-        <input id="diffuse" type="range" min="0" max="2" step="0.01" value="1" />
-      </div>
-      <p class="help">Day cycle runs automatically. Wheel zooms. Middle mouse drag pans.</p>
-      <p id="cycleInfo" class="status">Time: --:-- | Speed: -- h/s</p>
-      <p id="status" class="status">Initializing...</p>
-    </div>
+    </aside>
 
     <canvas id="glCanvas"></canvas>
+    <canvas id="overlayCanvas"></canvas>
     <script type="module" src="./src/main.js"></script>
   </body>
 </html>

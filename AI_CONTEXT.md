@@ -18,16 +18,27 @@ No game engine is used.
 
 - Entry point: `index.html`
 - Main implementation: `src/main.js`
-- Rendering backend: WebGL2, single full-screen quad + fragment shader
-- Assets loaded by default:
-  - `assets/splat.png`
-  - `assets/normals.png`
-  - `assets/height.png`
+- Rendering backend: WebGL2 terrain pass + 2D overlay canvas for interaction markers
+- Settings UI: left vertical topic-icon dock + single side panel (one topic open at a time)
+- Map bundle auto-load tries these folders in order:
+  - `assets/map1/`
+  - `assets/Map 1/`
+  - `assets/`
+- Required PNG names in each candidate folder:
+  - `splat.png`
+  - `normals.png`
+  - `height.png`
+- Optional sidecar JSON files in each candidate folder:
+  - `pointlights.json`
+  - `lighting.json`
+  - `fog.json`
+- `Load Map` topic supports loading by folder path or folder picker (map bundle semantics)
 
 ## Current Lighting Model
 
 - Day cycle is simulated from keyframes (`SUN_KEYS`) and interpolation.
 - Time progresses based on UI slider `cycleSpeed` (`0..1` hours/second).
+- UI slider `cycleHour` (`0..24` hours, minute resolution) both live-tracks current simulated time and allows immediate time scrubbing.
 - Sun:
   - directional light (`uSunDir`)
   - warm tones at low altitude
@@ -36,14 +47,62 @@ No game engine is used.
   - cool dim tint to avoid pitch-black nights
 - Ambient:
   - blended sun/moon ambient tint and intensity
+  - includes a small blue night-ambient floor to avoid pitch-black nights
 - Shadows:
   - texture-space raymarch over `uHeight`
   - texel step uses height-map dimensions (`heightSize`)
+- Optional point lights:
+  - `Lighting Mode` toggle switches click behavior to light placement/selection
+  - each point light stores map pixel coordinate + color + range (radius in px) + intensity + height offset
+  - default new light: orange, range `30`, intensity `1.0`
+  - light source height for baking is `terrainHeightAtLight + heightOffset`
+  - editor has `Live Update` toggle (`on` = rebake on edit input, `off` = rebake on explicit save)
+  - `Save All` / `Load All` supports JSON persistence (`pointlights.json`)
+  - save action uses a two-click confirmation to avoid accidental overwrite/export
+  - load first attempts `<currentMapFolder>/pointlights.json`, then falls back to manual file pick
+  - linear radial falloff (range) + independent intensity multiplier, with saturating accumulation to avoid overblown overlap
+  - normal interaction is baked into a map-space `pointLightTex` on add/edit/delete or normal/height-map update
+  - terrain height occlusion is baked by a light-to-surface line-of-sight test (cliffs can block local light spread)
+  - main fragment shader samples `uPointLightTex` and applies it to base color
+- Optional cursor light mode:
+  - mouse position drives a single live point light in shader uniforms
+  - linear falloff + normal interaction
+  - supports two elevation modes:
+    - terrain-following (`height at cursor + offset`)
+    - old fixed-height behavior (derived from light strength)
+  - no bake per mouse move (direct fragment shading path)
+- Optional parallax mode (toggle in UI):
+  - combines continuous height-based UV offset (option 1)
+  - plus quantized height-band offset (option 2)
+  - effect is anchored to the current view center (focal UV), so relative displacement is stronger away from center
+  - effect is scaled by zoom to reduce "strong when zoomed out / weak when zoomed in" mismatch
+  - displaced UV is fitted back to map bounds near edges to avoid border holes/cutouts
+  - strength is controlled by `parallaxStrength`
+  - band count is controlled by `parallaxBands` (default 6)
+- Optional height fog mode (toggle in UI):
+  - camera-height proxy is derived from zoom (`zoomed out => higher camera`)
+  - per-pixel fog is based on `cameraHeightNorm - terrainHeight`
+  - fog alpha range is controlled by `fogMinAlpha` / `fogMaxAlpha`
+  - fog response curve is controlled by `fogFalloff`
+  - fog onset threshold is controlled by `fogStartOffset`
+  - fog color defaults to auto light-matched tint and becomes fixed when user edits the color picker
+- Map-level persistence:
+  - `Load Map -> Save All` writes `pointlights.json`, `lighting.json`, and `fog.json`
+  - map loading auto-applies these files when present
 
 ## Camera/Interaction
 
 - Mouse wheel: zoom (cursor-centered)
 - Middle mouse drag: pan
+- Left click: store last clicked map coordinate (`uv` + pixel) and place marker
+- Lighting mode on:
+  - Left click adds a point light unless one already exists at that map pixel
+  - Clicking an existing light selects it and opens the side editor
+  - Side editor supports `Color`, `Strength`, `Save`, `Cancel`, `Delete`
+- Cursor light mode on:
+  - mouse movement updates live point-light position on terrain
+  - optional overlay gizmo shows live cursor-light radius preview
+- Marker is drawn on a separate overlay layer (`overlayCanvas`) to keep path/UI drawing decoupled from terrain shading
 - Render is pixel-sharp while zooming (`NEAREST` texture filtering)
 
 ## Shader Uniform Contract
@@ -52,12 +111,16 @@ Main light uniforms:
 - `uSunDir`, `uSunColor`, `uSunStrength`
 - `uMoonDir`, `uMoonColor`, `uMoonStrength`
 - `uAmbientColor`, `uAmbient`
+- `uPointLightTex`
+- `uUseCursorLight`, `uCursorLightUv`, `uCursorLightColor`, `uCursorLightStrength`, `uCursorLightHeightOffset`, `uUseCursorTerrainHeight`, `uCursorLightMapSize`
 
 Map/camera uniforms:
 - `uSplat`, `uNormals`, `uHeight`
 - `uMapTexelSize` (must come from height texture size)
 - `uMapAspect` (must come from splat texture size)
 - `uResolution`, `uViewHalfExtents`, `uPanWorld`
+- `uUseParallax`, `uParallaxStrength`, `uParallaxBands`, `uZoom`
+- `uUseFog`, `uFogColor`, `uFogMinAlpha`, `uFogMaxAlpha`, `uFogFalloff`, `uFogStartOffset`, `uCameraHeightNorm`
 
 ## Change Rules
 
@@ -78,6 +141,8 @@ After lighting/camera/map-load changes, verify:
 4. Daylight looks warm at sunrise/sunset.
 5. Night is dim but readable due to moon light.
 6. Height-map shadows still react to light direction.
+7. Lighting mode toggle correctly swaps marker click behavior with point-light placement/editing.
+8. Point-light edits (save/delete) visibly rebake terrain local lighting.
 
 ## Known Non-Goals (Current Prototype)
 
