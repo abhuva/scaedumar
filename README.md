@@ -12,6 +12,7 @@ Prototype goals:
 - `src/main.js`: WebGL2 renderer + shaders
 - `styles.css`: UI styling
 - `assets/`: optional default PNG location
+- `AI_CONTEXT.md`: implementation map and workflow notes for AI agents
 
 ## Expected auto-load names
 
@@ -45,6 +46,8 @@ Then open:
 - Sun azimuth/altitude are sampled from a daily keyframe table and interpolated.
 - Day-cycle speed slider runs from `0.00` to `1.00` hours/second (`0` = paused).
 - Low sun angles use warmer sunlight/ambient colors for sunrise/sunset ambience.
+- A moon directional light and moon ambient tint keep nights dim but readable.
 - Mouse wheel controls zoom.
 - Middle mouse drag pans the map.
 - Height shadowing is a texture-space raymarch for prototype quality.
+- Texture sampling is nearest-neighbor for pixel-sharp zoomed rendering.
