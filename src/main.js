@@ -1,68 +1,86 @@
-﻿const canvas = document.getElementById("glCanvas");
-const overlayCanvas = document.getElementById("overlayCanvas");
-const topicButtons = Array.from(document.querySelectorAll(".topic-btn"));
-const topicPanelEl = document.getElementById("topicPanel");
-const topicPanelTitleEl = document.getElementById("topicPanelTitle");
-const topicPanelCloseBtn = document.getElementById("topicPanelClose");
-const topicCards = Array.from(document.querySelectorAll(".topic-card"));
-const statusEl = document.getElementById("status");
-const cycleInfoEl = document.getElementById("cycleInfo");
-const mapPathInput = document.getElementById("mapPathInput");
-const mapPathLoadBtn = document.getElementById("mapPathLoadBtn");
-const mapFolderInput = document.getElementById("mapFolderInput");
-const mapSaveAllBtn = document.getElementById("mapSaveAllBtn");
-const circleRadiusInput = document.getElementById("circleRadius");
-const circleRadiusValue = document.getElementById("circleRadiusValue");
-const lightingModeToggle = document.getElementById("lightingModeToggle");
-const cursorLightModeToggle = document.getElementById("cursorLightModeToggle");
-const cursorLightFollowHeightToggle = document.getElementById("cursorLightFollowHeightToggle");
-const cursorLightColorInput = document.getElementById("cursorLightColor");
-const cursorLightStrengthInput = document.getElementById("cursorLightStrength");
-const cursorLightStrengthValue = document.getElementById("cursorLightStrengthValue");
-const cursorLightHeightOffsetInput = document.getElementById("cursorLightHeightOffset");
-const cursorLightHeightOffsetValue = document.getElementById("cursorLightHeightOffsetValue");
-const cursorLightGizmoToggle = document.getElementById("cursorLightGizmoToggle");
-const cycleSpeedInput = document.getElementById("cycleSpeed");
-const cycleHourInput = document.getElementById("cycleHour");
-const cycleHourValue = document.getElementById("cycleHourValue");
-const shadowsToggle = document.getElementById("shadowsToggle");
-const parallaxToggle = document.getElementById("parallaxToggle");
-const parallaxStrengthInput = document.getElementById("parallaxStrength");
-const parallaxStrengthValue = document.getElementById("parallaxStrengthValue");
-const parallaxBandsInput = document.getElementById("parallaxBands");
-const parallaxBandsValue = document.getElementById("parallaxBandsValue");
-const fogToggle = document.getElementById("fogToggle");
-const fogColorInput = document.getElementById("fogColor");
-const fogMinAlphaInput = document.getElementById("fogMinAlpha");
-const fogMinAlphaValue = document.getElementById("fogMinAlphaValue");
-const fogMaxAlphaInput = document.getElementById("fogMaxAlpha");
-const fogMaxAlphaValue = document.getElementById("fogMaxAlphaValue");
-const fogFalloffInput = document.getElementById("fogFalloff");
-const fogFalloffValue = document.getElementById("fogFalloffValue");
-const fogStartOffsetInput = document.getElementById("fogStartOffset");
-const fogStartOffsetValue = document.getElementById("fogStartOffsetValue");
-const heightScaleInput = document.getElementById("heightScale");
-const shadowStrengthInput = document.getElementById("shadowStrength");
-const ambientInput = document.getElementById("ambient");
-const diffuseInput = document.getElementById("diffuse");
-const lightEditorEmptyEl = document.getElementById("lightEditorEmpty");
-const lightEditorFieldsEl = document.getElementById("lightEditorFields");
-const lightCoordEl = document.getElementById("lightCoord");
-const pointLightColorInput = document.getElementById("pointLightColor");
-const pointLightStrengthInput = document.getElementById("pointLightStrength");
-const pointLightStrengthValue = document.getElementById("pointLightStrengthValue");
-const pointLightIntensityInput = document.getElementById("pointLightIntensity");
-const pointLightIntensityValue = document.getElementById("pointLightIntensityValue");
-const pointLightHeightOffsetInput = document.getElementById("pointLightHeightOffset");
-const pointLightHeightOffsetValue = document.getElementById("pointLightHeightOffsetValue");
-const pointLightLiveUpdateToggle = document.getElementById("pointLightLiveUpdateToggle");
-const lightSaveBtn = document.getElementById("lightSaveBtn");
-const lightCancelBtn = document.getElementById("lightCancelBtn");
-const lightDeleteBtn = document.getElementById("lightDeleteBtn");
-const pointLightsSaveAllBtn = document.getElementById("pointLightsSaveAllBtn");
-const pointLightsLoadAllBtn = document.getElementById("pointLightsLoadAllBtn");
-const pointLightsLoadInput = document.getElementById("pointLightsLoadInput");
+function getRequiredElementById(id) {
+  const el = document.getElementById(id);
+  if (!el) {
+    throw new Error(`Missing required element with id '${id}'.`);
+  }
+  return el;
+}
+
+function getRequiredElements(selector) {
+  const els = Array.from(document.querySelectorAll(selector));
+  if (els.length === 0) {
+    throw new Error(`Missing required elements for selector '${selector}'.`);
+  }
+  return els;
+}
+const canvas = getRequiredElementById("glCanvas");
+const overlayCanvas = getRequiredElementById("overlayCanvas");
+const topicButtons = getRequiredElements(".topic-btn");
+const topicPanelEl = getRequiredElementById("topicPanel");
+const topicPanelTitleEl = getRequiredElementById("topicPanelTitle");
+const topicPanelCloseBtn = getRequiredElementById("topicPanelClose");
+const topicCards = getRequiredElements(".topic-card");
+const statusEl = getRequiredElementById("status");
+const cycleInfoEl = getRequiredElementById("cycleInfo");
+const mapPathInput = getRequiredElementById("mapPathInput");
+const mapPathLoadBtn = getRequiredElementById("mapPathLoadBtn");
+const mapFolderInput = getRequiredElementById("mapFolderInput");
+const mapSaveAllBtn = getRequiredElementById("mapSaveAllBtn");
+const circleRadiusInput = getRequiredElementById("circleRadius");
+const circleRadiusValue = getRequiredElementById("circleRadiusValue");
+const lightingModeToggle = getRequiredElementById("lightingModeToggle");
+const cursorLightModeToggle = getRequiredElementById("cursorLightModeToggle");
+const cursorLightFollowHeightToggle = getRequiredElementById("cursorLightFollowHeightToggle");
+const cursorLightColorInput = getRequiredElementById("cursorLightColor");
+const cursorLightStrengthInput = getRequiredElementById("cursorLightStrength");
+const cursorLightStrengthValue = getRequiredElementById("cursorLightStrengthValue");
+const cursorLightHeightOffsetInput = getRequiredElementById("cursorLightHeightOffset");
+const cursorLightHeightOffsetValue = getRequiredElementById("cursorLightHeightOffsetValue");
+const cursorLightGizmoToggle = getRequiredElementById("cursorLightGizmoToggle");
+const cycleSpeedInput = getRequiredElementById("cycleSpeed");
+const cycleHourInput = getRequiredElementById("cycleHour");
+const cycleHourValue = getRequiredElementById("cycleHourValue");
+const shadowsToggle = getRequiredElementById("shadowsToggle");
+const parallaxToggle = getRequiredElementById("parallaxToggle");
+const parallaxStrengthInput = getRequiredElementById("parallaxStrength");
+const parallaxStrengthValue = getRequiredElementById("parallaxStrengthValue");
+const parallaxBandsInput = getRequiredElementById("parallaxBands");
+const parallaxBandsValue = getRequiredElementById("parallaxBandsValue");
+const fogToggle = getRequiredElementById("fogToggle");
+const fogColorInput = getRequiredElementById("fogColor");
+const fogMinAlphaInput = getRequiredElementById("fogMinAlpha");
+const fogMinAlphaValue = getRequiredElementById("fogMinAlphaValue");
+const fogMaxAlphaInput = getRequiredElementById("fogMaxAlpha");
+const fogMaxAlphaValue = getRequiredElementById("fogMaxAlphaValue");
+const fogFalloffInput = getRequiredElementById("fogFalloff");
+const fogFalloffValue = getRequiredElementById("fogFalloffValue");
+const fogStartOffsetInput = getRequiredElementById("fogStartOffset");
+const fogStartOffsetValue = getRequiredElementById("fogStartOffsetValue");
+const heightScaleInput = getRequiredElementById("heightScale");
+const shadowStrengthInput = getRequiredElementById("shadowStrength");
+const ambientInput = getRequiredElementById("ambient");
+const diffuseInput = getRequiredElementById("diffuse");
+const lightEditorEmptyEl = getRequiredElementById("lightEditorEmpty");
+const lightEditorFieldsEl = getRequiredElementById("lightEditorFields");
+const lightCoordEl = getRequiredElementById("lightCoord");
+const pointLightColorInput = getRequiredElementById("pointLightColor");
+const pointLightStrengthInput = getRequiredElementById("pointLightStrength");
+const pointLightStrengthValue = getRequiredElementById("pointLightStrengthValue");
+const pointLightIntensityInput = getRequiredElementById("pointLightIntensity");
+const pointLightIntensityValue = getRequiredElementById("pointLightIntensityValue");
+const pointLightHeightOffsetInput = getRequiredElementById("pointLightHeightOffset");
+const pointLightHeightOffsetValue = getRequiredElementById("pointLightHeightOffsetValue");
+const pointLightLiveUpdateToggle = getRequiredElementById("pointLightLiveUpdateToggle");
+const lightSaveBtn = getRequiredElementById("lightSaveBtn");
+const lightCancelBtn = getRequiredElementById("lightCancelBtn");
+const lightDeleteBtn = getRequiredElementById("lightDeleteBtn");
+const pointLightsSaveAllBtn = getRequiredElementById("pointLightsSaveAllBtn");
+const pointLightsLoadAllBtn = getRequiredElementById("pointLightsLoadAllBtn");
+const pointLightsLoadInput = getRequiredElementById("pointLightsLoadInput");
 const overlayCtx = overlayCanvas.getContext("2d");
+if (!overlayCtx) {
+  throw new Error("2D overlay context is required for this prototype.");
+}
 
 const gl = canvas.getContext("webgl2");
 if (!gl) {
@@ -293,11 +311,11 @@ function createTexture() {
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
   return tex;
 }
 
 function uploadImageToTexture(tex, image) {
+  gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
   gl.bindTexture(gl.TEXTURE_2D, tex);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
 }
@@ -502,7 +520,7 @@ async function loadMapFromPath(mapFolderPath) {
     clearPointLights();
     bakePointLightsTexture();
     updateLightEditorUi();
-    drawOverlay();
+    requestOverlayDraw();
   }
 
   try {
@@ -543,7 +561,7 @@ async function loadMapFromFolderSelection(fileList) {
   const relPath = String(splatFile.webkitRelativePath || "");
   const firstFolder = relPath.includes("/") ? relPath.split("/")[0] : "";
   if (firstFolder) {
-    currentMapFolderPath = `./assets/${firstFolder}`;
+    currentMapFolderPath = `assets/${firstFolder}/`;
     mapPathInput.value = currentMapFolderPath;
   }
 
@@ -553,26 +571,40 @@ async function loadMapFromFolderSelection(fileList) {
 
   const pointLightsFile = getFileFromFolderSelection(files, "pointlights.json");
   if (pointLightsFile) {
-    const rawData = JSON.parse(await pointLightsFile.text());
-    applyLoadedPointLights(rawData, pointLightsFile.name, { suppressStatus: true });
-    loadedPointLights = true;
+    try {
+      const rawData = JSON.parse(await pointLightsFile.text());
+      applyLoadedPointLights(rawData, pointLightsFile.name, { suppressStatus: true });
+      loadedPointLights = true;
+    } catch (err) {
+      console.warn("Failed to parse pointlights.json from selected folder", err);
+    }
   } else {
     clearPointLights();
     bakePointLightsTexture();
     updateLightEditorUi();
-    drawOverlay();
+    requestOverlayDraw();
   }
 
   const lightingFile = getFileFromFolderSelection(files, "lighting.json");
   if (lightingFile) {
-    applyLightingSettings(JSON.parse(await lightingFile.text()));
-    loadedLighting = true;
+    try {
+      const rawData = JSON.parse(await lightingFile.text());
+      applyLightingSettings(rawData);
+      loadedLighting = true;
+    } catch (err) {
+      console.warn("Failed to parse lighting.json from selected folder", err);
+    }
   }
 
   const fogFile = getFileFromFolderSelection(files, "fog.json");
   if (fogFile) {
-    applyFogSettings(JSON.parse(await fogFile.text()));
-    loadedFog = true;
+    try {
+      const rawData = JSON.parse(await fogFile.text());
+      applyFogSettings(rawData);
+      loadedFog = true;
+    } catch (err) {
+      console.warn("Failed to parse fog.json from selected folder", err);
+    }
   }
 
   setStatus(`Loaded map folder | pointlights: ${loadedPointLights ? "yes" : "no"} | lighting: ${loadedLighting ? "yes" : "no"} | fog: ${loadedFog ? "yes" : "no"}`);
@@ -728,6 +760,9 @@ const normalsSize = { width: 1, height: 1 };
 
 const pointLightBakeCanvas = document.createElement("canvas");
 const pointLightBakeCtx = pointLightBakeCanvas.getContext("2d");
+if (!pointLightBakeCtx) {
+  throw new Error("Point-light bake canvas 2D context is required.");
+}
 
 const pointLights = [];
 let selectedLightId = null;
@@ -739,9 +774,16 @@ let normalsImageData = null;
 let heightImageData = null;
 let pointLightBakeScheduled = false;
 const POINT_LIGHT_BLEND_EXPOSURE = 0.65;
-const DEFAULT_MAP_FOLDER = "./assets/map1";
+const POINT_LIGHT_SELECT_RADIUS = 3;
+let cachedPointLightBakeWidth = 0;
+let cachedPointLightBakeHeight = 0;
+let cachedPointLightRgba = new Uint8ClampedArray(0);
+let cachedPointLightAccumColor = new Float32Array(0);
+let cachedPointLightAccumWeight = new Float32Array(0);
+let overlayDirty = true;
+const DEFAULT_MAP_FOLDER = "assets/map1/";
 let currentMapFolderPath = DEFAULT_MAP_FOLDER;
-const DEFAULT_MAP_FOLDER_CANDIDATES = ["./assets/map1", "./assets/Map 1", "./assets"];
+const DEFAULT_MAP_FOLDER_CANDIDATES = ["assets/map1/", "assets/Map 1/", "assets/"];
 
 function createFlatNormalImage(size = 2) {
   const c = document.createElement("canvas");
@@ -879,7 +921,6 @@ function serializePointLights() {
     lights: pointLights.map((light) => ({
       pixelX: light.pixelX,
       pixelY: light.pixelY,
-      range: light.strength,
       strength: light.strength,
       intensity: light.intensity,
       heightOffset: light.heightOffset,
@@ -905,7 +946,7 @@ function parsePointLightsFromJson(rawData) {
   for (const rawLight of rawLights) {
     const rawX = rawLight && (rawLight.pixelX ?? rawLight.x);
     const rawY = rawLight && (rawLight.pixelY ?? rawLight.y);
-    const rawStrength = rawLight && (rawLight.range ?? rawLight.strength);
+    const rawStrength = rawLight && (rawLight.strength ?? rawLight.range);
     const rawIntensity = rawLight && (rawLight.intensity ?? rawLight.power ?? 1);
     const rawHeightOffset = rawLight && (rawLight.heightOffset ?? rawLight.height ?? 8);
     const color = normalizeImportedPointLightColor(rawLight && rawLight.color);
@@ -951,7 +992,7 @@ function applyLoadedPointLights(rawData, sourceLabel, options = {}) {
 
   bakePointLightsTexture();
   updateLightEditorUi();
-  drawOverlay();
+  requestOverlayDraw();
 
   if (!suppressStatus) {
     const skippedNote = skippedCount > 0 ? ` | Skipped invalid entries: ${skippedCount}` : "";
@@ -1079,19 +1120,34 @@ function schedulePointLightBake() {
 }
 
 function bakePointLightsTexture() {
-  if (!pointLightBakeCtx) return;
   ensurePointLightBakeSize();
   const w = pointLightBakeCanvas.width;
   const h = pointLightBakeCanvas.height;
   const heightScaleValue = Math.max(1, Number(heightScaleInput.value) || 1);
-  const rgba = new Uint8ClampedArray(w * h * 4);
+  const pixelCount = w * h;
+  const rgbaSize = pixelCount * 4;
+  const accumColorSize = pixelCount * 3;
+
+  if (cachedPointLightBakeWidth !== w || cachedPointLightBakeHeight !== h) {
+    cachedPointLightBakeWidth = w;
+    cachedPointLightBakeHeight = h;
+    cachedPointLightRgba = new Uint8ClampedArray(rgbaSize);
+    cachedPointLightAccumColor = new Float32Array(accumColorSize);
+    cachedPointLightAccumWeight = new Float32Array(pixelCount);
+  }
+
+  const rgba = cachedPointLightRgba;
+  rgba.fill(0);
   for (let i = 3; i < rgba.length; i += 4) {
     rgba[i] = 255;
   }
 
+  const accumColor = cachedPointLightAccumColor;
+  const accumWeight = cachedPointLightAccumWeight;
+  accumColor.fill(0);
+  accumWeight.fill(0);
+
   if (pointLights.length > 0) {
-    const accumColor = new Float32Array(w * h * 3);
-    const accumWeight = new Float32Array(w * h);
     for (const light of pointLights) {
       const radiusPx = Math.max(1, light.strength);
       const intensityMul = clamp(Number(light.intensity), 0, 4);
@@ -1152,6 +1208,7 @@ function bakePointLightsTexture() {
   const imageData = new ImageData(rgba, w, h);
   pointLightBakeCtx.putImageData(imageData, 0, 0);
   uploadImageToTexture(pointLightTex, pointLightBakeCanvas);
+  requestOverlayDraw();
 }
 
 function updatePointLightStrengthLabel() {
@@ -1268,8 +1325,19 @@ function rebakeIfPointLightLiveUpdateEnabled() {
   schedulePointLightBake();
 }
 
-function findPointLightAtPixel(pixelX, pixelY) {
-  return pointLights.find((light) => light.pixelX === pixelX && light.pixelY === pixelY) || null;
+function findPointLightAtPixel(pixelX, pixelY, radiusPx = POINT_LIGHT_SELECT_RADIUS) {
+  const maxDistSq = radiusPx * radiusPx;
+  let best = null;
+  let bestDistSq = Infinity;
+  for (const light of pointLights) {
+    const dx = light.pixelX - pixelX;
+    const dy = light.pixelY - pixelY;
+    const distSq = dx * dx + dy * dy;
+    if (distSq > maxDistSq || distSq >= bestDistSq) continue;
+    bestDistSq = distSq;
+    best = light;
+  }
+  return best;
 }
 
 function createPointLight(pixelX, pixelY) {
@@ -1326,6 +1394,7 @@ function resetCamera() {
   zoom = 1;
   panWorld.x = 0;
   panWorld.y = 0;
+  requestOverlayDraw();
 }
 
 function getScreenAspect() {
@@ -1454,6 +1523,10 @@ function updateCycleHourLabel() {
   cycleHourValue.textContent = formatHour(cycleState.hour);
 }
 
+function requestOverlayDraw() {
+  overlayDirty = true;
+}
+
 function rgbToHex(rgb) {
   const r = Math.round(clamp(rgb[0], 0, 1) * 255);
   const g = Math.round(clamp(rgb[1], 0, 1) * 255);
@@ -1474,7 +1547,6 @@ function hexToRgb01(hex) {
 }
 
 function drawOverlay() {
-  if (!overlayCtx) return;
   overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
   const worldPerMapPixel = getMapAspect() / splatSize.width;
 
@@ -1557,6 +1629,7 @@ canvas.addEventListener("wheel", (e) => {
   panWorld.x += worldBefore.x - worldAfter.x;
   panWorld.y += worldBefore.y - worldAfter.y;
   zoom = nextZoom;
+  requestOverlayDraw();
 }, { passive: false });
 
 canvas.addEventListener("mousedown", (e) => {
@@ -1576,7 +1649,7 @@ canvas.addEventListener("mousemove", (e) => {
   updateCursorLightFromPointer(e.clientX, e.clientY);
   if (!isMiddleDragging) {
     if (cursorLightModeToggle.checked) {
-      drawOverlay();
+      requestOverlayDraw();
     }
     return;
   }
@@ -1588,9 +1661,7 @@ canvas.addEventListener("mousemove", (e) => {
   panWorld.y += worldPrev.y - worldCurr.y;
   lastDragClient.x = e.clientX;
   lastDragClient.y = e.clientY;
-  if (cursorLightModeToggle.checked) {
-    drawOverlay();
-  }
+  requestOverlayDraw();
 });
 
 canvas.addEventListener("click", (e) => {
@@ -1611,14 +1682,14 @@ canvas.addEventListener("click", (e) => {
     } else {
       createPointLight(pixel.x, pixel.y);
     }
-    drawOverlay();
+    requestOverlayDraw();
     return;
   }
 
   const pixelCenterUv = mapPixelIndexToUv(pixel.x, pixel.y);
   lastMarker = { uvX: pixelCenterUv.x, uvY: pixelCenterUv.y, pixelX: pixel.x, pixelY: pixel.y };
   setStatus(`Marker map coords: (${lastMarker.pixelX}, ${lastMarker.pixelY}) | uv=(${lastMarker.uvX.toFixed(4)}, ${lastMarker.uvY.toFixed(4)})`);
-  drawOverlay();
+  requestOverlayDraw();
 });
 
 canvas.addEventListener("auxclick", (e) => {
@@ -1628,12 +1699,12 @@ canvas.addEventListener("auxclick", (e) => {
 canvas.addEventListener("mouseleave", () => {
   if (!cursorLightModeToggle.checked) return;
   cursorLightState.active = false;
-  drawOverlay();
+  requestOverlayDraw();
 });
 
 circleRadiusInput.addEventListener("input", () => {
   updateRadiusLabel();
-  drawOverlay();
+  requestOverlayDraw();
 });
 heightScaleInput.addEventListener("input", schedulePointLightBake);
 
@@ -1657,13 +1728,13 @@ window.addEventListener("keydown", (e) => {
 
 lightingModeToggle.addEventListener("change", () => {
   setStatus(lightingModeToggle.checked ? "Lighting mode enabled: click terrain to add/select point lights." : "Lighting mode disabled: click terrain to set marker.");
-  drawOverlay();
+  requestOverlayDraw();
 });
 
 cursorLightModeToggle.addEventListener("change", () => {
   if (!cursorLightModeToggle.checked) {
     cursorLightState.active = false;
-    drawOverlay();
+    requestOverlayDraw();
     setStatus("Cursor light disabled.");
     return;
   }
@@ -1677,31 +1748,31 @@ cursorLightFollowHeightToggle.addEventListener("change", () => {
 
 cursorLightColorInput.addEventListener("input", () => {
   cursorLightState.color = hexToRgb01(cursorLightColorInput.value);
-  drawOverlay();
+  requestOverlayDraw();
 });
 
 cursorLightStrengthInput.addEventListener("input", () => {
   cursorLightState.strength = Math.round(clamp(Number(cursorLightStrengthInput.value), 1, 200));
   updateCursorLightStrengthLabel();
-  drawOverlay();
+  requestOverlayDraw();
 });
 
 cursorLightHeightOffsetInput.addEventListener("input", () => {
   cursorLightState.heightOffset = Math.round(clamp(Number(cursorLightHeightOffsetInput.value), 0, 120));
   updateCursorLightHeightOffsetLabel();
-  drawOverlay();
+  requestOverlayDraw();
 });
 
 cursorLightGizmoToggle.addEventListener("change", () => {
   cursorLightState.showGizmo = cursorLightGizmoToggle.checked;
-  drawOverlay();
+  requestOverlayDraw();
 });
 
 pointLightColorInput.addEventListener("input", () => {
   if (!lightEditDraft) return;
   lightEditDraft.color = hexToRgb01(pointLightColorInput.value);
   rebakeIfPointLightLiveUpdateEnabled();
-  drawOverlay();
+  requestOverlayDraw();
 });
 
 pointLightStrengthInput.addEventListener("input", () => {
@@ -1709,7 +1780,7 @@ pointLightStrengthInput.addEventListener("input", () => {
   lightEditDraft.strength = Math.round(clamp(Number(pointLightStrengthInput.value), 1, 200));
   updatePointLightStrengthLabel();
   rebakeIfPointLightLiveUpdateEnabled();
-  drawOverlay();
+  requestOverlayDraw();
 });
 
 pointLightIntensityInput.addEventListener("input", () => {
@@ -1717,7 +1788,7 @@ pointLightIntensityInput.addEventListener("input", () => {
   lightEditDraft.intensity = clamp(Number(pointLightIntensityInput.value), 0, 4);
   updatePointLightIntensityLabel();
   rebakeIfPointLightLiveUpdateEnabled();
-  drawOverlay();
+  requestOverlayDraw();
 });
 
 pointLightHeightOffsetInput.addEventListener("input", () => {
@@ -1725,7 +1796,7 @@ pointLightHeightOffsetInput.addEventListener("input", () => {
   lightEditDraft.heightOffset = Math.round(clamp(Number(pointLightHeightOffsetInput.value), -120, 240));
   updatePointLightHeightOffsetLabel();
   rebakeIfPointLightLiveUpdateEnabled();
-  drawOverlay();
+  requestOverlayDraw();
 });
 
 pointLightLiveUpdateToggle.addEventListener("change", () => {
@@ -1742,7 +1813,7 @@ lightSaveBtn.addEventListener("click", () => {
   if (!selected) return;
   bakePointLightsTexture();
   updateLightEditorUi();
-  drawOverlay();
+  requestOverlayDraw();
   setStatus(`Saved point light at (${selected.pixelX}, ${selected.pixelY})`);
 });
 
@@ -1750,7 +1821,7 @@ lightCancelBtn.addEventListener("click", () => {
   selectedLightId = null;
   lightEditDraft = null;
   updateLightEditorUi();
-  drawOverlay();
+  requestOverlayDraw();
   setStatus("Point light edit canceled.");
 });
 
@@ -1765,7 +1836,7 @@ lightDeleteBtn.addEventListener("click", () => {
   lightEditDraft = null;
   bakePointLightsTexture();
   updateLightEditorUi();
-  drawOverlay();
+  requestOverlayDraw();
   setStatus(`Deleted point light at (${selected.pixelX}, ${selected.pixelY})`);
 });
 
@@ -1910,6 +1981,7 @@ function resize() {
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const w = Math.floor(window.innerWidth * dpr);
   const h = Math.floor(window.innerHeight * dpr);
+  let overlayResized = false;
   if (canvas.width !== w || canvas.height !== h) {
     canvas.width = w;
     canvas.height = h;
@@ -1917,13 +1989,15 @@ function resize() {
   if (overlayCanvas.width !== w || overlayCanvas.height !== h) {
     overlayCanvas.width = w;
     overlayCanvas.height = h;
+    overlayResized = true;
   }
   gl.viewport(0, 0, canvas.width, canvas.height);
+  if (overlayResized) {
+    requestOverlayDraw();
+  }
 }
 
-function render(nowMs) {
-  resize();
-
+function updateCycleTime(nowMs) {
   if (cycleState.lastRenderMs === null) {
     cycleState.lastRenderMs = nowMs;
   }
@@ -1937,7 +2011,10 @@ function render(nowMs) {
   if (!isCycleHourScrubbing) {
     setCycleHourSliderFromState();
   }
+  return cycleSpeedHoursPerSec;
+}
 
+function computeLightingParams() {
   const sun = sampleSunAtHour(cycleState.hour);
   const moonTrack = sampleSunAtHour(wrapHour(cycleState.hour + 12));
   const azimuthRad = sun.azimuthDeg * Math.PI / 180;
@@ -2001,12 +2078,21 @@ function render(nowMs) {
   }
   const fogColor = fogColorManual ? hexToRgb01(fogColorInput.value) : fogColorAuto;
 
-  cycleInfoEl.textContent = `Time: ${formatHour(cycleState.hour)} | Speed: ${cycleSpeedHoursPerSec.toFixed(2)} h/s`;
-  updateCycleHourLabel();
+  return {
+    sun,
+    sunDir,
+    sunStrength,
+    moonDir,
+    moonColor,
+    moonStrength,
+    ambientColor,
+    ambientFinal,
+    fogColor,
+    cameraHeightNorm,
+  };
+}
 
-  gl.clearColor(0, 0, 0, 1);
-  gl.clear(gl.COLOR_BUFFER_BIT);
-
+function uploadUniforms(params) {
   gl.useProgram(program);
   gl.activeTexture(gl.TEXTURE0);
   gl.bindTexture(gl.TEXTURE_2D, splatTex);
@@ -2027,14 +2113,14 @@ function render(nowMs) {
   const viewHalf = getViewHalfExtents();
   gl.uniform2f(uniforms.uMapTexelSize, 1 / heightSize.width, 1 / heightSize.height);
   gl.uniform2f(uniforms.uResolution, canvas.width, canvas.height);
-  gl.uniform3f(uniforms.uSunDir, sunDir[0], sunDir[1], sunDir[2]);
-  gl.uniform3f(uniforms.uSunColor, sun.sunColor[0], sun.sunColor[1], sun.sunColor[2]);
-  gl.uniform1f(uniforms.uSunStrength, sunStrength);
-  gl.uniform3f(uniforms.uMoonDir, moonDir[0], moonDir[1], moonDir[2]);
-  gl.uniform3f(uniforms.uMoonColor, moonColor[0], moonColor[1], moonColor[2]);
-  gl.uniform1f(uniforms.uMoonStrength, moonStrength);
-  gl.uniform3f(uniforms.uAmbientColor, ambientColor[0], ambientColor[1], ambientColor[2]);
-  gl.uniform1f(uniforms.uAmbient, ambientFinal);
+  gl.uniform3f(uniforms.uSunDir, params.sunDir[0], params.sunDir[1], params.sunDir[2]);
+  gl.uniform3f(uniforms.uSunColor, params.sun.sunColor[0], params.sun.sunColor[1], params.sun.sunColor[2]);
+  gl.uniform1f(uniforms.uSunStrength, params.sunStrength);
+  gl.uniform3f(uniforms.uMoonDir, params.moonDir[0], params.moonDir[1], params.moonDir[2]);
+  gl.uniform3f(uniforms.uMoonColor, params.moonColor[0], params.moonColor[1], params.moonColor[2]);
+  gl.uniform1f(uniforms.uMoonStrength, params.moonStrength);
+  gl.uniform3f(uniforms.uAmbientColor, params.ambientColor[0], params.ambientColor[1], params.ambientColor[2]);
+  gl.uniform1f(uniforms.uAmbient, params.ambientFinal);
   gl.uniform1f(uniforms.uHeightScale, Number(heightScaleInput.value));
   gl.uniform1f(uniforms.uShadowStrength, Number(shadowStrengthInput.value));
   gl.uniform1f(uniforms.uUseShadows, shadowsToggle.checked ? 1 : 0);
@@ -2043,12 +2129,12 @@ function render(nowMs) {
   gl.uniform1f(uniforms.uParallaxBands, Math.round(clamp(Number(parallaxBandsInput.value), 2, 256)));
   gl.uniform1f(uniforms.uZoom, zoom);
   gl.uniform1f(uniforms.uUseFog, fogToggle.checked ? 1 : 0);
-  gl.uniform3f(uniforms.uFogColor, fogColor[0], fogColor[1], fogColor[2]);
+  gl.uniform3f(uniforms.uFogColor, params.fogColor[0], params.fogColor[1], params.fogColor[2]);
   gl.uniform1f(uniforms.uFogMinAlpha, clamp(Number(fogMinAlphaInput.value), 0, 1));
   gl.uniform1f(uniforms.uFogMaxAlpha, clamp(Number(fogMaxAlphaInput.value), 0, 1));
   gl.uniform1f(uniforms.uFogFalloff, clamp(Number(fogFalloffInput.value), 0.2, 4));
   gl.uniform1f(uniforms.uFogStartOffset, clamp(Number(fogStartOffsetInput.value), 0, 1));
-  gl.uniform1f(uniforms.uCameraHeightNorm, cameraHeightNorm);
+  gl.uniform1f(uniforms.uCameraHeightNorm, params.cameraHeightNorm);
   gl.uniform1f(uniforms.uMapAspect, getMapAspect());
   gl.uniform1f(uniforms.uUseCursorLight, cursorLightModeToggle.checked && cursorLightState.active ? 1 : 0);
   gl.uniform2f(uniforms.uCursorLightUv, cursorLightState.uvX, cursorLightState.uvY);
@@ -2059,9 +2145,23 @@ function render(nowMs) {
   gl.uniform2f(uniforms.uCursorLightMapSize, splatSize.width, splatSize.height);
   gl.uniform2f(uniforms.uViewHalfExtents, viewHalf.x, viewHalf.y);
   gl.uniform2f(uniforms.uPanWorld, panWorld.x, panWorld.y);
+}
 
+function render(nowMs) {
+  resize();
+  const cycleSpeedHoursPerSec = updateCycleTime(nowMs);
+  const lightingParams = computeLightingParams();
+  cycleInfoEl.textContent = `Time: ${formatHour(cycleState.hour)} | Speed: ${cycleSpeedHoursPerSec.toFixed(2)} h/s`;
+  updateCycleHourLabel();
+
+  gl.clearColor(0, 0, 0, 1);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+  uploadUniforms(lightingParams);
   gl.drawArrays(gl.TRIANGLES, 0, 6);
-  drawOverlay();
+  if (overlayDirty) {
+    drawOverlay();
+    overlayDirty = false;
+  }
   requestAnimationFrame(render);
 }
 
@@ -2093,4 +2193,3 @@ updateFogUi();
 setActiveTopic("");
 setStatus(`${statusEl.textContent} | Load maps by folder/path, then use wheel zoom, middle-drag pan, lighting mode for placed lights, and cursor light for live preview.`);
 requestAnimationFrame(render);
-

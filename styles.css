@@ -204,25 +204,7 @@ input[type="file"] {
   margin-bottom: 10px;
 }
 
-.light-editor-actions button {
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--text);
-  border-radius: 6px;
-  padding: 5px 10px;
-  cursor: pointer;
-}
-
-.light-editor-actions button:hover {
-  background: rgba(255, 255, 255, 0.14);
-}
-
-.light-persist-actions {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-}
-
+.light-editor-actions button,
 .light-persist-actions button {
   border: 1px solid rgba(255, 255, 255, 0.25);
   background: rgba(255, 255, 255, 0.08);
@@ -232,8 +214,15 @@ input[type="file"] {
   cursor: pointer;
 }
 
+.light-editor-actions button:hover,
 .light-persist-actions button:hover {
   background: rgba(255, 255, 255, 0.14);
+}
+
+.light-persist-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
 }
 
 @media (max-width: 760px) {

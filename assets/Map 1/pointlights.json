@@ -8,7 +8,6 @@
     {
       "pixelX": 670,
       "pixelY": 353,
-      "range": 30,
       "strength": 30,
       "intensity": 1,
       "heightOffset": 8,
@@ -21,7 +20,6 @@
     {
       "pixelX": 800,
       "pixelY": 372,
-      "range": 30,
       "strength": 30,
       "intensity": 1,
       "heightOffset": 8,
@@ -34,7 +32,6 @@
     {
       "pixelX": 767,
       "pixelY": 349,
-      "range": 30,
       "strength": 30,
       "intensity": 1,
       "heightOffset": 8,
@@ -47,7 +44,6 @@
     {
       "pixelX": 748,
       "pixelY": 348,
-      "range": 30,
       "strength": 30,
       "intensity": 1,
       "heightOffset": 8,
@@ -60,7 +56,6 @@
     {
       "pixelX": 716,
       "pixelY": 358,
-      "range": 30,
       "strength": 30,
       "intensity": 1,
       "heightOffset": 8,
@@ -73,7 +68,6 @@
     {
       "pixelX": 706,
       "pixelY": 529,
-      "range": 30,
       "strength": 30,
       "intensity": 1,
       "heightOffset": 8,
@@ -86,7 +80,6 @@
     {
       "pixelX": 711,
       "pixelY": 545,
-      "range": 30,
       "strength": 30,
       "intensity": 1,
       "heightOffset": 8,
@@ -99,7 +92,6 @@
     {
       "pixelX": 715,
       "pixelY": 574,
-      "range": 30,
       "strength": 30,
       "intensity": 1,
       "heightOffset": 8,
@@ -112,7 +104,6 @@
     {
       "pixelX": 727,
       "pixelY": 597,
-      "range": 30,
       "strength": 30,
       "intensity": 1,
       "heightOffset": 8,
@@ -125,7 +116,6 @@
     {
       "pixelX": 743,
       "pixelY": 621,
-      "range": 30,
       "strength": 30,
       "intensity": 1,
       "heightOffset": 8,
@@ -138,7 +128,6 @@
     {
       "pixelX": 686,
       "pixelY": 545,
-      "range": 30,
       "strength": 30,
       "intensity": 1,
       "heightOffset": 8,
@@ -151,7 +140,6 @@
     {
       "pixelX": 653,
       "pixelY": 553,
-      "range": 30,
       "strength": 30,
       "intensity": 1,
       "heightOffset": 8,
@@ -164,7 +152,6 @@
     {
       "pixelX": 668,
       "pixelY": 548,
-      "range": 30,
       "strength": 30,
       "intensity": 1,
       "heightOffset": 8,
@@ -177,7 +164,6 @@
     {
       "pixelX": 763,
       "pixelY": 410,
-      "range": 8,
       "strength": 8,
       "intensity": 4,
       "heightOffset": 8,
@@ -190,7 +176,6 @@
     {
       "pixelX": 755,
       "pixelY": 418,
-      "range": 8,
       "strength": 8,
       "intensity": 4,
       "heightOffset": 8,
@@ -203,7 +188,6 @@
     {
       "pixelX": 748,
       "pixelY": 423,
-      "range": 9,
       "strength": 9,
       "intensity": 4,
       "heightOffset": 20,
