@@ -11,15 +11,15 @@
       <h1>Terrain Prototype</h1>
       <div class="row">
         <label for="splatInput">Splat</label>
-        <input id="splatInput" type="file" accept="image/png" />
+        <input id="splatInput" type="file" accept="image/png,image/jpeg" />
       </div>
       <div class="row">
         <label for="normalInput">Normals</label>
-        <input id="normalInput" type="file" accept="image/png" />
+        <input id="normalInput" type="file" accept="image/png,image/jpeg" />
       </div>
       <div class="row">
         <label for="heightInput">Height</label>
-        <input id="heightInput" type="file" accept="image/png" />
+        <input id="heightInput" type="file" accept="image/png,image/jpeg" />
       </div>
       <div class="row">
         <label for="cycleSpeed">Day Speed</label>
@@ -40,6 +40,10 @@
       <div class="row">
         <label for="ambient">Ambient</label>
         <input id="ambient" type="range" min="0" max="1" step="0.01" value="0.35" />
+      </div>
+      <div class="row">
+        <label for="diffuse">Diffuse</label>
+        <input id="diffuse" type="range" min="0" max="2" step="0.01" value="1" />
       </div>
       <p class="help">Day cycle runs automatically. Wheel zooms. Middle mouse drag pans.</p>
       <p id="cycleInfo" class="status">Time: --:-- | Speed: -- h/s</p>

@@ -9,6 +9,7 @@ const shadowsToggle = document.getElementById("shadowsToggle");
 const heightScaleInput = document.getElementById("heightScale");
 const shadowStrengthInput = document.getElementById("shadowStrength");
 const ambientInput = document.getElementById("ambient");
+const diffuseInput = document.getElementById("diffuse");
 
 const gl = canvas.getContext("webgl2");
 if (!gl) {
@@ -589,10 +590,11 @@ function render(nowMs) {
   ];
 
   const ambientBase = Number(ambientInput.value);
+  const diffuseBase = clamp(Number(diffuseInput.value), 0, 2);
   const sunVisible = smoothstep(-4, 2, sun.altitudeDeg);
   const moonVisible = smoothstep(-10, 6, moonAltitudeDeg);
-  const sunStrength = sunVisible;
-  const moonStrength = 0.22 * moonVisible;
+  const sunStrength = sunVisible * diffuseBase;
+  const moonStrength = 0.22 * moonVisible * diffuseBase;
 
   const moonAmbientColor = [0.20, 0.26, 0.40];
   const sunAmbientWeight = sun.ambientScale;
@@ -651,6 +653,10 @@ function render(nowMs) {
 
 window.addEventListener("resize", resize);
 
-await tryAutoLoadAssets();
-setStatus(`${statusEl.textContent} | Day cycle: speed slider (0..1 h/s), wheel zoom, middle-drag pan.`);
+void tryAutoLoadAssets().catch((error) => {
+  console.error("Auto-load failed:", error);
+  const message = error instanceof Error ? error.message : String(error);
+  setStatus(`Auto-load failed: ${message}`);
+});
+setStatus(`${statusEl.textContent} | Day cycle: speed slider (0..1 h/s), diffuse slider, wheel zoom, middle-drag pan.`);
 requestAnimationFrame(render);
