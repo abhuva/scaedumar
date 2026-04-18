@@ -26,17 +26,18 @@ Build a self-contained prototype for top-down terrain rendering from Gaea-export
 
 ## Map Conventions (Current Prototype)
 
-- `assets/splat.(png|jpg|jpeg)`: base color terrain image
-- `assets/normals.(png|jpg|jpeg)`: tangent/object-space normal map encoded in RGB
-- `assets/height.(png|jpg|jpeg)`: grayscale height map (optional but used for shadows)
+- `assets/splat.png`: base color terrain image
+- `assets/normals.png`: tangent/object-space normal map encoded in RGB
+- `assets/height.png`: grayscale height map (optional but used for shadows)
 
 
 ## Lighting Model (Prototype)
 
 - Directional sun (not point light)
-- Mouse controls:
-  - Angle from center sets azimuth
-  - Distance from center sets altitude
+- Simulated day/night cycle:
+  - Hour over day drives azimuth and altitude from a simple lookup table
+  - Cycle speed is adjustable from `0` to `1` hour per second
+  - Lower altitudes add warm sunrise/sunset ambience
 - Height-based shadow raymarch in texture space
 
 

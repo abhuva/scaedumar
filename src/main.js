@@ -1,8 +1,10 @@
-const canvas = document.getElementById("glCanvas");
+﻿const canvas = document.getElementById("glCanvas");
 const statusEl = document.getElementById("status");
+const cycleInfoEl = document.getElementById("cycleInfo");
 const splatInput = document.getElementById("splatInput");
 const normalInput = document.getElementById("normalInput");
 const heightInput = document.getElementById("heightInput");
+const cycleSpeedInput = document.getElementById("cycleSpeed");
 const shadowsToggle = document.getElementById("shadowsToggle");
 const heightScaleInput = document.getElementById("heightScale");
 const shadowStrengthInput = document.getElementById("shadowStrength");
@@ -30,6 +32,8 @@ uniform sampler2D uHeight;
 uniform vec2 uMapTexelSize;
 uniform vec2 uResolution;
 uniform vec3 uSunDir;
+uniform vec3 uSunColor;
+uniform vec3 uAmbientColor;
 uniform float uAmbient;
 uniform float uHeightScale;
 uniform float uShadowStrength;
@@ -89,8 +93,11 @@ void main() {
 
   float diffuse = max(dot(n, uSunDir), 0.0);
   float shadow = calcShadow(uv, uSunDir);
-  float light = clamp(uAmbient + diffuse * shadow, 0.0, 1.0);
-  outColor = vec4(base * light, 1.0);
+
+  vec3 ambientLit = base * (uAmbient * uAmbientColor);
+  vec3 sunLit = base * (diffuse * shadow) * uSunColor;
+  vec3 lit = clamp(ambientLit + sunLit, 0.0, 1.0);
+  outColor = vec4(lit, 1.0);
 }`;
 
 function createShader(type, src) {
@@ -164,6 +171,71 @@ function setStatus(text) {
   statusEl.textContent = text;
 }
 
+function clamp(v, min, max) {
+  return Math.min(max, Math.max(min, v));
+}
+
+function lerp(a, b, t) {
+  return a + (b - a) * t;
+}
+
+function lerpVec3(a, b, t) {
+  return [
+    lerp(a[0], b[0], t),
+    lerp(a[1], b[1], t),
+    lerp(a[2], b[2], t),
+  ];
+}
+
+function lerpAngleDeg(a, b, t) {
+  const delta = ((b - a + 540) % 360) - 180;
+  return a + delta * t;
+}
+
+function wrapHour(hour) {
+  const h = hour % 24;
+  return h < 0 ? h + 24 : h;
+}
+
+function formatHour(hour) {
+  const h = wrapHour(hour);
+  const hh = Math.floor(h);
+  const mm = Math.floor((h - hh) * 60);
+  return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+}
+
+const SUN_KEYS = [
+  { hour: 0, azimuthDeg: -170, altitudeDeg: -60, sunColor: [0.08, 0.10, 0.20], ambientColor: [0.06, 0.08, 0.12], ambientScale: 0.18 },
+  { hour: 4, azimuthDeg: -135, altitudeDeg: -22, sunColor: [0.35, 0.26, 0.22], ambientColor: [0.14, 0.10, 0.12], ambientScale: 0.22 },
+  { hour: 6, azimuthDeg: -108, altitudeDeg: 3, sunColor: [1.00, 0.50, 0.30], ambientColor: [0.42, 0.22, 0.15], ambientScale: 0.30 },
+  { hour: 8, azimuthDeg: -72, altitudeDeg: 24, sunColor: [1.00, 0.82, 0.62], ambientColor: [0.44, 0.34, 0.28], ambientScale: 0.45 },
+  { hour: 12, azimuthDeg: 0, altitudeDeg: 64, sunColor: [1.00, 0.98, 0.92], ambientColor: [0.58, 0.62, 0.68], ambientScale: 0.70 },
+  { hour: 16, azimuthDeg: 72, altitudeDeg: 26, sunColor: [1.00, 0.84, 0.65], ambientColor: [0.44, 0.35, 0.30], ambientScale: 0.50 },
+  { hour: 18, azimuthDeg: 108, altitudeDeg: 4, sunColor: [1.00, 0.48, 0.28], ambientColor: [0.45, 0.23, 0.16], ambientScale: 0.32 },
+  { hour: 20, azimuthDeg: 138, altitudeDeg: -14, sunColor: [0.42, 0.25, 0.24], ambientColor: [0.18, 0.10, 0.14], ambientScale: 0.22 },
+  { hour: 24, azimuthDeg: 190, altitudeDeg: -60, sunColor: [0.08, 0.10, 0.20], ambientColor: [0.06, 0.08, 0.12], ambientScale: 0.18 },
+];
+
+function sampleSunAtHour(hour) {
+  const h = wrapHour(hour);
+  for (let i = 0; i < SUN_KEYS.length - 1; i++) {
+    const a = SUN_KEYS[i];
+    const b = SUN_KEYS[i + 1];
+    if (h >= a.hour && h <= b.hour) {
+      const span = Math.max(0.0001, b.hour - a.hour);
+      const t = (h - a.hour) / span;
+      return {
+        azimuthDeg: lerpAngleDeg(a.azimuthDeg, b.azimuthDeg, t),
+        altitudeDeg: lerp(a.altitudeDeg, b.altitudeDeg, t),
+        sunColor: lerpVec3(a.sunColor, b.sunColor, t),
+        ambientColor: lerpVec3(a.ambientColor, b.ambientColor, t),
+        ambientScale: lerp(a.ambientScale, b.ambientScale, t),
+      };
+    }
+  }
+  return SUN_KEYS[0];
+}
+
 const program = createProgram(VERT_SRC, FRAG_SRC);
 gl.useProgram(program);
 
@@ -174,6 +246,8 @@ const uniforms = {
   uMapTexelSize: gl.getUniformLocation(program, "uMapTexelSize"),
   uResolution: gl.getUniformLocation(program, "uResolution"),
   uSunDir: gl.getUniformLocation(program, "uSunDir"),
+  uSunColor: gl.getUniformLocation(program, "uSunColor"),
+  uAmbientColor: gl.getUniformLocation(program, "uAmbientColor"),
   uAmbient: gl.getUniformLocation(program, "uAmbient"),
   uHeightScale: gl.getUniformLocation(program, "uHeightScale"),
   uShadowStrength: gl.getUniformLocation(program, "uShadowStrength"),
@@ -250,49 +324,6 @@ function createFallbackSplat(size = 512) {
   return c;
 }
 
-const defaultNormalImage = createFlatNormalImage();
-const defaultHeightImage = createFlatHeightImage();
-const defaultSplatImage = createFallbackSplat();
-uploadImageToTexture(normalsTex, defaultNormalImage);
-uploadImageToTexture(heightTex, defaultHeightImage);
-uploadImageToTexture(splatTex, defaultSplatImage);
-setSplatSizeFromImage(defaultSplatImage);
-setHeightSizeFromImage(defaultHeightImage);
-
-let sunAzimuth = 0.9;
-let sunAltitude = 0.7;
-let zoom = 1;
-const zoomMin = 0.5;
-const zoomMax = 32;
-const panWorld = { x: 0, y: 0 };
-let isMiddleDragging = false;
-let lastDragClient = { x: 0, y: 0 };
-
-function updateSunFromMouse(clientX, clientY) {
-  const rect = canvas.getBoundingClientRect();
-  const cx = rect.left + rect.width * 0.5;
-  const cy = rect.top + rect.height * 0.5;
-  const dx = clientX - cx;
-  const dy = clientY - cy;
-  const radius = Math.max(32, Math.min(rect.width, rect.height) * 0.5);
-  const dist01 = Math.min(1, Math.hypot(dx, dy) / radius);
-  sunAzimuth = Math.atan2(dy, dx);
-  const minAlt = 8 * (Math.PI / 180);
-  const maxAlt = 85 * (Math.PI / 180);
-  sunAltitude = maxAlt - dist01 * (maxAlt - minAlt);
-}
-
-canvas.addEventListener("mousemove", (e) => {
-  if (isMiddleDragging) return;
-  updateSunFromMouse(e.clientX, e.clientY);
-});
-
-canvas.addEventListener("touchmove", (e) => {
-  const t = e.touches[0];
-  if (!t) return;
-  updateSunFromMouse(t.clientX, t.clientY);
-}, { passive: true });
-
 function setSplatSizeFromImage(img) {
   splatSize.width = img.width || 1;
   splatSize.height = img.height || 1;
@@ -302,6 +333,27 @@ function setHeightSizeFromImage(img) {
   heightSize.width = img.width || 1;
   heightSize.height = img.height || 1;
 }
+
+const defaultNormalImage = createFlatNormalImage();
+const defaultHeightImage = createFlatHeightImage();
+const defaultSplatImage = createFallbackSplat();
+uploadImageToTexture(normalsTex, defaultNormalImage);
+uploadImageToTexture(heightTex, defaultHeightImage);
+uploadImageToTexture(splatTex, defaultSplatImage);
+setSplatSizeFromImage(defaultSplatImage);
+setHeightSizeFromImage(defaultHeightImage);
+
+let zoom = 1;
+const zoomMin = 0.5;
+const zoomMax = 32;
+const panWorld = { x: 0, y: 0 };
+let isMiddleDragging = false;
+let lastDragClient = { x: 0, y: 0 };
+
+const cycleState = {
+  hour: 9.5,
+  lastRenderMs: null,
+};
 
 function resetCamera() {
   zoom = 1;
@@ -390,52 +442,41 @@ canvas.addEventListener("auxclick", (e) => {
 });
 
 async function tryAutoLoadAssets() {
-  const results = [];
-  const loadFirstExisting = async (candidates) => {
-    for (const url of candidates) {
-      try {
-        const image = await loadImageFromUrl(url);
-        return { image, url };
-      } catch {
-        // Try next extension.
-      }
-    }
-    return null;
-  };
+  const loaded = [];
 
-  const splatLoaded = await loadFirstExisting(["./assets/splat.png", "./assets/splat.jpg", "./assets/splat.jpeg"]);
-  if (splatLoaded) {
-    uploadImageToTexture(splatTex, splatLoaded.image);
-    setSplatSizeFromImage(splatLoaded.image);
+  try {
+    const splat = await loadImageFromUrl("./assets/splat.png");
+    uploadImageToTexture(splatTex, splat);
+    setSplatSizeFromImage(splat);
     resetCamera();
-    results.push(`splat (${splatLoaded.url.split("/").pop()})`);
-  } else {
+    loaded.push("splat.png");
+  } catch {
     const fallbackSplat = createFallbackSplat(512);
     uploadImageToTexture(splatTex, fallbackSplat);
     setSplatSizeFromImage(fallbackSplat);
     resetCamera();
   }
 
-  const normalsLoaded = await loadFirstExisting(["./assets/normals.png", "./assets/normals.jpg", "./assets/normals.jpeg"]);
-  if (normalsLoaded) {
-    uploadImageToTexture(normalsTex, normalsLoaded.image);
-    results.push(`normals (${normalsLoaded.url.split("/").pop()})`);
-  } else {
+  try {
+    const normals = await loadImageFromUrl("./assets/normals.png");
+    uploadImageToTexture(normalsTex, normals);
+    loaded.push("normals.png");
+  } catch {
     uploadImageToTexture(normalsTex, defaultNormalImage);
   }
 
-  const heightLoaded = await loadFirstExisting(["./assets/height.png", "./assets/height.jpg", "./assets/height.jpeg"]);
-  if (heightLoaded) {
-    uploadImageToTexture(heightTex, heightLoaded.image);
-    setHeightSizeFromImage(heightLoaded.image);
-    results.push(`height (${heightLoaded.url.split("/").pop()})`);
-  } else {
+  try {
+    const height = await loadImageFromUrl("./assets/height.png");
+    uploadImageToTexture(heightTex, height);
+    setHeightSizeFromImage(height);
+    loaded.push("height.png");
+  } catch {
     uploadImageToTexture(heightTex, defaultHeightImage);
     setHeightSizeFromImage(defaultHeightImage);
   }
 
-  if (results.length > 0) {
-    setStatus(`Loaded default assets: ${results.join(", ")}`);
+  if (loaded.length > 0) {
+    setStatus(`Loaded default assets: ${loaded.join(", ")}`);
   } else {
     setStatus("Using fallback textures. Add PNGs to assets/ or load via file pickers.");
   }
@@ -497,17 +538,37 @@ function resize() {
   gl.viewport(0, 0, canvas.width, canvas.height);
 }
 
-function render() {
+function render(nowMs) {
   resize();
+
+  if (cycleState.lastRenderMs === null) {
+    cycleState.lastRenderMs = nowMs;
+  }
+  const dtSec = Math.min(0.25, Math.max(0, (nowMs - cycleState.lastRenderMs) * 0.001));
+  cycleState.lastRenderMs = nowMs;
+
+  const cycleSpeedHoursPerSec = clamp(Number(cycleSpeedInput.value), 0, 1);
+  if (cycleSpeedHoursPerSec > 0) {
+    cycleState.hour = wrapHour(cycleState.hour + cycleSpeedHoursPerSec * dtSec);
+  }
+
+  const sun = sampleSunAtHour(cycleState.hour);
+  const azimuthRad = sun.azimuthDeg * Math.PI / 180;
+  const altitudeRad = sun.altitudeDeg * Math.PI / 180;
+  const cosAlt = Math.cos(altitudeRad);
+  const sunDir = [
+    Math.cos(azimuthRad) * cosAlt,
+    Math.sin(azimuthRad) * cosAlt,
+    Math.sin(altitudeRad),
+  ];
+
+  const ambientBase = Number(ambientInput.value);
+  const ambientFinal = ambientBase * sun.ambientScale;
+
+  cycleInfoEl.textContent = `Time: ${formatHour(cycleState.hour)} | Speed: ${cycleSpeedHoursPerSec.toFixed(2)} h/s`;
+
   gl.clearColor(0, 0, 0, 1);
   gl.clear(gl.COLOR_BUFFER_BIT);
-
-  const cosAlt = Math.cos(sunAltitude);
-  const sunDir = [
-    Math.cos(sunAzimuth) * cosAlt,
-    Math.sin(sunAzimuth) * cosAlt,
-    Math.sin(sunAltitude),
-  ];
 
   gl.useProgram(program);
   gl.activeTexture(gl.TEXTURE0);
@@ -526,7 +587,9 @@ function render() {
   gl.uniform2f(uniforms.uMapTexelSize, 1 / heightSize.width, 1 / heightSize.height);
   gl.uniform2f(uniforms.uResolution, canvas.width, canvas.height);
   gl.uniform3f(uniforms.uSunDir, sunDir[0], sunDir[1], sunDir[2]);
-  gl.uniform1f(uniforms.uAmbient, Number(ambientInput.value));
+  gl.uniform3f(uniforms.uSunColor, sun.sunColor[0], sun.sunColor[1], sun.sunColor[2]);
+  gl.uniform3f(uniforms.uAmbientColor, sun.ambientColor[0], sun.ambientColor[1], sun.ambientColor[2]);
+  gl.uniform1f(uniforms.uAmbient, ambientFinal);
   gl.uniform1f(uniforms.uHeightScale, Number(heightScaleInput.value));
   gl.uniform1f(uniforms.uShadowStrength, Number(shadowStrengthInput.value));
   gl.uniform1f(uniforms.uUseShadows, shadowsToggle.checked ? 1 : 0);
@@ -541,5 +604,5 @@ function render() {
 window.addEventListener("resize", resize);
 
 await tryAutoLoadAssets();
-setStatus(`${statusEl.textContent} | Mouse: sun direction, wheel: zoom, middle-drag: pan.`);
-render();
+setStatus(`${statusEl.textContent} | Day cycle: speed slider (0..1 h/s), wheel zoom, middle-drag pan.`);
+requestAnimationFrame(render);
