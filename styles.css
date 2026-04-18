@@ -83,6 +83,13 @@ body {
   border-color: rgba(255, 174, 174, 0.8);
 }
 
+.mode-btn:focus-visible {
+  outline: 2px solid #ffd4d4;
+  outline-offset: 2px;
+  border-color: rgba(255, 205, 205, 0.95);
+  box-shadow: 0 0 0 3px rgba(120, 18, 18, 0.75);
+}
+
 .topic-btn.active,
 .topic-btn:hover {
   background: rgba(255, 255, 255, 0.17);

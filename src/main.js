@@ -1922,12 +1922,16 @@ function applyLoadedNpc(rawData) {
   setPlayerPosition(player.pixelX, player.pixelY);
 }
 
-function getGrayAt(imageData, x, y) {
+function getGrayAt(imageData, x, y, sourceWidth = splatSize.width, sourceHeight = splatSize.height) {
   if (!imageData || !imageData.data) return 0;
   const w = imageData.width || 1;
   const h = imageData.height || 1;
-  const sx = clamp(Math.round(x), 0, Math.max(0, w - 1));
-  const sy = clamp(Math.round(y), 0, Math.max(0, h - 1));
+  const srcW = Math.max(1, Number(sourceWidth) || 1);
+  const srcH = Math.max(1, Number(sourceHeight) || 1);
+  const nx = (Number(x) + 0.5) / srcW;
+  const ny = (Number(y) + 0.5) / srcH;
+  const sx = clamp(Math.round(nx * w - 0.5), 0, Math.max(0, w - 1));
+  const sy = clamp(Math.round(ny * h - 0.5), 0, Math.max(0, h - 1));
   const idx = (sy * w + sx) * 4;
   return imageData.data[idx] / 255;
 }
@@ -1948,7 +1952,10 @@ function computeMoveStepCost(fromX, fromY, toX, toY) {
   const isDiag = fromX !== toX && fromY !== toY;
   const dist = isDiag ? Math.SQRT2 : 1;
   const slope = getGrayAt(slopeImageData, toX, toY);
-  const height = getGrayAt(heightImageData, toX, toY);
+  const sourceHeight = getGrayAt(heightImageData, fromX, fromY);
+  const destHeight = getGrayAt(heightImageData, toX, toY);
+  const heightDelta = destHeight - sourceHeight;
+  const uphill = Math.max(heightDelta, 0);
   const water = getGrayAt(waterImageData, toX, toY);
   const slopeDeg = slope * 90;
   const slopeCutoffDeg = clamp(Number(pathSlopeCutoffInput.value), 0, 90);
@@ -1959,7 +1966,7 @@ function computeMoveStepCost(fromX, fromY, toX, toY) {
   const heightWeight = clamp(Number(pathWeightHeightInput.value), 0, 10);
   const waterWeight = clamp(Number(pathWeightWaterInput.value), 0, 100);
   const baseCost = clamp(Number(pathBaseCostInput.value), 0, 2);
-  const weightedCost = slopeWeight * slope + heightWeight * height + waterWeight * water;
+  const weightedCost = slopeWeight * slope * uphill + heightWeight * uphill + waterWeight * water;
   return dist * (baseCost + weightedCost);
 }
 
