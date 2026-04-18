@@ -4,7 +4,7 @@ Prototype goals:
 - Load a terrain splat PNG and render it
 - Load normals PNG and apply directional sunlight
 - Load height PNG and compute directional shadows
-- Control sun azimuth + altitude by mouse position
+- Simulate a full day/night sun cycle with adjustable speed
 
 ## Files
 
@@ -15,9 +15,9 @@ Prototype goals:
 
 ## Expected auto-load names
 
-- `assets/splat.png` or `assets/splat.jpg`
-- `assets/normals.png` or `assets/normals.jpg`
-- `assets/height.png` or `assets/height.jpg`
+- `assets/splat.png`
+- `assets/normals.png`
+- `assets/height.png`
 
 If these are not present, the app starts with fallback textures. You can load files manually with the file inputs.
 
@@ -42,8 +42,9 @@ Then open:
 ## Notes
 
 - Directional light is modeled as a sun direction vector.
-- Mouse angle from center controls sun azimuth.
-- Mouse distance from center controls sun altitude.
+- Sun azimuth/altitude are sampled from a daily keyframe table and interpolated.
+- Day-cycle speed slider runs from `0.00` to `1.00` hours/second (`0` = paused).
+- Low sun angles use warmer sunlight/ambient colors for sunrise/sunset ambience.
 - Mouse wheel controls zoom.
 - Middle mouse drag pans the map.
 - Height shadowing is a texture-space raymarch for prototype quality.
