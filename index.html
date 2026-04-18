@@ -8,7 +8,7 @@
   </head>
   <body>
     <nav class="topic-dock" aria-label="Settings topics">
-      <button class="topic-btn" type="button" data-topic="assets" title="Assets">A</button>
+      <button class="topic-btn" type="button" data-topic="map" title="Load Map">M</button>
       <button class="topic-btn" type="button" data-topic="interaction" title="Interaction">I</button>
       <button class="topic-btn" type="button" data-topic="lighting" title="Main Lighting">L</button>
       <button class="topic-btn" type="button" data-topic="parallax" title="Parallax">P</button>
@@ -23,18 +23,21 @@
         <button id="topicPanelClose" type="button">Close</button>
       </div>
       <div class="topic-panel-body">
-        <section class="topic-card" data-topic="assets" data-title="Assets">
+        <section class="topic-card" data-topic="map" data-title="Load Map">
           <div class="row">
-            <label for="splatInput">Splat</label>
-            <input id="splatInput" type="file" accept="image/png" />
+            <label for="mapPathInput">Map Path</label>
+            <div class="inline-control">
+              <input id="mapPathInput" type="text" value="./assets/map1" />
+              <button id="mapPathLoadBtn" class="row-action-btn" type="button">Load</button>
+            </div>
           </div>
           <div class="row">
-            <label for="normalInput">Normals</label>
-            <input id="normalInput" type="file" accept="image/png" />
+            <label for="mapFolderInput">Map Folder</label>
+            <input id="mapFolderInput" type="file" webkitdirectory directory multiple />
           </div>
           <div class="row">
-            <label for="heightInput">Height</label>
-            <input id="heightInput" type="file" accept="image/png" />
+            <label for="mapSaveAllBtn">Map Data</label>
+            <button id="mapSaveAllBtn" class="row-action-btn" type="button">Save All</button>
           </div>
         </section>
 
@@ -86,6 +89,13 @@
           <div class="row">
             <label for="cycleSpeed">Day Speed</label>
             <input id="cycleSpeed" type="range" min="0" max="1" step="0.01" value="0.08" />
+          </div>
+          <div class="row">
+            <label for="cycleHour">Time of Day</label>
+            <div class="inline-control">
+              <input id="cycleHour" type="range" min="0" max="24" step="0.0166667" value="9.5" />
+              <span id="cycleHourValue">09:30</span>
+            </div>
           </div>
           <div class="row">
             <label for="shadowsToggle">Shadows</label>
@@ -178,17 +188,40 @@
               <input id="pointLightColor" type="color" value="#ff9b2f" />
             </div>
             <div class="row">
-              <label for="pointLightStrength">Strength</label>
+              <label for="pointLightStrength">Range</label>
               <div class="inline-control">
                 <input id="pointLightStrength" type="range" min="1" max="200" step="1" value="30" />
                 <span id="pointLightStrengthValue">30 px</span>
               </div>
+            </div>
+            <div class="row">
+              <label for="pointLightIntensity">Intensity</label>
+              <div class="inline-control">
+                <input id="pointLightIntensity" type="range" min="0" max="4" step="0.01" value="1" />
+                <span id="pointLightIntensityValue">1.00x</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="pointLightHeightOffset">Height</label>
+              <div class="inline-control">
+                <input id="pointLightHeightOffset" type="range" min="-120" max="240" step="1" value="8" />
+                <span id="pointLightHeightOffsetValue">8 px</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="pointLightLiveUpdateToggle">Live Update</label>
+              <input id="pointLightLiveUpdateToggle" type="checkbox" checked />
             </div>
             <div class="light-editor-actions">
               <button id="lightSaveBtn" type="button">Save</button>
               <button id="lightCancelBtn" type="button">Cancel</button>
               <button id="lightDeleteBtn" type="button">Delete</button>
             </div>
+          </div>
+          <div class="light-persist-actions">
+            <button id="pointLightsSaveAllBtn" type="button">Save All</button>
+            <button id="pointLightsLoadAllBtn" type="button">Load All</button>
+            <input id="pointLightsLoadInput" type="file" accept="application/json,.json" hidden />
           </div>
         </section>
 

@@ -7,9 +7,10 @@ const topicPanelCloseBtn = document.getElementById("topicPanelClose");
 const topicCards = Array.from(document.querySelectorAll(".topic-card"));
 const statusEl = document.getElementById("status");
 const cycleInfoEl = document.getElementById("cycleInfo");
-const splatInput = document.getElementById("splatInput");
-const normalInput = document.getElementById("normalInput");
-const heightInput = document.getElementById("heightInput");
+const mapPathInput = document.getElementById("mapPathInput");
+const mapPathLoadBtn = document.getElementById("mapPathLoadBtn");
+const mapFolderInput = document.getElementById("mapFolderInput");
+const mapSaveAllBtn = document.getElementById("mapSaveAllBtn");
 const circleRadiusInput = document.getElementById("circleRadius");
 const circleRadiusValue = document.getElementById("circleRadiusValue");
 const lightingModeToggle = document.getElementById("lightingModeToggle");
@@ -22,6 +23,8 @@ const cursorLightHeightOffsetInput = document.getElementById("cursorLightHeightO
 const cursorLightHeightOffsetValue = document.getElementById("cursorLightHeightOffsetValue");
 const cursorLightGizmoToggle = document.getElementById("cursorLightGizmoToggle");
 const cycleSpeedInput = document.getElementById("cycleSpeed");
+const cycleHourInput = document.getElementById("cycleHour");
+const cycleHourValue = document.getElementById("cycleHourValue");
 const shadowsToggle = document.getElementById("shadowsToggle");
 const parallaxToggle = document.getElementById("parallaxToggle");
 const parallaxStrengthInput = document.getElementById("parallaxStrength");
@@ -48,9 +51,17 @@ const lightCoordEl = document.getElementById("lightCoord");
 const pointLightColorInput = document.getElementById("pointLightColor");
 const pointLightStrengthInput = document.getElementById("pointLightStrength");
 const pointLightStrengthValue = document.getElementById("pointLightStrengthValue");
+const pointLightIntensityInput = document.getElementById("pointLightIntensity");
+const pointLightIntensityValue = document.getElementById("pointLightIntensityValue");
+const pointLightHeightOffsetInput = document.getElementById("pointLightHeightOffset");
+const pointLightHeightOffsetValue = document.getElementById("pointLightHeightOffsetValue");
+const pointLightLiveUpdateToggle = document.getElementById("pointLightLiveUpdateToggle");
 const lightSaveBtn = document.getElementById("lightSaveBtn");
 const lightCancelBtn = document.getElementById("lightCancelBtn");
 const lightDeleteBtn = document.getElementById("lightDeleteBtn");
+const pointLightsSaveAllBtn = document.getElementById("pointLightsSaveAllBtn");
+const pointLightsLoadAllBtn = document.getElementById("pointLightsLoadAllBtn");
+const pointLightsLoadInput = document.getElementById("pointLightsLoadInput");
 const overlayCtx = overlayCanvas.getContext("2d");
 
 const gl = canvas.getContext("webgl2");
@@ -313,6 +324,260 @@ async function loadImageFromFile(file) {
   return image;
 }
 
+function normalizeMapFolderPath(path) {
+  const text = String(path || "").trim();
+  if (!text) return DEFAULT_MAP_FOLDER;
+  return text.replace(/[\\/]+$/, "");
+}
+
+async function applyMapImages(splatImage, normalsImage, heightImage) {
+  uploadImageToTexture(splatTex, splatImage);
+  const sizeChanged = setSplatSizeFromImage(splatImage);
+  applyMapSizeChangeIfNeeded(sizeChanged);
+  resetCamera();
+
+  uploadImageToTexture(normalsTex, normalsImage);
+  setNormalsSizeFromImage(normalsImage);
+  normalsImageData = extractImageData(normalsImage);
+
+  uploadImageToTexture(heightTex, heightImage);
+  setHeightSizeFromImage(heightImage);
+  heightImageData = extractImageData(heightImage);
+}
+
+function getFileFromFolderSelection(files, fileName) {
+  const lower = fileName.toLowerCase();
+  for (const file of files) {
+    if (String(file.name || "").toLowerCase() === lower) {
+      return file;
+    }
+  }
+  return null;
+}
+
+async function tryLoadJsonFromUrl(path) {
+  const response = await fetch(path, { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+  return response.json();
+}
+
+function serializeLightingSettings() {
+  return {
+    version: 1,
+    useShadows: shadowsToggle.checked,
+    heightScale: clamp(Number(heightScaleInput.value), 1, 300),
+    shadowStrength: clamp(Number(shadowStrengthInput.value), 0, 1),
+    ambient: clamp(Number(ambientInput.value), 0, 1),
+    diffuse: clamp(Number(diffuseInput.value), 0, 2),
+  };
+}
+
+function applyLightingSettings(rawData) {
+  const data = rawData && typeof rawData === "object" ? rawData : {};
+  if (typeof data.useShadows === "boolean") {
+    shadowsToggle.checked = data.useShadows;
+  }
+  if (Number.isFinite(Number(data.heightScale))) {
+    heightScaleInput.value = String(clamp(Number(data.heightScale), 1, 300));
+  }
+  if (Number.isFinite(Number(data.shadowStrength))) {
+    shadowStrengthInput.value = String(clamp(Number(data.shadowStrength), 0, 1));
+  }
+  if (Number.isFinite(Number(data.ambient))) {
+    ambientInput.value = String(clamp(Number(data.ambient), 0, 1));
+  }
+  if (Number.isFinite(Number(data.diffuse))) {
+    diffuseInput.value = String(clamp(Number(data.diffuse), 0, 2));
+  }
+  schedulePointLightBake();
+}
+
+function serializeFogSettings() {
+  return {
+    version: 1,
+    useFog: fogToggle.checked,
+    fogColor: fogColorInput.value,
+    fogColorManual,
+    fogMinAlpha: clamp(Number(fogMinAlphaInput.value), 0, 1),
+    fogMaxAlpha: clamp(Number(fogMaxAlphaInput.value), 0, 1),
+    fogFalloff: clamp(Number(fogFalloffInput.value), 0.2, 4),
+    fogStartOffset: clamp(Number(fogStartOffsetInput.value), 0, 1),
+  };
+}
+
+function applyFogSettings(rawData) {
+  const data = rawData && typeof rawData === "object" ? rawData : {};
+  if (typeof data.useFog === "boolean") {
+    fogToggle.checked = data.useFog;
+  }
+  if (typeof data.fogColor === "string" && /^#?[0-9a-fA-F]{6}$/.test(data.fogColor)) {
+    fogColorInput.value = data.fogColor.startsWith("#") ? data.fogColor : `#${data.fogColor}`;
+  }
+  fogColorManual = Boolean(data.fogColorManual);
+  if (Number.isFinite(Number(data.fogMinAlpha))) {
+    fogMinAlphaInput.value = String(clamp(Number(data.fogMinAlpha), 0, 1));
+  }
+  if (Number.isFinite(Number(data.fogMaxAlpha))) {
+    fogMaxAlphaInput.value = String(clamp(Number(data.fogMaxAlpha), 0, 1));
+  }
+  if (Number.isFinite(Number(data.fogFalloff))) {
+    fogFalloffInput.value = String(clamp(Number(data.fogFalloff), 0.2, 4));
+  }
+  if (Number.isFinite(Number(data.fogStartOffset))) {
+    fogStartOffsetInput.value = String(clamp(Number(data.fogStartOffset), 0, 1));
+  }
+  updateFogAlphaLabels();
+  updateFogFalloffLabel();
+  updateFogStartOffsetLabel();
+  updateFogUi();
+}
+
+function createMapDataFileTexts() {
+  return {
+    "pointlights.json": `${JSON.stringify(serializePointLights(), null, 2)}\n`,
+    "lighting.json": `${JSON.stringify(serializeLightingSettings(), null, 2)}\n`,
+    "fog.json": `${JSON.stringify(serializeFogSettings(), null, 2)}\n`,
+  };
+}
+
+function downloadTextFile(fileName, text) {
+  const blob = new Blob([text], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+async function saveAllMapDataFiles() {
+  const files = createMapDataFileTexts();
+  const folder = normalizeMapFolderPath(currentMapFolderPath);
+  const names = Object.keys(files).join(", ");
+
+  if (typeof window.showDirectoryPicker === "function") {
+    const dir = await window.showDirectoryPicker();
+    for (const [name, text] of Object.entries(files)) {
+      const handle = await dir.getFileHandle(name, { create: true });
+      const writable = await handle.createWritable();
+      await writable.write(text);
+      await writable.close();
+    }
+    setStatus(`Saved map data (${names}) to selected folder. Recommended map path: ${folder}`);
+    return;
+  }
+
+  for (const [name, text] of Object.entries(files)) {
+    downloadTextFile(name, text);
+  }
+  setStatus(`Downloaded ${names}. Move them to ${folder}.`);
+}
+
+async function loadMapFromPath(mapFolderPath) {
+  const folder = normalizeMapFolderPath(mapFolderPath);
+  const [splat, normals, height] = await Promise.all([
+    loadImageFromUrl(`${folder}/splat.png`),
+    loadImageFromUrl(`${folder}/normals.png`),
+    loadImageFromUrl(`${folder}/height.png`),
+  ]);
+
+  await applyMapImages(splat, normals, height);
+  currentMapFolderPath = folder;
+  mapPathInput.value = folder;
+
+  let loadedPointLights = false;
+  let loadedLighting = false;
+  let loadedFog = false;
+
+  try {
+    const pointLightsJson = await tryLoadJsonFromUrl(`${folder}/pointlights.json`);
+    applyLoadedPointLights(pointLightsJson, `${folder}/pointlights.json`, { suppressStatus: true });
+    loadedPointLights = true;
+  } catch (err) {
+    console.warn(`No pointlights.json found in ${folder}`, err);
+    clearPointLights();
+    bakePointLightsTexture();
+    updateLightEditorUi();
+    drawOverlay();
+  }
+
+  try {
+    const lightingJson = await tryLoadJsonFromUrl(`${folder}/lighting.json`);
+    applyLightingSettings(lightingJson);
+    loadedLighting = true;
+  } catch (err) {
+    console.warn(`No lighting.json found in ${folder}`, err);
+  }
+
+  try {
+    const fogJson = await tryLoadJsonFromUrl(`${folder}/fog.json`);
+    applyFogSettings(fogJson);
+    loadedFog = true;
+  } catch (err) {
+    console.warn(`No fog.json found in ${folder}`, err);
+  }
+
+  setStatus(`Loaded map ${folder} | pointlights: ${loadedPointLights ? "yes" : "no"} | lighting: ${loadedLighting ? "yes" : "no"} | fog: ${loadedFog ? "yes" : "no"}`);
+}
+
+async function loadMapFromFolderSelection(fileList) {
+  const files = Array.from(fileList || []);
+  const splatFile = getFileFromFolderSelection(files, "splat.png");
+  const normalsFile = getFileFromFolderSelection(files, "normals.png");
+  const heightFile = getFileFromFolderSelection(files, "height.png");
+  if (!splatFile || !normalsFile || !heightFile) {
+    throw new Error("Folder must contain splat.png, normals.png, and height.png.");
+  }
+
+  const [splat, normals, height] = await Promise.all([
+    loadImageFromFile(splatFile),
+    loadImageFromFile(normalsFile),
+    loadImageFromFile(heightFile),
+  ]);
+  await applyMapImages(splat, normals, height);
+
+  const relPath = String(splatFile.webkitRelativePath || "");
+  const firstFolder = relPath.includes("/") ? relPath.split("/")[0] : "";
+  if (firstFolder) {
+    currentMapFolderPath = `./assets/${firstFolder}`;
+    mapPathInput.value = currentMapFolderPath;
+  }
+
+  let loadedPointLights = false;
+  let loadedLighting = false;
+  let loadedFog = false;
+
+  const pointLightsFile = getFileFromFolderSelection(files, "pointlights.json");
+  if (pointLightsFile) {
+    const rawData = JSON.parse(await pointLightsFile.text());
+    applyLoadedPointLights(rawData, pointLightsFile.name, { suppressStatus: true });
+    loadedPointLights = true;
+  } else {
+    clearPointLights();
+    bakePointLightsTexture();
+    updateLightEditorUi();
+    drawOverlay();
+  }
+
+  const lightingFile = getFileFromFolderSelection(files, "lighting.json");
+  if (lightingFile) {
+    applyLightingSettings(JSON.parse(await lightingFile.text()));
+    loadedLighting = true;
+  }
+
+  const fogFile = getFileFromFolderSelection(files, "fog.json");
+  if (fogFile) {
+    applyFogSettings(JSON.parse(await fogFile.text()));
+    loadedFog = true;
+  }
+
+  setStatus(`Loaded map folder | pointlights: ${loadedPointLights ? "yes" : "no"} | lighting: ${loadedLighting ? "yes" : "no"} | fog: ${loadedFog ? "yes" : "no"}`);
+}
+
 function setStatus(text) {
   statusEl.textContent = text;
 }
@@ -353,6 +618,10 @@ function formatHour(hour) {
   const hh = Math.floor(h);
   const mm = Math.floor((h - hh) * 60);
   return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+}
+
+function setCycleHourSliderFromState() {
+  cycleHourInput.value = String(clamp(cycleState.hour, 0, 24));
 }
 
 const SUN_KEYS = [
@@ -464,9 +733,15 @@ const pointLights = [];
 let selectedLightId = null;
 let lightEditDraft = null;
 let nextPointLightId = 1;
+let pointLightsSaveConfirmArmed = false;
+let pointLightsSaveConfirmTimer = null;
 let normalsImageData = null;
 let heightImageData = null;
 let pointLightBakeScheduled = false;
+const POINT_LIGHT_BLEND_EXPOSURE = 0.65;
+const DEFAULT_MAP_FOLDER = "./assets/map1";
+let currentMapFolderPath = DEFAULT_MAP_FOLDER;
+const DEFAULT_MAP_FOLDER_CANDIDATES = ["./assets/map1", "./assets/Map 1", "./assets"];
 
 function createFlatNormalImage(size = 2) {
   const c = document.createElement("canvas");
@@ -560,6 +835,174 @@ function clearPointLights() {
   pointLights.length = 0;
   selectedLightId = null;
   lightEditDraft = null;
+  resetPointLightsSaveConfirmation();
+}
+
+function resetPointLightsSaveConfirmation() {
+  pointLightsSaveConfirmArmed = false;
+  pointLightsSaveAllBtn.textContent = "Save All";
+  if (pointLightsSaveConfirmTimer !== null) {
+    window.clearTimeout(pointLightsSaveConfirmTimer);
+    pointLightsSaveConfirmTimer = null;
+  }
+}
+
+function armPointLightsSaveConfirmation() {
+  pointLightsSaveConfirmArmed = true;
+  pointLightsSaveAllBtn.textContent = "Confirm Save";
+  if (pointLightsSaveConfirmTimer !== null) {
+    window.clearTimeout(pointLightsSaveConfirmTimer);
+  }
+  pointLightsSaveConfirmTimer = window.setTimeout(() => {
+    resetPointLightsSaveConfirmation();
+  }, 5000);
+}
+
+function normalizeImportedPointLightColor(rawColor) {
+  if (!Array.isArray(rawColor) || rawColor.length < 3) return null;
+  const channelRaw = [Number(rawColor[0]), Number(rawColor[1]), Number(rawColor[2])];
+  if (!channelRaw.every((v) => Number.isFinite(v))) return null;
+  const uses255Range = channelRaw.some((v) => v > 1);
+  if (uses255Range) {
+    return channelRaw.map((v) => clamp(v / 255, 0, 1));
+  }
+  return channelRaw.map((v) => clamp(v, 0, 1));
+}
+
+function serializePointLights() {
+  return {
+    version: 1,
+    mapSize: {
+      width: splatSize.width,
+      height: splatSize.height,
+    },
+    lights: pointLights.map((light) => ({
+      pixelX: light.pixelX,
+      pixelY: light.pixelY,
+      range: light.strength,
+      strength: light.strength,
+      intensity: light.intensity,
+      heightOffset: light.heightOffset,
+      color: [light.color[0], light.color[1], light.color[2]],
+    })),
+  };
+}
+
+function parsePointLightsFromJson(rawData) {
+  let rawLights = null;
+  if (Array.isArray(rawData)) {
+    rawLights = rawData;
+  } else if (rawData && Array.isArray(rawData.lights)) {
+    rawLights = rawData.lights;
+  }
+  if (!rawLights) {
+    throw new Error("JSON must be an array of lights or an object with a lights array.");
+  }
+
+  const parsedLights = [];
+  let skippedCount = 0;
+
+  for (const rawLight of rawLights) {
+    const rawX = rawLight && (rawLight.pixelX ?? rawLight.x);
+    const rawY = rawLight && (rawLight.pixelY ?? rawLight.y);
+    const rawStrength = rawLight && (rawLight.range ?? rawLight.strength);
+    const rawIntensity = rawLight && (rawLight.intensity ?? rawLight.power ?? 1);
+    const rawHeightOffset = rawLight && (rawLight.heightOffset ?? rawLight.height ?? 8);
+    const color = normalizeImportedPointLightColor(rawLight && rawLight.color);
+    const pixelX = Math.round(Number(rawX));
+    const pixelY = Math.round(Number(rawY));
+    const strength = Math.round(Number(rawStrength));
+    const intensity = Number(rawIntensity);
+    const heightOffset = Math.round(Number(rawHeightOffset));
+    if (!Number.isFinite(pixelX) || !Number.isFinite(pixelY) || !Number.isFinite(strength) || !Number.isFinite(intensity) || !Number.isFinite(heightOffset) || !color) {
+      skippedCount += 1;
+      continue;
+    }
+
+    parsedLights.push({
+      pixelX: clamp(pixelX, 0, Math.max(0, splatSize.width - 1)),
+      pixelY: clamp(pixelY, 0, Math.max(0, splatSize.height - 1)),
+      strength: Math.round(clamp(strength, 1, 200)),
+      intensity: clamp(intensity, 0, 4),
+      heightOffset: Math.round(clamp(heightOffset, -120, 240)),
+      color,
+    });
+  }
+
+  return { parsedLights, skippedCount };
+}
+
+function applyLoadedPointLights(rawData, sourceLabel, options = {}) {
+  const suppressStatus = Boolean(options.suppressStatus);
+  const { parsedLights, skippedCount } = parsePointLightsFromJson(rawData);
+
+  clearPointLights();
+  for (const light of parsedLights) {
+    pointLights.push({
+      id: nextPointLightId++,
+      pixelX: light.pixelX,
+      pixelY: light.pixelY,
+      strength: light.strength,
+      intensity: light.intensity,
+      heightOffset: light.heightOffset,
+      color: [...light.color],
+    });
+  }
+
+  bakePointLightsTexture();
+  updateLightEditorUi();
+  drawOverlay();
+
+  if (!suppressStatus) {
+    const skippedNote = skippedCount > 0 ? ` | Skipped invalid entries: ${skippedCount}` : "";
+    setStatus(`Loaded point lights from ${sourceLabel}: ${parsedLights.length}${skippedNote}`);
+  }
+
+  return { loadedCount: parsedLights.length, skippedCount };
+}
+
+async function savePointLightsJson() {
+  const payload = serializePointLights();
+  const text = `${JSON.stringify(payload, null, 2)}\n`;
+
+  if (typeof window.showSaveFilePicker === "function") {
+    const handle = await window.showSaveFilePicker({
+      suggestedName: "pointlights.json",
+      types: [
+        {
+          description: "JSON",
+          accept: { "application/json": [".json"] },
+        },
+      ],
+    });
+    const writable = await handle.createWritable();
+    await writable.write(text);
+    await writable.close();
+    setStatus(`Saved ${payload.lights.length} point lights. Place pointlights.json in ${normalizeMapFolderPath(currentMapFolderPath)} for map reloads.`);
+    return;
+  }
+
+  downloadTextFile("pointlights.json", text);
+  setStatus(`Downloaded pointlights.json with ${payload.lights.length} point lights. Place it in ${normalizeMapFolderPath(currentMapFolderPath)}.`);
+}
+
+async function loadPointLightsFromAssetsOrPrompt() {
+  const pointLightsPath = `${normalizeMapFolderPath(currentMapFolderPath)}/pointlights.json`;
+  try {
+    const response = await fetch(pointLightsPath, { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    const rawData = await response.json();
+    applyLoadedPointLights(rawData, pointLightsPath);
+    return;
+  } catch (err) {
+    console.warn(`Failed to load ${pointLightsPath}`, err);
+  }
+
+  setStatus(`${pointLightsPath} not found. Select a pointlights JSON file to load.`);
+  pointLightsLoadInput.value = "";
+  pointLightsLoadInput.click();
 }
 
 function ensurePointLightBakeSize() {
@@ -647,13 +1090,15 @@ function bakePointLightsTexture() {
   }
 
   if (pointLights.length > 0) {
-    const accum = new Float32Array(w * h * 3);
+    const accumColor = new Float32Array(w * h * 3);
+    const accumWeight = new Float32Array(w * h);
     for (const light of pointLights) {
       const radiusPx = Math.max(1, light.strength);
+      const intensityMul = clamp(Number(light.intensity), 0, 4);
+      if (intensityMul <= 0.0001) continue;
       const radiusSq = radiusPx * radiusPx;
       const lightTerrainHeight = sampleHeightAtMapPixel(light.pixelX, light.pixelY) * heightScaleValue;
-      const lightLift = Math.max(2.0, radiusPx * 0.2);
-      const lightHeight = lightTerrainHeight + lightLift;
+      const lightHeight = lightTerrainHeight + (Number(light.heightOffset) || 0);
       const minX = Math.max(0, Math.floor(light.pixelX - radiusPx));
       const maxX = Math.min(w - 1, Math.ceil(light.pixelX + radiusPx));
       const minY = Math.max(0, Math.floor(light.pixelY - radiusPx));
@@ -676,21 +1121,31 @@ function bakePointLightsTexture() {
           const normal = sampleNormalAtMapPixel(x, y);
           const toLight = normalize3(dx, dy, lightHeight - surfaceHeight);
           const ndotl = Math.max(0, normal[0] * toLight[0] + normal[1] * toLight[1] + normal[2] * toLight[2]);
-          const contribution = falloff * ndotl;
+          const contribution = falloff * ndotl * intensityMul;
           if (contribution <= 0) continue;
 
           const baseIdx = (y * w + x) * 3;
-          accum[baseIdx] += light.color[0] * contribution;
-          accum[baseIdx + 1] += light.color[1] * contribution;
-          accum[baseIdx + 2] += light.color[2] * contribution;
+          const pixelIdx = y * w + x;
+          accumWeight[pixelIdx] += contribution;
+          accumColor[baseIdx] += light.color[0] * contribution;
+          accumColor[baseIdx + 1] += light.color[1] * contribution;
+          accumColor[baseIdx + 2] += light.color[2] * contribution;
         }
       }
     }
 
-    for (let i = 0, j = 0; i < accum.length; i += 3, j += 4) {
-      rgba[j] = Math.round(clamp(accum[i], 0, 1) * 255);
-      rgba[j + 1] = Math.round(clamp(accum[i + 1], 0, 1) * 255);
-      rgba[j + 2] = Math.round(clamp(accum[i + 2], 0, 1) * 255);
+    for (let pixelIdx = 0, j = 0; pixelIdx < accumWeight.length; pixelIdx++, j += 4) {
+      const weight = accumWeight[pixelIdx];
+      if (weight <= 0.000001) continue;
+      const baseIdx = pixelIdx * 3;
+      const invWeight = 1 / weight;
+      const avgR = accumColor[baseIdx] * invWeight;
+      const avgG = accumColor[baseIdx + 1] * invWeight;
+      const avgB = accumColor[baseIdx + 2] * invWeight;
+      const intensity = 1 - Math.exp(-weight * POINT_LIGHT_BLEND_EXPOSURE);
+      rgba[j] = Math.round(clamp(avgR * intensity, 0, 1) * 255);
+      rgba[j + 1] = Math.round(clamp(avgG * intensity, 0, 1) * 255);
+      rgba[j + 2] = Math.round(clamp(avgB * intensity, 0, 1) * 255);
     }
   }
 
@@ -702,6 +1157,16 @@ function bakePointLightsTexture() {
 function updatePointLightStrengthLabel() {
   const value = Math.round(clamp(Number(pointLightStrengthInput.value), 1, 200));
   pointLightStrengthValue.textContent = `${value} px`;
+}
+
+function updatePointLightIntensityLabel() {
+  const value = clamp(Number(pointLightIntensityInput.value), 0, 4);
+  pointLightIntensityValue.textContent = `${value.toFixed(2)}x`;
+}
+
+function updatePointLightHeightOffsetLabel() {
+  const value = Math.round(clamp(Number(pointLightHeightOffsetInput.value), -120, 240));
+  pointLightHeightOffsetValue.textContent = `${value} px`;
 }
 
 function updateCursorLightStrengthLabel() {
@@ -769,7 +1234,11 @@ function updateLightEditorUi() {
   lightCoordEl.textContent = `Coord: (${selected.pixelX}, ${selected.pixelY})`;
   pointLightColorInput.value = rgbToHex(lightEditDraft.color);
   pointLightStrengthInput.value = String(Math.round(lightEditDraft.strength));
+  pointLightIntensityInput.value = String(clamp(lightEditDraft.intensity, 0, 4));
+  pointLightHeightOffsetInput.value = String(Math.round(lightEditDraft.heightOffset));
   updatePointLightStrengthLabel();
+  updatePointLightIntensityLabel();
+  updatePointLightHeightOffsetLabel();
 }
 
 function beginLightEdit(light) {
@@ -777,8 +1246,26 @@ function beginLightEdit(light) {
   lightEditDraft = {
     color: [...light.color],
     strength: light.strength,
+    intensity: light.intensity,
+    heightOffset: light.heightOffset,
   };
   updateLightEditorUi();
+}
+
+function applyDraftToSelectedPointLight() {
+  const selected = getSelectedPointLight();
+  if (!selected || !lightEditDraft) return null;
+  selected.color = [...lightEditDraft.color];
+  selected.strength = Math.round(clamp(lightEditDraft.strength, 1, 200));
+  selected.intensity = clamp(Number(lightEditDraft.intensity), 0, 4);
+  selected.heightOffset = Math.round(clamp(lightEditDraft.heightOffset, -120, 240));
+  return selected;
+}
+
+function rebakeIfPointLightLiveUpdateEnabled() {
+  if (!pointLightLiveUpdateToggle.checked) return;
+  if (!applyDraftToSelectedPointLight()) return;
+  schedulePointLightBake();
 }
 
 function findPointLightAtPixel(pixelX, pixelY) {
@@ -791,6 +1278,8 @@ function createPointLight(pixelX, pixelY) {
     pixelX,
     pixelY,
     strength: 30,
+    intensity: 1,
+    heightOffset: 8,
     color: hexToRgb01("#ff9b2f"),
   };
   pointLights.push(light);
@@ -831,6 +1320,7 @@ const cycleState = {
   hour: 9.5,
   lastRenderMs: null,
 };
+let isCycleHourScrubbing = false;
 
 function resetCamera() {
   zoom = 1;
@@ -958,6 +1448,10 @@ function updateFogUi() {
   fogMaxAlphaInput.disabled = !enabled;
   fogFalloffInput.disabled = !enabled;
   fogStartOffsetInput.disabled = !enabled;
+}
+
+function updateCycleHourLabel() {
+  cycleHourValue.textContent = formatHour(cycleState.hour);
 }
 
 function rgbToHex(rgb) {
@@ -1206,6 +1700,7 @@ cursorLightGizmoToggle.addEventListener("change", () => {
 pointLightColorInput.addEventListener("input", () => {
   if (!lightEditDraft) return;
   lightEditDraft.color = hexToRgb01(pointLightColorInput.value);
+  rebakeIfPointLightLiveUpdateEnabled();
   drawOverlay();
 });
 
@@ -1213,14 +1708,38 @@ pointLightStrengthInput.addEventListener("input", () => {
   if (!lightEditDraft) return;
   lightEditDraft.strength = Math.round(clamp(Number(pointLightStrengthInput.value), 1, 200));
   updatePointLightStrengthLabel();
+  rebakeIfPointLightLiveUpdateEnabled();
   drawOverlay();
 });
 
+pointLightIntensityInput.addEventListener("input", () => {
+  if (!lightEditDraft) return;
+  lightEditDraft.intensity = clamp(Number(pointLightIntensityInput.value), 0, 4);
+  updatePointLightIntensityLabel();
+  rebakeIfPointLightLiveUpdateEnabled();
+  drawOverlay();
+});
+
+pointLightHeightOffsetInput.addEventListener("input", () => {
+  if (!lightEditDraft) return;
+  lightEditDraft.heightOffset = Math.round(clamp(Number(pointLightHeightOffsetInput.value), -120, 240));
+  updatePointLightHeightOffsetLabel();
+  rebakeIfPointLightLiveUpdateEnabled();
+  drawOverlay();
+});
+
+pointLightLiveUpdateToggle.addEventListener("change", () => {
+  if (pointLightLiveUpdateToggle.checked) {
+    rebakeIfPointLightLiveUpdateEnabled();
+    setStatus("Point-light live update enabled.");
+    return;
+  }
+  setStatus("Point-light live update disabled. Changes apply on Save.");
+});
+
 lightSaveBtn.addEventListener("click", () => {
-  const selected = getSelectedPointLight();
-  if (!selected || !lightEditDraft) return;
-  selected.color = [...lightEditDraft.color];
-  selected.strength = Math.round(clamp(lightEditDraft.strength, 1, 200));
+  const selected = applyDraftToSelectedPointLight();
+  if (!selected) return;
   bakePointLightsTexture();
   updateLightEditorUi();
   drawOverlay();
@@ -1250,6 +1769,55 @@ lightDeleteBtn.addEventListener("click", () => {
   setStatus(`Deleted point light at (${selected.pixelX}, ${selected.pixelY})`);
 });
 
+pointLightsSaveAllBtn.addEventListener("click", async () => {
+  if (!pointLightsSaveConfirmArmed) {
+    armPointLightsSaveConfirmation();
+    setStatus("Save confirmation armed. Click Save All again within 5 seconds to overwrite/export pointlights.json.");
+    return;
+  }
+
+  resetPointLightsSaveConfirmation();
+  try {
+    await savePointLightsJson();
+  } catch (error) {
+    if (error && error.name === "AbortError") {
+      setStatus("Save canceled.");
+      return;
+    }
+    console.error("Failed to save point lights JSON", error);
+    const message = error instanceof Error ? error.message : String(error);
+    setStatus(`Failed to save point lights JSON: ${message}`);
+  }
+});
+
+pointLightsLoadAllBtn.addEventListener("click", async () => {
+  resetPointLightsSaveConfirmation();
+  try {
+    await loadPointLightsFromAssetsOrPrompt();
+  } catch (error) {
+    console.error("Failed to load point lights JSON", error);
+    const message = error instanceof Error ? error.message : String(error);
+    setStatus(`Failed to load point lights JSON: ${message}`);
+  }
+});
+
+pointLightsLoadInput.addEventListener("change", async () => {
+  const file = pointLightsLoadInput.files && pointLightsLoadInput.files[0];
+  if (!file) return;
+
+  try {
+    const text = await file.text();
+    const rawData = JSON.parse(text);
+    applyLoadedPointLights(rawData, file.name);
+  } catch (error) {
+    console.error("Failed to parse point lights JSON", error);
+    const message = error instanceof Error ? error.message : String(error);
+    setStatus(`Failed to parse point lights JSON: ${message}`);
+  } finally {
+    pointLightsLoadInput.value = "";
+  }
+});
+
 parallaxStrengthInput.addEventListener("input", updateParallaxStrengthLabel);
 parallaxBandsInput.addEventListener("input", updateParallaxBandsLabel);
 parallaxToggle.addEventListener("change", updateParallaxUi);
@@ -1262,115 +1830,79 @@ fogColorInput.addEventListener("input", () => {
   fogColorManual = true;
 });
 
-async function tryAutoLoadAssets() {
-  const loaded = [];
-  const failed = [];
+cycleHourInput.addEventListener("pointerdown", () => {
+  isCycleHourScrubbing = true;
+});
 
-  try {
-    const splat = await loadImageFromUrl("./assets/splat.png");
-    uploadImageToTexture(splatTex, splat);
-    applyMapSizeChangeIfNeeded(setSplatSizeFromImage(splat));
-    resetCamera();
-    loaded.push("splat.png");
-  } catch (err) {
-    console.warn("Failed to load splat.png", err);
-    failed.push("splat.png");
-    const fallbackSplat = createFallbackSplat(512);
-    uploadImageToTexture(splatTex, fallbackSplat);
-    applyMapSizeChangeIfNeeded(setSplatSizeFromImage(fallbackSplat));
-    resetCamera();
+window.addEventListener("pointerup", () => {
+  isCycleHourScrubbing = false;
+});
+
+cycleHourInput.addEventListener("change", () => {
+  isCycleHourScrubbing = false;
+});
+
+cycleHourInput.addEventListener("input", () => {
+  cycleState.hour = clamp(Number(cycleHourInput.value), 0, 24);
+  cycleState.lastRenderMs = null;
+  updateCycleHourLabel();
+});
+
+async function tryAutoLoadDefaultMap() {
+  for (const candidate of DEFAULT_MAP_FOLDER_CANDIDATES) {
+    try {
+      await loadMapFromPath(candidate);
+      return;
+    } catch (err) {
+      console.warn(`Failed to load default map folder ${candidate}`, err);
+    }
   }
 
-  try {
-    const normals = await loadImageFromUrl("./assets/normals.png");
-    uploadImageToTexture(normalsTex, normals);
-    setNormalsSizeFromImage(normals);
-    normalsImageData = extractImageData(normals);
-    bakePointLightsTexture();
-    loaded.push("normals.png");
-  } catch (err) {
-    console.warn("Failed to load normals.png", err);
-    failed.push("normals.png");
-    uploadImageToTexture(normalsTex, defaultNormalImage);
-    setNormalsSizeFromImage(defaultNormalImage);
-    normalsImageData = extractImageData(defaultNormalImage);
-    bakePointLightsTexture();
-  }
-
-  try {
-    const height = await loadImageFromUrl("./assets/height.png");
-    uploadImageToTexture(heightTex, height);
-    setHeightSizeFromImage(height);
-    heightImageData = extractImageData(height);
-    bakePointLightsTexture();
-    loaded.push("height.png");
-  } catch (err) {
-    console.warn("Failed to load height.png", err);
-    failed.push("height.png");
-    uploadImageToTexture(heightTex, defaultHeightImage);
-    setHeightSizeFromImage(defaultHeightImage);
-    heightImageData = extractImageData(defaultHeightImage);
-    bakePointLightsTexture();
-  }
-
-  if (loaded.length > 0 && failed.length > 0) {
-    setStatus(`Loaded defaults: ${loaded.join(", ")} | Fallback used for: ${failed.join(", ")}`);
-  } else if (loaded.length > 0) {
-    setStatus(`Loaded default assets: ${loaded.join(", ")}`);
-  } else if (failed.length > 0) {
-    setStatus(`Using fallback textures for: ${failed.join(", ")}. Add PNGs to assets/ or load via file pickers.`);
-  } else {
-    setStatus("Using fallback textures. Add PNGs to assets/ or load via file pickers.");
-  }
+  setStatus("Using fallback textures. Load a map folder to begin.");
 }
 
-splatInput.addEventListener("change", async () => {
-  const file = splatInput.files && splatInput.files[0];
-  if (!file) return;
+mapPathLoadBtn.addEventListener("click", async () => {
+  const targetPath = normalizeMapFolderPath(mapPathInput.value);
   try {
-    const image = await loadImageFromFile(file);
-    uploadImageToTexture(splatTex, image);
-    applyMapSizeChangeIfNeeded(setSplatSizeFromImage(image));
-    resetCamera();
-    setStatus(`Loaded splat: ${file.name} (${image.width}x${image.height})`);
+    await loadMapFromPath(targetPath);
   } catch (error) {
-    console.error("Failed to load splat file:", file.name, error);
+    console.error(`Failed to load map from ${targetPath}`, error);
     const message = error instanceof Error ? error.message : String(error);
-    setStatus(`Failed to load splat '${file.name}': ${message}`);
+    setStatus(`Failed to load map '${targetPath}': ${message}`);
   }
 });
 
-normalInput.addEventListener("change", async () => {
-  const file = normalInput.files && normalInput.files[0];
-  if (!file) return;
+mapSaveAllBtn.addEventListener("click", async () => {
   try {
-    const image = await loadImageFromFile(file);
-    uploadImageToTexture(normalsTex, image);
-    setNormalsSizeFromImage(image);
-    normalsImageData = extractImageData(image);
-    bakePointLightsTexture();
-    setStatus(`Loaded normals: ${file.name}`);
+    await saveAllMapDataFiles();
   } catch (error) {
-    console.error("Failed to load normals file:", file.name, error);
+    if (error && error.name === "AbortError") {
+      setStatus("Save all canceled.");
+      return;
+    }
+    console.error("Failed to save all map data files", error);
     const message = error instanceof Error ? error.message : String(error);
-    setStatus(`Failed to load normals '${file.name}': ${message}`);
+    setStatus(`Failed to save map data: ${message}`);
   }
 });
 
-heightInput.addEventListener("change", async () => {
-  const file = heightInput.files && heightInput.files[0];
-  if (!file) return;
+mapPathInput.addEventListener("keydown", (e) => {
+  if (e.key !== "Enter") return;
+  e.preventDefault();
+  mapPathLoadBtn.click();
+});
+
+mapFolderInput.addEventListener("change", async () => {
+  const files = mapFolderInput.files;
+  if (!files || files.length === 0) return;
   try {
-    const image = await loadImageFromFile(file);
-    uploadImageToTexture(heightTex, image);
-    setHeightSizeFromImage(image);
-    heightImageData = extractImageData(image);
-    bakePointLightsTexture();
-    setStatus(`Loaded height: ${file.name}`);
+    await loadMapFromFolderSelection(files);
   } catch (error) {
-    console.error("Failed to load height file:", file.name, error);
+    console.error("Failed to load selected map folder", error);
     const message = error instanceof Error ? error.message : String(error);
-    setStatus(`Failed to load height '${file.name}': ${message}`);
+    setStatus(`Failed to load selected map folder: ${message}`);
+  } finally {
+    mapFolderInput.value = "";
   }
 });
 
@@ -1401,6 +1933,9 @@ function render(nowMs) {
   const cycleSpeedHoursPerSec = clamp(Number(cycleSpeedInput.value), 0, 1);
   if (cycleSpeedHoursPerSec > 0) {
     cycleState.hour = wrapHour(cycleState.hour + cycleSpeedHoursPerSec * dtSec);
+  }
+  if (!isCycleHourScrubbing) {
+    setCycleHourSliderFromState();
   }
 
   const sun = sampleSunAtHour(cycleState.hour);
@@ -1442,7 +1977,10 @@ function render(nowMs) {
       (sun.ambientColor[2] * sunAmbientWeight + moonAmbientColor[2] * moonAmbientWeight) / totalAmbientWeight,
     ];
   }
-  const ambientFinal = ambientBase * (sunAmbientWeight + moonAmbientWeight);
+  const nightFactor = 1 - smoothstep(-2, 8, sun.altitudeDeg);
+  const nightAmbientColor = [0.14, 0.22, 0.34];
+  ambientColor = lerpVec3(ambientColor, nightAmbientColor, 0.45 * nightFactor);
+  const ambientFinal = clamp(ambientBase * (sunAmbientWeight + moonAmbientWeight) + 0.05 * nightFactor, 0, 1);
   const moonColor = [0.34, 0.40, 0.54];
   const zoomNorm = clamp((zoom - zoomMin) / (zoomMax - zoomMin), 0, 1);
   const cameraHeightNorm = 1 - zoomNorm;
@@ -1464,6 +2002,7 @@ function render(nowMs) {
   const fogColor = fogColorManual ? hexToRgb01(fogColorInput.value) : fogColorAuto;
 
   cycleInfoEl.textContent = `Time: ${formatHour(cycleState.hour)} | Speed: ${cycleSpeedHoursPerSec.toFixed(2)} h/s`;
+  updateCycleHourLabel();
 
   gl.clearColor(0, 0, 0, 1);
   gl.clear(gl.COLOR_BUFFER_BIT);
@@ -1528,10 +2067,10 @@ function render(nowMs) {
 
 window.addEventListener("resize", resize);
 
-void tryAutoLoadAssets().catch((error) => {
-  console.error("Auto-load failed:", error);
+void tryAutoLoadDefaultMap().catch((error) => {
+  console.error("Default map auto-load failed:", error);
   const message = error instanceof Error ? error.message : String(error);
-  setStatus(`Auto-load failed: ${message}`);
+  setStatus(`Default map auto-load failed: ${message}`);
 });
 updateRadiusLabel();
 updateParallaxStrengthLabel();
@@ -1540,13 +2079,18 @@ updateFogAlphaLabels();
 updateFogFalloffLabel();
 updateFogStartOffsetLabel();
 updatePointLightStrengthLabel();
+updatePointLightIntensityLabel();
+updatePointLightHeightOffsetLabel();
 updateCursorLightStrengthLabel();
 updateCursorLightHeightOffsetLabel();
+setCycleHourSliderFromState();
+updateCycleHourLabel();
+mapPathInput.value = currentMapFolderPath;
 updateLightEditorUi();
 updateCursorLightModeUi();
 updateParallaxUi();
 updateFogUi();
 setActiveTopic("");
-setStatus(`${statusEl.textContent} | Left icon dock opens one settings topic at a time. Wheel zoom, middle-drag pan, lighting mode for placed lights, cursor light for live preview.`);
+setStatus(`${statusEl.textContent} | Load maps by folder/path, then use wheel zoom, middle-drag pan, lighting mode for placed lights, and cursor light for live preview.`);
 requestAnimationFrame(render);
 

@@ -20,15 +20,25 @@ No game engine is used.
 - Main implementation: `src/main.js`
 - Rendering backend: WebGL2 terrain pass + 2D overlay canvas for interaction markers
 - Settings UI: left vertical topic-icon dock + single side panel (one topic open at a time)
-- Assets loaded by default:
-  - `assets/splat.png`
-  - `assets/normals.png`
-  - `assets/height.png`
+- Map bundle auto-load tries these folders in order:
+  - `assets/map1/`
+  - `assets/Map 1/`
+  - `assets/`
+- Required PNG names in each candidate folder:
+  - `splat.png`
+  - `normals.png`
+  - `height.png`
+- Optional sidecar JSON files in each candidate folder:
+  - `pointlights.json`
+  - `lighting.json`
+  - `fog.json`
+- `Load Map` topic supports loading by folder path or folder picker (map bundle semantics)
 
 ## Current Lighting Model
 
 - Day cycle is simulated from keyframes (`SUN_KEYS`) and interpolation.
 - Time progresses based on UI slider `cycleSpeed` (`0..1` hours/second).
+- UI slider `cycleHour` (`0..24` hours, minute resolution) both live-tracks current simulated time and allows immediate time scrubbing.
 - Sun:
   - directional light (`uSunDir`)
   - warm tones at low altitude
@@ -37,14 +47,20 @@ No game engine is used.
   - cool dim tint to avoid pitch-black nights
 - Ambient:
   - blended sun/moon ambient tint and intensity
+  - includes a small blue night-ambient floor to avoid pitch-black nights
 - Shadows:
   - texture-space raymarch over `uHeight`
   - texel step uses height-map dimensions (`heightSize`)
 - Optional point lights:
   - `Lighting Mode` toggle switches click behavior to light placement/selection
-  - each point light stores map pixel coordinate + color + strength (radius in px)
-  - default new light: orange, strength `30`
-  - linear radial falloff
+  - each point light stores map pixel coordinate + color + range (radius in px) + intensity + height offset
+  - default new light: orange, range `30`, intensity `1.0`
+  - light source height for baking is `terrainHeightAtLight + heightOffset`
+  - editor has `Live Update` toggle (`on` = rebake on edit input, `off` = rebake on explicit save)
+  - `Save All` / `Load All` supports JSON persistence (`pointlights.json`)
+  - save action uses a two-click confirmation to avoid accidental overwrite/export
+  - load first attempts `<currentMapFolder>/pointlights.json`, then falls back to manual file pick
+  - linear radial falloff (range) + independent intensity multiplier, with saturating accumulation to avoid overblown overlap
   - normal interaction is baked into a map-space `pointLightTex` on add/edit/delete or normal/height-map update
   - terrain height occlusion is baked by a light-to-surface line-of-sight test (cliffs can block local light spread)
   - main fragment shader samples `uPointLightTex` and applies it to base color
@@ -70,6 +86,9 @@ No game engine is used.
   - fog response curve is controlled by `fogFalloff`
   - fog onset threshold is controlled by `fogStartOffset`
   - fog color defaults to auto light-matched tint and becomes fixed when user edits the color picker
+- Map-level persistence:
+  - `Load Map -> Save All` writes `pointlights.json`, `lighting.json`, and `fog.json`
+  - map loading auto-applies these files when present
 
 ## Camera/Interaction
 

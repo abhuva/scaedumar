@@ -13,16 +13,27 @@ Prototype goals:
 - `index.html`: app shell and control panel
 - `src/main.js`: WebGL2 renderer + shaders
 - `styles.css`: UI styling
-- `assets/`: optional default PNG location
+- `assets/`: map bundle root (`assets/<mapName>/...`)
 - `AI_CONTEXT.md`: implementation map and workflow notes for AI agents
 
 ## Expected auto-load names
 
-- `assets/splat.png`
-- `assets/normals.png`
-- `assets/height.png`
+Auto-load checks these folders in order:
 
-If these are not present, the app starts with fallback textures. You can load files manually with the file inputs.
+1. `assets/map1/`
+2. `assets/Map 1/`
+3. `assets/`
+
+Each candidate folder should contain:
+
+- `splat.png`
+- `normals.png`
+- `height.png`
+- optional: `pointlights.json`
+- optional: `lighting.json`
+- optional: `fog.json`
+
+If no candidate folder contains the required PNGs, the app starts with fallback textures. You can load a map by folder path or folder picker in the `Load Map` panel.
 
 ## Run
 
@@ -47,8 +58,11 @@ Then open:
 - Directional light is modeled as a sun direction vector.
 - Sun azimuth/altitude are sampled from a daily keyframe table and interpolated.
 - Day-cycle speed slider runs from `0.00` to `1.00` hours/second (`0` = paused).
+- `Time of Day` slider supports minute-level scrubbing across `0..24` hours.
+- While time is advancing, the `Time of Day` slider live-updates to track the simulation clock.
+- Moving/clicking `Time of Day` jumps the simulation time immediately.
 - Low sun angles use warmer sunlight/ambient colors for sunrise/sunset ambience.
-- A moon directional light and moon ambient tint keep nights dim but readable.
+- A moon directional light and moon ambient tint keep nights dim but readable, with a small blue night-ambient floor so nights do not go pitch black.
 - Mouse wheel controls zoom.
 - Middle mouse drag pans the map.
 - Left click stores the last clicked map coordinate and draws a solid red circle marker.
@@ -59,10 +73,22 @@ Then open:
   - terrain-following elevation (`cursor terrain height + offset`)
   - old fixed-height behavior (height derived from light strength)
 - `Cursor Gizmo` toggle controls whether the cursor-light preview ring/dot is drawn.
-- Point lights are stored as map pixel coordinates + color + strength/radius.
-- New lights default to orange with strength `30` (linear falloff to zero at radius edge).
+- Point lights are stored as map pixel coordinates + color + range + intensity.
+- New lights default to orange with range `30` px and intensity `1.00`.
 - Clicking an existing light coordinate selects it instead of creating a duplicate.
-- Point-light edits are done in the `Editor` topic panel (`Color`, `Strength`, `Save`, `Cancel`, `Delete`).
+- Point-light edits are done in the `Editor` topic panel (`Color`, `Range`, `Intensity`, `Height`, `Save`, `Cancel`, `Delete`).
+- Point lights include a `Height` offset (terrain sample + offset = light source height used for baking).
+- Point-light bake accumulation now uses a saturating blend curve, avoiding runaway overbright results from many overlapping lights.
+- `Live Update` toggle in the point-light editor controls whether color/range/intensity/height edits rebake immediately or only on `Save`.
+- Point-light sets can be exported/imported as `pointlights.json` via `Save All` / `Load All`.
+- `Save All` uses a two-step confirmation (click once to arm, click again within 5s to confirm).
+- `Load All` first tries `<current map folder>/pointlights.json` and falls back to manual JSON file selection.
+- For persistence across reloads, save the JSON as `<current map folder>/pointlights.json` (for example `assets/Map 1/pointlights.json`).
+- `Load Map` includes a map-level `Save All` action that writes:
+  - `pointlights.json`
+  - `lighting.json` (`heightScale`, `shadowStrength`, `useShadows`, `ambient`, `diffuse`)
+  - `fog.json` (`useFog`, color, alpha/falloff/start settings)
+- Map loading automatically applies these JSON files when present in the selected map folder.
 - Point lighting is baked into a map-space light texture only when lights or normal/height inputs change.
 - Point-light baking also uses height-map line-of-sight occlusion so steep terrain can block local light spread.
 - Terrain shading samples that baked texture during normal rendering, so frame-time cost stays low.

@@ -144,10 +144,33 @@ input[type="file"] {
   width: 100%;
 }
 
+.row input[type="text"] {
+  width: 100%;
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  padding: 5px 8px;
+}
+
 .inline-control {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.row-action-btn {
+  border: 1px solid var(--panel-border);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 5px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.row-action-btn:hover {
+  background: rgba(255, 255, 255, 0.14);
 }
 
 .inline-control span {
@@ -178,6 +201,7 @@ input[type="file"] {
   display: flex;
   gap: 8px;
   justify-content: flex-end;
+  margin-bottom: 10px;
 }
 
 .light-editor-actions button {
@@ -190,6 +214,25 @@ input[type="file"] {
 }
 
 .light-editor-actions button:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.light-persist-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.light-persist-actions button {
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.light-persist-actions button:hover {
   background: rgba(255, 255, 255, 0.14);
 }
 

@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "useFog": true,
+  "fogColor": "#3b4354",
+  "fogColorManual": true,
+  "fogMinAlpha": 0,
+  "fogMaxAlpha": 0.55,
+  "fogFalloff": 4,
+  "fogStartOffset": 0
+}
