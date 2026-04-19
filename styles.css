@@ -64,6 +64,32 @@ body {
   cursor: pointer;
 }
 
+.mode-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 122, 122, 0.45);
+  background: rgba(47, 19, 19, 0.9);
+  color: #ffd4d4;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+}
+
+.mode-btn.active,
+.mode-btn:hover {
+  background: rgba(148, 42, 42, 0.92);
+  border-color: rgba(255, 174, 174, 0.8);
+}
+
+.mode-btn:focus-visible {
+  outline: 2px solid #ffd4d4;
+  outline-offset: 2px;
+  border-color: rgba(255, 205, 205, 0.95);
+  box-shadow: 0 0 0 3px rgba(120, 18, 18, 0.75);
+}
+
 .topic-btn.active,
 .topic-btn:hover {
   background: rgba(255, 255, 255, 0.17);

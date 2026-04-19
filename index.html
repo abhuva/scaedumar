@@ -8,6 +8,8 @@
   </head>
   <body>
     <nav class="topic-dock" aria-label="Settings topics">
+      <button id="dockLightingModeToggle" class="mode-btn" type="button" title="Lighting Mode" aria-label="Lighting mode toggle">LM</button>
+      <button id="dockPathfindingModeToggle" class="mode-btn" type="button" title="Pathfinding Mode" aria-label="Pathfinding mode toggle">PF</button>
       <button class="topic-btn" type="button" data-topic="map" title="Load Map" aria-label="Load map">M</button>
       <button class="topic-btn" type="button" data-topic="interaction" title="Interaction" aria-label="Interaction settings">I</button>
       <button class="topic-btn" type="button" data-topic="lighting" title="Main Lighting" aria-label="Main lighting">L</button>
@@ -43,15 +45,46 @@
 
         <section class="topic-card" data-topic="interaction" data-title="Interaction">
           <div class="row">
-            <label for="circleRadius">Circle Radius</label>
+            <label for="pathfindingRange">Path Window</label>
             <div class="inline-control">
-              <input id="circleRadius" type="range" min="0.5" max="50" step="0.5" value="20" />
-              <span id="circleRadiusValue">20 px</span>
+              <input id="pathfindingRange" type="range" min="30" max="300" step="1" value="30" />
+              <span id="pathfindingRangeValue">30 x 30</span>
             </div>
           </div>
           <div class="row">
-            <label for="lightingModeToggle">Lighting Mode</label>
-            <input id="lightingModeToggle" type="checkbox" />
+            <label for="pathWeightSlope">Weight Slope</label>
+            <div class="inline-control">
+              <input id="pathWeightSlope" type="range" min="0" max="10" step="0.1" value="1.8" />
+              <span id="pathWeightSlopeValue">1.8</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="pathWeightHeight">Weight Height</label>
+            <div class="inline-control">
+              <input id="pathWeightHeight" type="range" min="0" max="10" step="0.1" value="3.0" />
+              <span id="pathWeightHeightValue">3.0</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="pathWeightWater">Weight Water</label>
+            <div class="inline-control">
+              <input id="pathWeightWater" type="range" min="0" max="100" step="0.1" value="0.0" />
+              <span id="pathWeightWaterValue">0.0</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="pathSlopeCutoff">Slope Cutoff</label>
+            <div class="inline-control">
+              <input id="pathSlopeCutoff" type="range" min="0" max="90" step="1" value="90" />
+              <span id="pathSlopeCutoffValue">90 deg</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="pathBaseCost">Base Cost</label>
+            <div class="inline-control">
+              <input id="pathBaseCost" type="range" min="0" max="2" step="0.1" value="1.0" />
+              <span id="pathBaseCostValue">1.0</span>
+            </div>
           </div>
           <div class="row">
             <label for="cursorLightModeToggle">Cursor Light</label>
@@ -226,8 +259,9 @@
         </section>
 
         <section class="topic-card" data-topic="info" data-title="Info">
-          <p class="help">Lighting mode off: left click sets marker. Lighting mode on: left click adds/selects point lights. Cursor light mode turns your mouse into a live point light.</p>
           <p id="cycleInfo" class="status">Time: --:-- | Speed: -- h/s</p>
+          <p id="playerInfo" class="status">Player: (-, -)</p>
+          <p id="pathInfo" class="status">Path: len -- | cost -- | avg --</p>
           <p id="status" class="status">Initializing...</p>
         </section>
       </div>
