@@ -69,10 +69,33 @@ const fogFalloffInput = getRequiredElementById("fogFalloff");
 const fogFalloffValue = getRequiredElementById("fogFalloffValue");
 const fogStartOffsetInput = getRequiredElementById("fogStartOffset");
 const fogStartOffsetValue = getRequiredElementById("fogStartOffsetValue");
+const cloudToggle = getRequiredElementById("cloudToggle");
+const cloudCoverageInput = getRequiredElementById("cloudCoverage");
+const cloudCoverageValue = getRequiredElementById("cloudCoverageValue");
+const cloudSoftnessInput = getRequiredElementById("cloudSoftness");
+const cloudSoftnessValue = getRequiredElementById("cloudSoftnessValue");
+const cloudOpacityInput = getRequiredElementById("cloudOpacity");
+const cloudOpacityValue = getRequiredElementById("cloudOpacityValue");
+const cloudScaleInput = getRequiredElementById("cloudScale");
+const cloudScaleValue = getRequiredElementById("cloudScaleValue");
+const cloudSpeed1Input = getRequiredElementById("cloudSpeed1");
+const cloudSpeed1Value = getRequiredElementById("cloudSpeed1Value");
+const cloudSpeed2Input = getRequiredElementById("cloudSpeed2");
+const cloudSpeed2Value = getRequiredElementById("cloudSpeed2Value");
+const cloudSunParallaxInput = getRequiredElementById("cloudSunParallax");
+const cloudSunParallaxValue = getRequiredElementById("cloudSunParallaxValue");
+const cloudSunProjectToggle = getRequiredElementById("cloudSunProjectToggle");
 const heightScaleInput = getRequiredElementById("heightScale");
 const shadowStrengthInput = getRequiredElementById("shadowStrength");
 const ambientInput = getRequiredElementById("ambient");
 const diffuseInput = getRequiredElementById("diffuse");
+const pointFlickerToggle = getRequiredElementById("pointFlickerToggle");
+const pointFlickerStrengthInput = getRequiredElementById("pointFlickerStrength");
+const pointFlickerStrengthValue = getRequiredElementById("pointFlickerStrengthValue");
+const pointFlickerSpeedInput = getRequiredElementById("pointFlickerSpeed");
+const pointFlickerSpeedValue = getRequiredElementById("pointFlickerSpeedValue");
+const pointFlickerSpatialInput = getRequiredElementById("pointFlickerSpatial");
+const pointFlickerSpatialValue = getRequiredElementById("pointFlickerSpatialValue");
 const lightEditorEmptyEl = getRequiredElementById("lightEditorEmpty");
 const lightEditorFieldsEl = getRequiredElementById("lightEditorFields");
 const lightCoordEl = getRequiredElementById("lightCoord");
@@ -83,6 +106,10 @@ const pointLightIntensityInput = getRequiredElementById("pointLightIntensity");
 const pointLightIntensityValue = getRequiredElementById("pointLightIntensityValue");
 const pointLightHeightOffsetInput = getRequiredElementById("pointLightHeightOffset");
 const pointLightHeightOffsetValue = getRequiredElementById("pointLightHeightOffsetValue");
+const pointLightFlickerInput = getRequiredElementById("pointLightFlicker");
+const pointLightFlickerValue = getRequiredElementById("pointLightFlickerValue");
+const pointLightFlickerSpeedInput = getRequiredElementById("pointLightFlickerSpeed");
+const pointLightFlickerSpeedValue = getRequiredElementById("pointLightFlickerSpeedValue");
 const pointLightLiveUpdateToggle = getRequiredElementById("pointLightLiveUpdateToggle");
 const lightSaveBtn = getRequiredElementById("lightSaveBtn");
 const lightCancelBtn = getRequiredElementById("lightCancelBtn");
@@ -116,6 +143,7 @@ uniform sampler2D uSplat;
 uniform sampler2D uNormals;
 uniform sampler2D uHeight;
 uniform sampler2D uPointLightTex;
+uniform sampler2D uCloudNoiseTex;
 uniform float uUseCursorLight;
 uniform vec2 uCursorLightUv;
 uniform vec3 uCursorLightColor;
@@ -150,6 +178,20 @@ uniform float uCameraHeightNorm;
 uniform float uMapAspect;
 uniform vec2 uViewHalfExtents;
 uniform vec2 uPanWorld;
+uniform float uTimeSec;
+uniform float uPointFlickerEnabled;
+uniform float uPointFlickerStrength;
+uniform float uPointFlickerSpeed;
+uniform float uPointFlickerSpatial;
+uniform float uUseClouds;
+uniform float uCloudCoverage;
+uniform float uCloudSoftness;
+uniform float uCloudOpacity;
+uniform float uCloudScale;
+uniform float uCloudSpeed1;
+uniform float uCloudSpeed2;
+uniform float uCloudSunParallax;
+uniform float uCloudUseSunProjection;
 
 float readHeight(vec2 uv) {
   return texture(uHeight, uv).r * uHeightScale;
@@ -227,6 +269,10 @@ float calcShadow(vec2 uv, vec3 sunDir) {
   return 1.0;
 }
 
+float uvHash(vec2 p) {
+  return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+}
+
 void main() {
   vec2 ndc = (gl_FragCoord.xy / uResolution) * 2.0 - 1.0;
   vec2 world = uPanWorld + ndc * uViewHalfExtents;
@@ -252,8 +298,21 @@ void main() {
   vec3 ambientLit = base * (uAmbient * uAmbientColor);
   vec3 sunLit = base * (sunDiffuse * sunShadow * uSunStrength) * uSunColor;
   vec3 moonLit = base * (moonDiffuse * moonShadow * uMoonStrength) * uMoonColor;
-  vec3 pointLightIntensity = texture(uPointLightTex, uv).rgb;
-  vec3 pointLit = base * pointLightIntensity;
+  vec4 pointLightSample = texture(uPointLightTex, uv);
+  vec3 pointLightIntensity = pointLightSample.rgb;
+  float packedFlicker = floor(pointLightSample.a * 255.0 + 0.5);
+  float pointFlickerMask = floor(packedFlicker / 16.0) / 15.0;
+  float pointFlickerSpeedLocal = 0.35 + 2.65 * (mod(packedFlicker, 16.0) / 15.0);
+  float pointFlickerFactor = 1.0;
+  if (uPointFlickerEnabled > 0.5 && pointFlickerMask > 0.0001 && uPointFlickerStrength > 0.0001) {
+    float phase = uvHash(uv * 809.3) * 6.2831853 * max(0.0, uPointFlickerSpatial);
+    float t = max(0.0, uTimeSec) * max(0.01, uPointFlickerSpeed) * pointFlickerSpeedLocal;
+    float waveA = 0.5 + 0.5 * sin(t * 6.2831853 + phase);
+    float waveB = 0.5 + 0.5 * sin(t * 11.3097336 + phase * 1.618);
+    float wave = clamp(waveA * 0.65 + waveB * 0.35, 0.0, 1.0);
+    pointFlickerFactor = 1.0 - clamp(uPointFlickerStrength * pointFlickerMask * wave, 0.0, 0.98);
+  }
+  vec3 pointLit = base * (pointLightIntensity * pointFlickerFactor);
   vec3 cursorLit = vec3(0.0);
   if (uUseCursorLight > 0.5 && uCursorLightStrength > 0.001) {
     vec2 deltaPx = (uCursorLightUv - uv) * uCursorLightMapSize;
@@ -273,6 +332,30 @@ void main() {
     }
   }
   vec3 lit = clamp(ambientLit + sunLit + moonLit + pointLit + cursorLit, 0.0, 1.0);
+
+  if (uUseClouds > 0.5 && uCloudOpacity > 0.0001) {
+    float sunVisibility = smoothstep(-0.04, 0.15, uSunDir.z);
+    if (sunVisibility > 0.0001) {
+      float cloudScale = max(0.05, uCloudScale);
+      float soft = max(0.001, uCloudSoftness);
+      float threshold = clamp(uCloudCoverage, 0.0, 1.0);
+      float timeSec = max(0.0, uTimeSec);
+      vec2 sunShift = vec2(0.0);
+      if (uCloudUseSunProjection > 0.5) {
+        float sunZ = max(0.12, uSunDir.z);
+        sunShift = -uSunDir.xy / sunZ * (uCloudSunParallax * 0.03);
+      }
+      vec2 cloudUvA = fract((uv + sunShift + vec2(timeSec * uCloudSpeed1, timeSec * uCloudSpeed1 * 0.63)) * cloudScale);
+      vec2 cloudUvB = fract((uv + sunShift * 1.55 + vec2(-timeSec * uCloudSpeed2 * 0.74, timeSec * uCloudSpeed2)) * (cloudScale * 1.93));
+      float noiseA = texture(uCloudNoiseTex, cloudUvA).r;
+      float noiseB = texture(uCloudNoiseTex, cloudUvB).r;
+      float maskA = smoothstep(threshold - soft, threshold + soft, noiseA);
+      float maskB = smoothstep(threshold - soft, threshold + soft, noiseB);
+      float cloudMask = clamp(maskA * 0.66 + maskB * 0.34, 0.0, 1.0);
+      float cloudShade = 1.0 - (cloudMask * clamp(uCloudOpacity, 0.0, 1.0) * sunVisibility);
+      lit *= cloudShade;
+    }
+  }
 
   if (uUseFog > 0.5) {
     float terrainHeight = texture(uHeight, uv).r;
@@ -331,6 +414,78 @@ function createTexture() {
 function uploadImageToTexture(tex, image) {
   gl.bindTexture(gl.TEXTURE_2D, tex);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+}
+
+function fract(v) {
+  return v - Math.floor(v);
+}
+
+function valueNoise2D(x, y, seed) {
+  const n = Math.sin((x + seed * 17.13) * 127.1 + (y + seed * 31.7) * 311.7) * 43758.5453123;
+  return fract(n);
+}
+
+function wrapInt(value, period) {
+  const p = Math.max(1, Math.floor(period));
+  const v = Math.floor(value) % p;
+  return v < 0 ? v + p : v;
+}
+
+function periodicValueNoise2D(ix, iy, period, seed) {
+  return valueNoise2D(wrapInt(ix, period), wrapInt(iy, period), seed);
+}
+
+function smoothPeriodicValueNoise2D(x, y, period, seed) {
+  const x0 = Math.floor(x);
+  const y0 = Math.floor(y);
+  const tx = x - x0;
+  const ty = y - y0;
+  const sx = tx * tx * (3 - 2 * tx);
+  const sy = ty * ty * (3 - 2 * ty);
+  const n00 = periodicValueNoise2D(x0, y0, period, seed);
+  const n10 = periodicValueNoise2D(x0 + 1, y0, period, seed);
+  const n01 = periodicValueNoise2D(x0, y0 + 1, period, seed);
+  const n11 = periodicValueNoise2D(x0 + 1, y0 + 1, period, seed);
+  const nx0 = n00 + (n10 - n00) * sx;
+  const nx1 = n01 + (n11 - n01) * sx;
+  return nx0 + (nx1 - nx0) * sy;
+}
+
+function createCloudNoiseImage(size = 128) {
+  const imageData = new ImageData(size, size);
+  const data = imageData.data;
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      let f = 0;
+      let amp = 0.58;
+      let ampSum = 0;
+      for (let octave = 0; octave < 4; octave++) {
+        const period = 8 * (1 << octave);
+        const nx = (x / size) * period;
+        const ny = (y / size) * period;
+        f += smoothPeriodicValueNoise2D(nx, ny, period, 2.31 + octave * 13.7) * amp;
+        ampSum += amp;
+        amp *= 0.5;
+      }
+      const v = Math.round(clamp(f / Math.max(0.0001, ampSum), 0, 1) * 255);
+      const idx = (y * size + x) * 4;
+      data[idx] = v;
+      data[idx + 1] = v;
+      data[idx + 2] = v;
+      data[idx + 3] = 255;
+    }
+  }
+  return imageData;
+}
+
+function uploadCloudNoiseTexture() {
+  gl.bindTexture(gl.TEXTURE_2D, cloudNoiseTex);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+  const cloudNoiseImage = createCloudNoiseImage();
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, cloudNoiseImage.width, cloudNoiseImage.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, cloudNoiseImage.data);
 }
 
 async function loadImageFromUrl(url) {
@@ -420,6 +575,10 @@ const DEFAULT_LIGHTING_SETTINGS = {
   diffuse: 1,
   cycleHour: 9.5,
   cycleSpeed: 0.08,
+  pointFlickerEnabled: true,
+  pointFlickerStrength: 0.55,
+  pointFlickerSpeed: 2.4,
+  pointFlickerSpatial: 1.0,
 };
 
 const DEFAULT_FOG_SETTINGS = {
@@ -436,6 +595,18 @@ const DEFAULT_PARALLAX_SETTINGS = {
   useParallax: false,
   parallaxStrength: 0.35,
   parallaxBands: 6,
+};
+
+const DEFAULT_CLOUD_SETTINGS = {
+  useClouds: false,
+  cloudCoverage: 0.58,
+  cloudSoftness: 0.12,
+  cloudOpacity: 0.35,
+  cloudScale: 2.2,
+  cloudSpeed1: 0.045,
+  cloudSpeed2: -0.028,
+  cloudSunParallax: 0.45,
+  cloudUseSunProjection: true,
 };
 
 const DEFAULT_INTERACTION_SETTINGS = {
@@ -464,6 +635,10 @@ function serializeLightingSettings() {
     diffuse: clamp(Number(diffuseInput.value), 0, 2),
     cycleHour: clamp(Number(cycleState.hour), 0, 24),
     cycleSpeed: clamp(Number(cycleSpeedInput.value), 0, 1),
+    pointFlickerEnabled: pointFlickerToggle.checked,
+    pointFlickerStrength: clamp(Number(pointFlickerStrengthInput.value), 0, 1),
+    pointFlickerSpeed: clamp(Number(pointFlickerSpeedInput.value), 0.1, 12),
+    pointFlickerSpatial: clamp(Number(pointFlickerSpatialInput.value), 0, 4),
   };
 }
 
@@ -491,6 +666,20 @@ function applyLightingSettings(rawData) {
   if (Number.isFinite(Number(data.cycleSpeed))) {
     cycleSpeedInput.value = String(clamp(Number(data.cycleSpeed), 0, 1));
   }
+  if (typeof data.pointFlickerEnabled === "boolean") {
+    pointFlickerToggle.checked = data.pointFlickerEnabled;
+  }
+  if (Number.isFinite(Number(data.pointFlickerStrength))) {
+    pointFlickerStrengthInput.value = String(clamp(Number(data.pointFlickerStrength), 0, 1));
+  }
+  if (Number.isFinite(Number(data.pointFlickerSpeed))) {
+    pointFlickerSpeedInput.value = String(clamp(Number(data.pointFlickerSpeed), 0.1, 12));
+  }
+  if (Number.isFinite(Number(data.pointFlickerSpatial))) {
+    pointFlickerSpatialInput.value = String(clamp(Number(data.pointFlickerSpatial), 0, 4));
+  }
+  updatePointFlickerLabels();
+  updatePointFlickerUi();
   setCycleHourSliderFromState();
   updateCycleHourLabel();
   schedulePointLightBake();
@@ -515,6 +704,21 @@ function serializeParallaxSettings() {
     useParallax: parallaxToggle.checked,
     parallaxStrength: clamp(Number(parallaxStrengthInput.value), 0, 1),
     parallaxBands: Math.round(clamp(Number(parallaxBandsInput.value), 2, 256)),
+  };
+}
+
+function serializeCloudSettings() {
+  return {
+    version: 1,
+    useClouds: cloudToggle.checked,
+    cloudCoverage: clamp(Number(cloudCoverageInput.value), 0, 1),
+    cloudSoftness: clamp(Number(cloudSoftnessInput.value), 0.01, 0.35),
+    cloudOpacity: clamp(Number(cloudOpacityInput.value), 0, 1),
+    cloudScale: clamp(Number(cloudScaleInput.value), 0.5, 8),
+    cloudSpeed1: clamp(Number(cloudSpeed1Input.value), -0.3, 0.3),
+    cloudSpeed2: clamp(Number(cloudSpeed2Input.value), -0.3, 0.3),
+    cloudSunParallax: clamp(Number(cloudSunParallaxInput.value), 0, 2),
+    cloudUseSunProjection: cloudSunProjectToggle.checked,
   };
 }
 
@@ -590,6 +794,39 @@ function applyParallaxSettings(rawData) {
   updateParallaxUi();
 }
 
+function applyCloudSettings(rawData) {
+  const data = rawData && typeof rawData === "object" ? rawData : {};
+  if (typeof data.useClouds === "boolean") {
+    cloudToggle.checked = data.useClouds;
+  }
+  if (Number.isFinite(Number(data.cloudCoverage))) {
+    cloudCoverageInput.value = String(clamp(Number(data.cloudCoverage), 0, 1));
+  }
+  if (Number.isFinite(Number(data.cloudSoftness))) {
+    cloudSoftnessInput.value = String(clamp(Number(data.cloudSoftness), 0.01, 0.35));
+  }
+  if (Number.isFinite(Number(data.cloudOpacity))) {
+    cloudOpacityInput.value = String(clamp(Number(data.cloudOpacity), 0, 1));
+  }
+  if (Number.isFinite(Number(data.cloudScale))) {
+    cloudScaleInput.value = String(clamp(Number(data.cloudScale), 0.5, 8));
+  }
+  if (Number.isFinite(Number(data.cloudSpeed1))) {
+    cloudSpeed1Input.value = String(clamp(Number(data.cloudSpeed1), -0.3, 0.3));
+  }
+  if (Number.isFinite(Number(data.cloudSpeed2))) {
+    cloudSpeed2Input.value = String(clamp(Number(data.cloudSpeed2), -0.3, 0.3));
+  }
+  if (Number.isFinite(Number(data.cloudSunParallax))) {
+    cloudSunParallaxInput.value = String(clamp(Number(data.cloudSunParallax), 0, 2));
+  }
+  if (typeof data.cloudUseSunProjection === "boolean") {
+    cloudSunProjectToggle.checked = data.cloudUseSunProjection;
+  }
+  updateCloudLabels();
+  updateCloudUi();
+}
+
 function applyInteractionSettings(rawData) {
   const data = rawData && typeof rawData === "object" ? rawData : {};
   if (Number.isFinite(Number(data.pathfindingRange))) {
@@ -656,6 +893,7 @@ function createMapDataFileTexts() {
     "parallax.json": `${JSON.stringify(serializeParallaxSettings(), null, 2)}\n`,
     "interaction.json": `${JSON.stringify(serializeInteractionSettings(), null, 2)}\n`,
     "fog.json": `${JSON.stringify(serializeFogSettings(), null, 2)}\n`,
+    "clouds.json": `${JSON.stringify(serializeCloudSettings(), null, 2)}\n`,
     "npc.json": `${JSON.stringify(serializeNpcState(), null, 2)}\n`,
   };
 }
@@ -721,6 +959,7 @@ async function loadMapFromPath(mapFolderPath) {
   applyParallaxSettings(DEFAULT_PARALLAX_SETTINGS);
   applyInteractionSettings(DEFAULT_INTERACTION_SETTINGS);
   applyFogSettings(DEFAULT_FOG_SETTINGS);
+  applyCloudSettings(DEFAULT_CLOUD_SETTINGS);
   requestOverlayDraw();
 
   let loadedPointLights = false;
@@ -728,6 +967,7 @@ async function loadMapFromPath(mapFolderPath) {
   let loadedParallax = false;
   let loadedInteraction = false;
   let loadedFog = false;
+  let loadedClouds = false;
   let loadedNpc = false;
 
   try {
@@ -771,6 +1011,14 @@ async function loadMapFromPath(mapFolderPath) {
   }
 
   try {
+    const cloudsJson = await tryLoadJsonFromUrl(`${folder}/clouds.json`);
+    applyCloudSettings(cloudsJson);
+    loadedClouds = true;
+  } catch (err) {
+    console.warn(`No clouds.json found in ${folder}`, err);
+  }
+
+  try {
     const npcJson = await tryLoadJsonFromUrl(`${folder}/npc.json`);
     applyLoadedNpc(npcJson);
     loadedNpc = true;
@@ -780,7 +1028,7 @@ async function loadMapFromPath(mapFolderPath) {
   }
 
   rebuildMovementField();
-  setStatus(`Loaded map ${folder} | pointlights: ${loadedPointLights ? "yes" : "no"} | lighting: ${loadedLighting ? "yes" : "no"} | parallax: ${loadedParallax ? "yes" : "no"} | interaction: ${loadedInteraction ? "yes" : "no"} | fog: ${loadedFog ? "yes" : "no"} | npc: ${loadedNpc ? "yes" : "default"}`);
+  setStatus(`Loaded map ${folder} | pointlights: ${loadedPointLights ? "yes" : "no"} | lighting: ${loadedLighting ? "yes" : "no"} | parallax: ${loadedParallax ? "yes" : "no"} | interaction: ${loadedInteraction ? "yes" : "no"} | fog: ${loadedFog ? "yes" : "no"} | clouds: ${loadedClouds ? "yes" : "no"} | npc: ${loadedNpc ? "yes" : "default"}`);
 }
 
 async function loadMapFromFolderSelection(fileList) {
@@ -817,6 +1065,7 @@ async function loadMapFromFolderSelection(fileList) {
   applyParallaxSettings(DEFAULT_PARALLAX_SETTINGS);
   applyInteractionSettings(DEFAULT_INTERACTION_SETTINGS);
   applyFogSettings(DEFAULT_FOG_SETTINGS);
+  applyCloudSettings(DEFAULT_CLOUD_SETTINGS);
   requestOverlayDraw();
 
   let loadedPointLights = false;
@@ -824,6 +1073,7 @@ async function loadMapFromFolderSelection(fileList) {
   let loadedParallax = false;
   let loadedInteraction = false;
   let loadedFog = false;
+  let loadedClouds = false;
   let loadedNpc = false;
 
   const pointLightsFile = getFileFromFolderSelection(files, "pointlights.json");
@@ -883,6 +1133,17 @@ async function loadMapFromFolderSelection(fileList) {
     }
   }
 
+  const cloudsFile = getFileFromFolderSelection(files, "clouds.json");
+  if (cloudsFile) {
+    try {
+      const rawData = JSON.parse(await cloudsFile.text());
+      applyCloudSettings(rawData);
+      loadedClouds = true;
+    } catch (err) {
+      console.warn("Failed to parse clouds.json from selected folder", err);
+    }
+  }
+
   const npcFile = getFileFromFolderSelection(files, "npc.json");
   if (npcFile) {
     try {
@@ -898,7 +1159,7 @@ async function loadMapFromFolderSelection(fileList) {
   }
 
   rebuildMovementField();
-  setStatus(`Loaded map folder | pointlights: ${loadedPointLights ? "yes" : "no"} | lighting: ${loadedLighting ? "yes" : "no"} | parallax: ${loadedParallax ? "yes" : "no"} | interaction: ${loadedInteraction ? "yes" : "no"} | fog: ${loadedFog ? "yes" : "no"} | npc: ${loadedNpc ? "yes" : "default"}`);
+  setStatus(`Loaded map folder | pointlights: ${loadedPointLights ? "yes" : "no"} | lighting: ${loadedLighting ? "yes" : "no"} | parallax: ${loadedParallax ? "yes" : "no"} | interaction: ${loadedInteraction ? "yes" : "no"} | fog: ${loadedFog ? "yes" : "no"} | clouds: ${loadedClouds ? "yes" : "no"} | npc: ${loadedNpc ? "yes" : "default"}`);
 }
 
 function setStatus(text) {
@@ -987,6 +1248,7 @@ const uniforms = {
   uNormals: gl.getUniformLocation(program, "uNormals"),
   uHeight: gl.getUniformLocation(program, "uHeight"),
   uPointLightTex: gl.getUniformLocation(program, "uPointLightTex"),
+  uCloudNoiseTex: gl.getUniformLocation(program, "uCloudNoiseTex"),
   uUseCursorLight: gl.getUniformLocation(program, "uUseCursorLight"),
   uCursorLightUv: gl.getUniformLocation(program, "uCursorLightUv"),
   uCursorLightColor: gl.getUniformLocation(program, "uCursorLightColor"),
@@ -1021,6 +1283,20 @@ const uniforms = {
   uMapAspect: gl.getUniformLocation(program, "uMapAspect"),
   uViewHalfExtents: gl.getUniformLocation(program, "uViewHalfExtents"),
   uPanWorld: gl.getUniformLocation(program, "uPanWorld"),
+  uTimeSec: gl.getUniformLocation(program, "uTimeSec"),
+  uPointFlickerEnabled: gl.getUniformLocation(program, "uPointFlickerEnabled"),
+  uPointFlickerStrength: gl.getUniformLocation(program, "uPointFlickerStrength"),
+  uPointFlickerSpeed: gl.getUniformLocation(program, "uPointFlickerSpeed"),
+  uPointFlickerSpatial: gl.getUniformLocation(program, "uPointFlickerSpatial"),
+  uUseClouds: gl.getUniformLocation(program, "uUseClouds"),
+  uCloudCoverage: gl.getUniformLocation(program, "uCloudCoverage"),
+  uCloudSoftness: gl.getUniformLocation(program, "uCloudSoftness"),
+  uCloudOpacity: gl.getUniformLocation(program, "uCloudOpacity"),
+  uCloudScale: gl.getUniformLocation(program, "uCloudScale"),
+  uCloudSpeed1: gl.getUniformLocation(program, "uCloudSpeed1"),
+  uCloudSpeed2: gl.getUniformLocation(program, "uCloudSpeed2"),
+  uCloudSunParallax: gl.getUniformLocation(program, "uCloudSunParallax"),
+  uCloudUseSunProjection: gl.getUniformLocation(program, "uCloudUseSunProjection"),
 };
 
 const quad = gl.createBuffer();
@@ -1044,6 +1320,8 @@ const splatTex = createTexture();
 const normalsTex = createTexture();
 const heightTex = createTexture();
 const pointLightTex = createTexture();
+const cloudNoiseTex = gl.createTexture();
+uploadCloudNoiseTexture();
 
 const splatSize = { width: 1, height: 1 };
 const heightSize = { width: 1, height: 1 };
@@ -1073,6 +1351,8 @@ const POINT_LIGHT_BLEND_EXPOSURE = 0.65;
 const POINT_LIGHT_SELECT_RADIUS = 3;
 const POINT_LIGHT_BAKE_LIVE_SCALE = 0.5;
 const POINT_LIGHT_BAKE_DEBOUNCE_MS = 80;
+const DEFAULT_POINT_LIGHT_FLICKER = 0.7;
+const DEFAULT_POINT_LIGHT_FLICKER_SPEED = 0.5;
 let overlayDirty = true;
 const DEFAULT_MAP_FOLDER = "assets/map1/";
 let currentMapFolderPath = DEFAULT_MAP_FOLDER;
@@ -1273,6 +1553,8 @@ function serializePointLights() {
       range: light.strength,
       intensity: light.intensity,
       heightOffset: light.heightOffset,
+      flicker: clamp(Number.isFinite(Number(light.flicker)) ? Number(light.flicker) : DEFAULT_POINT_LIGHT_FLICKER, 0, 1),
+      flickerSpeed: clamp(Number.isFinite(Number(light.flickerSpeed)) ? Number(light.flickerSpeed) : DEFAULT_POINT_LIGHT_FLICKER_SPEED, 0, 1),
       color: [light.color[0], light.color[1], light.color[2]],
     })),
   };
@@ -1298,13 +1580,17 @@ function parsePointLightsFromJson(rawData) {
     const rawStrength = rawLight && (rawLight.strength ?? rawLight.range);
     const rawIntensity = rawLight && (rawLight.intensity ?? rawLight.power ?? 1);
     const rawHeightOffset = rawLight && (rawLight.heightOffset ?? rawLight.height ?? 8);
+    const rawFlicker = rawLight && (rawLight.flicker ?? rawLight.flickerAmount ?? DEFAULT_POINT_LIGHT_FLICKER);
+    const rawFlickerSpeed = rawLight && (rawLight.flickerSpeed ?? rawLight.flickerRate ?? DEFAULT_POINT_LIGHT_FLICKER_SPEED);
     const color = normalizeImportedPointLightColor(rawLight && rawLight.color);
     const pixelX = Math.round(Number(rawX));
     const pixelY = Math.round(Number(rawY));
     const strength = Math.round(Number(rawStrength));
     const intensity = Number(rawIntensity);
     const heightOffset = Math.round(Number(rawHeightOffset));
-    if (!Number.isFinite(pixelX) || !Number.isFinite(pixelY) || !Number.isFinite(strength) || !Number.isFinite(intensity) || !Number.isFinite(heightOffset) || !color) {
+    const flicker = Number(rawFlicker);
+    const flickerSpeed = Number(rawFlickerSpeed);
+    if (!Number.isFinite(pixelX) || !Number.isFinite(pixelY) || !Number.isFinite(strength) || !Number.isFinite(intensity) || !Number.isFinite(heightOffset) || !Number.isFinite(flicker) || !Number.isFinite(flickerSpeed) || !color) {
       skippedCount += 1;
       continue;
     }
@@ -1315,6 +1601,8 @@ function parsePointLightsFromJson(rawData) {
       strength: Math.round(clamp(strength, 1, 200)),
       intensity: clamp(intensity, 0, 4),
       heightOffset: Math.round(clamp(heightOffset, -120, 240)),
+      flicker: clamp(flicker, 0, 1),
+      flickerSpeed: clamp(flickerSpeed, 0, 1),
       color,
     });
   }
@@ -1335,6 +1623,8 @@ function applyLoadedPointLights(rawData, sourceLabel, options = {}) {
       strength: light.strength,
       intensity: light.intensity,
       heightOffset: light.heightOffset,
+      flicker: light.flicker,
+      flickerSpeed: light.flickerSpeed,
       color: [...light.color],
     });
   }
@@ -1527,21 +1817,22 @@ function bakePointLightsTextureSync(useReducedResolution = false) {
   const h = Math.max(1, Math.round(fullHeight * scale));
   const mapScaleX = fullWidth / w;
   const mapScaleY = fullHeight / h;
-  const mapScaleAvg = (mapScaleX + mapScaleY) * 0.5;
   const heightScaleValue = Math.max(1, Number(heightScaleInput.value) || 1);
   const pixelCount = w * h;
   const rgba = new Uint8ClampedArray(pixelCount * 4);
   const accumColor = new Float32Array(pixelCount * 3);
   const accumWeight = new Float32Array(pixelCount);
-
-  for (let i = 3; i < rgba.length; i += 4) {
-    rgba[i] = 255;
-  }
+  const accumFlicker = new Float32Array(pixelCount);
+  const accumFlickerSpeed = new Float32Array(pixelCount);
 
   if (pointLights.length > 0) {
     for (const light of pointLights) {
       const radiusMapPx = Math.max(1, Number(light.strength) || 1);
       const intensityMul = clamp(Number(light.intensity), 0, 4);
+      const flickerRaw = Number(light.flicker);
+      const flickerMul = clamp(Number.isFinite(flickerRaw) ? flickerRaw : DEFAULT_POINT_LIGHT_FLICKER, 0, 1);
+      const flickerSpeedRaw = Number(light.flickerSpeed);
+      const flickerSpeedMul = clamp(Number.isFinite(flickerSpeedRaw) ? flickerSpeedRaw : DEFAULT_POINT_LIGHT_FLICKER_SPEED, 0, 1);
       if (intensityMul <= 0.0001) continue;
       const lightTerrainHeight = sampleHeightAtMapPixel(light.pixelX, light.pixelY) * heightScaleValue;
       const lightHeight = lightTerrainHeight + (Number(light.heightOffset) || 0);
@@ -1573,6 +1864,8 @@ function bakePointLightsTextureSync(useReducedResolution = false) {
           const pixelIdx = y * w + x;
           const baseIdx = pixelIdx * 3;
           accumWeight[pixelIdx] += contribution;
+          accumFlicker[pixelIdx] += contribution * flickerMul;
+          accumFlickerSpeed[pixelIdx] += contribution * flickerSpeedMul;
           accumColor[baseIdx] += light.color[0] * contribution;
           accumColor[baseIdx + 1] += light.color[1] * contribution;
           accumColor[baseIdx + 2] += light.color[2] * contribution;
@@ -1591,6 +1884,11 @@ function bakePointLightsTextureSync(useReducedResolution = false) {
     rgba[j] = Math.round(clamp(accumColor[baseIdx] * intensityR, 0, 1) * 255);
     rgba[j + 1] = Math.round(clamp(accumColor[baseIdx + 1] * intensityG, 0, 1) * 255);
     rgba[j + 2] = Math.round(clamp(accumColor[baseIdx + 2] * intensityB, 0, 1) * 255);
+    const flickerAvg = clamp(accumFlicker[pixelIdx] / weight, 0, 1);
+    const flickerSpeedAvg = clamp(accumFlickerSpeed[pixelIdx] / weight, 0, 1);
+    const flickerNibble = Math.round(flickerAvg * 15);
+    const flickerSpeedNibble = Math.round(flickerSpeedAvg * 15);
+    rgba[j + 3] = flickerNibble * 16 + flickerSpeedNibble;
   }
 
   applyPointLightBakeRgba(rgba, w, h);
@@ -1609,6 +1907,16 @@ function updatePointLightIntensityLabel() {
 function updatePointLightHeightOffsetLabel() {
   const value = Math.round(clamp(Number(pointLightHeightOffsetInput.value), -120, 240));
   pointLightHeightOffsetValue.textContent = `${value} px`;
+}
+
+function updatePointLightFlickerLabel() {
+  const value = clamp(Number(pointLightFlickerInput.value), 0, 1);
+  pointLightFlickerValue.textContent = value.toFixed(2);
+}
+
+function updatePointLightFlickerSpeedLabel() {
+  const value = clamp(Number(pointLightFlickerSpeedInput.value), 0, 1);
+  pointLightFlickerSpeedValue.textContent = value.toFixed(2);
 }
 
 function updateCursorLightStrengthLabel() {
@@ -1678,18 +1986,26 @@ function updateLightEditorUi() {
   pointLightStrengthInput.value = String(Math.round(lightEditDraft.strength));
   pointLightIntensityInput.value = String(clamp(lightEditDraft.intensity, 0, 4));
   pointLightHeightOffsetInput.value = String(Math.round(lightEditDraft.heightOffset));
+  pointLightFlickerInput.value = String(clamp(lightEditDraft.flicker, 0, 1));
+  pointLightFlickerSpeedInput.value = String(clamp(lightEditDraft.flickerSpeed, 0, 1));
   updatePointLightStrengthLabel();
   updatePointLightIntensityLabel();
   updatePointLightHeightOffsetLabel();
+  updatePointLightFlickerLabel();
+  updatePointLightFlickerSpeedLabel();
 }
 
 function beginLightEdit(light) {
+  const flickerRaw = Number(light.flicker);
+  const flickerSpeedRaw = Number(light.flickerSpeed);
   selectedLightId = light.id;
   lightEditDraft = {
     color: [...light.color],
     strength: light.strength,
     intensity: light.intensity,
     heightOffset: light.heightOffset,
+    flicker: clamp(Number.isFinite(flickerRaw) ? flickerRaw : DEFAULT_POINT_LIGHT_FLICKER, 0, 1),
+    flickerSpeed: clamp(Number.isFinite(flickerSpeedRaw) ? flickerSpeedRaw : DEFAULT_POINT_LIGHT_FLICKER_SPEED, 0, 1),
   };
   updateLightEditorUi();
 }
@@ -1701,6 +2017,8 @@ function applyDraftToSelectedPointLight() {
   selected.strength = Math.round(clamp(lightEditDraft.strength, 1, 200));
   selected.intensity = clamp(Number(lightEditDraft.intensity), 0, 4);
   selected.heightOffset = Math.round(clamp(lightEditDraft.heightOffset, -120, 240));
+  selected.flicker = clamp(Number(lightEditDraft.flicker), 0, 1);
+  selected.flickerSpeed = clamp(Number(lightEditDraft.flickerSpeed), 0, 1);
   return selected;
 }
 
@@ -1733,6 +2051,8 @@ function createPointLight(pixelX, pixelY) {
     strength: 30,
     intensity: 1,
     heightOffset: 8,
+    flicker: DEFAULT_POINT_LIGHT_FLICKER,
+    flickerSpeed: DEFAULT_POINT_LIGHT_FLICKER_SPEED,
     color: hexToRgb01("#ff9b2f"),
   };
   pointLights.push(light);
@@ -2182,6 +2502,29 @@ function updateFogStartOffsetLabel() {
   fogStartOffsetValue.textContent = clamp(Number(fogStartOffsetInput.value), 0, 1).toFixed(2);
 }
 
+function updatePointFlickerLabels() {
+  pointFlickerStrengthValue.textContent = clamp(Number(pointFlickerStrengthInput.value), 0, 1).toFixed(2);
+  pointFlickerSpeedValue.textContent = `${clamp(Number(pointFlickerSpeedInput.value), 0.1, 12).toFixed(2)} Hz`;
+  pointFlickerSpatialValue.textContent = clamp(Number(pointFlickerSpatialInput.value), 0, 4).toFixed(2);
+}
+
+function updatePointFlickerUi() {
+  const enabled = pointFlickerToggle.checked;
+  pointFlickerStrengthInput.disabled = !enabled;
+  pointFlickerSpeedInput.disabled = !enabled;
+  pointFlickerSpatialInput.disabled = !enabled;
+}
+
+function updateCloudLabels() {
+  cloudCoverageValue.textContent = clamp(Number(cloudCoverageInput.value), 0, 1).toFixed(2);
+  cloudSoftnessValue.textContent = clamp(Number(cloudSoftnessInput.value), 0.01, 0.35).toFixed(2);
+  cloudOpacityValue.textContent = clamp(Number(cloudOpacityInput.value), 0, 1).toFixed(2);
+  cloudScaleValue.textContent = clamp(Number(cloudScaleInput.value), 0.5, 8).toFixed(2);
+  cloudSpeed1Value.textContent = clamp(Number(cloudSpeed1Input.value), -0.3, 0.3).toFixed(3);
+  cloudSpeed2Value.textContent = clamp(Number(cloudSpeed2Input.value), -0.3, 0.3).toFixed(3);
+  cloudSunParallaxValue.textContent = clamp(Number(cloudSunParallaxInput.value), 0, 2).toFixed(2);
+}
+
 function updateParallaxUi() {
   parallaxStrengthInput.disabled = !parallaxToggle.checked;
   parallaxBandsInput.disabled = !parallaxToggle.checked;
@@ -2194,6 +2537,18 @@ function updateFogUi() {
   fogMaxAlphaInput.disabled = !enabled;
   fogFalloffInput.disabled = !enabled;
   fogStartOffsetInput.disabled = !enabled;
+}
+
+function updateCloudUi() {
+  const enabled = cloudToggle.checked;
+  cloudCoverageInput.disabled = !enabled;
+  cloudSoftnessInput.disabled = !enabled;
+  cloudOpacityInput.disabled = !enabled;
+  cloudScaleInput.disabled = !enabled;
+  cloudSpeed1Input.disabled = !enabled;
+  cloudSpeed2Input.disabled = !enabled;
+  cloudSunParallaxInput.disabled = !enabled;
+  cloudSunProjectToggle.disabled = !enabled;
 }
 
 function updateCycleHourLabel() {
@@ -2552,6 +2907,22 @@ pointLightHeightOffsetInput.addEventListener("input", () => {
   requestOverlayDraw();
 });
 
+pointLightFlickerInput.addEventListener("input", () => {
+  if (!lightEditDraft) return;
+  lightEditDraft.flicker = clamp(Number(pointLightFlickerInput.value), 0, 1);
+  updatePointLightFlickerLabel();
+  rebakeIfPointLightLiveUpdateEnabled();
+  requestOverlayDraw();
+});
+
+pointLightFlickerSpeedInput.addEventListener("input", () => {
+  if (!lightEditDraft) return;
+  lightEditDraft.flickerSpeed = clamp(Number(pointLightFlickerSpeedInput.value), 0, 1);
+  updatePointLightFlickerSpeedLabel();
+  rebakeIfPointLightLiveUpdateEnabled();
+  requestOverlayDraw();
+});
+
 pointLightLiveUpdateToggle.addEventListener("change", () => {
   if (pointLightLiveUpdateToggle.checked) {
     rebakeIfPointLightLiveUpdateEnabled();
@@ -2645,6 +3016,10 @@ pointLightsLoadInput.addEventListener("change", async () => {
 parallaxStrengthInput.addEventListener("input", updateParallaxStrengthLabel);
 parallaxBandsInput.addEventListener("input", updateParallaxBandsLabel);
 parallaxToggle.addEventListener("change", updateParallaxUi);
+pointFlickerStrengthInput.addEventListener("input", updatePointFlickerLabels);
+pointFlickerSpeedInput.addEventListener("input", updatePointFlickerLabels);
+pointFlickerSpatialInput.addEventListener("input", updatePointFlickerLabels);
+pointFlickerToggle.addEventListener("change", updatePointFlickerUi);
 fogMinAlphaInput.addEventListener("input", updateFogAlphaLabels);
 fogMaxAlphaInput.addEventListener("input", updateFogAlphaLabels);
 fogFalloffInput.addEventListener("input", updateFogFalloffLabel);
@@ -2653,6 +3028,14 @@ fogToggle.addEventListener("change", updateFogUi);
 fogColorInput.addEventListener("input", () => {
   fogColorManual = true;
 });
+cloudCoverageInput.addEventListener("input", updateCloudLabels);
+cloudSoftnessInput.addEventListener("input", updateCloudLabels);
+cloudOpacityInput.addEventListener("input", updateCloudLabels);
+cloudScaleInput.addEventListener("input", updateCloudLabels);
+cloudSpeed1Input.addEventListener("input", updateCloudLabels);
+cloudSpeed2Input.addEventListener("input", updateCloudLabels);
+cloudSunParallaxInput.addEventListener("input", updateCloudLabels);
+cloudToggle.addEventListener("change", updateCloudUi);
 
 cycleHourInput.addEventListener("pointerdown", () => {
   isCycleHourScrubbing = true;
@@ -2845,7 +3228,7 @@ function computeLightingParams() {
   };
 }
 
-function uploadUniforms(params) {
+function uploadUniforms(params, nowSec) {
   gl.useProgram(program);
   gl.activeTexture(gl.TEXTURE0);
   gl.bindTexture(gl.TEXTURE_2D, splatTex);
@@ -2862,6 +3245,10 @@ function uploadUniforms(params) {
   gl.activeTexture(gl.TEXTURE3);
   gl.bindTexture(gl.TEXTURE_2D, pointLightTex);
   gl.uniform1i(uniforms.uPointLightTex, 3);
+
+  gl.activeTexture(gl.TEXTURE4);
+  gl.bindTexture(gl.TEXTURE_2D, cloudNoiseTex);
+  gl.uniform1i(uniforms.uCloudNoiseTex, 4);
 
   const viewHalf = getViewHalfExtents();
   gl.uniform2f(uniforms.uMapTexelSize, 1 / heightSize.width, 1 / heightSize.height);
@@ -2898,6 +3285,20 @@ function uploadUniforms(params) {
   gl.uniform2f(uniforms.uCursorLightMapSize, splatSize.width, splatSize.height);
   gl.uniform2f(uniforms.uViewHalfExtents, viewHalf.x, viewHalf.y);
   gl.uniform2f(uniforms.uPanWorld, panWorld.x, panWorld.y);
+  gl.uniform1f(uniforms.uTimeSec, Math.max(0, Number(nowSec) || 0));
+  gl.uniform1f(uniforms.uPointFlickerEnabled, pointFlickerToggle.checked ? 1 : 0);
+  gl.uniform1f(uniforms.uPointFlickerStrength, clamp(Number(pointFlickerStrengthInput.value), 0, 1));
+  gl.uniform1f(uniforms.uPointFlickerSpeed, clamp(Number(pointFlickerSpeedInput.value), 0.1, 12));
+  gl.uniform1f(uniforms.uPointFlickerSpatial, clamp(Number(pointFlickerSpatialInput.value), 0, 4));
+  gl.uniform1f(uniforms.uUseClouds, cloudToggle.checked ? 1 : 0);
+  gl.uniform1f(uniforms.uCloudCoverage, clamp(Number(cloudCoverageInput.value), 0, 1));
+  gl.uniform1f(uniforms.uCloudSoftness, clamp(Number(cloudSoftnessInput.value), 0.01, 0.35));
+  gl.uniform1f(uniforms.uCloudOpacity, clamp(Number(cloudOpacityInput.value), 0, 1));
+  gl.uniform1f(uniforms.uCloudScale, clamp(Number(cloudScaleInput.value), 0.5, 8));
+  gl.uniform1f(uniforms.uCloudSpeed1, clamp(Number(cloudSpeed1Input.value), -0.3, 0.3));
+  gl.uniform1f(uniforms.uCloudSpeed2, clamp(Number(cloudSpeed2Input.value), -0.3, 0.3));
+  gl.uniform1f(uniforms.uCloudSunParallax, clamp(Number(cloudSunParallaxInput.value), 0, 2));
+  gl.uniform1f(uniforms.uCloudUseSunProjection, cloudSunProjectToggle.checked ? 1 : 0);
 }
 
 function render(nowMs) {
@@ -2910,7 +3311,7 @@ function render(nowMs) {
 
   gl.clearColor(0, 0, 0, 1);
   gl.clear(gl.COLOR_BUFFER_BIT);
-  uploadUniforms(lightingParams);
+  uploadUniforms(lightingParams, nowMs * 0.001);
   gl.drawArrays(gl.TRIANGLES, 0, 6);
   if (overlayDirty) {
     drawOverlay();
@@ -2932,12 +3333,16 @@ updatePathSlopeCutoffLabel();
 updatePathBaseCostLabel();
 updateParallaxStrengthLabel();
 updateParallaxBandsLabel();
+updatePointFlickerLabels();
 updateFogAlphaLabels();
 updateFogFalloffLabel();
 updateFogStartOffsetLabel();
+updateCloudLabels();
 updatePointLightStrengthLabel();
 updatePointLightIntensityLabel();
 updatePointLightHeightOffsetLabel();
+updatePointLightFlickerLabel();
+updatePointLightFlickerSpeedLabel();
 updateCursorLightStrengthLabel();
 updateCursorLightHeightOffsetLabel();
 setCycleHourSliderFromState();
@@ -2946,7 +3351,9 @@ mapPathInput.value = currentMapFolderPath;
 updateLightEditorUi();
 updateCursorLightModeUi();
 updateParallaxUi();
+updatePointFlickerUi();
 updateFogUi();
+updateCloudUi();
 setActiveTopic("");
 setInteractionMode("none");
 setStatus(`${statusEl.textContent} | Load maps by folder/path, use left dock mode toggles (LM/PF), wheel zoom, middle-drag pan, and cursor light for live preview.`);

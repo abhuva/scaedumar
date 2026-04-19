@@ -63,9 +63,8 @@ self.addEventListener("message", (event) => {
     const rgba = new Uint8ClampedArray(w * h * 4);
     const accumColor = new Float32Array(w * h * 3);
     const accumWeight = new Float32Array(w * h);
-    for (let i = 3; i < rgba.length; i += 4) {
-      rgba[i] = 255;
-    }
+    const accumFlicker = new Float32Array(w * h);
+    const accumFlickerSpeed = new Float32Array(w * h);
 
     const safeLights = Array.isArray(lights) ? lights : [];
     const normals = cachedMapData.normalsData;
@@ -116,6 +115,10 @@ self.addEventListener("message", (event) => {
       const lightY = Number(light.pixelY);
       const radiusMapPx = Math.max(1, Number(light.strength) || 1);
       const intensityMul = clamp(Number(light.intensity), 0, 4);
+      const flickerRaw = Number(light.flicker);
+      const flickerMul = clamp(Number.isFinite(flickerRaw) ? flickerRaw : 0.7, 0, 1);
+      const flickerSpeedRaw = Number(light.flickerSpeed);
+      const flickerSpeedMul = clamp(Number.isFinite(flickerSpeedRaw) ? flickerSpeedRaw : 0.5, 0, 1);
       if (!Number.isFinite(lightX) || !Number.isFinite(lightY) || intensityMul <= 0.0001) continue;
 
       const lightTerrainHeight = sampleHeightAtMapPixel(lightX, lightY) * heightScale;
@@ -152,6 +155,8 @@ self.addEventListener("message", (event) => {
           const pixelIdx = y * w + x;
           const baseIdx = pixelIdx * 3;
           accumWeight[pixelIdx] += contribution;
+          accumFlicker[pixelIdx] += contribution * flickerMul;
+          accumFlickerSpeed[pixelIdx] += contribution * flickerSpeedMul;
           accumColor[baseIdx] += colorR * contribution;
           accumColor[baseIdx + 1] += colorG * contribution;
           accumColor[baseIdx + 2] += colorB * contribution;
@@ -169,6 +174,11 @@ self.addEventListener("message", (event) => {
       rgba[j] = Math.round(clamp(accumColor[baseIdx] * intensityR, 0, 1) * 255);
       rgba[j + 1] = Math.round(clamp(accumColor[baseIdx + 1] * intensityG, 0, 1) * 255);
       rgba[j + 2] = Math.round(clamp(accumColor[baseIdx + 2] * intensityB, 0, 1) * 255);
+      const flickerAvg = clamp(accumFlicker[pixelIdx] / weight, 0, 1);
+      const flickerSpeedAvg = clamp(accumFlickerSpeed[pixelIdx] / weight, 0, 1);
+      const flickerNibble = Math.round(flickerAvg * 15);
+      const flickerSpeedNibble = Math.round(flickerSpeedAvg * 15);
+      rgba[j + 3] = flickerNibble * 16 + flickerSpeedNibble;
     }
 
     self.postMessage({ requestId, width: w, height: h, rgbaBuffer: rgba.buffer }, [rgba.buffer]);

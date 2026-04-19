@@ -36,6 +36,7 @@ No game engine is used.
   - `parallax.json`
   - `interaction.json`
   - `fog.json`
+  - `clouds.json`
   - `npc.json`
 - `Load Map` topic supports loading by folder path or folder picker (map bundle semantics)
 
@@ -58,7 +59,7 @@ No game engine is used.
   - texel step uses height-map dimensions (`heightSize`)
 - Optional point lights:
   - `Lighting Mode` toggle switches click behavior to light placement/selection
-  - each point light stores map pixel coordinate + color + range (radius in px) + intensity + height offset
+  - each point light stores map pixel coordinate + color + range (radius in px) + intensity + height offset + per-light flicker amount + per-light flicker speed
   - default new light: orange, range `30`, intensity `1.0`
   - light source height for baking is `terrainHeightAtLight + heightOffset`
   - editor has `Live Update` toggle (`on` = rebake on edit input, `off` = rebake on explicit save)
@@ -67,8 +68,9 @@ No game engine is used.
   - load first attempts `<currentMapFolder>/pointlights.json`, then falls back to manual file pick
   - linear radial falloff (range) + independent intensity multiplier, with saturating accumulation to avoid overblown overlap
   - normal interaction is baked into a map-space `pointLightTex` on add/edit/delete or normal/height-map update
+  - bake alpha channel packs weighted flicker amount + weighted flicker speed (4 bits each)
   - terrain height occlusion is baked by a light-to-surface line-of-sight test (cliffs can block local light spread)
-  - main fragment shader samples `uPointLightTex` and applies it to base color
+  - main fragment shader samples `uPointLightTex` and applies RGB to base color, with optional runtime flicker modulation from alpha
 - Optional cursor light mode:
   - mouse position drives a single live point light in shader uniforms
   - linear falloff + normal interaction
@@ -91,8 +93,13 @@ No game engine is used.
   - fog response curve is controlled by `fogFalloff`
   - fog onset threshold is controlled by `fogStartOffset`
   - fog color defaults to auto light-matched tint and becomes fixed when user edits the color picker
+- Optional cloud-shadow mode (toggle in UI):
+  - generated seamless repeating noise texture sampled in shader (no external cloud asset)
+  - two scrolling noise layers provide cloud-shape motion/parallax
+  - controls: coverage, softness, opacity, scale, layer speeds
+  - optional sun projection offsets cloud shadows by sun direction with adjustable strength
 - Map-level persistence:
-  - `Load Map -> Save All` writes `pointlights.json`, `lighting.json`, `parallax.json`, `interaction.json`, `fog.json`, and `npc.json`
+  - `Load Map -> Save All` writes `pointlights.json`, `lighting.json`, `parallax.json`, `interaction.json`, `fog.json`, `clouds.json`, and `npc.json`
   - map loading auto-applies these files when present
 
 ## Camera/Interaction
@@ -127,7 +134,10 @@ Main light uniforms:
 - `uMoonDir`, `uMoonColor`, `uMoonStrength`
 - `uAmbientColor`, `uAmbient`
 - `uPointLightTex`
+- `uCloudNoiseTex`
 - `uUseCursorLight`, `uCursorLightUv`, `uCursorLightColor`, `uCursorLightStrength`, `uCursorLightHeightOffset`, `uUseCursorTerrainHeight`, `uCursorLightMapSize`
+- `uTimeSec`, `uPointFlickerEnabled`, `uPointFlickerStrength`, `uPointFlickerSpeed`, `uPointFlickerSpatial`
+- `uUseClouds`, `uCloudCoverage`, `uCloudSoftness`, `uCloudOpacity`, `uCloudScale`, `uCloudSpeed1`, `uCloudSpeed2`, `uCloudSunParallax`, `uCloudUseSunProjection`
 
 Map/camera uniforms:
 - `uSplat`, `uNormals`, `uHeight`

@@ -15,6 +15,7 @@
       <button class="topic-btn" type="button" data-topic="lighting" title="Main Lighting" aria-label="Main lighting">L</button>
       <button class="topic-btn" type="button" data-topic="parallax" title="Parallax" aria-label="Parallax settings">P</button>
       <button class="topic-btn" type="button" data-topic="fog" title="Height Fog" aria-label="Height fog">F</button>
+      <button class="topic-btn" type="button" data-topic="clouds" title="Cloud Shadows" aria-label="Cloud shadow settings">C</button>
       <button class="topic-btn" type="button" data-topic="editor" title="Point Light Editor" aria-label="Point light editor">E</button>
       <button class="topic-btn" type="button" data-topic="info" title="Info" aria-label="Information">?</button>
     </nav>
@@ -150,6 +151,31 @@
             <label for="diffuse">Diffuse</label>
             <input id="diffuse" type="range" min="0" max="2" step="0.01" value="1" />
           </div>
+          <div class="row">
+            <label for="pointFlickerToggle">Light Flicker</label>
+            <input id="pointFlickerToggle" type="checkbox" checked />
+          </div>
+          <div class="row">
+            <label for="pointFlickerStrength">Flicker Amount</label>
+            <div class="inline-control">
+              <input id="pointFlickerStrength" type="range" min="0" max="1" step="0.01" value="0.55" />
+              <span id="pointFlickerStrengthValue">0.55</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="pointFlickerSpeed">Flicker Speed</label>
+            <div class="inline-control">
+              <input id="pointFlickerSpeed" type="range" min="0.10" max="12" step="0.05" value="2.40" />
+              <span id="pointFlickerSpeedValue">2.40 Hz</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="pointFlickerSpatial">Flicker Chaos</label>
+            <div class="inline-control">
+              <input id="pointFlickerSpatial" type="range" min="0" max="4" step="0.05" value="1.00" />
+              <span id="pointFlickerSpatialValue">1.00</span>
+            </div>
+          </div>
         </section>
 
         <section class="topic-card" data-topic="parallax" data-title="Parallax">
@@ -212,6 +238,66 @@
           </div>
         </section>
 
+        <section class="topic-card" data-topic="clouds" data-title="Cloud Shadows">
+          <div class="row">
+            <label for="cloudToggle">Cloud Shadows</label>
+            <input id="cloudToggle" type="checkbox" />
+          </div>
+          <div class="row">
+            <label for="cloudCoverage">Coverage</label>
+            <div class="inline-control">
+              <input id="cloudCoverage" type="range" min="0" max="1" step="0.01" value="0.58" />
+              <span id="cloudCoverageValue">0.58</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="cloudSoftness">Softness</label>
+            <div class="inline-control">
+              <input id="cloudSoftness" type="range" min="0.01" max="0.35" step="0.01" value="0.12" />
+              <span id="cloudSoftnessValue">0.12</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="cloudOpacity">Opacity</label>
+            <div class="inline-control">
+              <input id="cloudOpacity" type="range" min="0" max="1" step="0.01" value="0.35" />
+              <span id="cloudOpacityValue">0.35</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="cloudScale">Scale</label>
+            <div class="inline-control">
+              <input id="cloudScale" type="range" min="0.5" max="8" step="0.05" value="2.20" />
+              <span id="cloudScaleValue">2.20</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="cloudSpeed1">Layer A Speed</label>
+            <div class="inline-control">
+              <input id="cloudSpeed1" type="range" min="-0.30" max="0.30" step="0.005" value="0.045" />
+              <span id="cloudSpeed1Value">0.045</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="cloudSpeed2">Layer B Speed</label>
+            <div class="inline-control">
+              <input id="cloudSpeed2" type="range" min="-0.30" max="0.30" step="0.005" value="-0.028" />
+              <span id="cloudSpeed2Value">-0.028</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="cloudSunParallax">Sun Offset</label>
+            <div class="inline-control">
+              <input id="cloudSunParallax" type="range" min="0" max="2" step="0.01" value="0.45" />
+              <span id="cloudSunParallaxValue">0.45</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="cloudSunProjectToggle">Sun Projection</label>
+            <input id="cloudSunProjectToggle" type="checkbox" checked />
+          </div>
+        </section>
+
         <section class="topic-card" data-topic="editor" data-title="Point Light Editor" aria-live="polite">
           <p id="lightEditorEmpty" class="light-editor-empty">No light selected.</p>
           <div id="lightEditorFields" class="light-editor-fields">
@@ -239,6 +325,20 @@
               <div class="inline-control">
                 <input id="pointLightHeightOffset" type="range" min="-120" max="240" step="1" value="8" />
                 <span id="pointLightHeightOffsetValue">8 px</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="pointLightFlicker">Flicker</label>
+              <div class="inline-control">
+                <input id="pointLightFlicker" type="range" min="0" max="1" step="0.01" value="0.70" />
+                <span id="pointLightFlickerValue">0.70</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="pointLightFlickerSpeed">Flicker Speed</label>
+              <div class="inline-control">
+                <input id="pointLightFlickerSpeed" type="range" min="0" max="1" step="0.01" value="0.50" />
+                <span id="pointLightFlickerSpeedValue">0.50</span>
               </div>
             </div>
             <div class="row">

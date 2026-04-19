@@ -40,6 +40,7 @@ Build a self-contained prototype for top-down terrain rendering from Gaea-export
 - `assets/<mapName>/parallax.json`: optional saved parallax controls (`useParallax`, `parallaxStrength`, `parallaxBands`)
 - `assets/<mapName>/interaction.json`: optional saved interaction/pathfinding + cursor-light controls
 - `assets/<mapName>/fog.json`: optional saved fog controls
+- `assets/<mapName>/clouds.json`: optional saved cloud-shadow controls
 - `assets/<mapName>/npc.json`: player state (`charID`, `pixelX`, `pixelY`, `color`)
 
 
@@ -58,21 +59,24 @@ Build a self-contained prototype for top-down terrain rendering from Gaea-export
 - Height-based shadow raymarch in texture space
 - Optional editable point-light system:
   - Placement mode via UI toggle
-  - Point lights are map-pixel anchored (`x`, `y`, `range`, `intensity`, `color`, `heightOffset`)
+  - Point lights are map-pixel anchored (`x`, `y`, `range`, `intensity`, `color`, `heightOffset`, `flicker`, `flickerSpeed`)
   - Light source bake height is `terrain height at light + heightOffset`
   - Linear radius falloff uses `range`; brightness is controlled independently via `intensity` (default range `30`, intensity `1.0`, color orange)
   - Overlap accumulation uses a saturating blend to prevent additive overblown colors
   - Editor supports live rebake-on-edit toggle vs save-only apply
   - `Save All`/`Load All` JSON persistence via `pointlights.json` (save has explicit confirmation step)
   - Per-light normal interaction baked into a map-space texture on change
+  - Bake alpha packs weighted per-pixel flicker amount + flicker speed (4 bits each)
   - Main render pass samples baked point-light texture for fast runtime
+  - Optional global runtime flicker modulation (speed/amount/chaos) uses that alpha mask (no per-frame rebake)
 - Optional live cursor-light mode:
   - Cursor position is used as a single real-time point light
   - Rendered directly in shader (no per-move bake)
   - Uses linear falloff and normal interaction
 - Optional parallax illusion from height map (continuous + banded)
 - Optional height fog illusion based on zoom-derived camera height vs terrain height
-- Map-level `Save All` writes point lights + lighting + parallax + interaction + fog + npc JSON alongside map textures
+- Optional cloud-shadow illusion from generated seamless noise texture (two scrolling layers + optional sun-direction projection)
+- Map-level `Save All` writes point lights + lighting + parallax + interaction + fog + clouds + npc JSON alongside map textures
 
 ## Gameplay Prototype (Current)
 
