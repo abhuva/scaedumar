@@ -2141,10 +2141,11 @@ function getCurrentPathMetrics() {
   if (!Number.isFinite(totalCost)) return null;
   const nodeCount = movePreviewState.pathPixels.length;
   if (nodeCount <= 0) return null;
+  const steps = Math.max(0, nodeCount - 1);
   return {
-    nodeCount,
+    steps,
     totalCost,
-    avgPerNode: totalCost / nodeCount,
+    avgPerStep: steps > 0 ? totalCost / steps : 0,
   };
 }
 
@@ -2155,7 +2156,7 @@ function updateInfoPanel() {
     pathInfoEl.textContent = "Path: len -- | cost -- | avg --";
     return;
   }
-  pathInfoEl.textContent = `Path: len ${metrics.nodeCount} | cost ${metrics.totalCost.toFixed(2)} | avg ${metrics.avgPerNode.toFixed(2)}`;
+  pathInfoEl.textContent = `Path: len ${metrics.steps} | cost ${metrics.totalCost.toFixed(2)} | avg ${metrics.avgPerStep.toFixed(2)}`;
 }
 
 function updateParallaxStrengthLabel() {
