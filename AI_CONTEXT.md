@@ -28,10 +28,15 @@ No game engine is used.
   - `splat.png`
   - `normals.png`
   - `height.png`
+  - `slope.png`
+  - `water.png`
 - Optional sidecar JSON files in each candidate folder:
   - `pointlights.json`
   - `lighting.json`
+  - `parallax.json`
+  - `interaction.json`
   - `fog.json`
+  - `npc.json`
 - `Load Map` topic supports loading by folder path or folder picker (map bundle semantics)
 
 ## Current Lighting Model
@@ -87,22 +92,32 @@ No game engine is used.
   - fog onset threshold is controlled by `fogStartOffset`
   - fog color defaults to auto light-matched tint and becomes fixed when user edits the color picker
 - Map-level persistence:
-  - `Load Map -> Save All` writes `pointlights.json`, `lighting.json`, and `fog.json`
+  - `Load Map -> Save All` writes `pointlights.json`, `lighting.json`, `parallax.json`, `interaction.json`, `fog.json`, and `npc.json`
   - map loading auto-applies these files when present
 
 ## Camera/Interaction
 
 - Mouse wheel: zoom (cursor-centered)
 - Middle mouse drag: pan
-- Left click: store last clicked map coordinate (`uv` + pixel) and place marker
+- `LM` dock toggle enables `lighting` interaction mode.
+- `PF` dock toggle enables `pathfinding` interaction mode.
+- Mode behavior:
+  - `lighting`: left click adds/selects point lights.
+  - `pathfinding`: hover shows live path preview from player; left click moves player instantly to clicked cell.
+  - `none`: left click is no-op.
 - Lighting mode on:
   - Left click adds a point light unless one already exists at that map pixel
   - Clicking an existing light selects it and opens the side editor
   - Side editor supports `Color`, `Strength`, `Save`, `Cancel`, `Delete`
+- Pathfinding mode:
+  - uses local Dijkstra precompute in a square around the player (`30x30 .. 100x100`)
+  - move cost uses `slope.png` grayscale + uphill delta from `height.png`
+  - preview path is backtracked from hovered pixel via parent links
+  - player is loaded from `<mapFolder>/npc.json` and drawn as a 0.5-map-pixel circle
 - Cursor light mode on:
   - mouse movement updates live point-light position on terrain
   - optional overlay gizmo shows live cursor-light radius preview
-- Marker is drawn on a separate overlay layer (`overlayCanvas`) to keep path/UI drawing decoupled from terrain shading
+- Player + path preview are drawn on `overlayCanvas` to keep gameplay overlays decoupled from terrain shading
 - Render is pixel-sharp while zooming (`NEAREST` texture filtering)
 
 ## Shader Uniform Contract
@@ -141,12 +156,12 @@ After lighting/camera/map-load changes, verify:
 4. Daylight looks warm at sunrise/sunset.
 5. Night is dim but readable due to moon light.
 6. Height-map shadows still react to light direction.
-7. Lighting mode toggle correctly swaps marker click behavior with point-light placement/editing.
+7. LM/PF mode toggles correctly enforce mutual exclusivity and expected click behavior.
 8. Point-light edits (save/delete) visibly rebake terrain local lighting.
 
 ## Known Non-Goals (Current Prototype)
 
 - No physically accurate astronomy.
 - No georeferenced sun position.
-- No gameplay logic yet (movement cost/pathfinding).
+- No animated movement yet (currently instant click-to-move).
 - No multi-file module architecture yet; all runtime code is in `src/main.js`.

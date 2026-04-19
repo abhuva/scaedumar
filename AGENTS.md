@@ -34,9 +34,13 @@ Build a self-contained prototype for top-down terrain rendering from Gaea-export
 - `assets/<mapName>/splat.png`: base color terrain image
 - `assets/<mapName>/normals.png`: tangent/object-space normal map encoded in RGB
 - `assets/<mapName>/height.png`: grayscale height map (optional but used for shadows)
+- `assets/<mapName>/slope.png`: grayscale slope cost map for movement/pathfinding
 - `assets/<mapName>/pointlights.json`: optional saved point-light set for that map
 - `assets/<mapName>/lighting.json`: optional saved lighting controls (`heightScale`, `shadowStrength`, `useShadows`, `ambient`, `diffuse`)
+- `assets/<mapName>/parallax.json`: optional saved parallax controls (`useParallax`, `parallaxStrength`, `parallaxBands`)
+- `assets/<mapName>/interaction.json`: optional saved interaction/pathfinding + cursor-light controls
 - `assets/<mapName>/fog.json`: optional saved fog controls
+- `assets/<mapName>/npc.json`: player state (`charID`, `pixelX`, `pixelY`, `color`)
 
 
 ## Lighting Model (Prototype)
@@ -68,7 +72,20 @@ Build a self-contained prototype for top-down terrain rendering from Gaea-export
   - Uses linear falloff and normal interaction
 - Optional parallax illusion from height map (continuous + banded)
 - Optional height fog illusion based on zoom-derived camera height vs terrain height
-- Map-level `Save All` writes point lights + lighting + fog JSON alongside map textures
+- Map-level `Save All` writes point lights + lighting + parallax + interaction + fog + npc JSON alongside map textures
+
+## Gameplay Prototype (Current)
+
+- Interaction modes are mutually exclusive via left dock toggles:
+  - `LM` = lighting placement/edit mode
+  - `PF` = pathfinding preview/click-to-move mode
+  - neither = click no-op
+- Player is loaded from map-local `npc.json` and rendered as a map-pixel circle.
+- Pathfinding uses a local Dijkstra field centered on player.
+- Path window is configurable in UI (`30x30` up to `100x100`).
+- Move cost is continuous (no hard blocking), currently based on:
+  - slope grayscale (`slope.png`)
+  - uphill delta from `height.png`
 
 
 ## Quality Bar for Iteration

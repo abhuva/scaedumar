@@ -22,13 +22,26 @@ const topicPanelCloseBtn = getRequiredElementById("topicPanelClose");
 const topicCards = getRequiredElements(".topic-card");
 const statusEl = getRequiredElementById("status");
 const cycleInfoEl = getRequiredElementById("cycleInfo");
+const playerInfoEl = getRequiredElementById("playerInfo");
+const pathInfoEl = getRequiredElementById("pathInfo");
 const mapPathInput = getRequiredElementById("mapPathInput");
 const mapPathLoadBtn = getRequiredElementById("mapPathLoadBtn");
 const mapFolderInput = getRequiredElementById("mapFolderInput");
 const mapSaveAllBtn = getRequiredElementById("mapSaveAllBtn");
-const circleRadiusInput = getRequiredElementById("circleRadius");
-const circleRadiusValue = getRequiredElementById("circleRadiusValue");
-const lightingModeToggle = getRequiredElementById("lightingModeToggle");
+const dockLightingModeToggle = getRequiredElementById("dockLightingModeToggle");
+const dockPathfindingModeToggle = getRequiredElementById("dockPathfindingModeToggle");
+const pathfindingRangeInput = getRequiredElementById("pathfindingRange");
+const pathfindingRangeValue = getRequiredElementById("pathfindingRangeValue");
+const pathWeightSlopeInput = getRequiredElementById("pathWeightSlope");
+const pathWeightSlopeValue = getRequiredElementById("pathWeightSlopeValue");
+const pathWeightHeightInput = getRequiredElementById("pathWeightHeight");
+const pathWeightHeightValue = getRequiredElementById("pathWeightHeightValue");
+const pathWeightWaterInput = getRequiredElementById("pathWeightWater");
+const pathWeightWaterValue = getRequiredElementById("pathWeightWaterValue");
+const pathSlopeCutoffInput = getRequiredElementById("pathSlopeCutoff");
+const pathSlopeCutoffValue = getRequiredElementById("pathSlopeCutoffValue");
+const pathBaseCostInput = getRequiredElementById("pathBaseCost");
+const pathBaseCostValue = getRequiredElementById("pathBaseCostValue");
 const cursorLightModeToggle = getRequiredElementById("cursorLightModeToggle");
 const cursorLightFollowHeightToggle = getRequiredElementById("cursorLightFollowHeightToggle");
 const cursorLightColorInput = getRequiredElementById("cursorLightColor");
@@ -348,7 +361,7 @@ function normalizeMapFolderPath(path) {
   return text.replace(/[\\/]+$/, "");
 }
 
-async function applyMapImages(splatImage, normalsImage, heightImage) {
+async function applyMapImages(splatImage, normalsImage, heightImage, slopeImage, waterImage) {
   uploadImageToTexture(splatTex, splatImage);
   const sizeChanged = setSplatSizeFromImage(splatImage);
   applyMapSizeChangeIfNeeded(sizeChanged);
@@ -361,6 +374,8 @@ async function applyMapImages(splatImage, normalsImage, heightImage) {
   uploadImageToTexture(heightTex, heightImage);
   setHeightSizeFromImage(heightImage);
   heightImageData = extractImageData(heightImage);
+  slopeImageData = extractImageData(slopeImage);
+  waterImageData = extractImageData(waterImage);
   syncPointLightWorkerMapData();
 }
 
@@ -415,6 +430,28 @@ const DEFAULT_FOG_SETTINGS = {
   fogMaxAlpha: 0.55,
   fogFalloff: 1.2,
   fogStartOffset: 0,
+};
+
+const DEFAULT_PARALLAX_SETTINGS = {
+  useParallax: false,
+  parallaxStrength: 0.35,
+  parallaxBands: 6,
+};
+
+const DEFAULT_INTERACTION_SETTINGS = {
+  pathfindingRange: 30,
+  pathWeightSlope: 1.8,
+  pathWeightHeight: 3.0,
+  pathWeightWater: 0.0,
+  pathSlopeCutoff: 90,
+  pathBaseCost: 1.0,
+  cursorLightEnabled: false,
+  cursorLightFollowHeight: true,
+  cursorLightColor: "#ff9b2f",
+  cursorLightStrength: 30,
+  cursorLightHeightOffset: 8,
+  cursorLightGizmo: false,
+  pointLightLiveUpdate: false,
 };
 
 function serializeLightingSettings() {
@@ -472,6 +509,44 @@ function serializeFogSettings() {
   };
 }
 
+function serializeParallaxSettings() {
+  return {
+    version: 1,
+    useParallax: parallaxToggle.checked,
+    parallaxStrength: clamp(Number(parallaxStrengthInput.value), 0, 1),
+    parallaxBands: Math.round(clamp(Number(parallaxBandsInput.value), 2, 256)),
+  };
+}
+
+function serializeInteractionSettings() {
+  return {
+    version: 1,
+    pathfindingRange: Math.round(clamp(Number(pathfindingRangeInput.value), 30, 300)),
+    pathWeightSlope: clamp(Number(pathWeightSlopeInput.value), 0, 10),
+    pathWeightHeight: clamp(Number(pathWeightHeightInput.value), 0, 10),
+    pathWeightWater: clamp(Number(pathWeightWaterInput.value), 0, 100),
+    pathSlopeCutoff: Math.round(clamp(Number(pathSlopeCutoffInput.value), 0, 90)),
+    pathBaseCost: clamp(Number(pathBaseCostInput.value), 0, 2),
+    cursorLightEnabled: cursorLightModeToggle.checked,
+    cursorLightFollowHeight: cursorLightFollowHeightToggle.checked,
+    cursorLightColor: cursorLightColorInput.value,
+    cursorLightStrength: Math.round(clamp(Number(cursorLightStrengthInput.value), 1, 200)),
+    cursorLightHeightOffset: Math.round(clamp(Number(cursorLightHeightOffsetInput.value), 0, 120)),
+    cursorLightGizmo: cursorLightGizmoToggle.checked,
+    pointLightLiveUpdate: pointLightLiveUpdateToggle.checked,
+  };
+}
+
+function serializeNpcState() {
+  return {
+    version: 1,
+    charID: playerState.charID,
+    pixelX: playerState.pixelX,
+    pixelY: playerState.pixelY,
+    color: playerState.color,
+  };
+}
+
 function applyFogSettings(rawData) {
   const data = rawData && typeof rawData === "object" ? rawData : {};
   if (typeof data.useFog === "boolean") {
@@ -499,11 +574,89 @@ function applyFogSettings(rawData) {
   updateFogUi();
 }
 
+function applyParallaxSettings(rawData) {
+  const data = rawData && typeof rawData === "object" ? rawData : {};
+  if (typeof data.useParallax === "boolean") {
+    parallaxToggle.checked = data.useParallax;
+  }
+  if (Number.isFinite(Number(data.parallaxStrength))) {
+    parallaxStrengthInput.value = String(clamp(Number(data.parallaxStrength), 0, 1));
+  }
+  if (Number.isFinite(Number(data.parallaxBands))) {
+    parallaxBandsInput.value = String(Math.round(clamp(Number(data.parallaxBands), 2, 256)));
+  }
+  updateParallaxStrengthLabel();
+  updateParallaxBandsLabel();
+  updateParallaxUi();
+}
+
+function applyInteractionSettings(rawData) {
+  const data = rawData && typeof rawData === "object" ? rawData : {};
+  if (Number.isFinite(Number(data.pathfindingRange))) {
+    pathfindingRangeInput.value = String(Math.round(clamp(Number(data.pathfindingRange), 30, 300)));
+  }
+  if (Number.isFinite(Number(data.pathWeightSlope))) {
+    pathWeightSlopeInput.value = String(clamp(Number(data.pathWeightSlope), 0, 10));
+  }
+  if (Number.isFinite(Number(data.pathWeightHeight))) {
+    pathWeightHeightInput.value = String(clamp(Number(data.pathWeightHeight), 0, 10));
+  }
+  if (Number.isFinite(Number(data.pathWeightWater))) {
+    pathWeightWaterInput.value = String(clamp(Number(data.pathWeightWater), 0, 100));
+  }
+  if (Number.isFinite(Number(data.pathSlopeCutoff))) {
+    pathSlopeCutoffInput.value = String(Math.round(clamp(Number(data.pathSlopeCutoff), 0, 90)));
+  }
+  if (Number.isFinite(Number(data.pathBaseCost))) {
+    pathBaseCostInput.value = String(clamp(Number(data.pathBaseCost), 0, 2));
+  }
+  if (typeof data.cursorLightEnabled === "boolean") {
+    cursorLightModeToggle.checked = data.cursorLightEnabled;
+  }
+  if (typeof data.cursorLightFollowHeight === "boolean") {
+    cursorLightFollowHeightToggle.checked = data.cursorLightFollowHeight;
+  }
+  if (typeof data.cursorLightColor === "string" && /^#?[0-9a-fA-F]{6}$/.test(data.cursorLightColor)) {
+    cursorLightColorInput.value = data.cursorLightColor.startsWith("#") ? data.cursorLightColor : `#${data.cursorLightColor}`;
+  }
+  if (Number.isFinite(Number(data.cursorLightStrength))) {
+    cursorLightStrengthInput.value = String(Math.round(clamp(Number(data.cursorLightStrength), 1, 200)));
+  }
+  if (Number.isFinite(Number(data.cursorLightHeightOffset))) {
+    cursorLightHeightOffsetInput.value = String(Math.round(clamp(Number(data.cursorLightHeightOffset), 0, 120)));
+  }
+  if (typeof data.cursorLightGizmo === "boolean") {
+    cursorLightGizmoToggle.checked = data.cursorLightGizmo;
+  }
+  if (typeof data.pointLightLiveUpdate === "boolean") {
+    pointLightLiveUpdateToggle.checked = data.pointLightLiveUpdate;
+  }
+
+  updatePathfindingRangeLabel();
+  updatePathWeightLabels();
+  updatePathSlopeCutoffLabel();
+  updatePathBaseCostLabel();
+  cursorLightState.color = hexToRgb01(cursorLightColorInput.value);
+  cursorLightState.strength = Math.round(clamp(Number(cursorLightStrengthInput.value), 1, 200));
+  cursorLightState.heightOffset = Math.round(clamp(Number(cursorLightHeightOffsetInput.value), 0, 120));
+  cursorLightState.useTerrainHeight = cursorLightFollowHeightToggle.checked;
+  cursorLightState.showGizmo = cursorLightGizmoToggle.checked;
+  if (!cursorLightModeToggle.checked) {
+    cursorLightState.active = false;
+  }
+  updateCursorLightStrengthLabel();
+  updateCursorLightHeightOffsetLabel();
+  updateCursorLightModeUi();
+}
+
 function createMapDataFileTexts() {
   return {
     "pointlights.json": `${JSON.stringify(serializePointLights(), null, 2)}\n`,
     "lighting.json": `${JSON.stringify(serializeLightingSettings(), null, 2)}\n`,
+    "parallax.json": `${JSON.stringify(serializeParallaxSettings(), null, 2)}\n`,
+    "interaction.json": `${JSON.stringify(serializeInteractionSettings(), null, 2)}\n`,
     "fog.json": `${JSON.stringify(serializeFogSettings(), null, 2)}\n`,
+    "npc.json": `${JSON.stringify(serializeNpcState(), null, 2)}\n`,
   };
 }
 
@@ -549,13 +702,15 @@ async function saveAllMapDataFiles() {
 
 async function loadMapFromPath(mapFolderPath) {
   const folder = normalizeMapFolderPath(mapFolderPath);
-  const [splat, normals, height] = await Promise.all([
+  const [splat, normals, height, slope, water] = await Promise.all([
     loadImageFromUrl(`${folder}/splat.png`),
     loadImageFromUrl(`${folder}/normals.png`),
     loadImageFromUrl(`${folder}/height.png`),
+    loadImageFromUrl(`${folder}/slope.png`),
+    loadImageFromUrl(`${folder}/water.png`),
   ]);
 
-  await applyMapImages(splat, normals, height);
+  await applyMapImages(splat, normals, height, slope, water);
   currentMapFolderPath = folder;
   mapPathInput.value = folder;
 
@@ -563,12 +718,17 @@ async function loadMapFromPath(mapFolderPath) {
   bakePointLightsTexture();
   updateLightEditorUi();
   applyLightingSettings(DEFAULT_LIGHTING_SETTINGS);
+  applyParallaxSettings(DEFAULT_PARALLAX_SETTINGS);
+  applyInteractionSettings(DEFAULT_INTERACTION_SETTINGS);
   applyFogSettings(DEFAULT_FOG_SETTINGS);
   requestOverlayDraw();
 
   let loadedPointLights = false;
   let loadedLighting = false;
+  let loadedParallax = false;
+  let loadedInteraction = false;
   let loadedFog = false;
+  let loadedNpc = false;
 
   try {
     const pointLightsJson = await tryLoadJsonFromUrl(`${folder}/pointlights.json`);
@@ -587,6 +747,22 @@ async function loadMapFromPath(mapFolderPath) {
   }
 
   try {
+    const parallaxJson = await tryLoadJsonFromUrl(`${folder}/parallax.json`);
+    applyParallaxSettings(parallaxJson);
+    loadedParallax = true;
+  } catch (err) {
+    console.warn(`No parallax.json found in ${folder}`, err);
+  }
+
+  try {
+    const interactionJson = await tryLoadJsonFromUrl(`${folder}/interaction.json`);
+    applyInteractionSettings(interactionJson);
+    loadedInteraction = true;
+  } catch (err) {
+    console.warn(`No interaction.json found in ${folder}`, err);
+  }
+
+  try {
     const fogJson = await tryLoadJsonFromUrl(`${folder}/fog.json`);
     applyFogSettings(fogJson);
     loadedFog = true;
@@ -594,7 +770,17 @@ async function loadMapFromPath(mapFolderPath) {
     console.warn(`No fog.json found in ${folder}`, err);
   }
 
-  setStatus(`Loaded map ${folder} | pointlights: ${loadedPointLights ? "yes" : "no"} | lighting: ${loadedLighting ? "yes" : "no"} | fog: ${loadedFog ? "yes" : "no"}`);
+  try {
+    const npcJson = await tryLoadJsonFromUrl(`${folder}/npc.json`);
+    applyLoadedNpc(npcJson);
+    loadedNpc = true;
+  } catch (err) {
+    applyLoadedNpc(DEFAULT_PLAYER);
+    console.warn(`No npc.json found in ${folder}`, err);
+  }
+
+  rebuildMovementField();
+  setStatus(`Loaded map ${folder} | pointlights: ${loadedPointLights ? "yes" : "no"} | lighting: ${loadedLighting ? "yes" : "no"} | parallax: ${loadedParallax ? "yes" : "no"} | interaction: ${loadedInteraction ? "yes" : "no"} | fog: ${loadedFog ? "yes" : "no"} | npc: ${loadedNpc ? "yes" : "default"}`);
 }
 
 async function loadMapFromFolderSelection(fileList) {
@@ -602,16 +788,20 @@ async function loadMapFromFolderSelection(fileList) {
   const splatFile = getFileFromFolderSelection(files, "splat.png");
   const normalsFile = getFileFromFolderSelection(files, "normals.png");
   const heightFile = getFileFromFolderSelection(files, "height.png");
-  if (!splatFile || !normalsFile || !heightFile) {
-    throw new Error("Folder must contain splat.png, normals.png, and height.png.");
+  const slopeFile = getFileFromFolderSelection(files, "slope.png");
+  const waterFile = getFileFromFolderSelection(files, "water.png");
+  if (!splatFile || !normalsFile || !heightFile || !slopeFile || !waterFile) {
+    throw new Error("Folder must contain splat.png, normals.png, height.png, slope.png, and water.png.");
   }
 
-  const [splat, normals, height] = await Promise.all([
+  const [splat, normals, height, slope, water] = await Promise.all([
     loadImageFromFile(splatFile),
     loadImageFromFile(normalsFile),
     loadImageFromFile(heightFile),
+    loadImageFromFile(slopeFile),
+    loadImageFromFile(waterFile),
   ]);
-  await applyMapImages(splat, normals, height);
+  await applyMapImages(splat, normals, height, slope, water);
 
   const relPath = String(splatFile.webkitRelativePath || "");
   const firstFolder = relPath.includes("/") ? relPath.split("/")[0] : "";
@@ -624,12 +814,17 @@ async function loadMapFromFolderSelection(fileList) {
   bakePointLightsTexture();
   updateLightEditorUi();
   applyLightingSettings(DEFAULT_LIGHTING_SETTINGS);
+  applyParallaxSettings(DEFAULT_PARALLAX_SETTINGS);
+  applyInteractionSettings(DEFAULT_INTERACTION_SETTINGS);
   applyFogSettings(DEFAULT_FOG_SETTINGS);
   requestOverlayDraw();
 
   let loadedPointLights = false;
   let loadedLighting = false;
+  let loadedParallax = false;
+  let loadedInteraction = false;
   let loadedFog = false;
+  let loadedNpc = false;
 
   const pointLightsFile = getFileFromFolderSelection(files, "pointlights.json");
   if (pointLightsFile) {
@@ -655,6 +850,28 @@ async function loadMapFromFolderSelection(fileList) {
     }
   }
 
+  const parallaxFile = getFileFromFolderSelection(files, "parallax.json");
+  if (parallaxFile) {
+    try {
+      const rawData = JSON.parse(await parallaxFile.text());
+      applyParallaxSettings(rawData);
+      loadedParallax = true;
+    } catch (err) {
+      console.warn("Failed to parse parallax.json from selected folder", err);
+    }
+  }
+
+  const interactionFile = getFileFromFolderSelection(files, "interaction.json");
+  if (interactionFile) {
+    try {
+      const rawData = JSON.parse(await interactionFile.text());
+      applyInteractionSettings(rawData);
+      loadedInteraction = true;
+    } catch (err) {
+      console.warn("Failed to parse interaction.json from selected folder", err);
+    }
+  }
+
   const fogFile = getFileFromFolderSelection(files, "fog.json");
   if (fogFile) {
     try {
@@ -666,7 +883,22 @@ async function loadMapFromFolderSelection(fileList) {
     }
   }
 
-  setStatus(`Loaded map folder | pointlights: ${loadedPointLights ? "yes" : "no"} | lighting: ${loadedLighting ? "yes" : "no"} | fog: ${loadedFog ? "yes" : "no"}`);
+  const npcFile = getFileFromFolderSelection(files, "npc.json");
+  if (npcFile) {
+    try {
+      const rawData = JSON.parse(await npcFile.text());
+      applyLoadedNpc(rawData);
+      loadedNpc = true;
+    } catch (err) {
+      console.warn("Failed to parse npc.json from selected folder", err);
+      applyLoadedNpc(DEFAULT_PLAYER);
+    }
+  } else {
+    applyLoadedNpc(DEFAULT_PLAYER);
+  }
+
+  rebuildMovementField();
+  setStatus(`Loaded map folder | pointlights: ${loadedPointLights ? "yes" : "no"} | lighting: ${loadedLighting ? "yes" : "no"} | parallax: ${loadedParallax ? "yes" : "no"} | interaction: ${loadedInteraction ? "yes" : "no"} | fog: ${loadedFog ? "yes" : "no"} | npc: ${loadedNpc ? "yes" : "default"}`);
 }
 
 function setStatus(text) {
@@ -831,6 +1063,8 @@ let pointLightsSaveConfirmArmed = false;
 let pointLightsSaveConfirmTimer = null;
 let normalsImageData = null;
 let heightImageData = null;
+let slopeImageData = null;
+let waterImageData = null;
 let pointLightBakeScheduled = false;
 let pointLightBakeDebounceTimer = null;
 let pointLightBakeRequestId = 0;
@@ -843,6 +1077,24 @@ let overlayDirty = true;
 const DEFAULT_MAP_FOLDER = "assets/map1/";
 let currentMapFolderPath = DEFAULT_MAP_FOLDER;
 const DEFAULT_MAP_FOLDER_CANDIDATES = ["assets/map1/", "assets/Map 1/", "assets/"];
+const DEFAULT_PLAYER = {
+  charID: "player",
+  pixelX: 120,
+  pixelY: 96,
+  color: "#ff69b4",
+};
+const playerState = {
+  charID: DEFAULT_PLAYER.charID,
+  pixelX: DEFAULT_PLAYER.pixelX,
+  pixelY: DEFAULT_PLAYER.pixelY,
+  color: DEFAULT_PLAYER.color,
+};
+const movePreviewState = {
+  hoverPixel: null,
+  pathPixels: [],
+};
+let interactionMode = "none";
+let movementField = null;
 const pointLightBakeTempCanvas = document.createElement("canvas");
 const pointLightBakeTempCtx = pointLightBakeTempCanvas.getContext("2d");
 let pointLightBakeWorker = null;
@@ -887,6 +1139,14 @@ function createFlatHeightImage(size = 2) {
   ctx.fillStyle = "rgb(0,0,0)";
   ctx.fillRect(0, 0, size, size);
   return c;
+}
+
+function createFlatSlopeImage(size = 2) {
+  return createFlatHeightImage(size);
+}
+
+function createFlatWaterImage(size = 2) {
+  return createFlatHeightImage(size);
 }
 
 function createFallbackSplat(size = 512) {
@@ -943,6 +1203,8 @@ function extractImageData(source) {
 
 const defaultNormalImage = createFlatNormalImage();
 const defaultHeightImage = createFlatHeightImage();
+const defaultSlopeImage = createFlatSlopeImage();
+const defaultWaterImage = createFlatWaterImage();
 const defaultSplatImage = createFallbackSplat();
 uploadImageToTexture(normalsTex, defaultNormalImage);
 uploadImageToTexture(heightTex, defaultHeightImage);
@@ -952,6 +1214,8 @@ setHeightSizeFromImage(defaultHeightImage);
 setNormalsSizeFromImage(defaultNormalImage);
 normalsImageData = extractImageData(defaultNormalImage);
 heightImageData = extractImageData(defaultHeightImage);
+slopeImageData = extractImageData(defaultSlopeImage);
+waterImageData = extractImageData(defaultWaterImage);
 syncPointLightWorkerMapData();
 
 function getSelectedPointLight() {
@@ -1492,7 +1756,6 @@ const zoomMax = 32;
 const panWorld = { x: 0, y: 0 };
 let isMiddleDragging = false;
 let lastDragClient = { x: 0, y: 0 };
-let lastMarker = null;
 let fogColorManual = false;
 const cursorLightState = {
   uvX: 0.5,
@@ -1597,10 +1860,303 @@ function worldToScreen(world) {
   };
 }
 
-function updateRadiusLabel() {
-  const value = Number(circleRadiusInput.value);
-  const display = Number.isInteger(value) ? String(value) : value.toFixed(1);
-  circleRadiusValue.textContent = `${display} px`;
+function updatePathfindingRangeLabel() {
+  const value = Math.round(clamp(Number(pathfindingRangeInput.value), 30, 300));
+  pathfindingRangeValue.textContent = `${value} x ${value}`;
+}
+
+function updatePathWeightLabels() {
+  const slopeWeight = clamp(Number(pathWeightSlopeInput.value), 0, 10);
+  const heightWeight = clamp(Number(pathWeightHeightInput.value), 0, 10);
+  const waterWeight = clamp(Number(pathWeightWaterInput.value), 0, 100);
+  pathWeightSlopeValue.textContent = slopeWeight.toFixed(1);
+  pathWeightHeightValue.textContent = heightWeight.toFixed(1);
+  pathWeightWaterValue.textContent = waterWeight.toFixed(1);
+}
+
+function updatePathSlopeCutoffLabel() {
+  const cutoff = Math.round(clamp(Number(pathSlopeCutoffInput.value), 0, 90));
+  pathSlopeCutoffValue.textContent = `${cutoff} deg`;
+}
+
+function updatePathBaseCostLabel() {
+  const baseCost = clamp(Number(pathBaseCostInput.value), 0, 2);
+  pathBaseCostValue.textContent = baseCost.toFixed(1);
+}
+
+function setInteractionMode(mode) {
+  const nextMode = mode === "lighting" || mode === "pathfinding" ? mode : "none";
+  interactionMode = nextMode;
+  dockLightingModeToggle.classList.toggle("active", nextMode === "lighting");
+  dockPathfindingModeToggle.classList.toggle("active", nextMode === "pathfinding");
+  dockLightingModeToggle.setAttribute("aria-pressed", nextMode === "lighting" ? "true" : "false");
+  dockPathfindingModeToggle.setAttribute("aria-pressed", nextMode === "pathfinding" ? "true" : "false");
+  if (nextMode !== "pathfinding") {
+    movePreviewState.hoverPixel = null;
+    movePreviewState.pathPixels = [];
+  }
+  requestOverlayDraw();
+}
+
+function setPlayerPosition(pixelX, pixelY) {
+  playerState.pixelX = clamp(Math.round(Number(pixelX)), 0, Math.max(0, splatSize.width - 1));
+  playerState.pixelY = clamp(Math.round(Number(pixelY)), 0, Math.max(0, splatSize.height - 1));
+}
+
+function parseNpcPlayer(rawData) {
+  const data = rawData && typeof rawData === "object" ? rawData : {};
+  const charID = String(data.charID || DEFAULT_PLAYER.charID);
+  const color = /^#?[0-9a-fA-F]{6}$/.test(String(data.color || "")) ? String(data.color).replace(/^([^#])/, "#$1") : DEFAULT_PLAYER.color;
+  const pixelX = Number.isFinite(Number(data.pixelX)) ? Number(data.pixelX) : DEFAULT_PLAYER.pixelX;
+  const pixelY = Number.isFinite(Number(data.pixelY)) ? Number(data.pixelY) : DEFAULT_PLAYER.pixelY;
+  return {
+    charID,
+    color,
+    pixelX: clamp(Math.round(pixelX), 0, Math.max(0, splatSize.width - 1)),
+    pixelY: clamp(Math.round(pixelY), 0, Math.max(0, splatSize.height - 1)),
+  };
+}
+
+function applyLoadedNpc(rawData) {
+  const player = parseNpcPlayer(rawData);
+  playerState.charID = player.charID;
+  playerState.color = player.color;
+  setPlayerPosition(player.pixelX, player.pixelY);
+}
+
+function getGrayAt(imageData, x, y, sourceWidth = splatSize.width, sourceHeight = splatSize.height) {
+  if (!imageData || !imageData.data) return 0;
+  const w = imageData.width || 1;
+  const h = imageData.height || 1;
+  const srcW = Math.max(1, Number(sourceWidth) || 1);
+  const srcH = Math.max(1, Number(sourceHeight) || 1);
+  const nx = (Number(x) + 0.5) / srcW;
+  const ny = (Number(y) + 0.5) / srcH;
+  const sx = clamp(Math.round(nx * w - 0.5), 0, Math.max(0, w - 1));
+  const sy = clamp(Math.round(ny * h - 0.5), 0, Math.max(0, h - 1));
+  const idx = (sy * w + sx) * 4;
+  return imageData.data[idx] / 255;
+}
+
+function movementWindowBounds() {
+  const size = Math.round(clamp(Number(pathfindingRangeInput.value), 30, 300));
+  const halfA = Math.floor((size - 1) / 2);
+  const halfB = size - halfA - 1;
+  return {
+    minX: clamp(playerState.pixelX - halfA, 0, Math.max(0, splatSize.width - 1)),
+    maxX: clamp(playerState.pixelX + halfB, 0, Math.max(0, splatSize.width - 1)),
+    minY: clamp(playerState.pixelY - halfA, 0, Math.max(0, splatSize.height - 1)),
+    maxY: clamp(playerState.pixelY + halfB, 0, Math.max(0, splatSize.height - 1)),
+  };
+}
+
+function computeMoveStepCost(fromX, fromY, toX, toY) {
+  const isDiag = fromX !== toX && fromY !== toY;
+  const dist = isDiag ? Math.SQRT2 : 1;
+  const slope = getGrayAt(slopeImageData, toX, toY);
+  const sourceHeight = getGrayAt(heightImageData, fromX, fromY);
+  const destHeight = getGrayAt(heightImageData, toX, toY);
+  const heightDelta = destHeight - sourceHeight;
+  const uphill = Math.max(heightDelta, 0);
+  const water = getGrayAt(waterImageData, toX, toY);
+  const slopeDeg = slope * 90;
+  const slopeCutoffDeg = clamp(Number(pathSlopeCutoffInput.value), 0, 90);
+  if (slopeDeg > slopeCutoffDeg) {
+    return Number.POSITIVE_INFINITY;
+  }
+  const slopeWeight = clamp(Number(pathWeightSlopeInput.value), 0, 10);
+  const heightWeight = clamp(Number(pathWeightHeightInput.value), 0, 10);
+  const waterWeight = clamp(Number(pathWeightWaterInput.value), 0, 100);
+  const baseCost = clamp(Number(pathBaseCostInput.value), 0, 2);
+  const weightedCost = slopeWeight * slope + heightWeight * uphill + waterWeight * water;
+  return dist * (baseCost + weightedCost);
+}
+
+class MinHeap {
+  constructor() {
+    this.items = [];
+  }
+
+  push(node) {
+    this.items.push(node);
+    let i = this.items.length - 1;
+    while (i > 0) {
+      const p = Math.floor((i - 1) / 2);
+      if (this.items[p].dist <= node.dist) break;
+      this.items[i] = this.items[p];
+      i = p;
+    }
+    this.items[i] = node;
+  }
+
+  pop() {
+    if (this.items.length === 0) return null;
+    const root = this.items[0];
+    const last = this.items.pop();
+    if (this.items.length === 0 || !last) return root;
+    let i = 0;
+    while (true) {
+      const l = i * 2 + 1;
+      const r = l + 1;
+      if (l >= this.items.length) break;
+      let c = l;
+      if (r < this.items.length && this.items[r].dist < this.items[l].dist) c = r;
+      if (this.items[c].dist >= last.dist) break;
+      this.items[i] = this.items[c];
+      i = c;
+    }
+    this.items[i] = last;
+    return root;
+  }
+}
+
+function rebuildMovementField() {
+  const bounds = movementWindowBounds();
+  const width = bounds.maxX - bounds.minX + 1;
+  const height = bounds.maxY - bounds.minY + 1;
+  if (width <= 0 || height <= 0) {
+    movementField = null;
+    movePreviewState.pathPixels = [];
+    return;
+  }
+
+  const len = width * height;
+  const dist = new Float64Array(len);
+  const parent = new Int32Array(len);
+  dist.fill(Number.POSITIVE_INFINITY);
+  parent.fill(-1);
+
+  const indexOf = (x, y) => (y - bounds.minY) * width + (x - bounds.minX);
+  const startIdx = indexOf(playerState.pixelX, playerState.pixelY);
+  dist[startIdx] = 0;
+
+  const heap = new MinHeap();
+  heap.push({ x: playerState.pixelX, y: playerState.pixelY, dist: 0 });
+  const dirs = [
+    { dx: 1, dy: 0 },
+    { dx: -1, dy: 0 },
+    { dx: 0, dy: 1 },
+    { dx: 0, dy: -1 },
+    { dx: 1, dy: 1 },
+    { dx: 1, dy: -1 },
+    { dx: -1, dy: 1 },
+    { dx: -1, dy: -1 },
+  ];
+
+  while (true) {
+    const current = heap.pop();
+    if (!current) break;
+    const idx = indexOf(current.x, current.y);
+    if (current.dist > dist[idx]) continue;
+    for (const dir of dirs) {
+      const nx = current.x + dir.dx;
+      const ny = current.y + dir.dy;
+      if (nx < bounds.minX || nx > bounds.maxX || ny < bounds.minY || ny > bounds.maxY) continue;
+      const nIdx = indexOf(nx, ny);
+      const stepCost = computeMoveStepCost(current.x, current.y, nx, ny);
+      if (!Number.isFinite(stepCost)) continue;
+      const nextDist = dist[idx] + stepCost;
+      if (nextDist < dist[nIdx]) {
+        dist[nIdx] = nextDist;
+        parent[nIdx] = idx;
+        heap.push({ x: nx, y: ny, dist: nextDist });
+      }
+    }
+  }
+
+  movementField = {
+    ...bounds,
+    width,
+    height,
+    dist,
+    parent,
+  };
+  refreshPathPreview();
+}
+
+function extractPathTo(pixelX, pixelY) {
+  if (!movementField) return [];
+  if (pixelX < movementField.minX || pixelX > movementField.maxX || pixelY < movementField.minY || pixelY > movementField.maxY) return [];
+  const indexOf = (x, y) => (y - movementField.minY) * movementField.width + (x - movementField.minX);
+  const indexToPixel = (idx) => ({
+    x: movementField.minX + (idx % movementField.width),
+    y: movementField.minY + Math.floor(idx / movementField.width),
+  });
+  const targetIdx = indexOf(pixelX, pixelY);
+  if (!Number.isFinite(movementField.dist[targetIdx])) return [];
+  const path = [];
+  let cursor = targetIdx;
+  const maxSteps = movementField.width * movementField.height;
+  for (let i = 0; i < maxSteps && cursor >= 0; i++) {
+    const p = indexToPixel(cursor);
+    path.push({ x: p.x, y: p.y });
+    if (p.x === playerState.pixelX && p.y === playerState.pixelY) break;
+    cursor = movementField.parent[cursor];
+  }
+  if (path.length === 0) return [];
+  path.reverse();
+  return path;
+}
+
+function refreshPathPreview() {
+  if (interactionMode !== "pathfinding" || !movePreviewState.hoverPixel) {
+    movePreviewState.pathPixels = [];
+    requestOverlayDraw();
+    return;
+  }
+  movePreviewState.pathPixels = extractPathTo(movePreviewState.hoverPixel.x, movePreviewState.hoverPixel.y);
+  requestOverlayDraw();
+}
+
+function updatePathPreviewFromPointer(clientX, clientY) {
+  if (interactionMode !== "pathfinding") {
+    movePreviewState.hoverPixel = null;
+    movePreviewState.pathPixels = [];
+    return;
+  }
+  const ndc = clientToNdc(clientX, clientY);
+  const world = worldFromNdc(ndc);
+  const uv = worldToUv(world);
+  if (uv.x < 0 || uv.x > 1 || uv.y < 0 || uv.y > 1) {
+    movePreviewState.hoverPixel = null;
+    movePreviewState.pathPixels = [];
+    requestOverlayDraw();
+    return;
+  }
+  const pixel = uvToMapPixelIndex(uv);
+  if (movePreviewState.hoverPixel && movePreviewState.hoverPixel.x === pixel.x && movePreviewState.hoverPixel.y === pixel.y) {
+    return;
+  }
+  movePreviewState.hoverPixel = { x: pixel.x, y: pixel.y };
+  refreshPathPreview();
+}
+
+function getCurrentPathMetrics() {
+  if (!movementField || !movePreviewState.hoverPixel || movePreviewState.pathPixels.length === 0) return null;
+  const targetX = movePreviewState.hoverPixel.x;
+  const targetY = movePreviewState.hoverPixel.y;
+  if (targetX < movementField.minX || targetX > movementField.maxX || targetY < movementField.minY || targetY > movementField.maxY) return null;
+  const idx = (targetY - movementField.minY) * movementField.width + (targetX - movementField.minX);
+  const totalCost = movementField.dist[idx];
+  if (!Number.isFinite(totalCost)) return null;
+  const nodeCount = movePreviewState.pathPixels.length;
+  if (nodeCount <= 0) return null;
+  const steps = Math.max(0, nodeCount - 1);
+  return {
+    steps,
+    totalCost,
+    avgPerStep: steps > 0 ? totalCost / steps : 0,
+  };
+}
+
+function updateInfoPanel() {
+  playerInfoEl.textContent = `Player: (${playerState.pixelX}, ${playerState.pixelY})`;
+  const metrics = getCurrentPathMetrics();
+  if (!metrics) {
+    pathInfoEl.textContent = "Path: len -- | cost -- | avg --";
+    return;
+  }
+  pathInfoEl.textContent = `Path: len ${metrics.steps} | cost ${metrics.totalCost.toFixed(2)} | avg ${metrics.avgPerStep.toFixed(2)}`;
 }
 
 function updateParallaxStrengthLabel() {
@@ -1671,7 +2227,7 @@ function drawOverlay() {
   overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
   const worldPerMapPixel = getMapAspect() / splatSize.width;
 
-  if (lightingModeToggle.checked) {
+  if (interactionMode === "lighting") {
     for (const light of pointLights) {
       const selected = light.id === selectedLightId;
       const displayStrength = selected && lightEditDraft ? lightEditDraft.strength : light.strength;
@@ -1726,19 +2282,25 @@ function drawOverlay() {
     overlayCtx.fill();
   }
 
-  if (!lastMarker || lightingModeToggle.checked) return;
+  const drawMapDot = (pixelX, pixelY, color, radiusMapPx = 0.5) => {
+    const centerWorld = mapPixelToWorld(pixelX, pixelY);
+    const centerScreen = worldToScreen(centerWorld);
+    const edgeWorld = { x: centerWorld.x + worldPerMapPixel * radiusMapPx, y: centerWorld.y };
+    const edgeScreen = worldToScreen(edgeWorld);
+    const screenRadius = Math.max(0.001, Math.hypot(edgeScreen.x - centerScreen.x, edgeScreen.y - centerScreen.y));
+    overlayCtx.beginPath();
+    overlayCtx.arc(centerScreen.x, centerScreen.y, screenRadius, 0, Math.PI * 2);
+    overlayCtx.fillStyle = color;
+    overlayCtx.fill();
+  };
 
-  const centerWorld = mapPixelToWorld(lastMarker.pixelX, lastMarker.pixelY);
-  const centerScreen = worldToScreen(centerWorld);
-  const radiusMapPx = clamp(Number(circleRadiusInput.value), 0.5, 50);
-  const edgeWorld = { x: centerWorld.x + worldPerMapPixel * radiusMapPx, y: centerWorld.y };
-  const edgeScreen = worldToScreen(edgeWorld);
-  const screenRadius = Math.max(0.001, Math.hypot(edgeScreen.x - centerScreen.x, edgeScreen.y - centerScreen.y));
+  if (interactionMode === "pathfinding" && movePreviewState.pathPixels.length > 0) {
+    for (const node of movePreviewState.pathPixels) {
+      drawMapDot(node.x, node.y, "rgba(112, 214, 255, 0.9)");
+    }
+  }
 
-  overlayCtx.beginPath();
-  overlayCtx.arc(centerScreen.x, centerScreen.y, screenRadius, 0, Math.PI * 2);
-  overlayCtx.fillStyle = "rgb(255,0,0)";
-  overlayCtx.fill();
+  drawMapDot(playerState.pixelX, playerState.pixelY, playerState.color);
 }
 
 canvas.addEventListener("wheel", (e) => {
@@ -1768,8 +2330,9 @@ window.addEventListener("mouseup", (e) => {
 
 canvas.addEventListener("mousemove", (e) => {
   updateCursorLightFromPointer(e.clientX, e.clientY);
+  updatePathPreviewFromPointer(e.clientX, e.clientY);
   if (!isMiddleDragging) {
-    if (cursorLightModeToggle.checked) {
+    if (cursorLightModeToggle.checked || interactionMode === "pathfinding") {
       requestOverlayDraw();
     }
     return;
@@ -1795,7 +2358,7 @@ canvas.addEventListener("click", (e) => {
   }
 
   const pixel = uvToMapPixelIndex(uv);
-  if (lightingModeToggle.checked) {
+  if (interactionMode === "lighting") {
     const existing = findPointLightAtPixel(pixel.x, pixel.y);
     if (existing) {
       beginLightEdit(existing);
@@ -1807,10 +2370,22 @@ canvas.addEventListener("click", (e) => {
     return;
   }
 
-  const pixelCenterUv = mapPixelIndexToUv(pixel.x, pixel.y);
-  lastMarker = { uvX: pixelCenterUv.x, uvY: pixelCenterUv.y, pixelX: pixel.x, pixelY: pixel.y };
-  setStatus(`Marker map coords: (${lastMarker.pixelX}, ${lastMarker.pixelY}) | uv=(${lastMarker.uvX.toFixed(4)}, ${lastMarker.uvY.toFixed(4)})`);
-  requestOverlayDraw();
+  if (interactionMode === "pathfinding") {
+    movePreviewState.hoverPixel = { x: pixel.x, y: pixel.y };
+    movePreviewState.pathPixels = extractPathTo(pixel.x, pixel.y);
+    if (!movePreviewState.pathPixels.length) {
+      setStatus("No reachable preview path at clicked cell.");
+      return;
+    }
+    setPlayerPosition(pixel.x, pixel.y);
+    rebuildMovementField();
+    setStatus(`Player moved to (${playerState.pixelX}, ${playerState.pixelY})`);
+    return;
+  }
+
+  setPlayerPosition(pixel.x, pixel.y);
+  rebuildMovementField();
+  setStatus(`Player moved to (${playerState.pixelX}, ${playerState.pixelY})`);
 });
 
 canvas.addEventListener("auxclick", (e) => {
@@ -1818,14 +2393,51 @@ canvas.addEventListener("auxclick", (e) => {
 });
 
 canvas.addEventListener("mouseleave", () => {
-  if (!cursorLightModeToggle.checked) return;
-  cursorLightState.active = false;
+  if (cursorLightModeToggle.checked) {
+    cursorLightState.active = false;
+  }
+  if (interactionMode === "pathfinding") {
+    movePreviewState.hoverPixel = null;
+    movePreviewState.pathPixels = [];
+  }
   requestOverlayDraw();
 });
 
-circleRadiusInput.addEventListener("input", () => {
-  updateRadiusLabel();
-  requestOverlayDraw();
+pathfindingRangeInput.addEventListener("input", () => {
+  updatePathfindingRangeLabel();
+  if (interactionMode === "pathfinding") {
+    rebuildMovementField();
+  }
+});
+pathWeightSlopeInput.addEventListener("input", () => {
+  updatePathWeightLabels();
+  if (interactionMode === "pathfinding") {
+    rebuildMovementField();
+  }
+});
+pathWeightHeightInput.addEventListener("input", () => {
+  updatePathWeightLabels();
+  if (interactionMode === "pathfinding") {
+    rebuildMovementField();
+  }
+});
+pathWeightWaterInput.addEventListener("input", () => {
+  updatePathWeightLabels();
+  if (interactionMode === "pathfinding") {
+    rebuildMovementField();
+  }
+});
+pathSlopeCutoffInput.addEventListener("input", () => {
+  updatePathSlopeCutoffLabel();
+  if (interactionMode === "pathfinding") {
+    rebuildMovementField();
+  }
+});
+pathBaseCostInput.addEventListener("input", () => {
+  updatePathBaseCostLabel();
+  if (interactionMode === "pathfinding") {
+    rebuildMovementField();
+  }
 });
 heightScaleInput.addEventListener("input", schedulePointLightBake);
 
@@ -1847,9 +2459,29 @@ window.addEventListener("keydown", (e) => {
   }
 });
 
-lightingModeToggle.addEventListener("change", () => {
-  setStatus(lightingModeToggle.checked ? "Lighting mode enabled: click terrain to add/select point lights." : "Lighting mode disabled: click terrain to set marker.");
-  requestOverlayDraw();
+dockLightingModeToggle.addEventListener("click", () => {
+  if (interactionMode === "lighting") {
+    setInteractionMode("none");
+    setStatus("Lighting mode disabled.");
+    return;
+  }
+  setInteractionMode("lighting");
+  movePreviewState.hoverPixel = null;
+  movePreviewState.pathPixels = [];
+  setStatus("Lighting mode enabled: click terrain to add/select point lights.");
+});
+
+dockPathfindingModeToggle.addEventListener("click", () => {
+  if (interactionMode === "pathfinding") {
+    setInteractionMode("none");
+    movePreviewState.hoverPixel = null;
+    movePreviewState.pathPixels = [];
+    setStatus("Pathfinding mode disabled.");
+    return;
+  }
+  setInteractionMode("pathfinding");
+  rebuildMovementField();
+  setStatus("Pathfinding mode enabled: hover for path preview, click to move player.");
 });
 
 cursorLightModeToggle.addEventListener("change", () => {
@@ -2273,6 +2905,7 @@ function render(nowMs) {
   const cycleSpeedHoursPerSec = updateCycleTime(nowMs);
   const lightingParams = computeLightingParams();
   cycleInfoEl.textContent = `Time: ${formatHour(cycleState.hour)} | Speed: ${cycleSpeedHoursPerSec.toFixed(2)} h/s`;
+  updateInfoPanel();
   updateCycleHourLabel();
 
   gl.clearColor(0, 0, 0, 1);
@@ -2293,7 +2926,10 @@ void tryAutoLoadDefaultMap().catch((error) => {
   const message = error instanceof Error ? error.message : String(error);
   setStatus(`Default map auto-load failed: ${message}`);
 });
-updateRadiusLabel();
+updatePathfindingRangeLabel();
+updatePathWeightLabels();
+updatePathSlopeCutoffLabel();
+updatePathBaseCostLabel();
 updateParallaxStrengthLabel();
 updateParallaxBandsLabel();
 updateFogAlphaLabels();
@@ -2312,5 +2948,6 @@ updateCursorLightModeUi();
 updateParallaxUi();
 updateFogUi();
 setActiveTopic("");
-setStatus(`${statusEl.textContent} | Load maps by folder/path, then use wheel zoom, middle-drag pan, lighting mode for placed lights, and cursor light for live preview.`);
+setInteractionMode("none");
+setStatus(`${statusEl.textContent} | Load maps by folder/path, use left dock mode toggles (LM/PF), wheel zoom, middle-drag pan, and cursor light for live preview.`);
 requestAnimationFrame(render);

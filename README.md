@@ -5,8 +5,8 @@ Prototype goals:
 - Load normals PNG and apply directional sunlight
 - Load height PNG and compute directional shadows
 - Simulate a full day/night sun cycle with adjustable speed
-- Capture left-click map coordinates and draw a marker on a separate overlay layer
 - Add editable point lights in a dedicated lighting placement mode
+- Add a player (`npc.json`) with local-cost path preview and click-to-move
 
 ## Files
 
@@ -29,9 +29,14 @@ Each candidate folder should contain:
 - `splat.png`
 - `normals.png`
 - `height.png`
+- `slope.png`
+- `water.png`
 - optional: `pointlights.json`
 - optional: `lighting.json`
+- optional: `parallax.json`
+- optional: `interaction.json`
 - optional: `fog.json`
+- optional but recommended: `npc.json`
 
 If no candidate folder contains the required PNGs, the app starts with fallback textures. You can load a map by folder path or folder picker in the `Load Map` panel.
 
@@ -65,9 +70,13 @@ Then open:
 - A moon directional light and moon ambient tint keep nights dim but readable, with a small blue night-ambient floor so nights do not go pitch black.
 - Mouse wheel controls zoom.
 - Middle mouse drag pans the map.
-- Left click stores the last clicked map coordinate and draws a solid red circle marker.
-- Marker radius is controlled by the `Circle Radius` slider (`0.5..50` map pixels).
-- `Lighting Mode` changes left click behavior from marker placement to point-light placement/edit selection.
+- `LM` (left dock) enables `Lighting Mode`: left click adds/selects point lights.
+- `PF` (left dock) enables `Pathfinding Mode`:
+  - hover shows a live Dijkstra path preview from player to hovered cell
+  - click moves player instantly to clicked cell
+- With both mode toggles off (`none`), map clicks are currently ignored.
+- `Path Window` slider controls local Dijkstra field size (`30x30 .. 100x100`).
+- Player state is read from `<mapFolder>/npc.json` (`charID`, `pixelX`, `pixelY`, `color`) and rendered as a map-pixel circle.
 - `Cursor Light` mode turns the mouse into a live point light (no bake per mouse move).
 - Cursor light supports:
   - terrain-following elevation (`cursor terrain height + offset`)
@@ -87,7 +96,10 @@ Then open:
 - `Load Map` includes a map-level `Save All` action that writes:
   - `pointlights.json`
   - `lighting.json` (`heightScale`, `shadowStrength`, `useShadows`, `ambient`, `diffuse`)
+  - `parallax.json` (`useParallax`, `parallaxStrength`, `parallaxBands`)
+  - `interaction.json` (pathfinding window/weights/cutoff/base-cost + cursor-light UI settings)
   - `fog.json` (`useFog`, color, alpha/falloff/start settings)
+  - `npc.json` (`charID`, `pixelX`, `pixelY`, `color`)
 - Map loading automatically applies these JSON files when present in the selected map folder.
 - Point lighting is baked into a map-space light texture only when lights or normal/height inputs change.
 - Point-light baking also uses height-map line-of-sight occlusion so steep terrain can block local light spread.
