@@ -5,6 +5,11 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+if (-not $PSScriptRoot) {
+  throw "Unable to determine script root. Run this script from a saved .ps1 file."
+}
+Set-Location -Path $PSScriptRoot
+
 Write-Host "Syncing frontend into .tauri-dist..."
 if (Test-Path .tauri-dist) {
   Remove-Item .tauri-dist -Recurse -Force

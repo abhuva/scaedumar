@@ -26,6 +26,7 @@ Build a self-contained prototype for top-down terrain rendering from Gaea-export
 - Document run steps in `README.md`
 - Tauri packaging rule: always refresh `.tauri-dist` from current frontend files before running `cargo tauri dev` or `cargo tauri build`.
   - PowerShell sync:
+    - `if (Test-Path .tauri-dist) { Remove-Item .tauri-dist -Recurse -Force }`
     - `New-Item -ItemType Directory -Force .tauri-dist | Out-Null`
     - `Copy-Item index.html .tauri-dist\ -Force`
     - `Copy-Item styles.css .tauri-dist\ -Force`
@@ -40,15 +41,28 @@ Build a self-contained prototype for top-down terrain rendering from Gaea-export
 - Keep terminal checks small and isolated:
   - Prefer one fast command at a time for quick validation.
   - Do not combine slow checks (for example `cargo check`) with quick checks in one command batch.
+- Do not use parallel tool execution for shell checks that may block or run long:
+  - Run shell diagnostics sequentially so one slow command cannot stall all results.
 - Run expensive Rust checks only when needed:
   - Use `cargo check` separately.
   - Use explicit timeouts for long-running commands.
 - Avoid over-escaped PowerShell command strings:
   - Do not use `\"...\"`-style escaped quote wrappers in inline PowerShell unless absolutely necessary.
   - Prefer simple string formatting and straightforward command syntax to reduce parser errors.
+- Never provide tool-payload JSON arrays as terminal commands:
+  - Do not emit command snippets like `["powershell.exe","-Command","..."]` for manual execution.
+  - Provide plain PowerShell commands only.
+- Prefer quote-stable PowerShell patterns:
+  - Use single-quoted string literals and `-f` formatting instead of embedded escaped double quotes.
+  - Avoid fragile redirection/escaping constructs inside heavily quoted command text.
 - If a command appears stalled:
   - Stop chaining additional commands.
   - Retry with a simpler equivalent command and report the exact failure mode.
+- Lint rule (docs):
+  - Verified environment note: no markdown/python linter CLI is currently installed globally (`markdownlint-cli2`, `markdownlint`, `pymarkdown`, `mdformat`, `ruff` not found).
+  - If a markdown linter is available, run it on changed `.md` files before commit.
+  - Preferred command when available: `npx markdownlint-cli2 "**/*.md"`.
+  - If unavailable, explicitly state in the commit/PR notes that markdown lint was not run due to missing tool.
 
 
 ## Map Conventions (Current Prototype)

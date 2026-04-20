@@ -132,7 +132,7 @@
   - [x] maps directory
   - [x] user save/settings directory
   - [x] logs/crash output location
-- [ ] Implement Tauri command(s) for:
+- [x] Implement Tauri command(s) for:
   - [x] save JSON files
   - [x] load JSON files
   - [x] pick map folder
@@ -237,8 +237,7 @@
 - Created optional portable zip:
   - `src-tauri/target/release/bundle/portable/TerrainPrototype_0.1.0_x64_portable.zip`
 - Added signing strategy document: `CODE_SIGNING_PLAN.md`.
-- Added clean-machine validation checklist: `CLEAN_MACHINE_VALIDATION.md` (execution still pending).
-- Clean-machine validation completed successfully (user-verified).
+- Clean-machine validation completed successfully (user-verified) — 2026-04-20.
 
 ## Phase 5 Local QA Pass (2026-04-20)
 - Completed non-interactive verification in this environment:
