@@ -35,6 +35,21 @@ Build a self-contained prototype for top-down terrain rendering from Gaea-export
 - CRITICAL collaboration rule: never create, update, or trigger a PR unless the user explicitly asks in the current turn.
 - CRITICAL collaboration rule: never push to remote unless the user explicitly asks to push.
 
+## Terminal Reliability Rules
+
+- Keep terminal checks small and isolated:
+  - Prefer one fast command at a time for quick validation.
+  - Do not combine slow checks (for example `cargo check`) with quick checks in one command batch.
+- Run expensive Rust checks only when needed:
+  - Use `cargo check` separately.
+  - Use explicit timeouts for long-running commands.
+- Avoid over-escaped PowerShell command strings:
+  - Do not use `\"...\"`-style escaped quote wrappers in inline PowerShell unless absolutely necessary.
+  - Prefer simple string formatting and straightforward command syntax to reduce parser errors.
+- If a command appears stalled:
+  - Stop chaining additional commands.
+  - Retry with a simpler equivalent command and report the exact failure mode.
+
 
 ## Map Conventions (Current Prototype)
 

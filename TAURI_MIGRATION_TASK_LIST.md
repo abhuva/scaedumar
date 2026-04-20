@@ -238,7 +238,7 @@
   - `src-tauri/target/release/bundle/portable/TerrainPrototype_0.1.0_x64_portable.zip`
 - Added signing strategy document: `CODE_SIGNING_PLAN.md`.
 - Added clean-machine validation checklist: `CLEAN_MACHINE_VALIDATION.md` (execution still pending).
- - Clean-machine validation completed successfully (user-verified).
+- Clean-machine validation completed successfully (user-verified).
 
 ## Phase 5 Local QA Pass (2026-04-20)
 - Completed non-interactive verification in this environment:

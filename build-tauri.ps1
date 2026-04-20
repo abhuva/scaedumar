@@ -6,6 +6,9 @@ param(
 $ErrorActionPreference = "Stop"
 
 Write-Host "Syncing frontend into .tauri-dist..."
+if (Test-Path .tauri-dist) {
+  Remove-Item .tauri-dist -Recurse -Force
+}
 New-Item -ItemType Directory -Force .tauri-dist | Out-Null
 Copy-Item index.html .tauri-dist\ -Force
 Copy-Item styles.css .tauri-dist\ -Force
@@ -21,4 +24,3 @@ if ($Mode -eq "dev") {
 Write-Host "Building Tauri release bundles..."
 cargo tauri build
 exit $LASTEXITCODE
-
