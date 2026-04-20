@@ -32,8 +32,7 @@
 - **Sun / Lighting / Atmosphere** : right now there is a hardcoded LUT for the
   sun settings (altitude, color), i would like a UI where i can put points on a
   linear axis and define what the settings are at those points - then they get
-  interpolated / smoothed between them. (linear, easing etc. kÃ¶nnte man als
-  smooting parameter probieren)
+  interpolated / smoothed between them (linear, easing etc.; koennte man als smoothing-Parameter probieren)
 - **Map Overlays** : verschiedene Info Maps (height, slope, water etc.) als
   overlay - with adjustable ranges, so that we can specify certain ranges that
   get shown and colored (like only slopes above 51% in red)
@@ -42,3 +41,4 @@
   "auto-playing" basically. The character makes a brownian motion in that
   space, each new cell visited has a certain chance to find the resource
   (depending on the map data) - of course normal travel stuff applies.
+

@@ -277,8 +277,8 @@
   - Default candidates include `assets/map1/`, `assets/Map 1/`, `assets/` (`src/main.js:1482`).
   - `assets/map1`, `assets/Map 1`, and `assets/Map 2` contain required map PNG set.
   - Manual folder load handler is wired (`src/main.js:3245-3255`).
-- Still pending interactive runtime verification (manual):
-  - Completed by user: visual parity + interaction behavior checks pass.
+- Interactive runtime verification (manual): Completed by user — visual parity
+  and interaction behavior checks pass.
 
 ## Linter Tool Detection (2026-04-20)
 
