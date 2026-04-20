@@ -15,6 +15,7 @@ Build a self-contained prototype for top-down terrain rendering from Gaea-export
 - No game engines (no Unity, Godot, Unreal)
 - Keep runtime lightweight and understandable
 - Prefer browser-native stack first: HTML + JavaScript + WebGL2
+- Desktop distribution path (current): Tauri wrapper around existing frontend
 
 
 ## Working Agreement
@@ -23,6 +24,13 @@ Build a self-contained prototype for top-down terrain rendering from Gaea-export
 - Prefer small, testable increments over large rewrites
 - Preserve existing user changes; never revert unrelated edits
 - Document run steps in `README.md`
+- Tauri packaging rule: always refresh `.tauri-dist` from current frontend files before running `cargo tauri dev` or `cargo tauri build`.
+  - PowerShell sync:
+    - `New-Item -ItemType Directory -Force .tauri-dist | Out-Null`
+    - `Copy-Item index.html .tauri-dist\ -Force`
+    - `Copy-Item styles.css .tauri-dist\ -Force`
+    - `Copy-Item src .tauri-dist\src -Recurse -Force`
+    - `Copy-Item assets .tauri-dist\assets -Recurse -Force`
 - CRITICAL git workflow: always work on a branch, never commit directly to `main` (or other default branch), and only open PRs when the user explicitly requests it.
 - CRITICAL collaboration rule: never create, update, or trigger a PR unless the user explicitly asks in the current turn.
 - CRITICAL collaboration rule: never push to remote unless the user explicitly asks to push.
@@ -33,8 +41,9 @@ Build a self-contained prototype for top-down terrain rendering from Gaea-export
 - Use per-map subfolders: `assets/<mapName>/`
 - `assets/<mapName>/splat.png`: base color terrain image
 - `assets/<mapName>/normals.png`: tangent/object-space normal map encoded in RGB
-- `assets/<mapName>/height.png`: grayscale height map (optional but used for shadows)
+- `assets/<mapName>/height.png`: grayscale height map (required in current prototype)
 - `assets/<mapName>/slope.png`: grayscale slope cost map for movement/pathfinding
+- `assets/<mapName>/water.png`: grayscale/water influence map (required in current prototype)
 - `assets/<mapName>/pointlights.json`: optional saved point-light set for that map
 - `assets/<mapName>/lighting.json`: optional saved lighting controls (`heightScale`, `shadowStrength`, `useShadows`, `ambient`, `diffuse`)
 - `assets/<mapName>/parallax.json`: optional saved parallax controls (`useParallax`, `parallaxStrength`, `parallaxBands`)

@@ -18,6 +18,7 @@ No game engine is used.
 
 - Entry point: `index.html`
 - Main implementation: `src/main.js`
+- Desktop wrapper: `src-tauri/` (Tauri v2)
 - Rendering backend: WebGL2 terrain pass + 2D overlay canvas for interaction markers
 - Settings UI: left vertical topic-icon dock + single side panel (one topic open at a time)
 - Map bundle auto-load tries these folders in order:
@@ -39,6 +40,16 @@ No game engine is used.
   - `clouds.json`
   - `npc.json`
 - `Load Map` topic supports loading by folder path or folder picker (map bundle semantics)
+- Desktop map-load behavior:
+  - If map path input is empty in Tauri runtime, `Load` opens native folder picker.
+  - Absolute filesystem map paths are validated (`splat.png`, `normals.png`, `height.png`, `slope.png`, `water.png`) before load.
+- Desktop JSON I/O behavior:
+  - Tauri commands currently exposed:
+    - `save_json_file(path, content)`
+    - `load_json_file(path)`
+    - `validate_map_folder(path)`
+    - `pick_map_folder()`
+  - Save/load prefers Tauri commands in desktop runtime, with browser fallback path when native command flow fails.
 
 ## Current Lighting Model
 
@@ -156,6 +167,15 @@ Map/camera uniforms:
 - If lighting behavior changes, update both:
   - `README.md` notes
   - `AGENTS.md` Lighting Model section
+
+## Packaging Notes (Windows-First)
+
+- Tauri build expects `build.frontendDist = ../.tauri-dist`.
+- Refresh `.tauri-dist` before release build to include latest frontend/assets.
+- Current release artifacts:
+  - `src-tauri/target/release/bundle/msi/TerrainPrototype_0.1.0_x64_en-US.msi`
+  - `src-tauri/target/release/bundle/nsis/TerrainPrototype_0.1.0_x64-setup.exe`
+  - optional: `src-tauri/target/release/bundle/portable/TerrainPrototype_0.1.0_x64_portable.zip`
 
 ## Quick Verification Checklist
 

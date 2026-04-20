@@ -14,6 +14,8 @@ Prototype goals:
 - `src/main.js`: WebGL2 renderer + shaders
 - `styles.css`: UI styling
 - `assets/`: map bundle root (`assets/<mapName>/...`)
+- `src-tauri/`: Tauri desktop wrapper (Rust commands + app packaging)
+- `.tauri-dist/`: packaged frontend assets used by Tauri build
 - `AI_CONTEXT.md`: implementation map and workflow notes for AI agents
 
 ## Expected auto-load names
@@ -41,7 +43,7 @@ Each candidate folder should contain:
 
 If no candidate folder contains the required PNGs, the app starts with fallback textures. You can load a map by folder path or folder picker in the `Load Map` panel.
 
-## Run
+## Run (Browser)
 
 Serve the folder over HTTP (do not use `file://`).
 
@@ -58,6 +60,40 @@ npx serve .
 Then open:
 - `http://localhost:8000` (Python)
 - or URL printed by `serve`
+
+## Run (Desktop / Tauri)
+
+From repository root:
+
+```powershell
+# optional but recommended before build/dev:
+New-Item -ItemType Directory -Force .tauri-dist | Out-Null
+Copy-Item index.html .tauri-dist\ -Force
+Copy-Item styles.css .tauri-dist\ -Force
+Copy-Item src .tauri-dist\src -Recurse -Force
+Copy-Item assets .tauri-dist\assets -Recurse -Force
+
+# dev desktop app
+cargo tauri dev
+
+# release bundles (MSI + NSIS EXE)
+cargo tauri build
+```
+
+Release outputs:
+- `src-tauri/target/release/bundle/msi/TerrainPrototype_0.1.0_x64_en-US.msi`
+- `src-tauri/target/release/bundle/nsis/TerrainPrototype_0.1.0_x64-setup.exe`
+- optional portable zip: `src-tauri/target/release/bundle/portable/TerrainPrototype_0.1.0_x64_portable.zip`
+
+One-command helper:
+
+```powershell
+# sync + run desktop dev
+.\build-tauri.ps1 -Mode dev
+
+# sync + build desktop release bundles
+.\build-tauri.ps1 -Mode build
+```
 
 ## Notes
 
@@ -96,6 +132,7 @@ Then open:
 - `Save All` uses a two-step confirmation (click once to arm, click again within 5s to confirm).
 - `Load All` first tries `<current map folder>/pointlights.json` and falls back to manual JSON file selection.
 - For persistence across reloads, save the JSON as `<current map folder>/pointlights.json` (for example `assets/Map 1/pointlights.json`).
+- In desktop runtime, map path can be left empty and `Load` opens a native folder picker.
 - `Load Map` includes a map-level `Save All` action that writes:
   - `pointlights.json`
   - `lighting.json` (`heightScale`, `shadowStrength`, `useShadows`, `ambient`, `diffuse`, cycle + point-flicker controls)
@@ -129,3 +166,6 @@ Then open:
 - Cloud controls include `Coverage`, `Softness`, `Opacity`, `Scale`, `Layer A/B Speed`, plus optional `Sun Projection` with `Sun Offset` to shift cloud shadows with sun direction.
 - Height shadowing is a texture-space raymarch for prototype quality.
 - Texture sampling is nearest-neighbor for pixel-sharp zoomed rendering.
+- Desktop file I/O behavior:
+  - Tauri runtime prefers native commands for JSON save/load + folder validation/picking.
+  - If native desktop save/load fails, browser-compatible fallback flow is used where possible (`showDirectoryPicker`, `showSaveFilePicker`, or file download).
