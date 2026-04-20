@@ -15,6 +15,7 @@ Build a self-contained prototype for top-down terrain rendering from Gaea-export
 - No game engines (no Unity, Godot, Unreal)
 - Keep runtime lightweight and understandable
 - Prefer browser-native stack first: HTML + JavaScript + WebGL2
+- Desktop distribution path (current): Tauri wrapper around existing frontend
 
 
 ## Working Agreement
@@ -23,9 +24,45 @@ Build a self-contained prototype for top-down terrain rendering from Gaea-export
 - Prefer small, testable increments over large rewrites
 - Preserve existing user changes; never revert unrelated edits
 - Document run steps in `README.md`
+- Tauri packaging rule: always refresh `.tauri-dist` from current frontend files before running `cargo tauri dev` or `cargo tauri build`.
+  - PowerShell sync:
+    - `if (Test-Path .tauri-dist) { Remove-Item .tauri-dist -Recurse -Force }`
+    - `New-Item -ItemType Directory -Force .tauri-dist | Out-Null`
+    - `Copy-Item index.html .tauri-dist\ -Force`
+    - `Copy-Item styles.css .tauri-dist\ -Force`
+    - `Copy-Item src .tauri-dist\src -Recurse -Force`
+    - `Copy-Item assets .tauri-dist\assets -Recurse -Force`
 - CRITICAL git workflow: always work on a branch, never commit directly to `main` (or other default branch), and only open PRs when the user explicitly requests it.
 - CRITICAL collaboration rule: never create, update, or trigger a PR unless the user explicitly asks in the current turn.
 - CRITICAL collaboration rule: never push to remote unless the user explicitly asks to push.
+
+## Terminal Reliability Rules
+
+- Keep terminal checks small and isolated:
+  - Prefer one fast command at a time for quick validation.
+  - Do not combine slow checks (for example `cargo check`) with quick checks in one command batch.
+- Do not use parallel tool execution for shell checks that may block or run long:
+  - Run shell diagnostics sequentially so one slow command cannot stall all results.
+- Run expensive Rust checks only when needed:
+  - Use `cargo check` separately.
+  - Use explicit timeouts for long-running commands.
+- Avoid over-escaped PowerShell command strings:
+  - Do not use `\"...\"`-style escaped quote wrappers in inline PowerShell unless absolutely necessary.
+  - Prefer simple string formatting and straightforward command syntax to reduce parser errors.
+- Never provide tool-payload JSON arrays as terminal commands:
+  - Do not emit command snippets like `["powershell.exe","-Command","..."]` for manual execution.
+  - Provide plain PowerShell commands only.
+- Prefer quote-stable PowerShell patterns:
+  - Use single-quoted string literals and `-f` formatting instead of embedded escaped double quotes.
+  - Avoid fragile redirection/escaping constructs inside heavily quoted command text.
+- If a command appears stalled:
+  - Stop chaining additional commands.
+  - Retry with a simpler equivalent command and report the exact failure mode.
+- Lint rule (docs):
+  - Do not rely on point-in-time global tool installs; follow project migration/checklist for required linters.
+  - If a markdown linter is available, run it on changed `.md` files before commit.
+  - Preferred command when available: `npx markdownlint-cli2 "**/*.md"`.
+  - If unavailable, explicitly state in the commit/PR notes that markdown lint was not run due to missing tool.
 
 
 ## Map Conventions (Current Prototype)
@@ -33,8 +70,9 @@ Build a self-contained prototype for top-down terrain rendering from Gaea-export
 - Use per-map subfolders: `assets/<mapName>/`
 - `assets/<mapName>/splat.png`: base color terrain image
 - `assets/<mapName>/normals.png`: tangent/object-space normal map encoded in RGB
-- `assets/<mapName>/height.png`: grayscale height map (optional but used for shadows)
+- `assets/<mapName>/height.png`: grayscale height map (required in current prototype)
 - `assets/<mapName>/slope.png`: grayscale slope cost map for movement/pathfinding
+- `assets/<mapName>/water.png`: grayscale/water influence map (required in current prototype)
 - `assets/<mapName>/pointlights.json`: optional saved point-light set for that map
 - `assets/<mapName>/lighting.json`: optional saved lighting controls (`heightScale`, `shadowStrength`, `useShadows`, `ambient`, `diffuse`)
 - `assets/<mapName>/parallax.json`: optional saved parallax controls (`useParallax`, `parallaxStrength`, `parallaxBands`)

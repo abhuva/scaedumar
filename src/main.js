@@ -516,6 +516,82 @@ function normalizeMapFolderPath(path) {
   return text.replace(/[\\/]+$/, "");
 }
 
+function getTauriInvoke() {
+  const tauriCore = window.__TAURI__ && window.__TAURI__.core;
+  if (!tauriCore || typeof tauriCore.invoke !== "function") {
+    return null;
+  }
+  return tauriCore.invoke.bind(tauriCore);
+}
+
+const tauriInvoke = getTauriInvoke();
+
+function isAbsoluteFsPath(path) {
+  const text = String(path || "").trim();
+  if (!text) return false;
+  return /^[a-zA-Z]:[\\/]/.test(text) || text.startsWith("/") || text.startsWith("\\\\");
+}
+
+function joinFsPath(folder, fileName) {
+  const base = String(folder || "").replace(/[\\/]+$/, "");
+  if (base.includes("\\")) {
+    return `${base}\\${fileName}`;
+  }
+  return `${base}/${fileName}`;
+}
+
+function buildMapAssetPath(folder, fileName) {
+  const base = String(folder || "").replace(/[\\/]+$/, "");
+  if (base.startsWith("file://")) {
+    return `${base}/${fileName}`;
+  }
+  if (isAbsoluteFsPath(base)) {
+    const normalized = base.replace(/\\/g, "/");
+    if (/^[a-zA-Z]:\//.test(normalized)) {
+      return `file:///${encodeURI(normalized)}/${fileName}`;
+    }
+    if (normalized.startsWith("//")) {
+      return `file:${encodeURI(normalized)}/${fileName}`;
+    }
+    return `file://${encodeURI(normalized)}/${fileName}`;
+  }
+  return `${base}/${fileName}`;
+}
+
+async function invokeTauri(command, args) {
+  if (!tauriInvoke) {
+    throw new Error("Tauri invoke is unavailable in this runtime.");
+  }
+  return tauriInvoke(command, args);
+}
+
+function toAbsoluteFileUrl(path) {
+  const normalized = String(path || "").trim().replace(/\\/g, "/");
+  if (!normalized) return "";
+  if (normalized.startsWith("file://")) return normalized;
+  if (/^[a-zA-Z]:\//.test(normalized)) {
+    return `file:///${encodeURI(normalized)}`;
+  }
+  if (normalized.startsWith("//")) {
+    return `file:${encodeURI(normalized)}`;
+  }
+  return `file://${encodeURI(normalized)}`;
+}
+
+async function pickMapFolderViaTauri() {
+  if (!tauriInvoke) return null;
+  const selected = await invokeTauri("pick_map_folder");
+  if (!selected) return null;
+  return normalizeMapFolderPath(selected);
+}
+
+async function validateMapFolderViaTauri(folderPath) {
+  if (!tauriInvoke || !isAbsoluteFsPath(folderPath)) {
+    return { is_valid: true, missing_files: [] };
+  }
+  return invokeTauri("validate_map_folder", { path: folderPath });
+}
+
 async function applyMapImages(splatImage, normalsImage, heightImage, slopeImage, waterImage) {
   uploadImageToTexture(splatTex, splatImage);
   const sizeChanged = setSplatSizeFromImage(splatImage);
@@ -560,6 +636,22 @@ function getFileFromFolderSelection(files, fileName) {
 }
 
 async function tryLoadJsonFromUrl(path) {
+  if (tauriInvoke && isAbsoluteFsPath(path)) {
+    try {
+      const text = await invokeTauri("load_json_file", { path });
+      return JSON.parse(text);
+    } catch (error) {
+      console.warn(`Tauri JSON load failed for ${path}, trying fetch fallback.`, error);
+      const fileUrl = toAbsoluteFileUrl(path);
+      if (fileUrl) {
+        const response = await fetch(fileUrl, { cache: "no-store" });
+        if (response.ok) {
+          return response.json();
+        }
+      }
+      throw error;
+    }
+  }
   const response = await fetch(path, { cache: "no-store" });
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}`);
@@ -920,6 +1012,28 @@ async function saveAllMapDataFiles() {
     return;
   }
 
+  if (tauriInvoke) {
+    try {
+      let targetFolder = folder;
+      if (!isAbsoluteFsPath(targetFolder)) {
+        targetFolder = await pickMapFolderViaTauri();
+        if (!targetFolder) {
+          setStatus("Save all canceled.");
+          return;
+        }
+      }
+      for (const [name, text] of Object.entries(files)) {
+        const targetPath = joinFsPath(targetFolder, name);
+        await invokeTauri("save_json_file", { path: targetPath, content: text });
+      }
+      setStatus(`Saved map data (${names}) to ${targetFolder}.`);
+      return;
+    } catch (error) {
+      console.warn("Tauri Save All failed, falling back to browser flow.", error);
+      setStatus("Native Save All failed. Trying browser fallback...");
+    }
+  }
+
   if (typeof window.showDirectoryPicker === "function") {
     const dir = await window.showDirectoryPicker();
     for (const [name, text] of Object.entries(files)) {
@@ -940,12 +1054,20 @@ async function saveAllMapDataFiles() {
 
 async function loadMapFromPath(mapFolderPath) {
   const folder = normalizeMapFolderPath(mapFolderPath);
+  if (tauriInvoke && isAbsoluteFsPath(folder)) {
+    const validation = await validateMapFolderViaTauri(folder);
+    if (!validation.is_valid) {
+      throw new Error(`Missing required files: ${validation.missing_files.join(", ")}`);
+    }
+  }
+
+  const jsonPath = (name) => (isAbsoluteFsPath(folder) ? joinFsPath(folder, name) : `${folder}/${name}`);
   const [splat, normals, height, slope, water] = await Promise.all([
-    loadImageFromUrl(`${folder}/splat.png`),
-    loadImageFromUrl(`${folder}/normals.png`),
-    loadImageFromUrl(`${folder}/height.png`),
-    loadImageFromUrl(`${folder}/slope.png`),
-    loadImageFromUrl(`${folder}/water.png`),
+    loadImageFromUrl(buildMapAssetPath(folder, "splat.png")),
+    loadImageFromUrl(buildMapAssetPath(folder, "normals.png")),
+    loadImageFromUrl(buildMapAssetPath(folder, "height.png")),
+    loadImageFromUrl(buildMapAssetPath(folder, "slope.png")),
+    loadImageFromUrl(buildMapAssetPath(folder, "water.png")),
   ]);
 
   await applyMapImages(splat, normals, height, slope, water);
@@ -971,15 +1093,16 @@ async function loadMapFromPath(mapFolderPath) {
   let loadedNpc = false;
 
   try {
-    const pointLightsJson = await tryLoadJsonFromUrl(`${folder}/pointlights.json`);
-    applyLoadedPointLights(pointLightsJson, `${folder}/pointlights.json`, { suppressStatus: true });
+    const pointLightsJsonPath = jsonPath("pointlights.json");
+    const pointLightsJson = await tryLoadJsonFromUrl(pointLightsJsonPath);
+    applyLoadedPointLights(pointLightsJson, pointLightsJsonPath, { suppressStatus: true });
     loadedPointLights = true;
   } catch (err) {
     console.warn(`No pointlights.json found in ${folder}`, err);
   }
 
   try {
-    const lightingJson = await tryLoadJsonFromUrl(`${folder}/lighting.json`);
+    const lightingJson = await tryLoadJsonFromUrl(jsonPath("lighting.json"));
     applyLightingSettings(lightingJson);
     loadedLighting = true;
   } catch (err) {
@@ -987,7 +1110,7 @@ async function loadMapFromPath(mapFolderPath) {
   }
 
   try {
-    const parallaxJson = await tryLoadJsonFromUrl(`${folder}/parallax.json`);
+    const parallaxJson = await tryLoadJsonFromUrl(jsonPath("parallax.json"));
     applyParallaxSettings(parallaxJson);
     loadedParallax = true;
   } catch (err) {
@@ -995,7 +1118,7 @@ async function loadMapFromPath(mapFolderPath) {
   }
 
   try {
-    const interactionJson = await tryLoadJsonFromUrl(`${folder}/interaction.json`);
+    const interactionJson = await tryLoadJsonFromUrl(jsonPath("interaction.json"));
     applyInteractionSettings(interactionJson);
     loadedInteraction = true;
   } catch (err) {
@@ -1003,7 +1126,7 @@ async function loadMapFromPath(mapFolderPath) {
   }
 
   try {
-    const fogJson = await tryLoadJsonFromUrl(`${folder}/fog.json`);
+    const fogJson = await tryLoadJsonFromUrl(jsonPath("fog.json"));
     applyFogSettings(fogJson);
     loadedFog = true;
   } catch (err) {
@@ -1011,7 +1134,7 @@ async function loadMapFromPath(mapFolderPath) {
   }
 
   try {
-    const cloudsJson = await tryLoadJsonFromUrl(`${folder}/clouds.json`);
+    const cloudsJson = await tryLoadJsonFromUrl(jsonPath("clouds.json"));
     applyCloudSettings(cloudsJson);
     loadedClouds = true;
   } catch (err) {
@@ -1019,7 +1142,7 @@ async function loadMapFromPath(mapFolderPath) {
   }
 
   try {
-    const npcJson = await tryLoadJsonFromUrl(`${folder}/npc.json`);
+    const npcJson = await tryLoadJsonFromUrl(jsonPath("npc.json"));
     applyLoadedNpc(npcJson);
     loadedNpc = true;
   } catch (err) {
@@ -1645,6 +1768,18 @@ async function savePointLightsJson() {
   const payload = serializePointLights();
   const text = `${JSON.stringify(payload, null, 2)}\n`;
 
+  if (tauriInvoke && isAbsoluteFsPath(currentMapFolderPath)) {
+    try {
+      const targetPath = joinFsPath(currentMapFolderPath, "pointlights.json");
+      await invokeTauri("save_json_file", { path: targetPath, content: text });
+      setStatus(`Saved ${payload.lights.length} point lights to ${targetPath}.`);
+      return;
+    } catch (error) {
+      console.warn("Tauri pointlights save failed, falling back to browser flow.", error);
+      setStatus("Native pointlights save failed. Trying browser fallback...");
+    }
+  }
+
   if (typeof window.showSaveFilePicker === "function") {
     const handle = await window.showSaveFilePicker({
       suggestedName: "pointlights.json",
@@ -1667,13 +1802,12 @@ async function savePointLightsJson() {
 }
 
 async function loadPointLightsFromAssetsOrPrompt() {
-  const pointLightsPath = `${normalizeMapFolderPath(currentMapFolderPath)}/pointlights.json`;
+  const folder = normalizeMapFolderPath(currentMapFolderPath);
+  const pointLightsPath = isAbsoluteFsPath(folder)
+    ? joinFsPath(folder, "pointlights.json")
+    : `${folder}/pointlights.json`;
   try {
-    const response = await fetch(pointLightsPath, { cache: "no-store" });
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-    const rawData = await response.json();
+    const rawData = await tryLoadJsonFromUrl(pointLightsPath);
     applyLoadedPointLights(rawData, pointLightsPath);
     return;
   } catch (err) {
@@ -3069,7 +3203,16 @@ async function tryAutoLoadDefaultMap() {
 }
 
 mapPathLoadBtn.addEventListener("click", async () => {
-  const targetPath = normalizeMapFolderPath(mapPathInput.value);
+  const rawTarget = String(mapPathInput.value || "").trim();
+  let targetPath = normalizeMapFolderPath(rawTarget);
+  if (!rawTarget && tauriInvoke) {
+    const pickedFolder = await pickMapFolderViaTauri();
+    if (!pickedFolder) {
+      setStatus("Map folder selection canceled.");
+      return;
+    }
+    targetPath = pickedFolder;
+  }
   try {
     await loadMapFromPath(targetPath);
   } catch (error) {

@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "useShadows": true,
+  "heightScale": 80,
+  "shadowStrength": 0.6,
+  "ambient": 0.35,
+  "diffuse": 1.24,
+  "cycleHour": 23.700052100015615,
+  "cycleSpeed": 0.02
+}
