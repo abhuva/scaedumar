@@ -21,6 +21,7 @@ No game engine is used.
 - Desktop wrapper: `src-tauri/` (Tauri v2)
 - Rendering backend: WebGL2 terrain pass + 2D overlay canvas for interaction markers
 - Settings UI: left vertical topic-icon dock + single side panel (one topic open at a time)
+  - Mode toggles now include `LM`, `PF`, and `AS` (agent swarm studio mode)
 - Map bundle auto-load tries these folders in order:
   - `assets/map1/`
   - `assets/Map 1/`
@@ -39,6 +40,7 @@ No game engine is used.
   - `fog.json`
   - `clouds.json`
   - `waterfx.json`
+  - `swarm.json`
   - `npc.json`
 - `Load Map` topic supports loading by folder path or folder picker (map bundle semantics)
 - Desktop map-load behavior:
@@ -135,9 +137,26 @@ No game engine is used.
 - Middle mouse drag: pan
 - `LM` dock toggle enables `lighting` interaction mode.
 - `PF` dock toggle enables `pathfinding` interaction mode.
+- `Agent Swarm` panel has a `Use Agent Swarm` toggle for enabling/disabling swarm simulation.
+- `Agent Swarm` panel has a `Follow Agent Mode` button that tracks camera pan to a random selected swarm agent while keeping zoom/other controls available.
 - Mode behavior:
   - `lighting`: left click adds/selects point lights.
   - `pathfinding`: hover shows live path preview from player; left click moves player instantly to clicked cell.
+  - swarm is not an interaction mode; it runs in map space as an overlay system while normal camera controls and interaction modes remain available.
+  - Agent swarm simulation space uses map coordinates (`0..mapWidth-1`, `0..mapHeight-1`) with edge-bounce constraints (no toroidal wraparound).
+  - Swarm altitude is modeled in `z: 0..256`; each integration step validates against `height.png` at target `(x,y)` and clamps to at least `terrainHeight + clearance` so agents cannot move below terrain.
+  - Swarm controls expose `Min Height` and `Max Height` to define an allowed altitude band (for example `30..200`) while still enforcing terrain floor constraints.
+  - Swarm controls expose `Variation` (`0..50%`) that assigns per-agent speed and turnability multipliers (`1 +/- variation`) on reseed/spawn.
+  - Swarm controls expose `Sim Speed` (`0.1x..20.0x`) to scale swarm simulation time independent of render framerate.
+  - Swarm agents support resting state:
+    - per-tick `Rest Chance` (`0..0.002`, step `0.0001`) can switch a flying agent into rest
+    - `Rest Ticks` (`100..10000`) controls how long resting lasts
+    - resting agents stay landed/immobile at terrain floor and wake immediately on nearby hawk threat
+    - resting is forbidden on water pixels from `water.png`
+  - Optional hawk predator:
+    - has independent count/color/speed/turnability controls
+    - chases a random agent and switches target on reach
+    - flock agents apply hawk-repulsion using the same radius/strength controls as cursor repulsion
   - `none`: left click is no-op.
 - Lighting mode on:
   - Left click adds a point light unless one already exists at that map pixel
