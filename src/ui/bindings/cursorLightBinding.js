@@ -27,16 +27,20 @@ export function bindCursorLightControls(deps) {
   });
 
   deps.cursorLightStrengthInput.addEventListener("input", () => {
+    const strength = Number(deps.cursorLightStrengthInput.value);
+    if (!Number.isFinite(strength)) return;
     deps.dispatchCoreCommand({
       type: "core/cursorLight/setStrength",
-      strength: Number(deps.cursorLightStrengthInput.value),
+      strength,
     });
   });
 
   deps.cursorLightHeightOffsetInput.addEventListener("input", () => {
+    const heightOffset = Number(deps.cursorLightHeightOffsetInput.value);
+    if (!Number.isFinite(heightOffset)) return;
     deps.dispatchCoreCommand({
       type: "core/cursorLight/setHeightOffset",
-      heightOffset: Number(deps.cursorLightHeightOffsetInput.value),
+      heightOffset,
     });
   });
 

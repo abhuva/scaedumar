@@ -2,8 +2,8 @@ export function buildFrameRenderState(input) {
   const coreState = input.coreState || {};
   const coreCamera = coreState.camera || {};
   const coreMap = coreState.map || {};
-  const coreSystems = coreState.systems || {};
-  const weather = coreSystems.weather || {};
+  const coreSimulation = coreState.simulation || {};
+  const weather = coreSimulation.weather || {};
   const nowSec = Math.max(0, Number(input.nowMs) * 0.001);
 
   return {
@@ -15,14 +15,14 @@ export function buildFrameRenderState(input) {
       cycleSpeedHoursPerSec: Number(input.cycleSpeedHoursPerSec) || 0,
     },
     camera: {
-      panX: Number.isFinite(coreCamera.panX) ? coreCamera.panX : input.panWorld.x,
-      panY: Number.isFinite(coreCamera.panY) ? coreCamera.panY : input.panWorld.y,
-      zoom: Number.isFinite(coreCamera.zoom) ? coreCamera.zoom : input.zoom,
+      panX: Number.isFinite(coreCamera.panX) ? coreCamera.panX : (input?.panWorld?.x ?? 0),
+      panY: Number.isFinite(coreCamera.panY) ? coreCamera.panY : (input?.panWorld?.y ?? 0),
+      zoom: Number.isFinite(coreCamera.zoom) ? coreCamera.zoom : (input?.zoom ?? 1),
     },
     map: {
-      folderPath: coreMap.folderPath || input.currentMapFolderPath,
-      width: Number(coreMap.width) || input.splatSize.width,
-      height: Number(coreMap.height) || input.splatSize.height,
+      folderPath: coreMap.folderPath || input?.currentMapFolderPath || "",
+      width: Number(coreMap.width) || input?.splatSize?.width || 0,
+      height: Number(coreMap.height) || input?.splatSize?.height || 0,
       loaded: Boolean(coreMap.loaded),
     },
     weather: {

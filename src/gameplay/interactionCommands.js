@@ -33,10 +33,13 @@ export function registerInteractionCommands(commandBus, deps) {
       deps.movePreviewState.pathPixels = deps.extractPathTo(pixel.x, pixel.y);
       if (!deps.movePreviewState.pathPixels.length) {
         deps.setStatus("No reachable preview path at clicked cell.");
+        deps.requestOverlayDraw();
         return;
       }
       deps.setPlayerPosition(pixel.x, pixel.y);
       deps.rebuildMovementField();
+      deps.movePreviewState.hoverPixel = { x: deps.playerState.pixelX, y: deps.playerState.pixelY };
+      deps.movePreviewState.pathPixels = deps.extractPathTo(deps.playerState.pixelX, deps.playerState.pixelY);
       deps.setStatus(`Player moved to (${deps.playerState.pixelX}, ${deps.playerState.pixelY})`);
       ctx.store.update((prev) => ({
         ...prev,
@@ -49,11 +52,14 @@ export function registerInteractionCommands(commandBus, deps) {
           },
         },
       }));
+      deps.requestOverlayDraw();
       return;
     }
 
     deps.setPlayerPosition(pixel.x, pixel.y);
     deps.rebuildMovementField();
+    deps.movePreviewState.hoverPixel = null;
+    deps.movePreviewState.pathPixels = [];
     deps.setStatus(`Player moved to (${deps.playerState.pixelX}, ${deps.playerState.pixelY})`);
     ctx.store.update((prev) => ({
       ...prev,
@@ -66,6 +72,7 @@ export function registerInteractionCommands(commandBus, deps) {
         },
       },
     }));
+    deps.requestOverlayDraw();
   });
 
   function syncPathfindingStateToStore(ctx) {

@@ -1999,6 +1999,7 @@ function applySettingsByKey(key, rawData, fallbackApply) {
     return;
   }
   if (!runtimeCore.settingsRegistry.validate(key, rawData)) {
+    fallbackApply(rawData);
     return;
   }
   runtimeCore.settingsRegistry.apply(key, rawData, null);
@@ -2057,7 +2058,7 @@ function serializeSwarmData() {
 }
 
 function applySwarmSettings(rawData) {
-  applySettingsByKey("swarm", rawData, applySwarmSettingsLegacy);
+  applySwarmSettingsLegacy(rawData);
 }
 
 function getSettingsDefaults(key, fallback) {
@@ -3435,6 +3436,11 @@ function updateModeCapabilitiesUi() {
     btn.disabled = !enabled;
     btn.classList.toggle("disabled", !enabled);
   }
+  const activeTopicButton = topicButtons.find((btn) => btn.classList.contains("active"));
+  const activeTopic = activeTopicButton ? activeTopicButton.dataset.topic || "" : "";
+  if (activeTopic && !canUseModeTopic(mode, activeTopic)) {
+    setActiveTopic("");
+  }
   const canLighting = canUseModeInteraction(mode, "lighting");
   const canPathfinding = canUseModeInteraction(mode, "pathfinding");
   dockLightingModeToggle.disabled = !canLighting;
@@ -3600,7 +3606,7 @@ registerMainSettingsContracts(runtimeCore.settingsRegistry, {
   serializeInteraction: serializeInteractionSettingsLegacy,
   applyInteraction: applyInteractionSettingsLegacy,
   serializeSwarm: serializeSwarmDataLegacy,
-  applySwarm: applySwarmSettingsLegacy,
+  applySwarm: applySwarmData,
 });
 const renderResources = createRenderResources({ gl, canvas });
 const renderer = createRenderer({ resources: renderResources });
@@ -3863,10 +3869,10 @@ runtimeCore.scheduler.addSystem(
     updateStoreWeather: (value) => {
       runtimeCore.store.update((prev) => ({
         ...prev,
-        systems: {
-          ...prev.systems,
+        simulation: {
+          ...prev.simulation,
           weather: {
-            ...prev.systems.weather,
+            ...prev.simulation.weather,
             ...value,
           },
         },

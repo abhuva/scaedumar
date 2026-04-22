@@ -1,3 +1,22 @@
+function buildSimulationUpdate(prevSimulation, weatherInput, simulationKnobs) {
+  const nextSimulation = {
+    ...prevSimulation,
+  };
+  if (weatherInput) {
+    nextSimulation.weather = {
+      ...prevSimulation.weather,
+      ...weatherInput,
+    };
+  }
+  if (simulationKnobs) {
+    nextSimulation.knobs = {
+      ...prevSimulation.knobs,
+      ...simulationKnobs,
+    };
+  }
+  return nextSimulation;
+}
+
 export function updateCoreFrameSnapshot(store, nowMs, deps) {
   const pathfinding = typeof deps.getPathfindingState === "function" ? deps.getPathfindingState() : null;
   const swarm = typeof deps.getSwarmRuntimeState === "function" ? deps.getSwarmRuntimeState() : null;
@@ -6,50 +25,37 @@ export function updateCoreFrameSnapshot(store, nowMs, deps) {
   const weatherInput = typeof deps.getWeatherInput === "function" ? deps.getWeatherInput() : null;
   const simulationKnobs = typeof deps.getSimulationKnobs === "function" ? deps.getSimulationKnobs() : null;
   const cursorLight = typeof deps.getCursorLightState === "function" ? deps.getCursorLightState() : null;
+  const zoom = typeof deps.getZoom === "function" ? deps.getZoom() : 1;
+  const panX = deps.panWorld && Number.isFinite(deps.panWorld.x) ? deps.panWorld.x : 0;
+  const panY = deps.panWorld && Number.isFinite(deps.panWorld.y) ? deps.panWorld.y : 0;
+  const mapWidth = deps.splatSize && Number.isFinite(deps.splatSize.width) ? deps.splatSize.width : 0;
+  const mapHeight = deps.splatSize && Number.isFinite(deps.splatSize.height) ? deps.splatSize.height : 0;
+  const cycleSpeed = deps.cycleSpeedInput && "value" in deps.cycleSpeedInput
+    ? Number(deps.cycleSpeedInput.value)
+    : 0;
+  const safeCycleSpeed = Number.isFinite(cycleSpeed) ? cycleSpeed : 0;
 
   store.update((prev) => ({
     ...prev,
     clock: {
       ...prev.clock,
       nowSec: Math.max(0, Number(nowMs) * 0.001),
-      timeScale: deps.clamp(Number(deps.cycleSpeedInput.value), 0, 1),
+      timeScale: deps.clamp(safeCycleSpeed, 0, 1),
     },
     camera: {
       ...prev.camera,
-      panX: deps.panWorld.x,
-      panY: deps.panWorld.y,
-      zoom: deps.getZoom(),
+      panX,
+      panY,
+      zoom,
     },
     map: {
       ...prev.map,
       folderPath: deps.currentMapFolderPath,
-      width: deps.splatSize.width,
-      height: deps.splatSize.height,
+      width: mapWidth,
+      height: mapHeight,
       loaded: Boolean(deps.currentMapFolderPath),
     },
-    simulation: weatherInput
-      ? {
-        ...prev.simulation,
-        knobs: simulationKnobs
-          ? {
-            ...prev.simulation.knobs,
-            ...simulationKnobs,
-          }
-          : prev.simulation.knobs,
-        weather: {
-          ...prev.simulation.weather,
-          ...weatherInput,
-        },
-      }
-      : simulationKnobs
-        ? {
-          ...prev.simulation,
-          knobs: {
-            ...prev.simulation.knobs,
-            ...simulationKnobs,
-          },
-        }
-        : prev.simulation,
+    simulation: buildSimulationUpdate(prev.simulation, weatherInput, simulationKnobs),
     gameplay: {
       ...prev.gameplay,
       interactionMode,

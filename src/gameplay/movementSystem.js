@@ -2,7 +2,8 @@ export function createMovementSystem(deps) {
   return {
     update(_, state) {
       const currentPlayer = state && state.gameplay && state.gameplay.player ? state.gameplay.player : null;
-      const nextPlayer = typeof deps.getPlayerState === "function" ? deps.getPlayerState() : currentPlayer;
+      const nextPlayerCandidate = typeof deps.getPlayerState === "function" ? deps.getPlayerState() : null;
+      const nextPlayer = nextPlayerCandidate ?? currentPlayer;
       if (!nextPlayer) return;
 
       if (typeof deps.setPlayerSnapshot === "function") {

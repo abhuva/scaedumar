@@ -1,7 +1,8 @@
 export function createTimeSystem(deps) {
   return {
     update(ctx) {
-      const cycleSpeedHoursPerSec = deps.clamp(Number(deps.cycleSpeedInput.value), 0, 1);
+      const rawCycleSpeed = deps.clamp(Number(deps.cycleSpeedInput.value), 0, 1);
+      const cycleSpeedHoursPerSec = Number.isFinite(rawCycleSpeed) ? rawCycleSpeed : 0;
       deps.setTimeState({
         cycleSpeedHoursPerSec,
       });

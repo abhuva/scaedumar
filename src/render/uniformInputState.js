@@ -64,6 +64,6 @@ export function buildUniformInputState(deps) {
     weatherWindDirY: weather ? weather.windDirY : 0,
     weatherWindSpeed: weather ? weather.windSpeed : 0,
     weatherLocalModulation: weather ? weather.localModulation : 0,
-    useCursorLight: deps.cursorLightModeToggle.checked && deps.cursorLightState.active,
+    useCursorLight: deps.cursorLightModeToggle.checked && (deps.cursorLightState ? deps.cursorLightState.active : null),
   };
 }

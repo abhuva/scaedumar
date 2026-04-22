@@ -8,6 +8,9 @@ export function createSettingsRegistry() {
     if (!contract || typeof contract.defaults !== "function") {
       throw new Error("Settings contract must provide defaults().");
     }
+    if (subsystems.has(key)) {
+      throw new Error(`Settings subsystem already registered for key: ${key}`);
+    }
     subsystems.set(key, contract);
   }
 

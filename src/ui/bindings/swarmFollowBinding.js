@@ -1,12 +1,20 @@
 export function bindSwarmFollowControls(deps) {
-  deps.swarmFollowToggleBtn.addEventListener("click", () => {
+  const handleToggleClick = () => {
     deps.dispatchCoreCommand({ type: "core/swarm/toggleFollow" });
-  });
+  };
 
-  deps.swarmFollowTargetInput.addEventListener("change", () => {
+  const handleTargetChange = () => {
     deps.dispatchCoreCommand({
       type: "core/swarm/setFollowTarget",
       targetType: deps.swarmFollowTargetInput.value,
     });
-  });
+  };
+
+  deps.swarmFollowToggleBtn.addEventListener("click", handleToggleClick);
+  deps.swarmFollowTargetInput.addEventListener("change", handleTargetChange);
+
+  return () => {
+    deps.swarmFollowToggleBtn.removeEventListener("click", handleToggleClick);
+    deps.swarmFollowTargetInput.removeEventListener("change", handleTargetChange);
+  };
 }

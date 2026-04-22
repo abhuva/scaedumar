@@ -18,7 +18,19 @@ export function createScheduler() {
 
   function updateAll(ctx, state) {
     for (const system of systems) {
-      system.update(ctx, state);
+      const policy = system.errorPolicy === "stop" || system.errorPolicy === "crash"
+        ? system.errorPolicy
+        : "skip";
+      try {
+        system.update(ctx, state);
+      } catch (error) {
+        if (policy === "skip") {
+          const systemName = system.name || "anonymous-system";
+          console.error(`Scheduler skipped failing system '${systemName}':`, error);
+          continue;
+        }
+        throw error;
+      }
     }
   }
 

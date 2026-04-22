@@ -67,14 +67,6 @@ export function bindCanvasControls(deps) {
   });
 
   deps.canvas.addEventListener("mouseleave", () => {
-    deps.swarmCursorState.active = false;
-    if (deps.cursorLightModeToggle.checked) {
-      deps.cursorLightState.active = false;
-    }
-    if (deps.getInteractionMode() === "pathfinding") {
-      deps.movePreviewState.hoverPixel = null;
-      deps.movePreviewState.pathPixels = [];
-    }
-    deps.requestOverlayDraw();
+    deps.dispatchCoreCommand({ type: "core/canvas/leave" });
   });
 }

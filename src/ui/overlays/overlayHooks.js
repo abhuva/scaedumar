@@ -5,7 +5,8 @@ export function createOverlayHooks(deps) {
   }
 
   function renderOverlayIfNeeded(frameState) {
-    if (deps.isOverlayDirty() || frameState.swarm.enabled) {
+    const swarmEnabled = Boolean(frameState?.swarm?.enabled);
+    if (deps.isOverlayDirty() || swarmEnabled) {
       deps.drawOverlay();
       deps.clearOverlayDirty();
     }

@@ -131,51 +131,66 @@ export const DEFAULT_SWARM_SETTINGS = {
 };
 
 function createObjectValidator() {
-  return (input) => input === null || input === undefined || typeof input === "object";
+  return (input) => (
+    input === null
+    || input === undefined
+    || (typeof input === "object" && !Array.isArray(input))
+  );
 }
 
 export function registerMainSettingsContracts(settingsRegistry, deps) {
   const validateObject = createObjectValidator();
-  settingsRegistry.register("lighting", {
-    defaults: () => ({ ...DEFAULT_LIGHTING_SETTINGS }),
-    validate: validateObject,
-    serialize: () => deps.serializeLighting(),
-    apply: (input) => deps.applyLighting(input),
-  });
-  settingsRegistry.register("fog", {
-    defaults: () => ({ ...DEFAULT_FOG_SETTINGS }),
-    validate: validateObject,
-    serialize: () => deps.serializeFog(),
-    apply: (input) => deps.applyFog(input),
-  });
-  settingsRegistry.register("parallax", {
-    defaults: () => ({ ...DEFAULT_PARALLAX_SETTINGS }),
-    validate: validateObject,
-    serialize: () => deps.serializeParallax(),
-    apply: (input) => deps.applyParallax(input),
-  });
-  settingsRegistry.register("clouds", {
-    defaults: () => ({ ...DEFAULT_CLOUD_SETTINGS }),
-    validate: validateObject,
-    serialize: () => deps.serializeClouds(),
-    apply: (input) => deps.applyClouds(input),
-  });
-  settingsRegistry.register("waterfx", {
-    defaults: () => ({ ...DEFAULT_WATER_SETTINGS }),
-    validate: validateObject,
-    serialize: () => deps.serializeWater(),
-    apply: (input) => deps.applyWater(input),
-  });
-  settingsRegistry.register("interaction", {
-    defaults: () => ({ ...DEFAULT_INTERACTION_SETTINGS }),
-    validate: validateObject,
-    serialize: () => deps.serializeInteraction(),
-    apply: (input) => deps.applyInteraction(input),
-  });
-  settingsRegistry.register("swarm", {
-    defaults: () => ({ ...DEFAULT_SWARM_SETTINGS }),
-    validate: validateObject,
-    serialize: () => deps.serializeSwarm(),
-    apply: (input) => deps.applySwarm(input),
-  });
+  const descriptors = [
+    {
+      key: "lighting",
+      defaults: DEFAULT_LIGHTING_SETTINGS,
+      serialize: () => deps.serializeLighting(),
+      apply: (input) => deps.applyLighting(input),
+    },
+    {
+      key: "fog",
+      defaults: DEFAULT_FOG_SETTINGS,
+      serialize: () => deps.serializeFog(),
+      apply: (input) => deps.applyFog(input),
+    },
+    {
+      key: "parallax",
+      defaults: DEFAULT_PARALLAX_SETTINGS,
+      serialize: () => deps.serializeParallax(),
+      apply: (input) => deps.applyParallax(input),
+    },
+    {
+      key: "clouds",
+      defaults: DEFAULT_CLOUD_SETTINGS,
+      serialize: () => deps.serializeClouds(),
+      apply: (input) => deps.applyClouds(input),
+    },
+    {
+      key: "waterfx",
+      defaults: DEFAULT_WATER_SETTINGS,
+      serialize: () => deps.serializeWater(),
+      apply: (input) => deps.applyWater(input),
+    },
+    {
+      key: "interaction",
+      defaults: DEFAULT_INTERACTION_SETTINGS,
+      serialize: () => deps.serializeInteraction(),
+      apply: (input) => deps.applyInteraction(input),
+    },
+    {
+      key: "swarm",
+      defaults: DEFAULT_SWARM_SETTINGS,
+      serialize: () => deps.serializeSwarm(),
+      apply: (input) => deps.applySwarm(input),
+    },
+  ];
+
+  for (const descriptor of descriptors) {
+    settingsRegistry.register(descriptor.key, {
+      defaults: () => ({ ...descriptor.defaults }),
+      validate: validateObject,
+      serialize: descriptor.serialize,
+      apply: descriptor.apply,
+    });
+  }
 }

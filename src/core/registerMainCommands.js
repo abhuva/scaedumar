@@ -34,6 +34,14 @@ export function registerMainCommands(commandBus, deps) {
     const nextMode = normalizeRuntimeMode(command.mode);
     ctx.store.update((prev) => ({ ...prev, mode: nextMode }));
     deps.setInteractionMode(deps.getInteractionMode());
+    const interactionMode = deps.getInteractionMode();
+    ctx.store.update((prev) => ({
+      ...prev,
+      gameplay: {
+        ...prev.gameplay,
+        interactionMode,
+      },
+    }));
   });
 
   registerInteractionCommands(commandBus, deps);
@@ -297,9 +305,20 @@ export function registerMainCommands(commandBus, deps) {
   });
 
   commandBus.register("core/cursorLight/setEnabled", (command, ctx) => {
-    if (command.enabled) return;
-    deps.cursorLightState.active = false;
+    deps.cursorLightState.active = Boolean(command.enabled);
     syncCursorLightToStore(ctx);
+    deps.requestOverlayDraw();
+  });
+
+  commandBus.register("core/canvas/leave", (command) => {
+    deps.swarmCursorState.active = false;
+    if (deps.cursorLightModeToggle.checked) {
+      deps.cursorLightState.active = false;
+    }
+    if (deps.getInteractionMode() === "pathfinding") {
+      deps.movePreviewState.hoverPixel = null;
+      deps.movePreviewState.pathPixels = [];
+    }
     deps.requestOverlayDraw();
   });
 

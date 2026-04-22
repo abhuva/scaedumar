@@ -190,7 +190,7 @@ No game engine is used.
 - when bird count drops below `Breeding Threshold`, breeding mode becomes active
   - while breeding mode is active, each new rest event has `Breed Spawn Chance` to create one adjacent resting bird
   - breeding mode auto-disables when bird count returns to configured `Agent Count`
-- `none`: left click is no-op.
+- `none`: left click intentionally falls through to player reposition for testing; this is aligned with the `interactionMode === "none"` runtime branch in interaction command routing.
 - Core settings registry usage:
   - lighting/fog/parallax/cloud/water/interaction/swarm defaults + serialize/apply flows are registered through `src/core/mainSettingsContracts.js`.
   - JSON compatibility is preserved (existing map-sidecar keys unchanged).

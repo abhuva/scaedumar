@@ -1,3 +1,11 @@
+const DEFAULT_WEATHER_STATE = {
+  type: "clear",
+  intensity: 0,
+  windDirDeg: 0,
+  windSpeed: 0.2,
+  localModulation: 0.15,
+};
+
 export function createInitialState() {
   return {
     mode: "dev",
@@ -33,13 +41,6 @@ export function createInitialState() {
       waterFx: {
         useWaterFx: false,
       },
-      weather: {
-        type: "clear",
-        intensity: 0,
-        windDirDeg: 0,
-        windSpeed: 0,
-        localModulation: 0,
-      },
     },
     simulation: {
       knobs: {
@@ -49,13 +50,7 @@ export function createInitialState() {
         clouds: {},
         waterFx: {},
       },
-      weather: {
-        type: "clear",
-        intensity: 0,
-        windDirDeg: 0,
-        windSpeed: 0.2,
-        localModulation: 0.15,
-      },
+      weather: { ...DEFAULT_WEATHER_STATE },
     },
     gameplay: {
       player: {

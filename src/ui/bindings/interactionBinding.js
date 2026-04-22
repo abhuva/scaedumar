@@ -36,12 +36,19 @@ export function bindInteractionAndCycleControls(deps) {
     deps.dispatchCoreCommand({ type: "core/time/setHourScrubbing", scrubbing: true });
   });
 
-  deps.windowEl.addEventListener("pointerup", () => {
+  const stopScrubbing = () => {
     deps.dispatchCoreCommand({ type: "core/time/setHourScrubbing", scrubbing: false });
-  });
+  };
+  deps.windowEl.addEventListener("pointerup", stopScrubbing);
+  deps.windowEl.addEventListener("pointercancel", stopScrubbing);
+  deps.windowEl.addEventListener("blur", stopScrubbing);
 
   deps.cycleHourInput.addEventListener("change", () => {
     deps.dispatchCoreCommand({ type: "core/time/setHourScrubbing", scrubbing: false });
+    deps.dispatchCoreCommand({
+      type: "core/time/setHour",
+      hour: Number(deps.cycleHourInput.value),
+    });
   });
 
   deps.cycleHourInput.addEventListener("input", () => {

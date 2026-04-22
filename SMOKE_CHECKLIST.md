@@ -90,6 +90,7 @@ Capture screenshots for the same map/zoom/pan each run and store under `docs/vis
   - `LM` mode with at least one selected point light
 
 Compare against previous capture set for major regressions only:
+
 - controls/overlays missing
 - severe shader failures (all black/white, NaN artifacts)
 - clearly broken mode behavior

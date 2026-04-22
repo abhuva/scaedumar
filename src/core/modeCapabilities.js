@@ -1,19 +1,17 @@
+const FULL_CAPABILITIES = {
+  topics: ["map", "interaction", "swarm", "lighting", "parallax", "fog", "clouds", "water", "editor", "info"],
+  interactionModes: ["none", "lighting", "pathfinding"],
+  overlays: ["pathPreview", "pointLights", "cursorLight", "swarmStats"],
+};
+
 const MODE_CAPABILITIES = {
-  dev: {
-    topics: ["map", "interaction", "swarm", "lighting", "parallax", "fog", "clouds", "water", "editor", "info"],
-    interactionModes: ["none", "lighting", "pathfinding"],
-    overlays: ["pathPreview", "pointLights", "cursorLight", "swarmStats"],
-  },
+  dev: FULL_CAPABILITIES,
   gameplay: {
     topics: ["map", "info"],
     interactionModes: ["none", "pathfinding"],
     overlays: ["pathPreview"],
   },
-  hybrid: {
-    topics: ["map", "interaction", "swarm", "lighting", "parallax", "fog", "clouds", "water", "editor", "info"],
-    interactionModes: ["none", "lighting", "pathfinding"],
-    overlays: ["pathPreview", "pointLights", "cursorLight", "swarmStats"],
-  },
+  hybrid: FULL_CAPABILITIES,
 };
 
 export function normalizeRuntimeMode(mode) {

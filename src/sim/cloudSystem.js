@@ -1,4 +1,18 @@
 export function createCloudSystem(deps) {
+  let lastSentClouds = null;
+
+  function areCloudValuesEqual(a, b) {
+    if (!a || !b) return false;
+    const keys = Object.keys(a);
+    if (keys.length !== Object.keys(b).length) return false;
+    for (const key of keys) {
+      if (a[key] !== b[key]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   return {
     update() {
       const value = {
@@ -14,7 +28,11 @@ export function createCloudSystem(deps) {
       };
       deps.setCloudState(value);
       if (typeof deps.updateStoreClouds === "function") {
+        if (areCloudValuesEqual(value, lastSentClouds)) {
+          return;
+        }
         deps.updateStoreClouds(value);
+        lastSentClouds = { ...value };
       }
     },
   };

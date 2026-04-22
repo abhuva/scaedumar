@@ -3,7 +3,14 @@ export function bindMapIoControls(deps) {
     const rawTarget = String(deps.mapPathInput.value || "").trim();
     let targetPath = deps.normalizeMapFolderPath(rawTarget);
     if (!rawTarget && deps.tauriInvoke) {
-      const pickedFolder = await deps.pickMapFolderViaTauri();
+      let pickedFolder = "";
+      try {
+        pickedFolder = await deps.pickMapFolderViaTauri();
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        deps.setStatus(`Failed to open map folder picker: ${message}`);
+        return;
+      }
       if (!pickedFolder) {
         deps.setStatus("Map folder selection canceled.");
         return;
