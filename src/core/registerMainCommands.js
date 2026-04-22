@@ -136,7 +136,7 @@ export function registerMainCommands(commandBus, deps) {
           ...prev.simulation,
           knobs: {
             ...prev.simulation.knobs,
-            waterfx: deps.serializeWaterSettings(),
+            waterFx: deps.serializeWaterSettings(),
           },
         },
       }));
