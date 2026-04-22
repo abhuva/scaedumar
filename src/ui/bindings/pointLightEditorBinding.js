@@ -1,0 +1,133 @@
+export function bindPointLightEditorControls(deps) {
+  deps.pointLightColorInput.addEventListener("input", () => {
+    if (!deps.hasLightEditDraft()) return;
+    deps.setLightEditDraftColor(deps.hexToRgb01(deps.pointLightColorInput.value));
+    deps.rebakeIfPointLightLiveUpdateEnabled();
+    deps.requestOverlayDraw();
+  });
+
+  deps.pointLightStrengthInput.addEventListener("input", () => {
+    if (!deps.hasLightEditDraft()) return;
+    deps.setLightEditDraftStrength(Math.round(deps.clamp(Number(deps.pointLightStrengthInput.value), 1, 200)));
+    deps.updatePointLightStrengthLabel();
+    deps.rebakeIfPointLightLiveUpdateEnabled();
+    deps.requestOverlayDraw();
+  });
+
+  deps.pointLightIntensityInput.addEventListener("input", () => {
+    if (!deps.hasLightEditDraft()) return;
+    deps.setLightEditDraftIntensity(deps.clamp(Number(deps.pointLightIntensityInput.value), 0, 4));
+    deps.updatePointLightIntensityLabel();
+    deps.rebakeIfPointLightLiveUpdateEnabled();
+    deps.requestOverlayDraw();
+  });
+
+  deps.pointLightHeightOffsetInput.addEventListener("input", () => {
+    if (!deps.hasLightEditDraft()) return;
+    deps.setLightEditDraftHeightOffset(Math.round(deps.clamp(Number(deps.pointLightHeightOffsetInput.value), -120, 240)));
+    deps.updatePointLightHeightOffsetLabel();
+    deps.rebakeIfPointLightLiveUpdateEnabled();
+    deps.requestOverlayDraw();
+  });
+
+  deps.pointLightFlickerInput.addEventListener("input", () => {
+    if (!deps.hasLightEditDraft()) return;
+    deps.setLightEditDraftFlicker(deps.clamp(Number(deps.pointLightFlickerInput.value), 0, 1));
+    deps.updatePointLightFlickerLabel();
+    deps.rebakeIfPointLightLiveUpdateEnabled();
+    deps.requestOverlayDraw();
+  });
+
+  deps.pointLightFlickerSpeedInput.addEventListener("input", () => {
+    if (!deps.hasLightEditDraft()) return;
+    deps.setLightEditDraftFlickerSpeed(deps.clamp(Number(deps.pointLightFlickerSpeedInput.value), 0, 1));
+    deps.updatePointLightFlickerSpeedLabel();
+    deps.rebakeIfPointLightLiveUpdateEnabled();
+    deps.requestOverlayDraw();
+  });
+
+  deps.pointLightLiveUpdateToggle.addEventListener("change", () => {
+    if (deps.pointLightLiveUpdateToggle.checked) {
+      deps.rebakeIfPointLightLiveUpdateEnabled();
+      deps.setStatus("Point-light live update enabled.");
+      return;
+    }
+    deps.setStatus("Point-light live update disabled. Changes apply on Save.");
+  });
+
+  deps.lightSaveBtn.addEventListener("click", () => {
+    const selected = deps.applyDraftToSelectedPointLight();
+    if (!selected) return;
+    deps.bakePointLightsTexture();
+    deps.updateLightEditorUi();
+    deps.requestOverlayDraw();
+    deps.setStatus(`Saved point light at (${selected.pixelX}, ${selected.pixelY})`);
+  });
+
+  deps.lightCancelBtn.addEventListener("click", () => {
+    deps.clearLightEditSelection();
+    deps.updateLightEditorUi();
+    deps.requestOverlayDraw();
+    deps.setStatus("Point light edit canceled.");
+  });
+
+  deps.lightDeleteBtn.addEventListener("click", () => {
+    const selected = deps.getSelectedPointLight();
+    if (!selected) return;
+    deps.deletePointLightById(selected.id);
+    deps.clearLightEditSelection();
+    deps.bakePointLightsTexture();
+    deps.updateLightEditorUi();
+    deps.requestOverlayDraw();
+    deps.setStatus(`Deleted point light at (${selected.pixelX}, ${selected.pixelY})`);
+  });
+
+  deps.pointLightsSaveAllBtn.addEventListener("click", async () => {
+    if (!deps.isPointLightsSaveConfirmArmed()) {
+      deps.armPointLightsSaveConfirmation();
+      deps.setStatus("Save confirmation armed. Click Save All again within 5 seconds to overwrite/export pointlights.json.");
+      return;
+    }
+
+    deps.resetPointLightsSaveConfirmation();
+    try {
+      await deps.savePointLightsJson();
+    } catch (error) {
+      if (error && error.name === "AbortError") {
+        deps.setStatus("Save canceled.");
+        return;
+      }
+      console.error("Failed to save point lights JSON", error);
+      const message = error instanceof Error ? error.message : String(error);
+      deps.setStatus(`Failed to save point lights JSON: ${message}`);
+    }
+  });
+
+  deps.pointLightsLoadAllBtn.addEventListener("click", async () => {
+    deps.resetPointLightsSaveConfirmation();
+    try {
+      await deps.loadPointLightsFromAssetsOrPrompt();
+    } catch (error) {
+      console.error("Failed to load point lights JSON", error);
+      const message = error instanceof Error ? error.message : String(error);
+      deps.setStatus(`Failed to load point lights JSON: ${message}`);
+    }
+  });
+
+  deps.pointLightsLoadInput.addEventListener("change", async () => {
+    const file = deps.pointLightsLoadInput.files && deps.pointLightsLoadInput.files[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const rawData = JSON.parse(text);
+      deps.applyLoadedPointLights(rawData, file.name);
+    } catch (error) {
+      console.error("Failed to parse point lights JSON", error);
+      const message = error instanceof Error ? error.message : String(error);
+      deps.setStatus(`Failed to parse point lights JSON: ${message}`);
+    } finally {
+      deps.pointLightsLoadInput.value = "";
+    }
+  });
+}

@@ -1,3 +1,34 @@
+import { createRuntimeCore, createCoreCommandDispatch } from "./core/runtimeCore.js";
+import { bindPointLightWorker } from "./core/pointLightWorkerBinding.js";
+import { registerMainCommands } from "./core/registerMainCommands.js";
+import { updateCoreFrameSnapshot } from "./core/frameSnapshot.js";
+import { createRenderResources } from "./render/resources.js";
+import { createRenderer } from "./render/renderer.js";
+import { buildFrameRenderState } from "./render/frameRenderState.js";
+import { buildUniformInputState } from "./render/uniformInputState.js";
+import { createShadowPass } from "./render/passes/shadowPass.js";
+import { createMainTerrainPass } from "./render/passes/mainTerrainPass.js";
+import { createBlurPass } from "./render/passes/blurPass.js";
+import { applyPointLightUsagePass } from "./render/passes/pointLightUsagePass.js";
+import { rebuildFlowMapTexture as rebuildFlowMapTexturePrecompute } from "./render/precompute/flowMap.js";
+import { createPointLightBakeOrchestrator } from "./render/precompute/pointLightBake.js";
+import { createTimeSystem } from "./sim/timeSystem.js";
+import { createLightingSystem } from "./sim/lightingSystem.js";
+import { createFogSystem } from "./sim/fogSystem.js";
+import { createCloudSystem } from "./sim/cloudSystem.js";
+import { createWaterFxSystem } from "./sim/waterFxSystem.js";
+import { bindCanvasControls } from "./ui/bindings/canvasBinding.js";
+import { bindTopicPanelControls } from "./ui/bindings/topicPanelBinding.js";
+import { bindInteractionAndCycleControls } from "./ui/bindings/interactionBinding.js";
+import { bindPathfindingControls } from "./ui/bindings/pathfindingBinding.js";
+import { bindCursorLightControls } from "./ui/bindings/cursorLightBinding.js";
+import { bindSwarmFollowControls } from "./ui/bindings/swarmFollowBinding.js";
+import { bindPointLightEditorControls } from "./ui/bindings/pointLightEditorBinding.js";
+import { bindMapIoControls } from "./ui/bindings/mapIoBinding.js";
+import { bindRenderFxControls } from "./ui/bindings/renderFxBinding.js";
+import { bindSwarmPanelControls } from "./ui/bindings/swarmPanelBinding.js";
+import { bindRuntimeControls } from "./ui/bindings/runtimeBinding.js";
+
 function getRequiredElementById(id) {
   const el = document.getElementById(id);
   if (!el) {
@@ -1031,90 +1062,22 @@ function uploadImageToTexture(tex, image) {
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
 }
 
-function buildFlowMapImageDataFromHeight(imageData, sourceWidth, sourceHeight) {
-  const lowWidth = Math.max(64, Math.min(512, Math.round(sourceWidth / 2)));
-  const lowHeight = Math.max(64, Math.min(512, Math.round(sourceHeight / 2)));
-  const lowHeights = new Float32Array(lowWidth * lowHeight);
-  const src = imageData.data;
-
-  for (let y = 0; y < lowHeight; y++) {
-    const srcY = clamp(Math.round(((y + 0.5) / lowHeight) * sourceHeight - 0.5), 0, sourceHeight - 1);
-    for (let x = 0; x < lowWidth; x++) {
-      const srcX = clamp(Math.round(((x + 0.5) / lowWidth) * sourceWidth - 0.5), 0, sourceWidth - 1);
-      const idx = (srcY * sourceWidth + srcX) * 4;
-      lowHeights[y * lowWidth + x] = src[idx] / 255;
-    }
-  }
-
-  const sampleLow = (x, y) => {
-    const xi = clamp(Math.round(x), 0, lowWidth - 1);
-    const yi = clamp(Math.round(y), 0, lowHeight - 1);
-    return lowHeights[yi * lowWidth + xi];
-  };
-
-  const pairs = [
-    { r: Math.round(clamp(Number(waterFlowRadius1Input.value), 1, 40)), w: clamp(Number(waterFlowWeight1Input.value), 0, 1) },
-    { r: Math.round(clamp(Number(waterFlowRadius2Input.value), 1, 40)), w: clamp(Number(waterFlowWeight2Input.value), 0, 1) },
-    { r: Math.round(clamp(Number(waterFlowRadius3Input.value), 1, 40)), w: clamp(Number(waterFlowWeight3Input.value), 0, 1) },
-  ].sort((a, b) => a.r - b.r);
-  const weightSum = Math.max(0.0001, pairs[0].w + pairs[1].w + pairs[2].w);
-  const gradX = new Float32Array(lowWidth * lowHeight);
-  const gradY = new Float32Array(lowWidth * lowHeight);
-  let maxMag = 0;
-
-  for (let y = 0; y < lowHeight; y++) {
-    for (let x = 0; x < lowWidth; x++) {
-      let gx = 0;
-      let gy = 0;
-      for (let i = 0; i < pairs.length; i++) {
-        const r = pairs[i].r;
-        const w = pairs[i].w / weightSum;
-        gx += (sampleLow(x + r, y) - sampleLow(x - r, y)) * w;
-        gy += (sampleLow(x, y + r) - sampleLow(x, y - r)) * w;
-      }
-      const idx = y * lowWidth + x;
-      gradX[idx] = gx;
-      gradY[idx] = gy;
-      const mag = Math.hypot(gx, gy);
-      if (mag > maxMag) {
-        maxMag = mag;
-      }
-    }
-  }
-
-  const out = new Uint8Array(lowWidth * lowHeight * 4);
-  const invMax = maxMag > 1e-6 ? 1 / maxMag : 0;
-  for (let y = 0; y < lowHeight; y++) {
-    for (let x = 0; x < lowWidth; x++) {
-      const idx = y * lowWidth + x;
-      const gx = gradX[idx];
-      const gy = gradY[idx];
-      const downhillX = -gx;
-      const downhillY = -gy;
-      const len = Math.hypot(downhillX, downhillY);
-      let dirX = 0;
-      let dirY = 0;
-      if (len > 1e-6) {
-        dirX = downhillX / len;
-        dirY = downhillY / len;
-      }
-      const magNorm = Math.pow(clamp(len * invMax, 0, 1), 0.75);
-      const outIdx = idx * 4;
-      out[outIdx + 0] = Math.round((dirX * 0.5 + 0.5) * 255);
-      out[outIdx + 1] = Math.round((dirY * 0.5 + 0.5) * 255);
-      out[outIdx + 2] = Math.round(magNorm * 255);
-      out[outIdx + 3] = 255;
-    }
-  }
-
-  return { width: lowWidth, height: lowHeight, data: out };
-}
-
 function rebuildFlowMapTexture() {
-  if (!heightImageData) return;
-  const flowMap = buildFlowMapImageDataFromHeight(heightImageData, heightSize.width, heightSize.height);
-  gl.bindTexture(gl.TEXTURE_2D, flowMapTex);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, flowMap.width, flowMap.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, flowMap.data);
+  rebuildFlowMapTexturePrecompute({
+    gl,
+    flowMapTex,
+    heightImageData,
+    heightSize,
+    clamp,
+    settings: {
+      radius1: waterFlowRadius1Input.value,
+      radius2: waterFlowRadius2Input.value,
+      radius3: waterFlowRadius3Input.value,
+      weight1: waterFlowWeight1Input.value,
+      weight2: waterFlowWeight2Input.value,
+      weight3: waterFlowWeight3Input.value,
+    },
+  });
 }
 
 function resizeRenderTexture(tex, width, height) {
@@ -1164,18 +1127,6 @@ function renderShadowPipeline(params) {
   gl.uniform1f(shadowUniforms.uShadowStrength, Number(shadowStrengthInput.value));
   gl.uniform1f(shadowUniforms.uUseShadows, shadowsToggle.checked ? 1 : 0);
   gl.drawArrays(gl.TRIANGLES, 0, 6);
-
-  const blurRadiusPx = clamp(Number(shadowBlurInput.value), 0, 3);
-  if (blurRadiusPx > 0.001) {
-    gl.bindFramebuffer(gl.FRAMEBUFFER, shadowBlurFbo);
-    gl.useProgram(shadowBlurProgram);
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, shadowRawTex);
-    gl.uniform1i(shadowBlurUniforms.uShadowRawTex, 0);
-    gl.uniform2f(shadowBlurUniforms.uShadowResolution, shadowSize.width, shadowSize.height);
-    gl.uniform1f(shadowBlurUniforms.uBlurRadiusPx, blurRadiusPx);
-    gl.drawArrays(gl.TRIANGLES, 0, 6);
-  }
 
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 }
@@ -1625,7 +1576,6 @@ function applyLightingSettings(rawData) {
   }
   if (Number.isFinite(Number(data.cycleHour))) {
     cycleState.hour = clamp(Number(data.cycleHour), 0, 24);
-    cycleState.lastRenderMs = null;
   }
   if (Number.isFinite(Number(data.cycleSpeed))) {
     cycleSpeedInput.value = String(clamp(Number(data.cycleSpeed), 0, 1));
@@ -2820,10 +2770,6 @@ let normalsImageData = null;
 let heightImageData = null;
 let slopeImageData = null;
 let waterImageData = null;
-let pointLightBakeScheduled = false;
-let pointLightBakeDebounceTimer = null;
-let pointLightBakeRequestId = 0;
-let pointLightBakePendingRequestId = 0;
 const POINT_LIGHT_BLEND_EXPOSURE = 0.65;
 const POINT_LIGHT_SELECT_RADIUS = 3;
 const POINT_LIGHT_BAKE_LIVE_SCALE = 0.5;
@@ -2897,21 +2843,29 @@ try {
 } catch (err) {
   console.warn("Point-light bake worker unavailable; falling back to main-thread baking.", err);
 }
+
+const pointLightBakeOrchestrator = createPointLightBakeOrchestrator({
+  windowEl: window,
+  requestAnimationFrame: (cb) => requestAnimationFrame(cb),
+  debounceMs: POINT_LIGHT_BAKE_DEBOUNCE_MS,
+  liveScale: POINT_LIGHT_BAKE_LIVE_SCALE,
+  blendExposure: POINT_LIGHT_BLEND_EXPOSURE,
+  getWorker: () => pointLightBakeWorker,
+  isLiveUpdateEnabled: () => pointLightLiveUpdateToggle.checked,
+  ensureBakeSize: ensurePointLightBakeSize,
+  hasBakeInputs: () => Boolean(normalsImageData && heightImageData),
+  bakeSync: (useReducedResolution) => bakePointLightsTextureSync(useReducedResolution),
+  getFullBakeSize: () => ({ width: pointLightBakeCanvas.width, height: pointLightBakeCanvas.height }),
+  getLights: () => pointLights,
+  getHeightScaleValue: () => Math.max(1, Number(heightScaleInput.value) || 1),
+});
+
 if (pointLightBakeWorker) {
-  pointLightBakeWorker.addEventListener("message", (event) => {
-    const { requestId, width, height, rgbaBuffer, error } = event.data || {};
-    if (error) {
-      console.warn("Point-light bake worker error:", error);
-      if (requestId === pointLightBakePendingRequestId) {
-        bakePointLightsTextureSync(false);
-      }
-      return;
-    }
-    if (!Number.isFinite(requestId) || requestId < pointLightBakePendingRequestId) {
-      return;
-    }
-    pointLightBakePendingRequestId = requestId;
-    applyPointLightBakeRgba(new Uint8ClampedArray(rgbaBuffer), width, height);
+  bindPointLightWorker(pointLightBakeWorker, {
+    getPendingRequestId: () => pointLightBakeOrchestrator.getPendingRequestId(),
+    setPendingRequestId: (value) => pointLightBakeOrchestrator.setPendingRequestId(value),
+    bakePointLightsTextureSync,
+    applyPointLightBakeRgba,
   });
 }
 
@@ -3337,46 +3291,11 @@ function applyPointLightBakeRgba(rgba, sourceWidth, sourceHeight) {
 }
 
 function schedulePointLightBake() {
-  if (pointLightBakeDebounceTimer !== null) {
-    window.clearTimeout(pointLightBakeDebounceTimer);
-    pointLightBakeDebounceTimer = null;
-  }
-  const delayMs = pointLightLiveUpdateToggle.checked ? POINT_LIGHT_BAKE_DEBOUNCE_MS : 0;
-  pointLightBakeDebounceTimer = window.setTimeout(() => {
-    pointLightBakeDebounceTimer = null;
-    if (pointLightBakeScheduled) return;
-    pointLightBakeScheduled = true;
-    requestAnimationFrame(() => {
-      pointLightBakeScheduled = false;
-      bakePointLightsTexture();
-    });
-  }, delayMs);
+  pointLightBakeOrchestrator.scheduleBake();
 }
 
 function bakePointLightsTexture() {
-  ensurePointLightBakeSize();
-  const useReducedResolution = pointLightLiveUpdateToggle.checked;
-  if (!pointLightBakeWorker || !normalsImageData || !heightImageData) {
-    bakePointLightsTextureSync(useReducedResolution);
-    return;
-  }
-
-  const fullWidth = pointLightBakeCanvas.width;
-  const fullHeight = pointLightBakeCanvas.height;
-  const scale = useReducedResolution ? POINT_LIGHT_BAKE_LIVE_SCALE : 1;
-  const bakeWidth = Math.max(1, Math.round(fullWidth * scale));
-  const bakeHeight = Math.max(1, Math.round(fullHeight * scale));
-  const requestId = ++pointLightBakeRequestId;
-  pointLightBakePendingRequestId = requestId;
-  pointLightBakeWorker.postMessage({
-    type: "bake",
-    requestId,
-    bakeWidth,
-    bakeHeight,
-    lights: pointLights,
-    heightScaleValue: Math.max(1, Number(heightScaleInput.value) || 1),
-    blendExposure: POINT_LIGHT_BLEND_EXPOSURE,
-  });
+  pointLightBakeOrchestrator.bakeNow();
 }
 
 function bakePointLightsTextureSync(useReducedResolution = false) {
@@ -3661,15 +3580,191 @@ const cursorLightState = {
 
 const cycleState = {
   hour: 9.5,
-  lastRenderMs: null,
 };
+let frameTimeState = {
+  cycleSpeedHoursPerSec: 0,
+};
+let frameLightingState = {
+  lightingParams: null,
+};
+let frameFogState = null;
+let frameCloudState = null;
+let frameWaterFxState = null;
 let isCycleHourScrubbing = false;
 
+const runtimeCore = createRuntimeCore();
+const dispatchCoreCommand = createCoreCommandDispatch(runtimeCore);
+const renderResources = createRenderResources({ gl, canvas });
+const renderer = createRenderer({ resources: renderResources });
+renderer.registerPass("shadow", createShadowPass({ renderShadowPipeline }));
+renderer.registerPass(
+  "shadowBlur",
+  createBlurPass({
+    gl,
+    shadowSize,
+    shadowBlurFbo,
+    shadowBlurProgram,
+    shadowRawTex,
+    shadowBlurUniforms,
+    getBlurRadiusPx: () => clamp(Number(shadowBlurInput.value), 0, 3),
+  }),
+);
+renderer.registerPass(
+  "mainTerrain",
+  createMainTerrainPass({
+    resources: renderResources,
+    uploadUniforms,
+    drawTerrain: () => {
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+    },
+  }),
+);
+renderer.registerPass("backgroundClear", {
+    execute(frame) {
+      const bg = frame.backgroundColorRgb || [0, 0, 0];
+      renderResources.clearColor(bg[0], bg[1], bg[2], 1);
+    },
+});
+
+registerMainCommands(runtimeCore.commandBus, {
+  panWorld,
+  zoomMin,
+  zoomMax,
+  lastDragClient,
+  cycleState,
+  cursorLightState,
+  movePreviewState,
+  playerState,
+  swarmFollowState,
+  swarmState,
+  swarmFollowTargetInput,
+  getZoom: () => zoom,
+  setZoom: (value) => {
+    zoom = value;
+  },
+  getInteractionMode: () => interactionMode,
+  setMiddleDragging: (value) => {
+    isMiddleDragging = value;
+  },
+  setCycleHourScrubbing: (value) => {
+    isCycleHourScrubbing = value;
+  },
+  clamp,
+  clientToNdc,
+  worldFromNdc,
+  setInteractionMode,
+  requestOverlayDraw,
+  updateCycleHourLabel,
+  updateCursorLightModeUi,
+  updateCursorLightStrengthLabel,
+  updateCursorLightHeightOffsetLabel,
+  hexToRgb01,
+  findPointLightAtPixel,
+  beginLightEdit,
+  setStatus,
+  createPointLight,
+  extractPathTo,
+  setPlayerPosition,
+  rebuildMovementField,
+  updatePathfindingRangeLabel,
+  updatePathWeightLabels,
+  updatePathSlopeCutoffLabel,
+  updatePathBaseCostLabel,
+  isSwarmEnabled,
+  resetSwarmFollowSpeedSmoothing,
+  updateSwarmFollowButtonUi,
+  getSwarmSettings,
+  chooseRandomFollowHawkIndex,
+  chooseRandomFollowAgentIndex,
+});
+
+runtimeCore.scheduler.addSystem(
+  createTimeSystem({
+    clamp,
+    wrapHour,
+    cycleSpeedInput,
+    cycleState,
+    isCycleHourScrubbing: () => isCycleHourScrubbing,
+    setCycleHourSliderFromState,
+    setTimeState: (value) => {
+      frameTimeState = value;
+    },
+  }),
+);
+
+runtimeCore.scheduler.addSystem(
+  createLightingSystem({
+    computeLightingParams,
+    setLightingState: (value) => {
+      frameLightingState = value;
+    },
+  }),
+);
+
+runtimeCore.scheduler.addSystem(
+  createFogSystem({
+    clamp,
+    fogToggle,
+    fogMinAlphaInput,
+    fogMaxAlphaInput,
+    fogFalloffInput,
+    fogStartOffsetInput,
+    setFogState: (value) => {
+      frameFogState = value;
+    },
+  }),
+);
+
+runtimeCore.scheduler.addSystem(
+  createCloudSystem({
+    clamp,
+    cloudToggle,
+    cloudCoverageInput,
+    cloudSoftnessInput,
+    cloudOpacityInput,
+    cloudScaleInput,
+    cloudSpeed1Input,
+    cloudSpeed2Input,
+    cloudSunParallaxInput,
+    cloudSunProjectToggle,
+    setCloudState: (value) => {
+      frameCloudState = value;
+    },
+  }),
+);
+
+runtimeCore.scheduler.addSystem(
+  createWaterFxSystem({
+    clamp,
+    hexToRgb01,
+    waterFxToggle,
+    waterFlowDownhillToggle,
+    waterFlowInvertDownhillToggle,
+    waterFlowDebugToggle,
+    waterFlowDirectionInput,
+    waterLocalFlowMixInput,
+    waterDownhillBoostInput,
+    waterFlowStrengthInput,
+    waterFlowSpeedInput,
+    waterFlowScaleInput,
+    waterShimmerStrengthInput,
+    waterGlintStrengthInput,
+    waterGlintSharpnessInput,
+    waterShoreFoamStrengthInput,
+    waterShoreWidthInput,
+    waterReflectivityInput,
+    waterTintColorInput,
+    waterTintStrengthInput,
+    setWaterFxState: (value) => {
+      frameWaterFxState = value;
+    },
+  }),
+);
+
+runtimeCore.scheduler.initAll({ nowMs: 0, dtSec: 0 }, runtimeCore.store.getState());
+
 function resetCamera() {
-  zoom = 1;
-  panWorld.x = 0;
-  panWorld.y = 0;
-  requestOverlayDraw();
+  dispatchCoreCommand({ type: "core/camera/reset" });
 }
 
 function getScreenAspect() {
@@ -5608,566 +5703,268 @@ function drawOverlay() {
   }
 }
 
-canvas.addEventListener("wheel", (e) => {
-  e.preventDefault();
-  const ndc = clientToNdc(e.clientX, e.clientY);
-  const worldBefore = worldFromNdc(ndc, zoom, panWorld);
-  const nextZoom = Math.min(zoomMax, Math.max(zoomMin, zoom * Math.exp(-e.deltaY * 0.0015)));
-  const worldAfter = worldFromNdc(ndc, nextZoom, panWorld);
-  panWorld.x += worldBefore.x - worldAfter.x;
-  panWorld.y += worldBefore.y - worldAfter.y;
-  zoom = nextZoom;
-  requestOverlayDraw();
-}, { passive: false });
-
-canvas.addEventListener("mousedown", (e) => {
-  if (e.button !== 1) return;
-  e.preventDefault();
-  isMiddleDragging = true;
-  lastDragClient.x = e.clientX;
-  lastDragClient.y = e.clientY;
+bindCanvasControls({
+  canvas,
+  windowEl: window,
+  dispatchCoreCommand,
+  updateSwarmCursorFromPointer,
+  updateCursorLightFromPointer,
+  updatePathPreviewFromPointer,
+  isMiddleDragging: () => isMiddleDragging,
+  cursorLightModeToggle,
+  getInteractionMode: () => interactionMode,
+  requestOverlayDraw,
+  clientToNdc,
+  worldFromNdc,
+  worldToUv,
+  uvToMapPixelIndex,
+  swarmCursorState,
+  cursorLightState,
+  movePreviewState,
 });
 
-window.addEventListener("mouseup", (e) => {
-  if (e.button !== 1) return;
-  isMiddleDragging = false;
+bindPathfindingControls({
+  pathfindingRangeInput,
+  pathWeightSlopeInput,
+  pathWeightHeightInput,
+  pathWeightWaterInput,
+  pathSlopeCutoffInput,
+  pathBaseCostInput,
+  dispatchCoreCommand,
 });
 
-canvas.addEventListener("mousemove", (e) => {
-  updateSwarmCursorFromPointer(e.clientX, e.clientY);
-  updateCursorLightFromPointer(e.clientX, e.clientY);
-  updatePathPreviewFromPointer(e.clientX, e.clientY);
-  if (!isMiddleDragging) {
-    if (cursorLightModeToggle.checked || interactionMode === "pathfinding") {
-      requestOverlayDraw();
+bindSwarmPanelControls({
+  swarmShowTerrainToggle,
+  swarmLitModeToggle,
+  swarmFollowZoomToggle,
+  swarmFollowZoomInInput,
+  swarmFollowZoomOutInput,
+  swarmFollowHawkRangeGizmoToggle,
+  swarmFollowAgentSpeedSmoothingInput,
+  swarmFollowAgentZoomSmoothingInput,
+  swarmStatsPanelToggle,
+  swarmBackgroundColorInput,
+  swarmAgentCountInput,
+  swarmUpdateIntervalInput,
+  swarmMaxSpeedInput,
+  swarmSteeringMaxInput,
+  swarmVariationStrengthInput,
+  swarmNeighborRadiusInput,
+  swarmMinHeightInput,
+  swarmMaxHeightInput,
+  swarmSeparationRadiusInput,
+  swarmAlignmentWeightInput,
+  swarmCohesionWeightInput,
+  swarmSeparationWeightInput,
+  swarmWanderWeightInput,
+  swarmRestChanceInput,
+  swarmRestTicksInput,
+  swarmBreedingThresholdInput,
+  swarmBreedingSpawnChanceInput,
+  swarmCursorModeInput,
+  swarmCursorStrengthInput,
+  swarmCursorRadiusInput,
+  swarmHawkEnabledToggle,
+  swarmHawkCountInput,
+  swarmHawkColorInput,
+  swarmHawkSpeedInput,
+  swarmHawkSteeringInput,
+  swarmHawkTargetRangeInput,
+  swarmEnabledToggle,
+  swarmState,
+  swarmCursorState,
+  swarmFollowState,
+  clamp,
+  getSwarmSettings,
+  updateSwarmUi,
+  updateSwarmLabels,
+  updateSwarmStatsPanel,
+  normalizeSwarmFollowZoomInputs,
+  normalizeSwarmHeightRangeInputs,
+  reseedSwarmAgents,
+  resetSwarmFollowSpeedSmoothing,
+  updateSwarmFollowButtonUi,
+  requestOverlayDraw,
+  setStatus,
+});
+
+bindSwarmFollowControls({
+  swarmFollowToggleBtn,
+  swarmFollowTargetInput,
+  dispatchCoreCommand,
+});
+bindTopicPanelControls({
+  topicButtons,
+  topicPanelCloseBtn,
+  windowEl: window,
+  setActiveTopic,
+});
+
+bindInteractionAndCycleControls({
+  windowEl: window,
+  dockLightingModeToggle,
+  dockPathfindingModeToggle,
+  cycleHourInput,
+  dispatchCoreCommand,
+  getInteractionMode: () => interactionMode,
+  movePreviewState,
+  rebuildMovementField,
+  setStatus,
+});
+
+bindCursorLightControls({
+  cursorLightModeToggle,
+  cursorLightFollowHeightToggle,
+  cursorLightColorInput,
+  cursorLightStrengthInput,
+  cursorLightHeightOffsetInput,
+  cursorLightGizmoToggle,
+  dispatchCoreCommand,
+  setStatus,
+});
+
+bindPointLightEditorControls({
+  pointLightColorInput,
+  pointLightStrengthInput,
+  pointLightIntensityInput,
+  pointLightHeightOffsetInput,
+  pointLightFlickerInput,
+  pointLightFlickerSpeedInput,
+  pointLightLiveUpdateToggle,
+  lightSaveBtn,
+  lightCancelBtn,
+  lightDeleteBtn,
+  pointLightsSaveAllBtn,
+  pointLightsLoadAllBtn,
+  pointLightsLoadInput,
+  clamp,
+  hexToRgb01,
+  hasLightEditDraft: () => Boolean(lightEditDraft),
+  setLightEditDraftColor: (value) => {
+    if (!lightEditDraft) return;
+    lightEditDraft.color = value;
+  },
+  setLightEditDraftStrength: (value) => {
+    if (!lightEditDraft) return;
+    lightEditDraft.strength = value;
+  },
+  setLightEditDraftIntensity: (value) => {
+    if (!lightEditDraft) return;
+    lightEditDraft.intensity = value;
+  },
+  setLightEditDraftHeightOffset: (value) => {
+    if (!lightEditDraft) return;
+    lightEditDraft.heightOffset = value;
+  },
+  setLightEditDraftFlicker: (value) => {
+    if (!lightEditDraft) return;
+    lightEditDraft.flicker = value;
+  },
+  setLightEditDraftFlickerSpeed: (value) => {
+    if (!lightEditDraft) return;
+    lightEditDraft.flickerSpeed = value;
+  },
+  updatePointLightStrengthLabel,
+  updatePointLightIntensityLabel,
+  updatePointLightHeightOffsetLabel,
+  updatePointLightFlickerLabel,
+  updatePointLightFlickerSpeedLabel,
+  rebakeIfPointLightLiveUpdateEnabled,
+  requestOverlayDraw,
+  applyDraftToSelectedPointLight,
+  bakePointLightsTexture,
+  updateLightEditorUi,
+  getSelectedPointLight,
+  deletePointLightById: (id) => {
+    const idx = pointLights.findIndex((light) => light.id === id);
+    if (idx >= 0) {
+      pointLights.splice(idx, 1);
     }
-    return;
-  }
-  const prevNdc = clientToNdc(lastDragClient.x, lastDragClient.y);
-  const currNdc = clientToNdc(e.clientX, e.clientY);
-  const worldPrev = worldFromNdc(prevNdc, zoom, panWorld);
-  const worldCurr = worldFromNdc(currNdc, zoom, panWorld);
-  panWorld.x += worldPrev.x - worldCurr.x;
-  panWorld.y += worldPrev.y - worldCurr.y;
-  lastDragClient.x = e.clientX;
-  lastDragClient.y = e.clientY;
-  requestOverlayDraw();
+  },
+  clearLightEditSelection: () => {
+    selectedLightId = null;
+    lightEditDraft = null;
+  },
+  isPointLightsSaveConfirmArmed: () => pointLightsSaveConfirmArmed,
+  armPointLightsSaveConfirmation,
+  resetPointLightsSaveConfirmation,
+  savePointLightsJson,
+  loadPointLightsFromAssetsOrPrompt,
+  applyLoadedPointLights,
+  setStatus,
 });
 
-canvas.addEventListener("click", (e) => {
-  if (e.button !== 0) return;
-  const ndc = clientToNdc(e.clientX, e.clientY);
-  const world = worldFromNdc(ndc);
-  const uv = worldToUv(world);
-  if (uv.x < 0 || uv.x > 1 || uv.y < 0 || uv.y > 1) {
-    return;
-  }
-
-  const pixel = uvToMapPixelIndex(uv);
-  if (interactionMode === "lighting") {
-    const existing = findPointLightAtPixel(pixel.x, pixel.y);
-    if (existing) {
-      beginLightEdit(existing);
-      setStatus(`Selected point light at (${existing.pixelX}, ${existing.pixelY})`);
-    } else {
-      createPointLight(pixel.x, pixel.y);
-    }
-    requestOverlayDraw();
-    return;
-  }
-
-  if (interactionMode === "pathfinding") {
-    movePreviewState.hoverPixel = { x: pixel.x, y: pixel.y };
-    movePreviewState.pathPixels = extractPathTo(pixel.x, pixel.y);
-    if (!movePreviewState.pathPixels.length) {
-      setStatus("No reachable preview path at clicked cell.");
-      return;
-    }
-    setPlayerPosition(pixel.x, pixel.y);
-    rebuildMovementField();
-    setStatus(`Player moved to (${playerState.pixelX}, ${playerState.pixelY})`);
-    return;
-  }
-
-  setPlayerPosition(pixel.x, pixel.y);
-  rebuildMovementField();
-  setStatus(`Player moved to (${playerState.pixelX}, ${playerState.pixelY})`);
-});
-
-canvas.addEventListener("auxclick", (e) => {
-  if (e.button === 1) e.preventDefault();
-});
-
-canvas.addEventListener("mouseleave", () => {
-  swarmCursorState.active = false;
-  if (cursorLightModeToggle.checked) {
-    cursorLightState.active = false;
-  }
-  if (interactionMode === "pathfinding") {
-    movePreviewState.hoverPixel = null;
-    movePreviewState.pathPixels = [];
-  }
-  requestOverlayDraw();
-});
-
-pathfindingRangeInput.addEventListener("input", () => {
-  updatePathfindingRangeLabel();
-  if (interactionMode === "pathfinding") {
-    rebuildMovementField();
-  }
-});
-pathWeightSlopeInput.addEventListener("input", () => {
-  updatePathWeightLabels();
-  if (interactionMode === "pathfinding") {
-    rebuildMovementField();
-  }
-});
-pathWeightHeightInput.addEventListener("input", () => {
-  updatePathWeightLabels();
-  if (interactionMode === "pathfinding") {
-    rebuildMovementField();
-  }
-});
-pathWeightWaterInput.addEventListener("input", () => {
-  updatePathWeightLabels();
-  if (interactionMode === "pathfinding") {
-    rebuildMovementField();
-  }
-});
-pathSlopeCutoffInput.addEventListener("input", () => {
-  updatePathSlopeCutoffLabel();
-  if (interactionMode === "pathfinding") {
-    rebuildMovementField();
-  }
-});
-pathBaseCostInput.addEventListener("input", () => {
-  updatePathBaseCostLabel();
-  if (interactionMode === "pathfinding") {
-    rebuildMovementField();
-  }
-});
-swarmShowTerrainToggle.addEventListener("change", () => {
-  requestOverlayDraw();
-});
-swarmLitModeToggle.addEventListener("change", () => {
-  requestOverlayDraw();
-});
-swarmFollowZoomToggle.addEventListener("change", () => {
-  updateSwarmUi();
-  updateSwarmLabels();
-});
-swarmFollowZoomInInput.addEventListener("input", () => {
-  normalizeSwarmFollowZoomInputs("in");
-  updateSwarmLabels();
-});
-swarmFollowZoomOutInput.addEventListener("input", () => {
-  normalizeSwarmFollowZoomInputs("out");
-  updateSwarmLabels();
-});
-swarmFollowHawkRangeGizmoToggle.addEventListener("change", () => {
-  updateSwarmUi();
-  requestOverlayDraw();
-});
-swarmFollowAgentSpeedSmoothingInput.addEventListener("input", updateSwarmLabels);
-swarmFollowAgentZoomSmoothingInput.addEventListener("input", updateSwarmLabels);
-swarmStatsPanelToggle.addEventListener("change", () => {
-  updateSwarmUi();
-  updateSwarmStatsPanel();
-});
-swarmFollowToggleBtn.addEventListener("click", () => {
-  if (!isSwarmEnabled()) {
-    setStatus("Enable Agent Swarm first.");
-    return;
-  }
-  if (swarmFollowState.enabled) {
-    swarmFollowState.enabled = false;
-    swarmFollowState.agentIndex = -1;
-    swarmFollowState.hawkIndex = -1;
-    resetSwarmFollowSpeedSmoothing();
-    updateSwarmFollowButtonUi();
-    setStatus("Swarm follow stopped.");
-    return;
-  }
-  const targetType = swarmFollowTargetInput.value === "hawk" ? "hawk" : "agent";
-  swarmFollowState.targetType = targetType;
-  if (targetType === "hawk") {
-    if (!getSwarmSettings().useHawk || swarmState.hawks.length <= 0) {
-      setStatus("No hawks available to follow.");
-      return;
-    }
-    swarmFollowState.hawkIndex = chooseRandomFollowHawkIndex();
-    swarmFollowState.agentIndex = -1;
-  } else {
-    if (swarmState.count <= 0) {
-      setStatus("No swarm agents available to follow.");
-      return;
-    }
-    swarmFollowState.agentIndex = chooseRandomFollowAgentIndex();
-    swarmFollowState.hawkIndex = -1;
-  }
-  swarmFollowState.enabled = true;
-  resetSwarmFollowSpeedSmoothing();
-  updateSwarmFollowButtonUi();
-  setStatus(`Swarm follow enabled (${targetType}).`);
-});
-swarmBackgroundColorInput.addEventListener("input", () => {
-  requestOverlayDraw();
-});
-swarmAgentCountInput.addEventListener("input", () => {
-  updateSwarmLabels();
-  reseedSwarmAgents(Math.round(clamp(Number(swarmAgentCountInput.value), 100, 1000)));
-});
-swarmUpdateIntervalInput.addEventListener("input", updateSwarmLabels);
-swarmMaxSpeedInput.addEventListener("input", () => {
-  updateSwarmLabels();
-  reseedSwarmAgents(swarmState.count || getSwarmSettings().agentCount);
-});
-swarmSteeringMaxInput.addEventListener("input", () => {
-  updateSwarmLabels();
-  reseedSwarmAgents(swarmState.count || getSwarmSettings().agentCount);
-});
-swarmVariationStrengthInput.addEventListener("input", () => {
-  updateSwarmLabels();
-  reseedSwarmAgents(swarmState.count || getSwarmSettings().agentCount);
-});
-swarmNeighborRadiusInput.addEventListener("input", updateSwarmLabels);
-swarmMinHeightInput.addEventListener("input", () => {
-  normalizeSwarmHeightRangeInputs("min");
-  updateSwarmLabels();
-  reseedSwarmAgents(swarmState.count);
-});
-swarmMaxHeightInput.addEventListener("input", () => {
-  normalizeSwarmHeightRangeInputs("max");
-  updateSwarmLabels();
-  reseedSwarmAgents(swarmState.count);
-});
-swarmSeparationRadiusInput.addEventListener("input", updateSwarmLabels);
-swarmAlignmentWeightInput.addEventListener("input", updateSwarmLabels);
-swarmCohesionWeightInput.addEventListener("input", updateSwarmLabels);
-swarmSeparationWeightInput.addEventListener("input", updateSwarmLabels);
-swarmWanderWeightInput.addEventListener("input", updateSwarmLabels);
-swarmRestChanceInput.addEventListener("input", updateSwarmLabels);
-swarmRestTicksInput.addEventListener("input", updateSwarmLabels);
-swarmBreedingThresholdInput.addEventListener("input", updateSwarmLabels);
-swarmBreedingSpawnChanceInput.addEventListener("input", updateSwarmLabels);
-swarmCursorModeInput.addEventListener("change", () => {
-  updateSwarmUi();
-  requestOverlayDraw();
-});
-swarmCursorStrengthInput.addEventListener("input", updateSwarmLabels);
-swarmCursorRadiusInput.addEventListener("input", updateSwarmLabels);
-swarmHawkEnabledToggle.addEventListener("change", () => {
-  updateSwarmUi();
-  updateSwarmLabels();
-  reseedSwarmAgents(swarmState.count || getSwarmSettings().agentCount);
-});
-swarmHawkCountInput.addEventListener("input", () => {
-  updateSwarmLabels();
-  reseedSwarmAgents(swarmState.count || getSwarmSettings().agentCount);
-});
-swarmHawkColorInput.addEventListener("input", requestOverlayDraw);
-swarmHawkSpeedInput.addEventListener("input", updateSwarmLabels);
-swarmHawkSteeringInput.addEventListener("input", updateSwarmLabels);
-swarmHawkTargetRangeInput.addEventListener("input", updateSwarmLabels);
-swarmFollowTargetInput.addEventListener("change", () => {
-  swarmFollowState.targetType = swarmFollowTargetInput.value === "hawk" ? "hawk" : "agent";
-  updateSwarmFollowButtonUi();
-  if (swarmFollowState.enabled) {
-    swarmFollowState.enabled = false;
-    swarmFollowState.agentIndex = -1;
-    swarmFollowState.hawkIndex = -1;
-    resetSwarmFollowSpeedSmoothing();
-    setStatus("Swarm follow stopped. Start follow again to apply new target type.");
-  }
-});
-heightScaleInput.addEventListener("input", schedulePointLightBake);
-
-for (const btn of topicButtons) {
-  btn.addEventListener("click", () => {
-    const topic = btn.dataset.topic || "";
-    const isAlreadyActive = btn.classList.contains("active");
-    setActiveTopic(isAlreadyActive ? "" : topic);
-  });
-}
-
-topicPanelCloseBtn.addEventListener("click", () => {
-  setActiveTopic("");
-});
-
-window.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") {
-    setActiveTopic("");
-  }
-});
-
-dockLightingModeToggle.addEventListener("click", () => {
-  if (interactionMode === "lighting") {
-    setInteractionMode("none");
-    setStatus("Lighting mode disabled.");
-    return;
-  }
-  setInteractionMode("lighting");
-  movePreviewState.hoverPixel = null;
-  movePreviewState.pathPixels = [];
-  setStatus("Lighting mode enabled: click terrain to add/select point lights.");
-});
-
-dockPathfindingModeToggle.addEventListener("click", () => {
-  if (interactionMode === "pathfinding") {
-    setInteractionMode("none");
-    movePreviewState.hoverPixel = null;
-    movePreviewState.pathPixels = [];
-    setStatus("Pathfinding mode disabled.");
-    return;
-  }
-  setInteractionMode("pathfinding");
-  rebuildMovementField();
-  setStatus("Pathfinding mode enabled: hover for path preview, click to move player.");
-});
-
-cursorLightModeToggle.addEventListener("change", () => {
-  if (!cursorLightModeToggle.checked) {
-    cursorLightState.active = false;
-    requestOverlayDraw();
-    setStatus("Cursor light disabled.");
-    return;
-  }
-  setStatus("Cursor light enabled: move mouse over terrain for live point light.");
-});
-
-cursorLightFollowHeightToggle.addEventListener("change", () => {
-  cursorLightState.useTerrainHeight = cursorLightFollowHeightToggle.checked;
-  updateCursorLightModeUi();
-});
-
-cursorLightColorInput.addEventListener("input", () => {
-  cursorLightState.color = hexToRgb01(cursorLightColorInput.value);
-  requestOverlayDraw();
-});
-
-cursorLightStrengthInput.addEventListener("input", () => {
-  cursorLightState.strength = Math.round(clamp(Number(cursorLightStrengthInput.value), 1, 200));
-  updateCursorLightStrengthLabel();
-  requestOverlayDraw();
-});
-
-cursorLightHeightOffsetInput.addEventListener("input", () => {
-  cursorLightState.heightOffset = Math.round(clamp(Number(cursorLightHeightOffsetInput.value), 0, 120));
-  updateCursorLightHeightOffsetLabel();
-  requestOverlayDraw();
-});
-
-cursorLightGizmoToggle.addEventListener("change", () => {
-  cursorLightState.showGizmo = cursorLightGizmoToggle.checked;
-  requestOverlayDraw();
-});
-
-pointLightColorInput.addEventListener("input", () => {
-  if (!lightEditDraft) return;
-  lightEditDraft.color = hexToRgb01(pointLightColorInput.value);
-  rebakeIfPointLightLiveUpdateEnabled();
-  requestOverlayDraw();
-});
-
-pointLightStrengthInput.addEventListener("input", () => {
-  if (!lightEditDraft) return;
-  lightEditDraft.strength = Math.round(clamp(Number(pointLightStrengthInput.value), 1, 200));
-  updatePointLightStrengthLabel();
-  rebakeIfPointLightLiveUpdateEnabled();
-  requestOverlayDraw();
-});
-
-pointLightIntensityInput.addEventListener("input", () => {
-  if (!lightEditDraft) return;
-  lightEditDraft.intensity = clamp(Number(pointLightIntensityInput.value), 0, 4);
-  updatePointLightIntensityLabel();
-  rebakeIfPointLightLiveUpdateEnabled();
-  requestOverlayDraw();
-});
-
-pointLightHeightOffsetInput.addEventListener("input", () => {
-  if (!lightEditDraft) return;
-  lightEditDraft.heightOffset = Math.round(clamp(Number(pointLightHeightOffsetInput.value), -120, 240));
-  updatePointLightHeightOffsetLabel();
-  rebakeIfPointLightLiveUpdateEnabled();
-  requestOverlayDraw();
-});
-
-pointLightFlickerInput.addEventListener("input", () => {
-  if (!lightEditDraft) return;
-  lightEditDraft.flicker = clamp(Number(pointLightFlickerInput.value), 0, 1);
-  updatePointLightFlickerLabel();
-  rebakeIfPointLightLiveUpdateEnabled();
-  requestOverlayDraw();
-});
-
-pointLightFlickerSpeedInput.addEventListener("input", () => {
-  if (!lightEditDraft) return;
-  lightEditDraft.flickerSpeed = clamp(Number(pointLightFlickerSpeedInput.value), 0, 1);
-  updatePointLightFlickerSpeedLabel();
-  rebakeIfPointLightLiveUpdateEnabled();
-  requestOverlayDraw();
-});
-
-pointLightLiveUpdateToggle.addEventListener("change", () => {
-  if (pointLightLiveUpdateToggle.checked) {
-    rebakeIfPointLightLiveUpdateEnabled();
-    setStatus("Point-light live update enabled.");
-    return;
-  }
-  setStatus("Point-light live update disabled. Changes apply on Save.");
-});
-
-lightSaveBtn.addEventListener("click", () => {
-  const selected = applyDraftToSelectedPointLight();
-  if (!selected) return;
-  bakePointLightsTexture();
-  updateLightEditorUi();
-  requestOverlayDraw();
-  setStatus(`Saved point light at (${selected.pixelX}, ${selected.pixelY})`);
-});
-
-lightCancelBtn.addEventListener("click", () => {
-  selectedLightId = null;
-  lightEditDraft = null;
-  updateLightEditorUi();
-  requestOverlayDraw();
-  setStatus("Point light edit canceled.");
-});
-
-lightDeleteBtn.addEventListener("click", () => {
-  const selected = getSelectedPointLight();
-  if (!selected) return;
-  const idx = pointLights.findIndex((light) => light.id === selected.id);
-  if (idx >= 0) {
-    pointLights.splice(idx, 1);
-  }
-  selectedLightId = null;
-  lightEditDraft = null;
-  bakePointLightsTexture();
-  updateLightEditorUi();
-  requestOverlayDraw();
-  setStatus(`Deleted point light at (${selected.pixelX}, ${selected.pixelY})`);
-});
-
-pointLightsSaveAllBtn.addEventListener("click", async () => {
-  if (!pointLightsSaveConfirmArmed) {
-    armPointLightsSaveConfirmation();
-    setStatus("Save confirmation armed. Click Save All again within 5 seconds to overwrite/export pointlights.json.");
-    return;
-  }
-
-  resetPointLightsSaveConfirmation();
-  try {
-    await savePointLightsJson();
-  } catch (error) {
-    if (error && error.name === "AbortError") {
-      setStatus("Save canceled.");
-      return;
-    }
-    console.error("Failed to save point lights JSON", error);
-    const message = error instanceof Error ? error.message : String(error);
-    setStatus(`Failed to save point lights JSON: ${message}`);
-  }
-});
-
-pointLightsLoadAllBtn.addEventListener("click", async () => {
-  resetPointLightsSaveConfirmation();
-  try {
-    await loadPointLightsFromAssetsOrPrompt();
-  } catch (error) {
-    console.error("Failed to load point lights JSON", error);
-    const message = error instanceof Error ? error.message : String(error);
-    setStatus(`Failed to load point lights JSON: ${message}`);
-  }
-});
-
-pointLightsLoadInput.addEventListener("change", async () => {
-  const file = pointLightsLoadInput.files && pointLightsLoadInput.files[0];
-  if (!file) return;
-
-  try {
-    const text = await file.text();
-    const rawData = JSON.parse(text);
-    applyLoadedPointLights(rawData, file.name);
-  } catch (error) {
-    console.error("Failed to parse point lights JSON", error);
-    const message = error instanceof Error ? error.message : String(error);
-    setStatus(`Failed to parse point lights JSON: ${message}`);
-  } finally {
-    pointLightsLoadInput.value = "";
-  }
-});
-
-parallaxStrengthInput.addEventListener("input", updateParallaxStrengthLabel);
-parallaxBandsInput.addEventListener("input", updateParallaxBandsLabel);
-parallaxToggle.addEventListener("change", updateParallaxUi);
-shadowBlurInput.addEventListener("input", updateShadowBlurLabel);
-volumetricStrengthInput.addEventListener("input", updateVolumetricLabels);
-volumetricDensityInput.addEventListener("input", updateVolumetricLabels);
-volumetricAnisotropyInput.addEventListener("input", updateVolumetricLabels);
-volumetricLengthInput.addEventListener("input", updateVolumetricLabels);
-volumetricSamplesInput.addEventListener("input", updateVolumetricLabels);
-volumetricToggle.addEventListener("change", updateVolumetricUi);
-pointFlickerStrengthInput.addEventListener("input", updatePointFlickerLabels);
-pointFlickerSpeedInput.addEventListener("input", updatePointFlickerLabels);
-pointFlickerSpatialInput.addEventListener("input", updatePointFlickerLabels);
-pointFlickerToggle.addEventListener("change", updatePointFlickerUi);
-fogMinAlphaInput.addEventListener("input", updateFogAlphaLabels);
-fogMaxAlphaInput.addEventListener("input", updateFogAlphaLabels);
-fogFalloffInput.addEventListener("input", updateFogFalloffLabel);
-fogStartOffsetInput.addEventListener("input", updateFogStartOffsetLabel);
-fogToggle.addEventListener("change", updateFogUi);
-fogColorInput.addEventListener("input", () => {
-  fogColorManual = true;
-});
-cloudCoverageInput.addEventListener("input", updateCloudLabels);
-cloudSoftnessInput.addEventListener("input", updateCloudLabels);
-cloudOpacityInput.addEventListener("input", updateCloudLabels);
-cloudScaleInput.addEventListener("input", updateCloudLabels);
-cloudSpeed1Input.addEventListener("input", updateCloudLabels);
-cloudSpeed2Input.addEventListener("input", updateCloudLabels);
-cloudSunParallaxInput.addEventListener("input", updateCloudLabels);
-cloudToggle.addEventListener("change", updateCloudUi);
-waterFlowDirectionInput.addEventListener("input", updateWaterLabels);
-waterLocalFlowMixInput.addEventListener("input", updateWaterLabels);
-waterDownhillBoostInput.addEventListener("input", updateWaterLabels);
-waterFlowRadius1Input.addEventListener("input", () => { updateWaterLabels(); rebuildFlowMapTexture(); });
-waterFlowRadius2Input.addEventListener("input", () => { updateWaterLabels(); rebuildFlowMapTexture(); });
-waterFlowRadius3Input.addEventListener("input", () => { updateWaterLabels(); rebuildFlowMapTexture(); });
-waterFlowWeight1Input.addEventListener("input", () => { updateWaterLabels(); rebuildFlowMapTexture(); });
-waterFlowWeight2Input.addEventListener("input", () => { updateWaterLabels(); rebuildFlowMapTexture(); });
-waterFlowWeight3Input.addEventListener("input", () => { updateWaterLabels(); rebuildFlowMapTexture(); });
-waterFlowStrengthInput.addEventListener("input", updateWaterLabels);
-waterFlowSpeedInput.addEventListener("input", updateWaterLabels);
-waterFlowScaleInput.addEventListener("input", updateWaterLabels);
-waterShimmerStrengthInput.addEventListener("input", updateWaterLabels);
-waterGlintStrengthInput.addEventListener("input", updateWaterLabels);
-waterGlintSharpnessInput.addEventListener("input", updateWaterLabels);
-waterShoreFoamStrengthInput.addEventListener("input", updateWaterLabels);
-waterShoreWidthInput.addEventListener("input", updateWaterLabels);
-waterReflectivityInput.addEventListener("input", updateWaterLabels);
-waterTintStrengthInput.addEventListener("input", updateWaterLabels);
-waterFxToggle.addEventListener("change", updateWaterUi);
-waterFlowDownhillToggle.addEventListener("change", () => { updateWaterUi(); rebuildFlowMapTexture(); });
-waterFlowInvertDownhillToggle.addEventListener("change", updateWaterUi);
-
-cycleHourInput.addEventListener("pointerdown", () => {
-  isCycleHourScrubbing = true;
-});
-
-window.addEventListener("pointerup", () => {
-  isCycleHourScrubbing = false;
-});
-
-cycleHourInput.addEventListener("change", () => {
-  isCycleHourScrubbing = false;
-});
-
-cycleHourInput.addEventListener("input", () => {
-  cycleState.hour = clamp(Number(cycleHourInput.value), 0, 24);
-  cycleState.lastRenderMs = null;
-  updateCycleHourLabel();
+bindRenderFxControls({
+  parallaxStrengthInput,
+  parallaxBandsInput,
+  parallaxToggle,
+  shadowBlurInput,
+  volumetricStrengthInput,
+  volumetricDensityInput,
+  volumetricAnisotropyInput,
+  volumetricLengthInput,
+  volumetricSamplesInput,
+  volumetricToggle,
+  pointFlickerStrengthInput,
+  pointFlickerSpeedInput,
+  pointFlickerSpatialInput,
+  pointFlickerToggle,
+  fogMinAlphaInput,
+  fogMaxAlphaInput,
+  fogFalloffInput,
+  fogStartOffsetInput,
+  fogToggle,
+  fogColorInput,
+  cloudCoverageInput,
+  cloudSoftnessInput,
+  cloudOpacityInput,
+  cloudScaleInput,
+  cloudSpeed1Input,
+  cloudSpeed2Input,
+  cloudSunParallaxInput,
+  cloudToggle,
+  waterFlowDirectionInput,
+  waterLocalFlowMixInput,
+  waterDownhillBoostInput,
+  waterFlowRadius1Input,
+  waterFlowRadius2Input,
+  waterFlowRadius3Input,
+  waterFlowWeight1Input,
+  waterFlowWeight2Input,
+  waterFlowWeight3Input,
+  waterFlowStrengthInput,
+  waterFlowSpeedInput,
+  waterFlowScaleInput,
+  waterShimmerStrengthInput,
+  waterGlintStrengthInput,
+  waterGlintSharpnessInput,
+  waterShoreFoamStrengthInput,
+  waterShoreWidthInput,
+  waterReflectivityInput,
+  waterTintStrengthInput,
+  waterFxToggle,
+  waterFlowDownhillToggle,
+  waterFlowInvertDownhillToggle,
+  updateParallaxStrengthLabel,
+  updateParallaxBandsLabel,
+  updateParallaxUi,
+  updateShadowBlurLabel,
+  updateVolumetricLabels,
+  updateVolumetricUi,
+  updatePointFlickerLabels,
+  updatePointFlickerUi,
+  updateFogAlphaLabels,
+  updateFogFalloffLabel,
+  updateFogStartOffsetLabel,
+  updateFogUi,
+  markFogColorManual: () => {
+    fogColorManual = true;
+  },
+  updateCloudLabels,
+  updateCloudUi,
+  updateWaterLabels,
+  updateWaterUi,
+  rebuildFlowMapTexture,
 });
 
 async function tryAutoLoadDefaultMap() {
@@ -6183,58 +5980,18 @@ async function tryAutoLoadDefaultMap() {
   setStatus("Using fallback textures. Load a map folder to begin.");
 }
 
-mapPathLoadBtn.addEventListener("click", async () => {
-  const rawTarget = String(mapPathInput.value || "").trim();
-  let targetPath = normalizeMapFolderPath(rawTarget);
-  if (!rawTarget && tauriInvoke) {
-    const pickedFolder = await pickMapFolderViaTauri();
-    if (!pickedFolder) {
-      setStatus("Map folder selection canceled.");
-      return;
-    }
-    targetPath = pickedFolder;
-  }
-  try {
-    await loadMapFromPath(targetPath);
-  } catch (error) {
-    console.error(`Failed to load map from ${targetPath}`, error);
-    const message = error instanceof Error ? error.message : String(error);
-    setStatus(`Failed to load map '${targetPath}': ${message}`);
-  }
-});
-
-mapSaveAllBtn.addEventListener("click", async () => {
-  try {
-    await saveAllMapDataFiles();
-  } catch (error) {
-    if (error && error.name === "AbortError") {
-      setStatus("Save all canceled.");
-      return;
-    }
-    console.error("Failed to save all map data files", error);
-    const message = error instanceof Error ? error.message : String(error);
-    setStatus(`Failed to save map data: ${message}`);
-  }
-});
-
-mapPathInput.addEventListener("keydown", (e) => {
-  if (e.key !== "Enter") return;
-  e.preventDefault();
-  mapPathLoadBtn.click();
-});
-
-mapFolderInput.addEventListener("change", async () => {
-  const files = mapFolderInput.files;
-  if (!files || files.length === 0) return;
-  try {
-    await loadMapFromFolderSelection(files);
-  } catch (error) {
-    console.error("Failed to load selected map folder", error);
-    const message = error instanceof Error ? error.message : String(error);
-    setStatus(`Failed to load selected map folder: ${message}`);
-  } finally {
-    mapFolderInput.value = "";
-  }
+bindMapIoControls({
+  mapPathInput,
+  mapPathLoadBtn,
+  mapFolderInput,
+  mapSaveAllBtn,
+  normalizeMapFolderPath,
+  tauriInvoke,
+  pickMapFolderViaTauri,
+  loadMapFromPath,
+  loadMapFromFolderSelection,
+  saveAllMapDataFiles,
+  setStatus,
 });
 
 function resize() {
@@ -6255,23 +6012,6 @@ function resize() {
   if (overlayResized) {
     requestOverlayDraw();
   }
-}
-
-function updateCycleTime(nowMs) {
-  if (cycleState.lastRenderMs === null) {
-    cycleState.lastRenderMs = nowMs;
-  }
-  const dtSec = Math.min(0.25, Math.max(0, (nowMs - cycleState.lastRenderMs) * 0.001));
-  cycleState.lastRenderMs = nowMs;
-
-  const cycleSpeedHoursPerSec = clamp(Number(cycleSpeedInput.value), 0, 1);
-  if (cycleSpeedHoursPerSec > 0 && !isCycleHourScrubbing) {
-    cycleState.hour = wrapHour(cycleState.hour + cycleSpeedHoursPerSec * dtSec);
-  }
-  if (!isCycleHourScrubbing) {
-    setCycleHourSliderFromState();
-  }
-  return cycleSpeedHoursPerSec;
 }
 
 function computeLightingParams() {
@@ -6363,7 +6103,7 @@ function computeLightingParams() {
   };
 }
 
-function uploadUniforms(params, nowSec) {
+function uploadUniforms(params, nowSec, input) {
   gl.useProgram(program);
   gl.activeTexture(gl.TEXTURE0);
   gl.bindTexture(gl.TEXTURE_2D, splatTex);
@@ -6377,16 +6117,22 @@ function uploadUniforms(params, nowSec) {
   gl.bindTexture(gl.TEXTURE_2D, heightTex);
   gl.uniform1i(uniforms.uHeight, 2);
 
-  gl.activeTexture(gl.TEXTURE3);
-  gl.bindTexture(gl.TEXTURE_2D, pointLightTex);
-  gl.uniform1i(uniforms.uPointLightTex, 3);
+  applyPointLightUsagePass({
+    gl,
+    uniforms,
+    pointLightTex,
+    pointFlickerEnabled: input.pointFlickerEnabled,
+    pointFlickerStrength: input.pointFlickerStrength,
+    pointFlickerSpeed: input.pointFlickerSpeed,
+    pointFlickerSpatial: input.pointFlickerSpatial,
+  });
 
   gl.activeTexture(gl.TEXTURE4);
   gl.bindTexture(gl.TEXTURE_2D, cloudNoiseTex);
   gl.uniform1i(uniforms.uCloudNoiseTex, 4);
 
   gl.activeTexture(gl.TEXTURE5);
-  gl.bindTexture(gl.TEXTURE_2D, clamp(Number(shadowBlurInput.value), 0, 3) > 0.001 ? shadowBlurTex : shadowRawTex);
+  gl.bindTexture(gl.TEXTURE_2D, input.shadowBlurPx > 0.001 ? shadowBlurTex : shadowRawTex);
   gl.uniform1i(uniforms.uShadowTex, 5);
 
   gl.activeTexture(gl.TEXTURE6);
@@ -6398,10 +6144,6 @@ function uploadUniforms(params, nowSec) {
   gl.uniform1i(uniforms.uFlowMap, 7);
 
   const viewHalf = getViewHalfExtents();
-  const flowDeg = clamp(Number(waterFlowDirectionInput.value), 0, 360);
-  const flowRad = flowDeg * Math.PI / 180;
-  const flowDirX = Math.cos(flowRad);
-  const flowDirY = Math.sin(flowRad);
   gl.uniform2f(uniforms.uMapTexelSize, 1 / heightSize.width, 1 / heightSize.height);
   gl.uniform2f(uniforms.uResolution, canvas.width, canvas.height);
   gl.uniform3f(uniforms.uSunDir, params.sunDir[0], params.sunDir[1], params.sunDir[2]);
@@ -6412,28 +6154,28 @@ function uploadUniforms(params, nowSec) {
   gl.uniform1f(uniforms.uMoonStrength, params.moonStrength);
   gl.uniform3f(uniforms.uAmbientColor, params.ambientColor[0], params.ambientColor[1], params.ambientColor[2]);
   gl.uniform1f(uniforms.uAmbient, params.ambientFinal);
-  gl.uniform1f(uniforms.uHeightScale, Number(heightScaleInput.value));
-  gl.uniform1f(uniforms.uShadowStrength, Number(shadowStrengthInput.value));
-  gl.uniform1f(uniforms.uUseShadows, shadowsToggle.checked ? 1 : 0);
-  gl.uniform1f(uniforms.uUseParallax, parallaxToggle.checked ? 1 : 0);
-  gl.uniform1f(uniforms.uParallaxStrength, clamp(Number(parallaxStrengthInput.value), 0, 1));
-  gl.uniform1f(uniforms.uParallaxBands, Math.round(clamp(Number(parallaxBandsInput.value), 2, 256)));
+  gl.uniform1f(uniforms.uHeightScale, input.heightScale);
+  gl.uniform1f(uniforms.uShadowStrength, input.shadowStrength);
+  gl.uniform1f(uniforms.uUseShadows, input.useShadows ? 1 : 0);
+  gl.uniform1f(uniforms.uUseParallax, input.useParallax ? 1 : 0);
+  gl.uniform1f(uniforms.uParallaxStrength, input.parallaxStrength);
+  gl.uniform1f(uniforms.uParallaxBands, input.parallaxBands);
   gl.uniform1f(uniforms.uZoom, zoom);
-  gl.uniform1f(uniforms.uUseFog, fogToggle.checked ? 1 : 0);
+  gl.uniform1f(uniforms.uUseFog, input.useFog ? 1 : 0);
   gl.uniform3f(uniforms.uFogColor, params.fogColor[0], params.fogColor[1], params.fogColor[2]);
-  gl.uniform1f(uniforms.uFogMinAlpha, clamp(Number(fogMinAlphaInput.value), 0, 1));
-  gl.uniform1f(uniforms.uFogMaxAlpha, clamp(Number(fogMaxAlphaInput.value), 0, 1));
-  gl.uniform1f(uniforms.uFogFalloff, clamp(Number(fogFalloffInput.value), 0.2, 4));
-  gl.uniform1f(uniforms.uFogStartOffset, clamp(Number(fogStartOffsetInput.value), 0, 1));
+  gl.uniform1f(uniforms.uFogMinAlpha, input.fogMinAlpha);
+  gl.uniform1f(uniforms.uFogMaxAlpha, input.fogMaxAlpha);
+  gl.uniform1f(uniforms.uFogFalloff, input.fogFalloff);
+  gl.uniform1f(uniforms.uFogStartOffset, input.fogStartOffset);
   gl.uniform1f(uniforms.uCameraHeightNorm, params.cameraHeightNorm);
-  gl.uniform1f(uniforms.uUseVolumetric, volumetricToggle.checked ? 1 : 0);
-  gl.uniform1f(uniforms.uVolumetricStrength, clamp(Number(volumetricStrengthInput.value), 0, 1));
-  gl.uniform1f(uniforms.uVolumetricDensity, clamp(Number(volumetricDensityInput.value), 0, 2));
-  gl.uniform1f(uniforms.uVolumetricAnisotropy, clamp(Number(volumetricAnisotropyInput.value), 0, 0.95));
-  gl.uniform1f(uniforms.uVolumetricLength, Math.round(clamp(Number(volumetricLengthInput.value), 8, 160)));
-  gl.uniform1f(uniforms.uVolumetricSamples, Math.round(clamp(Number(volumetricSamplesInput.value), 4, 24)));
-  gl.uniform1f(uniforms.uMapAspect, getMapAspect());
-  gl.uniform1f(uniforms.uUseCursorLight, cursorLightModeToggle.checked && cursorLightState.active ? 1 : 0);
+  gl.uniform1f(uniforms.uUseVolumetric, input.useVolumetric ? 1 : 0);
+  gl.uniform1f(uniforms.uVolumetricStrength, input.volumetricStrength);
+  gl.uniform1f(uniforms.uVolumetricDensity, input.volumetricDensity);
+  gl.uniform1f(uniforms.uVolumetricAnisotropy, input.volumetricAnisotropy);
+  gl.uniform1f(uniforms.uVolumetricLength, input.volumetricLength);
+  gl.uniform1f(uniforms.uVolumetricSamples, input.volumetricSamples);
+  gl.uniform1f(uniforms.uMapAspect, input.mapAspect);
+  gl.uniform1f(uniforms.uUseCursorLight, input.useCursorLight ? 1 : 0);
   gl.uniform2f(uniforms.uCursorLightUv, cursorLightState.uvX, cursorLightState.uvY);
   gl.uniform3f(uniforms.uCursorLightColor, cursorLightState.color[0], cursorLightState.color[1], cursorLightState.color[2]);
   gl.uniform1f(uniforms.uCursorLightStrength, cursorLightState.strength);
@@ -6443,48 +6185,118 @@ function uploadUniforms(params, nowSec) {
   gl.uniform2f(uniforms.uViewHalfExtents, viewHalf.x, viewHalf.y);
   gl.uniform2f(uniforms.uPanWorld, panWorld.x, panWorld.y);
   gl.uniform1f(uniforms.uTimeSec, Math.max(0, Number(nowSec) || 0));
-  gl.uniform1f(uniforms.uPointFlickerEnabled, pointFlickerToggle.checked ? 1 : 0);
-  gl.uniform1f(uniforms.uPointFlickerStrength, clamp(Number(pointFlickerStrengthInput.value), 0, 1));
-  gl.uniform1f(uniforms.uPointFlickerSpeed, clamp(Number(pointFlickerSpeedInput.value), 0.1, 12));
-  gl.uniform1f(uniforms.uPointFlickerSpatial, clamp(Number(pointFlickerSpatialInput.value), 0, 4));
-  gl.uniform1f(uniforms.uUseClouds, cloudToggle.checked ? 1 : 0);
-  gl.uniform1f(uniforms.uCloudCoverage, clamp(Number(cloudCoverageInput.value), 0, 1));
-  gl.uniform1f(uniforms.uCloudSoftness, clamp(Number(cloudSoftnessInput.value), 0.01, 0.35));
-  gl.uniform1f(uniforms.uCloudOpacity, clamp(Number(cloudOpacityInput.value), 0, 1));
-  gl.uniform1f(uniforms.uCloudScale, clamp(Number(cloudScaleInput.value), 0.5, 8));
-  gl.uniform1f(uniforms.uCloudSpeed1, clamp(Number(cloudSpeed1Input.value), -0.3, 0.3));
-  gl.uniform1f(uniforms.uCloudSpeed2, clamp(Number(cloudSpeed2Input.value), -0.3, 0.3));
-  gl.uniform1f(uniforms.uCloudSunParallax, clamp(Number(cloudSunParallaxInput.value), 0, 2));
-  gl.uniform1f(uniforms.uCloudUseSunProjection, cloudSunProjectToggle.checked ? 1 : 0);
-  gl.uniform1f(uniforms.uUseWaterFx, waterFxToggle.checked ? 1 : 0);
-  gl.uniform1f(uniforms.uWaterFlowDownhill, waterFlowDownhillToggle.checked ? 1 : 0);
-  gl.uniform1f(uniforms.uWaterFlowInvertDownhill, waterFlowInvertDownhillToggle.checked ? 1 : 0);
-  gl.uniform1f(uniforms.uWaterFlowDebug, waterFlowDebugToggle.checked ? 1 : 0);
-  gl.uniform2f(uniforms.uWaterFlowDir, flowDirX, flowDirY);
-  gl.uniform1f(uniforms.uWaterLocalFlowMix, clamp(Number(waterLocalFlowMixInput.value), 0, 1));
-  gl.uniform1f(uniforms.uWaterDownhillBoost, clamp(Number(waterDownhillBoostInput.value), 0, 4));
-  gl.uniform1f(uniforms.uWaterFlowStrength, clamp(Number(waterFlowStrengthInput.value), 0, 0.15));
-  gl.uniform1f(uniforms.uWaterFlowSpeed, clamp(Number(waterFlowSpeedInput.value), 0, 2.5));
-  gl.uniform1f(uniforms.uWaterFlowScale, clamp(Number(waterFlowScaleInput.value), 0.5, 14));
-  gl.uniform1f(uniforms.uWaterShimmerStrength, clamp(Number(waterShimmerStrengthInput.value), 0, 0.2));
-  gl.uniform1f(uniforms.uWaterGlintStrength, clamp(Number(waterGlintStrengthInput.value), 0, 1.5));
-  gl.uniform1f(uniforms.uWaterGlintSharpness, clamp(Number(waterGlintSharpnessInput.value), 0, 1));
-  gl.uniform1f(uniforms.uWaterShoreFoamStrength, clamp(Number(waterShoreFoamStrengthInput.value), 0, 0.5));
-  gl.uniform1f(uniforms.uWaterShoreWidth, clamp(Number(waterShoreWidthInput.value), 0.4, 6));
-  gl.uniform1f(uniforms.uWaterReflectivity, clamp(Number(waterReflectivityInput.value), 0, 1));
-  const waterTintColor = hexToRgb01(waterTintColorInput.value);
+  gl.uniform1f(uniforms.uUseClouds, input.useClouds ? 1 : 0);
+  gl.uniform1f(uniforms.uCloudCoverage, input.cloudCoverage);
+  gl.uniform1f(uniforms.uCloudSoftness, input.cloudSoftness);
+  gl.uniform1f(uniforms.uCloudOpacity, input.cloudOpacity);
+  gl.uniform1f(uniforms.uCloudScale, input.cloudScale);
+  gl.uniform1f(uniforms.uCloudSpeed1, input.cloudSpeed1);
+  gl.uniform1f(uniforms.uCloudSpeed2, input.cloudSpeed2);
+  gl.uniform1f(uniforms.uCloudSunParallax, input.cloudSunParallax);
+  gl.uniform1f(uniforms.uCloudUseSunProjection, input.cloudUseSunProjection ? 1 : 0);
+  gl.uniform1f(uniforms.uUseWaterFx, input.useWaterFx ? 1 : 0);
+  gl.uniform1f(uniforms.uWaterFlowDownhill, input.waterFlowDownhill ? 1 : 0);
+  gl.uniform1f(uniforms.uWaterFlowInvertDownhill, input.waterFlowInvertDownhill ? 1 : 0);
+  gl.uniform1f(uniforms.uWaterFlowDebug, input.waterFlowDebug ? 1 : 0);
+  gl.uniform2f(uniforms.uWaterFlowDir, input.waterFlowDirX, input.waterFlowDirY);
+  gl.uniform1f(uniforms.uWaterLocalFlowMix, input.waterLocalFlowMix);
+  gl.uniform1f(uniforms.uWaterDownhillBoost, input.waterDownhillBoost);
+  gl.uniform1f(uniforms.uWaterFlowStrength, input.waterFlowStrength);
+  gl.uniform1f(uniforms.uWaterFlowSpeed, input.waterFlowSpeed);
+  gl.uniform1f(uniforms.uWaterFlowScale, input.waterFlowScale);
+  gl.uniform1f(uniforms.uWaterShimmerStrength, input.waterShimmerStrength);
+  gl.uniform1f(uniforms.uWaterGlintStrength, input.waterGlintStrength);
+  gl.uniform1f(uniforms.uWaterGlintSharpness, input.waterGlintSharpness);
+  gl.uniform1f(uniforms.uWaterShoreFoamStrength, input.waterShoreFoamStrength);
+  gl.uniform1f(uniforms.uWaterShoreWidth, input.waterShoreWidth);
+  gl.uniform1f(uniforms.uWaterReflectivity, input.waterReflectivity);
+  const waterTintColor = input.waterTintColor;
   gl.uniform3f(uniforms.uWaterTintColor, waterTintColor[0], waterTintColor[1], waterTintColor[2]);
-  gl.uniform1f(uniforms.uWaterTintStrength, clamp(Number(waterTintStrengthInput.value), 0, 1));
+  gl.uniform1f(uniforms.uWaterTintStrength, input.waterTintStrength);
   gl.uniform3f(uniforms.uSkyColor, params.skyColor[0], params.skyColor[1], params.skyColor[2]);
 }
 
 function render(nowMs) {
+  const dtSec =
+    runtimeCore.frame.lastNowMs === null
+      ? 0
+      : Math.min(0.25, Math.max(0, (nowMs - runtimeCore.frame.lastNowMs) * 0.001));
+  runtimeCore.frame.lastNowMs = nowMs;
+  updateCoreFrameSnapshot(runtimeCore.store, nowMs, {
+    clamp,
+    cycleSpeedInput,
+    panWorld,
+    getZoom: () => zoom,
+    currentMapFolderPath,
+    splatSize,
+  });
+  runtimeCore.scheduler.updateAll({ nowMs, dtSec }, runtimeCore.store.getState());
+  const coreState = runtimeCore.store.getState();
+
   resize();
-  const cycleSpeedHoursPerSec = updateCycleTime(nowMs);
   updateSwarm(nowMs);
   updateSwarmFollowCamera();
-  const lightingParams = computeLightingParams();
-  cycleInfoEl.textContent = `Time: ${formatHour(cycleState.hour)} | Speed: ${cycleSpeedHoursPerSec.toFixed(2)} h/s`;
+  const lightingParams = frameLightingState.lightingParams || computeLightingParams();
+  const uniformInput = buildUniformInputState({
+    clamp,
+    getMapAspect,
+    cursorLightState,
+    cursorLightModeToggle,
+    heightScaleInput,
+    shadowStrengthInput,
+    shadowBlurInput,
+    shadowsToggle,
+    parallaxToggle,
+    parallaxStrengthInput,
+    parallaxBandsInput,
+    fogToggle,
+    fogMinAlphaInput,
+    fogMaxAlphaInput,
+    fogFalloffInput,
+    fogStartOffsetInput,
+    volumetricToggle,
+    volumetricStrengthInput,
+    volumetricDensityInput,
+    volumetricAnisotropyInput,
+    volumetricLengthInput,
+    volumetricSamplesInput,
+    pointFlickerToggle,
+    pointFlickerStrengthInput,
+    pointFlickerSpeedInput,
+    pointFlickerSpatialInput,
+    cloudToggle,
+    cloudCoverageInput,
+    cloudSoftnessInput,
+    cloudOpacityInput,
+    cloudScaleInput,
+    cloudSpeed1Input,
+    cloudSpeed2Input,
+    cloudSunParallaxInput,
+    cloudSunProjectToggle,
+    waterFxToggle,
+    waterFlowDownhillToggle,
+    waterFlowInvertDownhillToggle,
+    waterFlowDebugToggle,
+    waterFlowDirectionInput,
+    waterLocalFlowMixInput,
+    waterDownhillBoostInput,
+    waterFlowStrengthInput,
+    waterFlowSpeedInput,
+    waterFlowScaleInput,
+    waterShimmerStrengthInput,
+    waterGlintStrengthInput,
+    waterGlintSharpnessInput,
+    waterShoreFoamStrengthInput,
+    waterShoreWidthInput,
+    waterReflectivityInput,
+    waterTintColorInput,
+    waterTintStrengthInput,
+    hexToRgb01,
+    fogState: frameFogState,
+    cloudState: frameCloudState,
+    waterFxState: frameWaterFxState,
+  });
+  cycleInfoEl.textContent = `Time: ${formatHour(cycleState.hour)} | Speed: ${frameTimeState.cycleSpeedHoursPerSec.toFixed(2)} h/s`;
   updateInfoPanel();
   updateSwarmStatsPanel();
   updateCycleHourLabel();
@@ -6492,31 +6304,41 @@ function render(nowMs) {
   const swarmSettings = getSwarmSettings();
   const swarmEnabled = swarmSettings.useAgentSwarm;
   const showTerrain = !swarmEnabled || swarmSettings.showTerrainInSwarm;
-  gl.viewport(0, 0, canvas.width, canvas.height);
-  if (showTerrain) {
-    renderShadowPipeline(lightingParams);
-    gl.viewport(0, 0, canvas.width, canvas.height);
-    gl.clearColor(0, 0, 0, 1);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-    uploadUniforms(lightingParams, nowMs * 0.001);
-    gl.drawArrays(gl.TRIANGLES, 0, 6);
-  } else {
-    const bg = hexToRgb01(swarmBackgroundColorInput.value);
-    gl.clearColor(bg[0], bg[1], bg[2], 1);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-  }
-  if (swarmEnabled && swarmSettings.useLitSwarm) {
-    renderSwarmLit(lightingParams, nowMs * 0.001, swarmSettings);
+  const frameState = buildFrameRenderState({
+    coreState,
+    nowMs,
+    dtSec,
+    cycleHour: cycleState.hour,
+    cycleSpeedHoursPerSec: frameTimeState.cycleSpeedHoursPerSec,
+    panWorld,
+    zoom,
+    currentMapFolderPath,
+    splatSize,
+    lightingParams,
+    uniformInput,
+    showTerrain,
+    backgroundColorRgb: hexToRgb01(swarmBackgroundColorInput.value),
+    swarmEnabled,
+    swarmLitEnabled: swarmSettings.useLitSwarm,
+  });
+  renderer.renderTerrainFrame(frameState);
+  if (frameState.swarm.enabled && frameState.swarm.litEnabled) {
+    renderSwarmLit(frameState.lightingParams, frameState.time.nowSec, swarmSettings);
   }
 
-  if (overlayDirty || swarmEnabled) {
+  if (overlayDirty || frameState.swarm.enabled) {
     drawOverlay();
     overlayDirty = false;
   }
   requestAnimationFrame(render);
 }
 
-window.addEventListener("resize", resize);
+bindRuntimeControls({
+  windowEl: window,
+  heightScaleInput,
+  schedulePointLightBake,
+  resize,
+});
 
 void tryAutoLoadDefaultMap().catch((error) => {
   console.error("Default map auto-load failed:", error);
@@ -6566,20 +6388,3 @@ setInteractionMode("none");
 reseedSwarmAgents(getSwarmSettings().agentCount);
 setStatus(`${statusEl.textContent} | Load maps by folder/path, use left dock mode toggles (LM/PF), wheel zoom + middle-drag pan for terrain, and Agent Swarm panel toggle for boid testing.`);
 requestAnimationFrame(render);
-swarmEnabledToggle.addEventListener("change", () => {
-  updateSwarmUi();
-  swarmState.lastUpdateMs = null;
-  swarmCursorState.active = false;
-  if (swarmEnabledToggle.checked) {
-    reseedSwarmAgents(swarmState.count || getSwarmSettings().agentCount);
-    setStatus("Agent swarm enabled.");
-  } else {
-    swarmFollowState.enabled = false;
-    swarmFollowState.agentIndex = -1;
-    swarmFollowState.hawkIndex = -1;
-    resetSwarmFollowSpeedSmoothing();
-    updateSwarmFollowButtonUi();
-    requestOverlayDraw();
-    setStatus("Agent swarm disabled.");
-  }
-});

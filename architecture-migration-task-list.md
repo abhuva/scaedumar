@@ -1,6 +1,7 @@
+
 # Architecture Migration Task List
 
-Last updated: 2026-04-21
+Last updated: 2026-04-22
 Owner: Codex + Marc
 Branch policy: dedicated migration branch, no direct commits to `main`
 Scope: migrate prototype to clean/modular architecture without losing current behavior
@@ -13,6 +14,7 @@ Goals:
 - Keep runtime behavior parity while restructuring.
 - Make systems modular, testable, and moddable.
 - Support future growth (weather simulation, gameplay loops, entities, crafting, survival).
+- Prioritize architecture stability over pixel-exact visual matching to the prototype.
 
 Non-goals:
 - Full gameplay rewrite during architecture migration.
@@ -31,6 +33,7 @@ Execution rules:
 - Only one major phase in progress at once.
 - Every completed subtask must include a short note in the "Session Log" section.
 - No new feature work until Phase 5 is complete (except migration-critical fixes).
+- Visual output drift is acceptable during migration when behavior/contracts remain intact.
 
 ## Target Architecture (Reference)
 
@@ -67,37 +70,37 @@ Core contracts:
 
 Dependencies: none
 
-- [ ] P1.1 Capture behavior baseline
-  - [ ] P1.1.1 Record current key workflows (map load, LM/PF, save/load settings, water controls).
-  - [ ] P1.1.2 Capture baseline screenshots for key scenarios (day, night, water debug, fog/cloud on/off).
-  - [ ] P1.1.3 Record perf baseline (fps estimate + expensive operations timing notes).
-- [ ] P1.2 Add migration guard checks
-  - [ ] P1.2.1 Add lightweight smoke script/checklist doc for parity verification.
-  - [ ] P1.2.2 Add "known acceptable diffs" list (what can change slightly vs must stay exact).
-- [ ] P1.3 Branch setup and migration discipline
-  - [ ] P1.3.1 Confirm dedicated migration branch.
-  - [ ] P1.3.2 Define commit cadence (small logical commits, no mega dump).
+- [x] P1.1 Capture minimal behavioral baseline
+  - [x] P1.1.1 Record core workflows only (map load, render loop health, LM/PF toggles, save/load settings).
+  - [x] P1.1.2 Capture optional reference screenshots only for severe-regression triage (not pixel-match gating).
+  - [x] P1.1.3 Record lightweight perf notes (rough fps + expensive operations timing notes).
+- [x] P1.2 Add migration guard checks
+  - [x] P1.2.1 Add lightweight smoke script/checklist doc for behavioral verification (`SMOKE_CHECKLIST.md`).
+  - [x] P1.2.2 Add "acceptable changes" list with architecture-first rules (visual changes allowed unless usability/regression impact).
+- [x] P1.3 Branch setup and migration discipline
+  - [x] P1.3.1 Confirm dedicated migration branch.
+  - [x] P1.3.2 Define commit cadence (small logical commits, no mega dump).
 
 Exit criteria:
-- Baseline artifacts captured and referenced.
-- Parity checklist exists and is runnable manually.
+- Minimal baseline notes captured and referenced.
+- Smoke checklist exists and is runnable manually.
 
 ### Phase 2: Core Runtime Foundation
 
 Dependencies: Phase 1
 
-- [ ] P2.1 Create core folders and initial modules
-  - [ ] P2.1.1 Add `src/core/state.js` (single source of truth).
-  - [ ] P2.1.2 Add `src/core/scheduler.js` (ordered system update pipeline).
-  - [ ] P2.1.3 Add `src/core/commands.js` (UI intent -> state mutation API).
-  - [ ] P2.1.4 Add `src/core/settingsRegistry.js`.
-- [ ] P2.2 Move global mutable runtime data into state store
-  - [ ] P2.2.1 Camera/time/mode state.
-  - [ ] P2.2.2 Map metadata and loaded resources metadata.
+- [x] P2.1 Create core folders and initial modules
+  - [x] P2.1.1 Add `src/core/state.js` (single source of truth).
+  - [x] P2.1.2 Add `src/core/scheduler.js` (ordered system update pipeline).
+  - [x] P2.1.3 Add `src/core/commands.js` (UI intent -> state mutation API).
+  - [x] P2.1.4 Add `src/core/settingsRegistry.js`.
+- [-] P2.2 Move global mutable runtime data into state store
+  - [-] P2.2.1 Camera/time/mode state.
+  - [-] P2.2.2 Map metadata and loaded resources metadata.
   - [ ] P2.2.3 Simulation knobs + gameplay runtime state.
-- [ ] P2.3 Integrate scheduler into main loop without changing visuals
-  - [ ] P2.3.1 `update(dt)` pipeline inserted before render.
-  - [ ] P2.3.2 Maintain existing behavior parity through adapters.
+- [-] P2.3 Integrate scheduler into main loop without changing visuals
+  - [x] P2.3.1 `update(dt)` pipeline inserted before render.
+  - [-] P2.3.2 Maintain existing behavior parity through adapters.
 
 Exit criteria:
 - App runs with centralized state + scheduler.
@@ -107,21 +110,21 @@ Exit criteria:
 
 Dependencies: Phase 2
 
-- [ ] P3.1 Build render module skeleton
-  - [ ] P3.1.1 Add `src/render/renderer.js`.
-  - [ ] P3.1.2 Add `src/render/resources.js` (textures/FBO/program handles).
-  - [ ] P3.1.3 Add pass interface contract and registration.
-- [ ] P3.2 Extract existing passes
-  - [ ] P3.2.1 Shadow pass extraction.
-  - [ ] P3.2.2 Blur pass extraction.
-  - [ ] P3.2.3 Main terrain pass extraction.
-  - [ ] P3.2.4 Point light texture usage path extraction.
-- [ ] P3.3 Extract map-space precompute jobs
-  - [ ] P3.3.1 Flow map generation module.
-  - [ ] P3.3.2 Point-light bake orchestration module (worker + fallback).
-- [ ] P3.4 Define render input DTO
-  - [ ] P3.4.1 `FrameRenderState` object from core state.
-  - [ ] P3.4.2 Remove direct DOM reads from render upload path.
+- [x] P3.1 Build render module skeleton
+  - [x] P3.1.1 Add `src/render/renderer.js`.
+  - [x] P3.1.2 Add `src/render/resources.js` (textures/FBO/program handles).
+  - [x] P3.1.3 Add pass interface contract and registration.
+- [x] P3.2 Extract existing passes
+  - [x] P3.2.1 Shadow pass extraction.
+  - [x] P3.2.2 Blur pass extraction.
+  - [x] P3.2.3 Main terrain pass extraction.
+  - [x] P3.2.4 Point light texture usage path extraction.
+- [x] P3.3 Extract map-space precompute jobs
+  - [x] P3.3.1 Flow map generation module.
+  - [x] P3.3.2 Point-light bake orchestration module (worker + fallback).
+- [x] P3.4 Define render input DTO
+  - [x] P3.4.1 `FrameRenderState` object from core state.
+  - [x] P3.4.2 Remove direct DOM reads from render upload path.
 
 Exit criteria:
 - Main render loop calls renderer API, not inline GL blocks.
@@ -131,15 +134,15 @@ Exit criteria:
 
 Dependencies: Phase 2 (can overlap partially with Phase 3)
 
-- [ ] P4.1 Extract panel bindings
-  - [ ] P4.1.1 `src/ui/bindings/waterPanel.js`
-  - [ ] P4.1.2 `src/ui/bindings/cloudPanel.js`
-  - [ ] P4.1.3 `src/ui/bindings/lightingPanel.js`
-  - [ ] P4.1.4 `src/ui/bindings/pathPanel.js`
-  - [ ] P4.1.5 `src/ui/bindings/loadMapPanel.js`
-- [ ] P4.2 Replace direct mutation with command dispatch
-  - [ ] P4.2.1 UI controls dispatch typed commands.
-  - [ ] P4.2.2 Command handlers mutate core state.
+- [-] P4.1 Extract panel bindings
+  - [-] P4.1.1 `src/ui/bindings/waterPanel.js`
+  - [-] P4.1.2 `src/ui/bindings/cloudPanel.js`
+  - [-] P4.1.3 `src/ui/bindings/lightingPanel.js`
+  - [-] P4.1.4 `src/ui/bindings/pathPanel.js`
+  - [-] P4.1.5 `src/ui/bindings/loadMapPanel.js`
+- [-] P4.2 Replace direct mutation with command dispatch
+  - [-] P4.2.1 UI controls dispatch typed commands.
+  - [-] P4.2.2 Command handlers mutate core state.
 - [ ] P4.3 Mode capability layer
   - [ ] P4.3.1 Define capabilities for `dev`, `gameplay`, `hybrid`.
   - [ ] P4.3.2 Gate controls/overlays/actions by capability set.
@@ -152,12 +155,12 @@ Exit criteria:
 
 Dependencies: Phase 2, strongly benefits from Phase 4
 
-- [ ] P5.1 Extract existing time/light/fog/cloud/water drivers into systems
-  - [ ] P5.1.1 `timeSystem`
-  - [ ] P5.1.2 `lightingSystem`
-  - [ ] P5.1.3 `cloudSystem`
-  - [ ] P5.1.4 `fogSystem`
-  - [ ] P5.1.5 `waterFxSystem`
+- [x] P5.1 Extract existing time/light/fog/cloud/water drivers into systems
+  - [x] P5.1.1 `timeSystem`
+  - [x] P5.1.2 `lightingSystem`
+  - [x] P5.1.3 `cloudSystem`
+  - [x] P5.1.4 `fogSystem`
+  - [x] P5.1.5 `waterFxSystem`
 - [ ] P5.2 Weather architecture groundwork
   - [ ] P5.2.1 Add weather state contract in core state.
   - [ ] P5.2.2 Add placeholder weather field resource hooks (no full feature yet).
@@ -220,16 +223,16 @@ Exit criteria:
 Critical path:
 - P1 -> P2 -> P3 -> P5 -> P7
 
-## Parity Checklist (Must Pass Before Merge)
+## Compatibility Checklist (Must Pass Before Merge)
 
 - [ ] Default map auto-load still works.
 - [ ] Manual map load (folder/path) still works.
 - [ ] Save/Load all JSON still works (pointlights, lighting, parallax, interaction, fog, clouds, waterfx, npc).
-- [ ] Day/night cycle behavior and sliders match baseline intent.
+- [ ] Day/night cycle and sliders remain functionally coherent (exact visual matching not required).
 - [ ] Shadow pipeline works (including blur).
 - [ ] Point lights create/edit/delete/bake with worker fallback.
 - [ ] Pathfinding preview/click move mode still works.
-- [ ] Water FX controls still work (including downhill invert/boost/tint).
+- [ ] Water FX controls still work (including downhill invert/boost/tint), with acceptable visual drift.
 - [ ] Dev tools visibility and interaction mode toggles remain functional.
 
 ## Testing Strategy (Pragmatic)
@@ -237,10 +240,10 @@ Critical path:
 Mandatory:
 - Settings roundtrip tests for each subsystem.
 - Deterministic math tests for core sim helpers.
-- Manual visual parity checklist.
+- Manual behavioral compatibility checklist.
 
 Optional early, required before final merge:
-- Screenshot comparison harness for 5-10 canonical scenes.
+- Screenshot comparison harness for 5-10 canonical scenes (diagnostic only, not strict gate).
 
 ## Session Log
 
@@ -249,3 +252,44 @@ Use this section to keep continuity across refreshes.
 - 2026-04-21:
   - Created migration plan document.
   - Initial architecture target and phase breakdown defined.
+- 2026-04-22:
+  - Migration policy updated: architecture-first execution with minimal behavioral baseline.
+  - Visual parity changed from strict matching to non-blocking diagnostic reference.
+  - Added `SMOKE_CHECKLIST.md` as the Phase 1 behavioral compatibility guard artifact.
+  - Added initial Phase 2 core scaffolding modules under `src/core/`: `state.js`, `scheduler.js`, `commands.js`, `settingsRegistry.js`.
+  - Added thin runtime-core adapter in `src/main.js` (store/scheduler/commands/settings bootstrap + scheduler update hook before render).
+  - Routed first interaction slice through command bus (`interaction mode`, `camera wheel/pan drag`, `cycle hour scrubbing/hour set`) without changing render pipeline behavior.
+  - Routed second interaction slice through command bus (`cursor light UI controls` and map click routing for `lighting/pathfinding/default move`).
+  - Routed pathfinding control inputs (`range`, weights, slope cutoff, base cost) through command handlers.
+  - Routed swarm follow controls (`follow toggle`, `follow target`) through command handlers.
+  - Extracted command registration from `main.js` into `src/core/registerMainCommands.js` with explicit dependency injection.
+  - Extracted frame-state sync from `main.js` into `src/core/frameSnapshot.js` and wired render-loop snapshot updates through that module.
+  - Added `src/sim/timeSystem.js`, registered it in scheduler, and moved cycle-time progression out of inline render logic.
+  - Added `src/sim/lightingSystem.js`, registered it in scheduler, and switched render to system-owned per-frame lighting params.
+  - Extracted mode + cycle input listeners into `src/ui/bindings/interactionBinding.js` and wired them via command dispatch adapters.
+  - Added `src/core/runtimeCore.js` for runtime bootstrap + command dispatch context creation.
+  - Extracted pathfinding control listeners into `src/ui/bindings/pathfindingBinding.js`.
+  - Extracted cursor-light control listeners into `src/ui/bindings/cursorLightBinding.js`.
+  - Extracted swarm-follow listeners into `src/ui/bindings/swarmFollowBinding.js`.
+  - Extracted point-light editor listeners into `src/ui/bindings/pointLightEditorBinding.js`.
+  - Extracted map load/save listeners into `src/ui/bindings/mapIoBinding.js`.
+  - Extracted render FX listeners (parallax/volumetric/flicker/fog/cloud/water) into `src/ui/bindings/renderFxBinding.js`.
+  - Extracted remaining swarm panel listeners (including swarm enable/disable flow) into `src/ui/bindings/swarmPanelBinding.js`.
+  - Extracted canvas interaction listeners into `src/ui/bindings/canvasBinding.js`.
+  - Extracted topic panel listeners into `src/ui/bindings/topicPanelBinding.js`.
+  - Extracted point-light worker message listener into `src/core/pointLightWorkerBinding.js`.
+  - Extracted final inline runtime listeners (`heightScale` and `resize`) into `src/ui/bindings/runtimeBinding.js`.
+  - `src/main.js` listener wiring is now fully module-driven (no inline `addEventListener` blocks).
+  - Added Phase 3 renderer scaffolding: `src/render/resources.js` + `src/render/renderer.js`, and routed terrain frame rendering through a renderer facade in `main.js`.
+  - Added minimal render pass contract (`registerPass`/`execute`) and registered `shadow`, `mainTerrain`, and `backgroundClear` passes from `main.js`.
+  - Extracted concrete pass implementations to `src/render/passes/shadowPass.js` and `src/render/passes/mainTerrainPass.js`, keeping registry-driven execution in `main.js`.
+  - Extracted blur pass to `src/render/passes/blurPass.js` and split shadow pipeline so blur runs as separate registered pass (`shadowBlur`).
+  - Extracted point-light texture usage path to `src/render/passes/pointLightUsagePass.js` and wired uniform upload through that helper.
+  - Extracted flow-map precompute to `src/render/precompute/flowMap.js` and wired `rebuildFlowMapTexture()` through module adapter.
+  - Extracted point-light bake orchestration (debounce scheduling + worker/fallback dispatch + request-id tracking) to `src/render/precompute/pointLightBake.js`.
+  - Added `src/render/frameRenderState.js` and switched main render loop to build/pass a `FrameRenderState` DTO to renderer each frame.
+  - Added `src/render/uniformInputState.js` and switched `uploadUniforms(...)` to consume prebuilt uniform input state (removed direct DOM control reads from upload path).
+  - Added scheduler-driven `src/sim/fogSystem.js` and `src/sim/cloudSystem.js`; uniform input builder now consumes their per-frame state outputs.
+  - Added scheduler-driven `src/sim/waterFxSystem.js`; uniform input builder now consumes per-frame water FX state outputs.
+  - Tightened `timeSystem` and `lightingSystem` contracts to emit explicit per-frame state objects consumed by render (`frameTimeState`, `frameLightingState`).
+  - Synced Phase 4/5 status markers to reflect implemented command-dispatch and systemization progress.
