@@ -1,3 +1,9 @@
+import {
+  DEFAULT_GAMEPLAY_CURSOR_LIGHT,
+  DEFAULT_GAMEPLAY_PATHFINDING,
+  DEFAULT_GAMEPLAY_SWARM,
+} from "./state.js";
+
 function buildSimulationUpdate(prevSimulation, weatherInput, simulationKnobs) {
   if (!weatherInput && !simulationKnobs) {
     return prevSimulation;
@@ -90,19 +96,19 @@ export function updateCoreFrameSnapshot(store, nowMs, deps) {
           ...prev.gameplay.pathfinding,
           ...pathfinding,
         }
-        : prev.gameplay.pathfinding,
+        : { ...DEFAULT_GAMEPLAY_PATHFINDING },
       swarm: swarm
         ? {
           ...prev.gameplay.swarm,
           ...swarm,
         }
-        : prev.gameplay.swarm,
+        : { ...DEFAULT_GAMEPLAY_SWARM },
       cursorLight: cursorLight
         ? {
           ...prev.gameplay.cursorLight,
           ...cursorLight,
         }
-        : prev.gameplay.cursorLight,
+        : { ...DEFAULT_GAMEPLAY_CURSOR_LIGHT },
     },
   }));
 }

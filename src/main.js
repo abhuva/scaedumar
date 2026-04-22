@@ -4067,11 +4067,14 @@ function markSimulationKnobsDirty(section) {
 }
 
 function getSimulationKnobsSnapshot() {
+  const nextLighting = serializeLightingSettings();
+  const nextFog = serializeFogSettings();
+
   if (!cachedSimulationKnobs) {
     cachedSimulationKnobs = {
-      lighting: serializeLightingSettings(),
+      lighting: nextLighting,
       parallax: serializeParallaxSettings(),
-      fog: serializeFogSettings(),
+      fog: nextFog,
       clouds: serializeCloudSettings(),
       waterFx: serializeWaterSettings(),
     };
@@ -4083,26 +4086,22 @@ function getSimulationKnobsSnapshot() {
     return cachedSimulationKnobs;
   }
   if (
-    !simulationKnobDirty.lighting
     && !simulationKnobDirty.parallax
-    && !simulationKnobDirty.fog
     && !simulationKnobDirty.clouds
     && !simulationKnobDirty.waterFx
   ) {
+    cachedSimulationKnobs.lighting = nextLighting;
+    cachedSimulationKnobs.fog = nextFog;
     return cachedSimulationKnobs;
   }
-  if (simulationKnobDirty.lighting) {
-    cachedSimulationKnobs.lighting = serializeLightingSettings();
-    simulationKnobDirty.lighting = false;
-  }
+  cachedSimulationKnobs.lighting = nextLighting;
+  simulationKnobDirty.lighting = false;
   if (simulationKnobDirty.parallax) {
     cachedSimulationKnobs.parallax = serializeParallaxSettings();
     simulationKnobDirty.parallax = false;
   }
-  if (simulationKnobDirty.fog) {
-    cachedSimulationKnobs.fog = serializeFogSettings();
-    simulationKnobDirty.fog = false;
-  }
+  cachedSimulationKnobs.fog = nextFog;
+  simulationKnobDirty.fog = false;
   if (simulationKnobDirty.clouds) {
     cachedSimulationKnobs.clouds = serializeCloudSettings();
     simulationKnobDirty.clouds = false;

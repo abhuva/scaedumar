@@ -21,6 +21,10 @@ export function bindMapIoControls(deps) {
         }
         targetPath = deps.normalizeMapFolderPath(pickedFolder);
       }
+      if (!targetPath) {
+        deps.setStatus("No map folder selected.");
+        return;
+      }
       try {
         await deps.loadMapFromPath(targetPath);
       } catch (error) {

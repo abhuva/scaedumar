@@ -6,6 +6,34 @@ const DEFAULT_WEATHER_STATE = {
   localModulation: 0.15,
 };
 
+export const DEFAULT_GAMEPLAY_PLAYER = {
+  pixelX: 0,
+  pixelY: 0,
+};
+
+export const DEFAULT_GAMEPLAY_CURSOR_LIGHT = {
+  enabled: false,
+  useTerrainHeight: true,
+  strength: 30,
+  heightOffset: 8,
+};
+
+export const DEFAULT_GAMEPLAY_PATHFINDING = {
+  range: 30,
+  weightSlope: 1.8,
+  weightHeight: 3,
+  weightWater: 0,
+  slopeCutoff: 90,
+  baseCost: 1,
+};
+
+export const DEFAULT_GAMEPLAY_SWARM = {
+  enabled: false,
+  count: 0,
+  followEnabled: false,
+  followTargetType: "agent",
+};
+
 export function createInitialState() {
   return {
     mode: "dev",
@@ -53,31 +81,11 @@ export function createInitialState() {
       weather: { ...DEFAULT_WEATHER_STATE },
     },
     gameplay: {
-      player: {
-        pixelX: 0,
-        pixelY: 0,
-      },
+      player: { ...DEFAULT_GAMEPLAY_PLAYER },
       interactionMode: "none",
-      cursorLight: {
-        enabled: false,
-        useTerrainHeight: true,
-        strength: 30,
-        heightOffset: 8,
-      },
-      pathfinding: {
-        range: 30,
-        weightSlope: 1.8,
-        weightHeight: 3,
-        weightWater: 0,
-        slopeCutoff: 90,
-        baseCost: 1,
-      },
-      swarm: {
-        enabled: false,
-        count: 0,
-        followEnabled: false,
-        followTargetType: "agent",
-      },
+      cursorLight: { ...DEFAULT_GAMEPLAY_CURSOR_LIGHT },
+      pathfinding: { ...DEFAULT_GAMEPLAY_PATHFINDING },
+      swarm: { ...DEFAULT_GAMEPLAY_SWARM },
     },
     ui: {},
   };
