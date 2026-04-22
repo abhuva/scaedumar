@@ -136,6 +136,10 @@ Build a self-contained prototype for top-down terrain rendering from Gaea-export
   - `PF` = pathfinding preview/click-to-move mode
   - neither = click no-op
 - Player is loaded from map-local `npc.json` and rendered as a map-pixel circle.
+- Swarm rendering supports two modes from the Agent Swarm panel:
+  - unlit overlay mode (existing behavior)
+  - `Fully Lit Swarm` mode (swarm shaded with terrain lighting pipeline: sun/moon, per-agent ray-tested shadows, point lights, cloud shade, fog, volumetrics)
+- In `Fully Lit Swarm`, baked point-light brightness is used as vertical reach from terrain height to swarm altitude, with linear falloff (full at terrain height, minimum at edge, zero above reach).
 - Pathfinding uses a local Dijkstra field centered on player.
 - Path window is configurable in UI (`30x30` up to `100x100`).
 - Move cost is continuous (no hard blocking), currently based on:

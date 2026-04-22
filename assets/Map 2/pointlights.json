@@ -11,6 +11,8 @@
       "range": 30,
       "intensity": 1,
       "heightOffset": 8,
+      "flicker": 0.7,
+      "flickerSpeed": 0.5,
       "color": [
         1,
         0.6078431372549019,
@@ -23,6 +25,8 @@
       "range": 30,
       "intensity": 1,
       "heightOffset": 8,
+      "flicker": 0.7,
+      "flickerSpeed": 0.5,
       "color": [
         1,
         0.6078431372549019,
@@ -35,6 +39,8 @@
       "range": 30,
       "intensity": 1,
       "heightOffset": 8,
+      "flicker": 0.7,
+      "flickerSpeed": 0.5,
       "color": [
         1,
         0.6078431372549019,
@@ -47,6 +53,8 @@
       "range": 30,
       "intensity": 1,
       "heightOffset": 8,
+      "flicker": 0.7,
+      "flickerSpeed": 0.5,
       "color": [
         1,
         0.6078431372549019,
@@ -59,6 +67,8 @@
       "range": 30,
       "intensity": 1,
       "heightOffset": 8,
+      "flicker": 0.7,
+      "flickerSpeed": 0.5,
       "color": [
         1,
         0.6078431372549019,
@@ -71,6 +81,8 @@
       "range": 30,
       "intensity": 0.56,
       "heightOffset": 8,
+      "flicker": 0.7,
+      "flickerSpeed": 0.5,
       "color": [
         0.1803921568627451,
         1,
@@ -83,6 +95,8 @@
       "range": 30,
       "intensity": 1,
       "heightOffset": 8,
+      "flicker": 0.7,
+      "flickerSpeed": 0.5,
       "color": [
         1,
         0.6078431372549019,
@@ -95,6 +109,8 @@
       "range": 30,
       "intensity": 1,
       "heightOffset": 8,
+      "flicker": 0.7,
+      "flickerSpeed": 0.5,
       "color": [
         1,
         0.6078431372549019,
@@ -107,6 +123,8 @@
       "range": 30,
       "intensity": 1,
       "heightOffset": 8,
+      "flicker": 0.7,
+      "flickerSpeed": 0.5,
       "color": [
         1,
         0.6078431372549019,
@@ -119,6 +137,8 @@
       "range": 30,
       "intensity": 1,
       "heightOffset": 8,
+      "flicker": 0.7,
+      "flickerSpeed": 0.5,
       "color": [
         1,
         0.6078431372549019,
@@ -131,6 +151,8 @@
       "range": 30,
       "intensity": 1,
       "heightOffset": 8,
+      "flicker": 0.7,
+      "flickerSpeed": 0.5,
       "color": [
         1,
         0.6078431372549019,
@@ -143,6 +165,8 @@
       "range": 30,
       "intensity": 0.46,
       "heightOffset": 8,
+      "flicker": 0.7,
+      "flickerSpeed": 0.5,
       "color": [
         0.27450980392156865,
         0.1803921568627451,
@@ -155,6 +179,8 @@
       "range": 30,
       "intensity": 0.51,
       "heightOffset": 8,
+      "flicker": 0.7,
+      "flickerSpeed": 0.5,
       "color": [
         1,
         0,
@@ -167,6 +193,8 @@
       "range": 8,
       "intensity": 1.9,
       "heightOffset": 8,
+      "flicker": 0.7,
+      "flickerSpeed": 0.5,
       "color": [
         1,
         0.6078431372549019,
@@ -179,6 +207,8 @@
       "range": 8,
       "intensity": 1.69,
       "heightOffset": 8,
+      "flicker": 0.7,
+      "flickerSpeed": 0.5,
       "color": [
         1,
         0.6078431372549019,
@@ -191,6 +221,8 @@
       "range": 9,
       "intensity": 1.89,
       "heightOffset": 20,
+      "flicker": 0.7,
+      "flickerSpeed": 0.5,
       "color": [
         1,
         0.6078431372549019,

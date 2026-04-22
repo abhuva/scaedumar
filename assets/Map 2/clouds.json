@@ -1,12 +1,12 @@
 {
   "version": 1,
   "useClouds": true,
-  "cloudCoverage": 0.58,
+  "cloudCoverage": 0.67,
   "cloudSoftness": 0.12,
-  "cloudOpacity": 0.35,
-  "cloudScale": 2.2,
-  "cloudSpeed1": 0.045,
-  "cloudSpeed2": -0.03,
+  "cloudOpacity": 0.41,
+  "cloudScale": 1.7,
+  "cloudSpeed1": 0.01,
+  "cloudSpeed2": -0.01,
   "cloudSunParallax": 0.45,
   "cloudUseSunProjection": true
 }

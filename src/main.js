@@ -65,6 +65,7 @@ const swarmFollowAgentZoomSmoothingInput = getRequiredElementById("swarmFollowAg
 const swarmFollowAgentZoomSmoothingValue = getRequiredElementById("swarmFollowAgentZoomSmoothingValue");
 const swarmStatsPanelToggle = getRequiredElementById("swarmStatsPanelToggle");
 const swarmShowTerrainToggle = getRequiredElementById("swarmShowTerrainToggle");
+const swarmLitModeToggle = getRequiredElementById("swarmLitModeToggle");
 const swarmBackgroundColorInput = getRequiredElementById("swarmBackgroundColor");
 const swarmAgentCountInput = getRequiredElementById("swarmAgentCount");
 const swarmAgentCountValue = getRequiredElementById("swarmAgentCountValue");
@@ -641,6 +642,242 @@ void main() {
 
   lit = clamp(lit + volumetricScatter * (1.0 - lit), 0.0, 1.0);
   outColor = vec4(lit, 1.0);
+}`;
+
+const SWARM_VERT_SRC = `#version 300 es
+precision highp float;
+
+layout(location = 0) in vec3 aMapPos;
+layout(location = 1) in float aAgentType;
+layout(location = 2) in float aSunShadow;
+layout(location = 3) in float aMoonShadow;
+
+uniform vec2 uMapSize;
+uniform vec2 uResolution;
+uniform float uMapAspect;
+uniform vec2 uViewHalfExtents;
+uniform vec2 uPanWorld;
+
+out vec2 vUv;
+out float vSwarmZ;
+flat out float vAgentType;
+out float vSunShadow;
+out float vMoonShadow;
+
+void main() {
+  vec2 uv = vec2(
+    (aMapPos.x + 0.5) / max(1.0, uMapSize.x),
+    1.0 - (aMapPos.y + 0.5) / max(1.0, uMapSize.y)
+  );
+  vec2 world = vec2((uv.x - 0.5) * uMapAspect, uv.y - 0.5);
+  vec2 ndc = (world - uPanWorld) / uViewHalfExtents;
+  gl_Position = vec4(ndc, 0.0, 1.0);
+  float pxPerWorldX = uResolution.x / max(0.001, (2.0 * uViewHalfExtents.x));
+  float pxPerWorldY = uResolution.y / max(0.001, (2.0 * uViewHalfExtents.y));
+  float texelWorldX = uMapAspect / max(1.0, uMapSize.x);
+  float texelWorldY = 1.0 / max(1.0, uMapSize.y);
+  gl_PointSize = max(1.0, max(texelWorldX * pxPerWorldX, texelWorldY * pxPerWorldY));
+  vUv = uv;
+  vSwarmZ = aMapPos.z;
+  vAgentType = aAgentType;
+  vSunShadow = aSunShadow;
+  vMoonShadow = aMoonShadow;
+}`;
+
+const SWARM_FRAG_SRC = `#version 300 es
+precision highp float;
+
+out vec4 outColor;
+
+uniform sampler2D uNormals;
+uniform sampler2D uHeight;
+uniform sampler2D uPointLightTex;
+uniform sampler2D uCloudNoiseTex;
+
+uniform vec3 uSunDir;
+uniform vec3 uSunColor;
+uniform float uSunStrength;
+uniform vec3 uMoonDir;
+uniform vec3 uMoonColor;
+uniform float uMoonStrength;
+uniform vec3 uAmbientColor;
+uniform float uAmbient;
+
+uniform float uUseShadows;
+uniform float uUseFog;
+uniform vec3 uFogColor;
+uniform float uFogMinAlpha;
+uniform float uFogMaxAlpha;
+uniform float uFogFalloff;
+uniform float uFogStartOffset;
+uniform float uCameraHeightNorm;
+uniform float uUseVolumetric;
+uniform float uVolumetricStrength;
+uniform float uVolumetricDensity;
+uniform float uVolumetricAnisotropy;
+uniform float uVolumetricLength;
+uniform float uVolumetricSamples;
+uniform float uMapAspect;
+uniform vec2 uMapTexelSize;
+uniform float uTimeSec;
+uniform float uPointFlickerEnabled;
+uniform float uPointFlickerStrength;
+uniform float uPointFlickerSpeed;
+uniform float uPointFlickerSpatial;
+uniform float uUseClouds;
+uniform float uCloudCoverage;
+uniform float uCloudSoftness;
+uniform float uCloudOpacity;
+uniform float uCloudScale;
+uniform float uCloudSpeed1;
+uniform float uCloudSpeed2;
+uniform float uCloudSunParallax;
+uniform float uCloudUseSunProjection;
+uniform vec3 uHawkColor;
+uniform float uSwarmHeightMax;
+uniform float uPointLightEdgeMin;
+uniform float uSwarmAlpha;
+
+in vec2 vUv;
+in float vSwarmZ;
+flat in float vAgentType;
+in float vSunShadow;
+in float vMoonShadow;
+
+float uvHash(vec2 p) {
+  return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+}
+
+float fogAmountAtUv(vec2 uv) {
+  float terrainHeight = texture(uHeight, uv).r;
+  float heightDelta = max(0.0, uCameraHeightNorm - terrainHeight);
+  float adjustedDelta = max(0.0, heightDelta - uFogStartOffset);
+  float fogBase = smoothstep(0.02, 0.92, adjustedDelta);
+  return pow(clamp(fogBase, 0.0, 1.0), max(0.05, uFogFalloff));
+}
+
+float fogAlphaFromAmount(float fogAmount) {
+  float fogMin = min(uFogMinAlpha, uFogMaxAlpha);
+  float fogMax = max(uFogMinAlpha, uFogMaxAlpha);
+  return mix(fogMin, fogMax, clamp(fogAmount, 0.0, 1.0));
+}
+
+float cloudMaskAtUv(vec2 uv, float timeSec, vec3 sunDir) {
+  if (uUseClouds < 0.5 || uCloudOpacity <= 0.0001) return 0.0;
+  float cloudScale = max(0.05, uCloudScale);
+  float soft = max(0.001, uCloudSoftness);
+  float threshold = clamp(uCloudCoverage, 0.0, 1.0);
+  vec2 sunShift = vec2(0.0);
+  if (uCloudUseSunProjection > 0.5) {
+    float sunZ = max(0.12, sunDir.z);
+    sunShift = -sunDir.xy / sunZ * (uCloudSunParallax * 0.03);
+  }
+  vec2 cloudUvA = fract((uv + sunShift + vec2(timeSec * uCloudSpeed1, timeSec * uCloudSpeed1 * 0.63)) * cloudScale);
+  vec2 cloudUvB = fract((uv + sunShift * 1.55 + vec2(-timeSec * uCloudSpeed2 * 0.74, timeSec * uCloudSpeed2)) * (cloudScale * 1.93));
+  float noiseA = texture(uCloudNoiseTex, cloudUvA).r;
+  float noiseB = texture(uCloudNoiseTex, cloudUvB).r;
+  float maskA = smoothstep(threshold - soft, threshold + soft, noiseA);
+  float maskB = smoothstep(threshold - soft, threshold + soft, noiseB);
+  return clamp(maskA * 0.66 + maskB * 0.34, 0.0, 1.0);
+}
+
+vec3 computeVolumetricScattering(vec2 uv, float timeSec, float sunVisibility) {
+  if (uUseVolumetric < 0.5 || uVolumetricStrength <= 0.0001 || sunVisibility <= 0.0001) return vec3(0.0);
+  float sunPlanarLen = length(uSunDir.xy);
+  if (sunPlanarLen < 0.0001) return vec3(0.0);
+  float sunLateral = clamp(sunPlanarLen, 0.0, 1.0);
+  float altitudeStretch = mix(0.18, 1.0, pow(sunLateral, 0.85));
+  float altitudeScatterGain = mix(0.22, 1.0, pow(sunLateral, 0.65));
+  float sampleCount = max(1.0, floor(clamp(uVolumetricSamples, 4.0, 24.0) + 0.5));
+  vec2 rayDir = -uSunDir.xy / sunPlanarLen;
+  float rayLengthPx = clamp(uVolumetricLength * altitudeStretch, 2.0, 160.0);
+  vec2 rayStepUv = rayDir * uMapTexelSize * (rayLengthPx / sampleCount);
+  float g = clamp(uVolumetricAnisotropy, 0.0, 0.95);
+  float cosTheta = clamp(uSunDir.z, 0.0, 1.0);
+  float phaseDenom = pow(max(0.001, 1.0 + g * g - 2.0 * g * cosTheta), 1.5);
+  float phase = (1.0 - g * g) / phaseDenom;
+  float extinctionScale = 0.08;
+  float accum = 0.0;
+  float transmittance = 1.0;
+  for (int i = 0; i < 24; i++) {
+    if (float(i) >= sampleCount) break;
+    vec2 sampleUv = uv + rayStepUv * (float(i) + 1.0);
+    if (sampleUv.x <= 0.0 || sampleUv.y <= 0.0 || sampleUv.x >= 1.0 || sampleUv.y >= 1.0) break;
+    float fogAmount = fogAmountAtUv(sampleUv);
+    float fogAlpha = fogAlphaFromAmount(fogAmount);
+    float localDensity = clamp(fogAlpha * uVolumetricDensity, 0.0, 1.5);
+    if (localDensity <= 0.0001) continue;
+    float localCloudMask = cloudMaskAtUv(sampleUv, timeSec, uSunDir);
+    float localSun = 1.0 - localCloudMask * clamp(uCloudOpacity, 0.0, 1.0) * sunVisibility;
+    float scatter = localSun * localDensity * phase;
+    accum += transmittance * scatter;
+    transmittance *= exp(-localDensity * extinctionScale);
+    if (transmittance <= 0.0005) break;
+  }
+  vec3 scatterColor = mix(uFogColor, uSunColor, 0.72);
+  float scatterEnergy = accum * uVolumetricStrength * altitudeScatterGain * 0.16;
+  float compressedEnergy = scatterEnergy / (1.0 + scatterEnergy * 1.85);
+  return scatterColor * compressedEnergy;
+}
+
+void main() {
+  vec3 base = (vAgentType > 0.5)
+    ? uHawkColor
+    : vec3(clamp(0.28 + (vSwarmZ / max(1.0, uSwarmHeightMax)) * 0.72, 0.0, 1.0));
+  // Swarm agents are airborne markers, so use a stable normal instead of terrain normals.
+  vec3 n = vec3(0.0, 0.0, 1.0);
+
+  float sunDiffuse = max(dot(n, uSunDir), 0.0);
+  float moonDiffuse = max(dot(n, uMoonDir), 0.0);
+  float sunShadow = (uUseShadows > 0.5 && sunDiffuse > 0.0001 && uSunStrength > 0.0001) ? vSunShadow : 1.0;
+  float moonShadow = (uUseShadows > 0.5 && moonDiffuse > 0.0001 && uMoonStrength > 0.0001) ? vMoonShadow : 1.0;
+
+  vec3 ambientLit = base * (uAmbient * uAmbientColor);
+  vec3 sunLit = base * (sunDiffuse * sunShadow * uSunStrength) * uSunColor;
+  vec3 moonLit = base * (moonDiffuse * moonShadow * uMoonStrength) * uMoonColor;
+  vec4 pointLightSample = texture(uPointLightTex, vUv);
+  vec3 pointLightIntensity = pointLightSample.rgb;
+  float packedFlicker = floor(pointLightSample.a * 255.0 + 0.5);
+  float pointFlickerMask = floor(packedFlicker / 16.0) / 15.0;
+  float pointFlickerSpeedLocal = 0.35 + 2.65 * (mod(packedFlicker, 16.0) / 15.0);
+  float pointFlickerFactor = 1.0;
+  if (uPointFlickerEnabled > 0.5 && pointFlickerMask > 0.0001 && uPointFlickerStrength > 0.0001) {
+    float phase = uvHash(vUv * 809.3) * 6.2831853 * max(0.0, uPointFlickerSpatial);
+    float t = max(0.0, uTimeSec) * max(0.01, uPointFlickerSpeed) * pointFlickerSpeedLocal;
+    float waveA = 0.5 + 0.5 * sin(t * 6.2831853 + phase);
+    float waveB = 0.5 + 0.5 * sin(t * 11.3097336 + phase * 1.618);
+    float wave = clamp(waveA * 0.65 + waveB * 0.35, 0.0, 1.0);
+    pointFlickerFactor = 1.0 - clamp(uPointFlickerStrength * pointFlickerMask * wave, 0.0, 0.98);
+  }
+
+  // Height-aware point-light attenuation for swarm:
+  // brightness (0..255) is treated as vertical reach from terrain height to agent height.
+  float brightnessRange = max(pointLightIntensity.r, max(pointLightIntensity.g, pointLightIntensity.b)) * 255.0;
+  float terrainHeight = texture(uHeight, vUv).r * uSwarmHeightMax;
+  float aboveTerrain = max(0.0, vSwarmZ - terrainHeight);
+  float withinReach = step(aboveTerrain, brightnessRange);
+  float rangeNorm = aboveTerrain / max(0.001, brightnessRange);
+  float rangeFalloff = 1.0 - clamp(rangeNorm, 0.0, 1.0);
+  float pointHeightAtten = withinReach * (uPointLightEdgeMin + (1.0 - uPointLightEdgeMin) * rangeFalloff);
+
+  vec3 pointLit = base * (pointLightIntensity * pointFlickerFactor * pointHeightAtten);
+  vec3 lit = clamp(ambientLit + sunLit + moonLit + pointLit, 0.0, 1.0);
+  float timeSec = max(0.0, uTimeSec);
+  float sunVisibility = smoothstep(-0.04, 0.15, uSunDir.z);
+  if (sunVisibility > 0.0001) {
+    float cloudMask = cloudMaskAtUv(vUv, timeSec, uSunDir);
+    float cloudShade = 1.0 - (cloudMask * clamp(uCloudOpacity, 0.0, 1.0) * sunVisibility);
+    lit *= cloudShade;
+  }
+
+  float fogAmount = fogAmountAtUv(vUv);
+  float fogAlpha = fogAlphaFromAmount(fogAmount);
+  vec3 volumetricScatter = computeVolumetricScattering(vUv, timeSec, sunVisibility);
+  if (uUseFog > 0.5) {
+    lit = mix(lit, uFogColor, fogAlpha);
+  }
+  lit = clamp(lit + volumetricScatter * (1.0 - lit), 0.0, 1.0);
+  outColor = vec4(lit, uSwarmAlpha);
 }`;
 
 const SHADOW_FRAG_SRC = `#version 300 es
@@ -1282,6 +1519,7 @@ const DEFAULT_INTERACTION_SETTINGS = {
 
 const DEFAULT_SWARM_SETTINGS = {
   useAgentSwarm: false,
+  useLitSwarm: false,
   followZoomBySpeed: false,
   followZoomIn: 2.2,
   followZoomOut: 0.8,
@@ -1556,6 +1794,7 @@ function serializeSwarmData() {
 function applySwarmSettings(rawData) {
   const data = rawData && typeof rawData === "object" ? rawData : {};
   if (typeof data.useAgentSwarm === "boolean") swarmEnabledToggle.checked = data.useAgentSwarm;
+  if (typeof data.useLitSwarm === "boolean") swarmLitModeToggle.checked = data.useLitSwarm;
   if (typeof data.followZoomBySpeed === "boolean") swarmFollowZoomToggle.checked = data.followZoomBySpeed;
   if (Number.isFinite(Number(data.followZoomIn))) swarmFollowZoomInInput.value = String(clamp(Number(data.followZoomIn), zoomMin, zoomMax));
   if (Number.isFinite(Number(data.followZoomOut))) swarmFollowZoomOutInput.value = String(clamp(Number(data.followZoomOut), zoomMin, zoomMax));
@@ -2346,6 +2585,7 @@ function sampleSunAtHour(hour) {
 }
 
 const program = createProgram(VERT_SRC, FRAG_SRC);
+const swarmProgram = createProgram(SWARM_VERT_SRC, SWARM_FRAG_SRC);
 const shadowProgram = createProgram(VERT_SRC, SHADOW_FRAG_SRC);
 const shadowBlurProgram = createProgram(VERT_SRC, SHADOW_BLUR_FRAG_SRC);
 gl.useProgram(program);
@@ -2445,6 +2685,59 @@ const shadowUniforms = {
   uUseShadows: gl.getUniformLocation(shadowProgram, "uUseShadows"),
 };
 
+const swarmUniforms = {
+  uNormals: gl.getUniformLocation(swarmProgram, "uNormals"),
+  uHeight: gl.getUniformLocation(swarmProgram, "uHeight"),
+  uPointLightTex: gl.getUniformLocation(swarmProgram, "uPointLightTex"),
+  uCloudNoiseTex: gl.getUniformLocation(swarmProgram, "uCloudNoiseTex"),
+  uSunDir: gl.getUniformLocation(swarmProgram, "uSunDir"),
+  uSunColor: gl.getUniformLocation(swarmProgram, "uSunColor"),
+  uSunStrength: gl.getUniformLocation(swarmProgram, "uSunStrength"),
+  uMoonDir: gl.getUniformLocation(swarmProgram, "uMoonDir"),
+  uMoonColor: gl.getUniformLocation(swarmProgram, "uMoonColor"),
+  uMoonStrength: gl.getUniformLocation(swarmProgram, "uMoonStrength"),
+  uAmbientColor: gl.getUniformLocation(swarmProgram, "uAmbientColor"),
+  uAmbient: gl.getUniformLocation(swarmProgram, "uAmbient"),
+  uUseShadows: gl.getUniformLocation(swarmProgram, "uUseShadows"),
+  uUseFog: gl.getUniformLocation(swarmProgram, "uUseFog"),
+  uFogColor: gl.getUniformLocation(swarmProgram, "uFogColor"),
+  uFogMinAlpha: gl.getUniformLocation(swarmProgram, "uFogMinAlpha"),
+  uFogMaxAlpha: gl.getUniformLocation(swarmProgram, "uFogMaxAlpha"),
+  uFogFalloff: gl.getUniformLocation(swarmProgram, "uFogFalloff"),
+  uFogStartOffset: gl.getUniformLocation(swarmProgram, "uFogStartOffset"),
+  uCameraHeightNorm: gl.getUniformLocation(swarmProgram, "uCameraHeightNorm"),
+  uUseVolumetric: gl.getUniformLocation(swarmProgram, "uUseVolumetric"),
+  uVolumetricStrength: gl.getUniformLocation(swarmProgram, "uVolumetricStrength"),
+  uVolumetricDensity: gl.getUniformLocation(swarmProgram, "uVolumetricDensity"),
+  uVolumetricAnisotropy: gl.getUniformLocation(swarmProgram, "uVolumetricAnisotropy"),
+  uVolumetricLength: gl.getUniformLocation(swarmProgram, "uVolumetricLength"),
+  uVolumetricSamples: gl.getUniformLocation(swarmProgram, "uVolumetricSamples"),
+  uMapAspect: gl.getUniformLocation(swarmProgram, "uMapAspect"),
+  uMapTexelSize: gl.getUniformLocation(swarmProgram, "uMapTexelSize"),
+  uMapSize: gl.getUniformLocation(swarmProgram, "uMapSize"),
+  uResolution: gl.getUniformLocation(swarmProgram, "uResolution"),
+  uViewHalfExtents: gl.getUniformLocation(swarmProgram, "uViewHalfExtents"),
+  uPanWorld: gl.getUniformLocation(swarmProgram, "uPanWorld"),
+  uTimeSec: gl.getUniformLocation(swarmProgram, "uTimeSec"),
+  uPointFlickerEnabled: gl.getUniformLocation(swarmProgram, "uPointFlickerEnabled"),
+  uPointFlickerStrength: gl.getUniformLocation(swarmProgram, "uPointFlickerStrength"),
+  uPointFlickerSpeed: gl.getUniformLocation(swarmProgram, "uPointFlickerSpeed"),
+  uPointFlickerSpatial: gl.getUniformLocation(swarmProgram, "uPointFlickerSpatial"),
+  uUseClouds: gl.getUniformLocation(swarmProgram, "uUseClouds"),
+  uCloudCoverage: gl.getUniformLocation(swarmProgram, "uCloudCoverage"),
+  uCloudSoftness: gl.getUniformLocation(swarmProgram, "uCloudSoftness"),
+  uCloudOpacity: gl.getUniformLocation(swarmProgram, "uCloudOpacity"),
+  uCloudScale: gl.getUniformLocation(swarmProgram, "uCloudScale"),
+  uCloudSpeed1: gl.getUniformLocation(swarmProgram, "uCloudSpeed1"),
+  uCloudSpeed2: gl.getUniformLocation(swarmProgram, "uCloudSpeed2"),
+  uCloudSunParallax: gl.getUniformLocation(swarmProgram, "uCloudSunParallax"),
+  uCloudUseSunProjection: gl.getUniformLocation(swarmProgram, "uCloudUseSunProjection"),
+  uHawkColor: gl.getUniformLocation(swarmProgram, "uHawkColor"),
+  uSwarmHeightMax: gl.getUniformLocation(swarmProgram, "uSwarmHeightMax"),
+  uPointLightEdgeMin: gl.getUniformLocation(swarmProgram, "uPointLightEdgeMin"),
+  uSwarmAlpha: gl.getUniformLocation(swarmProgram, "uSwarmAlpha"),
+};
+
 const shadowBlurUniforms = {
   uShadowRawTex: gl.getUniformLocation(shadowBlurProgram, "uShadowRawTex"),
   uShadowResolution: gl.getUniformLocation(shadowBlurProgram, "uShadowResolution"),
@@ -2467,6 +2760,24 @@ gl.bufferData(
 );
 gl.enableVertexAttribArray(0);
 gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+
+const swarmPointVao = gl.createVertexArray();
+const swarmPointBuffer = gl.createBuffer();
+if (!swarmPointVao || !swarmPointBuffer) {
+  throw new Error("Failed to allocate swarm render buffers.");
+}
+gl.bindVertexArray(swarmPointVao);
+gl.bindBuffer(gl.ARRAY_BUFFER, swarmPointBuffer);
+gl.enableVertexAttribArray(0);
+gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 24, 0);
+gl.enableVertexAttribArray(1);
+gl.vertexAttribPointer(1, 1, gl.FLOAT, false, 24, 12);
+gl.enableVertexAttribArray(2);
+gl.vertexAttribPointer(2, 1, gl.FLOAT, false, 24, 16);
+gl.enableVertexAttribArray(3);
+gl.vertexAttribPointer(3, 1, gl.FLOAT, false, 24, 20);
+gl.bindVertexArray(null);
+gl.bindBuffer(gl.ARRAY_BUFFER, quad);
 
 const splatTex = createTexture();
 const normalsTex = createTexture();
@@ -2513,6 +2824,8 @@ const POINT_LIGHT_BAKE_LIVE_SCALE = 0.5;
 const POINT_LIGHT_BAKE_DEBOUNCE_MS = 80;
 const DEFAULT_POINT_LIGHT_FLICKER = 0.7;
 const DEFAULT_POINT_LIGHT_FLICKER_SPEED = 0.5;
+const SWARM_POINT_LIGHT_EDGE_MIN = 0.08;
+let swarmPointVertexData = new Float32Array(0);
 let overlayDirty = true;
 const DEFAULT_MAP_FOLDER = "assets/map1/";
 let currentMapFolderPath = DEFAULT_MAP_FOLDER;
@@ -2932,6 +3245,49 @@ function sampleHeightAtMapPixel(pixelX, pixelY) {
   return heightImageData.data[idx] / 255;
 }
 
+function sampleHeightAtMapCoord(mapX, mapY) {
+  if (!heightImageData || !heightImageData.data) {
+    return 0;
+  }
+  const hx = clamp(Math.round((mapX + 0.5) / splatSize.width * heightSize.width - 0.5), 0, heightSize.width - 1);
+  const hy = clamp(Math.round((mapY + 0.5) / splatSize.height * heightSize.height - 0.5), 0, heightSize.height - 1);
+  const idx = (hy * heightSize.width + hx) * 4;
+  return heightImageData.data[idx] / 255;
+}
+
+function computeSwarmDirectionalShadow(mapX, mapY, sourceHeight, lightDir, blockedShadowFactor) {
+  const lx = Number(lightDir[0]) || 0;
+  const ly = Number(lightDir[1]) || 0;
+  const lz = Number(lightDir[2]) || 0;
+  if (lz <= 0.01) return 0;
+  const dirLen = Math.hypot(lx, ly);
+  if (dirLen < 0.0001) return 1;
+
+  const stepPixels = 1.5;
+  const maxSteps = 120;
+  const slope = lz / Math.max(dirLen, 0.0001);
+  const stepX = (lx / dirLen) * stepPixels;
+  const stepY = (ly / dirLen) * stepPixels;
+  const heightBias = 0.7;
+  let rayX = mapX;
+  let rayY = mapY;
+  let traveledPixels = 0;
+  for (let i = 0; i < maxSteps; i++) {
+    rayX += stepX;
+    rayY += stepY;
+    traveledPixels += stepPixels;
+    if (rayX <= 0 || rayY <= 0 || rayX >= splatSize.width - 1 || rayY >= splatSize.height - 1) {
+      break;
+    }
+    const terrainH = sampleHeightAtMapCoord(rayX, rayY) * SWARM_Z_MAX;
+    const rayH = sourceHeight + slope * traveledPixels;
+    if (terrainH > rayH + heightBias) {
+      return blockedShadowFactor;
+    }
+  }
+  return 1;
+}
+
 function hasLineOfSightToLight(surfaceX, surfaceY, surfaceH, lightX, lightY, lightH, heightScaleValue) {
   const dx = lightX - surfaceX;
   const dy = lightY - surfaceY;
@@ -3335,6 +3691,7 @@ function getSwarmSettings() {
   const followAgentZoomSmoothing = clamp(Number(swarmFollowAgentZoomSmoothingInput.value), 0.01, 0.25);
   return {
     useAgentSwarm: swarmEnabledToggle.checked,
+    useLitSwarm: swarmLitModeToggle.checked,
     followZoomBySpeed: swarmFollowZoomToggle.checked,
     followZoomIn,
     followZoomOut,
@@ -3375,6 +3732,7 @@ function getSwarmSettings() {
 
 function setSwarmDefaults() {
   swarmEnabledToggle.checked = DEFAULT_SWARM_SETTINGS.useAgentSwarm;
+  swarmLitModeToggle.checked = DEFAULT_SWARM_SETTINGS.useLitSwarm;
   swarmFollowZoomToggle.checked = DEFAULT_SWARM_SETTINGS.followZoomBySpeed;
   swarmFollowZoomInInput.value = String(DEFAULT_SWARM_SETTINGS.followZoomIn);
   swarmFollowZoomOutInput.value = String(DEFAULT_SWARM_SETTINGS.followZoomOut);
@@ -3461,6 +3819,7 @@ function updateSwarmUi() {
   const followZoomControlsEnabled = swarmEnabled && swarmFollowZoomToggle.checked;
   syncSwarmStatsPanelVisibility();
   swarmShowTerrainToggle.disabled = !swarmEnabled;
+  swarmLitModeToggle.disabled = !swarmEnabled;
   swarmFollowToggleBtn.disabled = !swarmEnabled;
   swarmFollowTargetInput.disabled = !swarmEnabled;
   swarmFollowZoomToggle.disabled = !swarmEnabled;
@@ -4384,11 +4743,8 @@ function updateSwarmFollowCamera() {
   }
 }
 
-function drawSwarmOverlay() {
-  const settings = getSwarmSettings();
+function drawSwarmUnlitOverlay(settings) {
   const tintAlpha = settings.showTerrainInSwarm ? 0.55 : 0.95;
-  let hawkTexelW = 0;
-  let hawkTexelH = 0;
   for (let i = 0; i < swarmState.count; i++) {
     const mapX = swarmState.x[i];
     const mapY = swarmState.y[i];
@@ -4400,8 +4756,6 @@ function drawSwarmOverlay() {
     const down = worldToScreen(downWorld);
     const texelW = Math.max(0.25, Math.abs(right.x - center.x));
     const texelH = Math.max(0.25, Math.abs(down.y - center.y));
-    hawkTexelW = texelW;
-    hawkTexelH = texelH;
     const z = clamp(swarmState.z[i] / SWARM_Z_MAX, 0, 1);
     const lum = Math.round((0.28 + z * 0.72) * 255);
     overlayCtx.fillStyle = `rgba(${lum}, ${lum}, ${lum}, ${tintAlpha})`;
@@ -4409,8 +4763,14 @@ function drawSwarmOverlay() {
   }
 
   if (settings.useHawk && swarmState.hawks.length > 0) {
-    const w = hawkTexelW > 0 ? hawkTexelW : 1;
-    const h = hawkTexelH > 0 ? hawkTexelH : 1;
+    const hawkCenterWorld = mapCoordToWorld(swarmState.hawks[0].x, swarmState.hawks[0].y);
+    const hawkRightWorld = mapCoordToWorld(swarmState.hawks[0].x + 1, swarmState.hawks[0].y);
+    const hawkDownWorld = mapCoordToWorld(swarmState.hawks[0].x, swarmState.hawks[0].y + 1);
+    const hawkCenter = worldToScreen(hawkCenterWorld);
+    const hawkRight = worldToScreen(hawkRightWorld);
+    const hawkDown = worldToScreen(hawkDownWorld);
+    const w = Math.max(0.25, Math.abs(hawkRight.x - hawkCenter.x));
+    const h = Math.max(0.25, Math.abs(hawkDown.y - hawkCenter.y));
     const hawkRgb = hexToRgb01(settings.hawkColor).map((v) => Math.round(clamp(v, 0, 1) * 255));
     const hawkAlpha = settings.showTerrainInSwarm ? 0.85 : 1.0;
     overlayCtx.fillStyle = `rgba(${hawkRgb[0]}, ${hawkRgb[1]}, ${hawkRgb[2]}, ${hawkAlpha})`;
@@ -4420,7 +4780,9 @@ function drawSwarmOverlay() {
       overlayCtx.fillRect(center.x - w * 0.5, center.y - h * 0.5, w, h);
     }
   }
+}
 
+function drawSwarmGizmos(settings) {
   if (settings.followHawkRangeGizmo && swarmFollowState.enabled && swarmFollowState.targetType === "hawk") {
     const followHawkIndex = swarmFollowState.hawkIndex;
     if (Number.isInteger(followHawkIndex) && followHawkIndex >= 0 && followHawkIndex < swarmState.hawks.length) {
@@ -4450,6 +4812,129 @@ function drawSwarmOverlay() {
     overlayCtx.strokeStyle = settings.cursorMode === "attract" ? "rgba(110, 255, 170, 0.75)" : "rgba(255, 128, 128, 0.75)";
     overlayCtx.stroke();
   }
+}
+
+function ensureSwarmPointVertexCapacity(vertexCount) {
+  const required = Math.max(0, vertexCount) * 6;
+  if (swarmPointVertexData.length >= required) return;
+  swarmPointVertexData = new Float32Array(required);
+}
+
+function renderSwarmLit(params, nowSec, settings) {
+  const hawkCount = settings.useHawk ? swarmState.hawks.length : 0;
+  const totalCount = swarmState.count + hawkCount;
+  if (totalCount <= 0) return;
+
+  ensureSwarmPointVertexCapacity(totalCount);
+  const useAgentRayShadows = shadowsToggle.checked;
+  const blockedShadowFactor = 1 - clamp(Number(shadowStrengthInput.value), 0, 1);
+  let writeIndex = 0;
+  for (let i = 0; i < swarmState.count; i++) {
+    const mapX = swarmState.x[i];
+    const mapY = swarmState.y[i];
+    const agentZ = swarmState.z[i];
+    const sunShadow = useAgentRayShadows
+      ? computeSwarmDirectionalShadow(mapX, mapY, agentZ, params.sunDir, blockedShadowFactor)
+      : 1;
+    const moonShadow = useAgentRayShadows
+      ? computeSwarmDirectionalShadow(mapX, mapY, agentZ, params.moonDir, blockedShadowFactor)
+      : 1;
+    swarmPointVertexData[writeIndex++] = mapX;
+    swarmPointVertexData[writeIndex++] = mapY;
+    swarmPointVertexData[writeIndex++] = agentZ;
+    swarmPointVertexData[writeIndex++] = 0;
+    swarmPointVertexData[writeIndex++] = sunShadow;
+    swarmPointVertexData[writeIndex++] = moonShadow;
+  }
+  if (settings.useHawk) {
+    for (const hawk of swarmState.hawks) {
+      const sunShadow = useAgentRayShadows
+        ? computeSwarmDirectionalShadow(hawk.x, hawk.y, hawk.z, params.sunDir, blockedShadowFactor)
+        : 1;
+      const moonShadow = useAgentRayShadows
+        ? computeSwarmDirectionalShadow(hawk.x, hawk.y, hawk.z, params.moonDir, blockedShadowFactor)
+        : 1;
+      swarmPointVertexData[writeIndex++] = hawk.x;
+      swarmPointVertexData[writeIndex++] = hawk.y;
+      swarmPointVertexData[writeIndex++] = hawk.z;
+      swarmPointVertexData[writeIndex++] = 1;
+      swarmPointVertexData[writeIndex++] = sunShadow;
+      swarmPointVertexData[writeIndex++] = moonShadow;
+    }
+  }
+
+  const viewHalf = getViewHalfExtents();
+  const hawkColor = hexToRgb01(settings.hawkColor);
+  gl.useProgram(swarmProgram);
+
+  gl.activeTexture(gl.TEXTURE0);
+  gl.bindTexture(gl.TEXTURE_2D, normalsTex);
+  gl.uniform1i(swarmUniforms.uNormals, 0);
+
+  gl.activeTexture(gl.TEXTURE1);
+  gl.bindTexture(gl.TEXTURE_2D, heightTex);
+  gl.uniform1i(swarmUniforms.uHeight, 1);
+
+  gl.activeTexture(gl.TEXTURE2);
+  gl.bindTexture(gl.TEXTURE_2D, pointLightTex);
+  gl.uniform1i(swarmUniforms.uPointLightTex, 2);
+
+  gl.activeTexture(gl.TEXTURE3);
+  gl.bindTexture(gl.TEXTURE_2D, cloudNoiseTex);
+  gl.uniform1i(swarmUniforms.uCloudNoiseTex, 3);
+
+  gl.uniform3f(swarmUniforms.uSunDir, params.sunDir[0], params.sunDir[1], params.sunDir[2]);
+  gl.uniform3f(swarmUniforms.uSunColor, params.sun.sunColor[0], params.sun.sunColor[1], params.sun.sunColor[2]);
+  gl.uniform1f(swarmUniforms.uSunStrength, params.sunStrength);
+  gl.uniform3f(swarmUniforms.uMoonDir, params.moonDir[0], params.moonDir[1], params.moonDir[2]);
+  gl.uniform3f(swarmUniforms.uMoonColor, params.moonColor[0], params.moonColor[1], params.moonColor[2]);
+  gl.uniform1f(swarmUniforms.uMoonStrength, params.moonStrength);
+  gl.uniform3f(swarmUniforms.uAmbientColor, params.ambientColor[0], params.ambientColor[1], params.ambientColor[2]);
+  gl.uniform1f(swarmUniforms.uAmbient, params.ambientFinal);
+  gl.uniform1f(swarmUniforms.uUseShadows, shadowsToggle.checked ? 1 : 0);
+  gl.uniform1f(swarmUniforms.uUseFog, fogToggle.checked ? 1 : 0);
+  gl.uniform3f(swarmUniforms.uFogColor, params.fogColor[0], params.fogColor[1], params.fogColor[2]);
+  gl.uniform1f(swarmUniforms.uFogMinAlpha, clamp(Number(fogMinAlphaInput.value), 0, 1));
+  gl.uniform1f(swarmUniforms.uFogMaxAlpha, clamp(Number(fogMaxAlphaInput.value), 0, 1));
+  gl.uniform1f(swarmUniforms.uFogFalloff, clamp(Number(fogFalloffInput.value), 0.2, 4));
+  gl.uniform1f(swarmUniforms.uFogStartOffset, clamp(Number(fogStartOffsetInput.value), 0, 1));
+  gl.uniform1f(swarmUniforms.uCameraHeightNorm, params.cameraHeightNorm);
+  gl.uniform1f(swarmUniforms.uUseVolumetric, volumetricToggle.checked ? 1 : 0);
+  gl.uniform1f(swarmUniforms.uVolumetricStrength, clamp(Number(volumetricStrengthInput.value), 0, 1));
+  gl.uniform1f(swarmUniforms.uVolumetricDensity, clamp(Number(volumetricDensityInput.value), 0, 2));
+  gl.uniform1f(swarmUniforms.uVolumetricAnisotropy, clamp(Number(volumetricAnisotropyInput.value), 0, 0.95));
+  gl.uniform1f(swarmUniforms.uVolumetricLength, Math.round(clamp(Number(volumetricLengthInput.value), 8, 160)));
+  gl.uniform1f(swarmUniforms.uVolumetricSamples, Math.round(clamp(Number(volumetricSamplesInput.value), 4, 24)));
+  gl.uniform1f(swarmUniforms.uMapAspect, getMapAspect());
+  gl.uniform2f(swarmUniforms.uMapTexelSize, 1 / heightSize.width, 1 / heightSize.height);
+  gl.uniform2f(swarmUniforms.uMapSize, splatSize.width, splatSize.height);
+  gl.uniform2f(swarmUniforms.uResolution, canvas.width, canvas.height);
+  gl.uniform2f(swarmUniforms.uViewHalfExtents, viewHalf.x, viewHalf.y);
+  gl.uniform2f(swarmUniforms.uPanWorld, panWorld.x, panWorld.y);
+  gl.uniform1f(swarmUniforms.uTimeSec, Math.max(0, Number(nowSec) || 0));
+  gl.uniform1f(swarmUniforms.uPointFlickerEnabled, pointFlickerToggle.checked ? 1 : 0);
+  gl.uniform1f(swarmUniforms.uPointFlickerStrength, clamp(Number(pointFlickerStrengthInput.value), 0, 1));
+  gl.uniform1f(swarmUniforms.uPointFlickerSpeed, clamp(Number(pointFlickerSpeedInput.value), 0.1, 12));
+  gl.uniform1f(swarmUniforms.uPointFlickerSpatial, clamp(Number(pointFlickerSpatialInput.value), 0, 4));
+  gl.uniform1f(swarmUniforms.uUseClouds, cloudToggle.checked ? 1 : 0);
+  gl.uniform1f(swarmUniforms.uCloudCoverage, clamp(Number(cloudCoverageInput.value), 0, 1));
+  gl.uniform1f(swarmUniforms.uCloudSoftness, clamp(Number(cloudSoftnessInput.value), 0.01, 0.35));
+  gl.uniform1f(swarmUniforms.uCloudOpacity, clamp(Number(cloudOpacityInput.value), 0, 1));
+  gl.uniform1f(swarmUniforms.uCloudScale, clamp(Number(cloudScaleInput.value), 0.5, 8));
+  gl.uniform1f(swarmUniforms.uCloudSpeed1, clamp(Number(cloudSpeed1Input.value), -0.3, 0.3));
+  gl.uniform1f(swarmUniforms.uCloudSpeed2, clamp(Number(cloudSpeed2Input.value), -0.3, 0.3));
+  gl.uniform1f(swarmUniforms.uCloudSunParallax, clamp(Number(cloudSunParallaxInput.value), 0, 2));
+  gl.uniform1f(swarmUniforms.uCloudUseSunProjection, cloudSunProjectToggle.checked ? 1 : 0);
+  gl.uniform3f(swarmUniforms.uHawkColor, hawkColor[0], hawkColor[1], hawkColor[2]);
+  gl.uniform1f(swarmUniforms.uSwarmHeightMax, SWARM_Z_MAX);
+  gl.uniform1f(swarmUniforms.uPointLightEdgeMin, SWARM_POINT_LIGHT_EDGE_MIN);
+  gl.uniform1f(swarmUniforms.uSwarmAlpha, 1.0);
+
+  gl.bindVertexArray(swarmPointVao);
+  gl.bindBuffer(gl.ARRAY_BUFFER, swarmPointBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, swarmPointVertexData.subarray(0, totalCount * 6), gl.DYNAMIC_DRAW);
+  gl.drawArrays(gl.POINTS, 0, totalCount);
+  gl.bindVertexArray(null);
 }
 
 function getBaseViewHalfExtents() {
@@ -5109,7 +5594,11 @@ function drawOverlay() {
 
   drawMapDot(playerState.pixelX, playerState.pixelY, playerState.color);
   if (isSwarmEnabled()) {
-    drawSwarmOverlay();
+    const swarmSettings = getSwarmSettings();
+    if (!swarmSettings.useLitSwarm) {
+      drawSwarmUnlitOverlay(swarmSettings);
+    }
+    drawSwarmGizmos(swarmSettings);
   }
 }
 
@@ -5252,6 +5741,9 @@ pathBaseCostInput.addEventListener("input", () => {
   }
 });
 swarmShowTerrainToggle.addEventListener("change", () => {
+  requestOverlayDraw();
+});
+swarmLitModeToggle.addEventListener("change", () => {
   requestOverlayDraw();
 });
 swarmFollowZoomToggle.addEventListener("change", () => {
@@ -5991,8 +6483,9 @@ function render(nowMs) {
   updateSwarmStatsPanel();
   updateCycleHourLabel();
 
-  const swarmEnabled = isSwarmEnabled();
-  const showTerrain = !swarmEnabled || swarmShowTerrainToggle.checked;
+  const swarmSettings = getSwarmSettings();
+  const swarmEnabled = swarmSettings.useAgentSwarm;
+  const showTerrain = !swarmEnabled || swarmSettings.showTerrainInSwarm;
   gl.viewport(0, 0, canvas.width, canvas.height);
   if (showTerrain) {
     renderShadowPipeline(lightingParams);
@@ -6005,6 +6498,9 @@ function render(nowMs) {
     const bg = hexToRgb01(swarmBackgroundColorInput.value);
     gl.clearColor(bg[0], bg[1], bg[2], 1);
     gl.clear(gl.COLOR_BUFFER_BIT);
+  }
+  if (swarmEnabled && swarmSettings.useLitSwarm) {
+    renderSwarmLit(lightingParams, nowMs * 0.001, swarmSettings);
   }
 
   if (overlayDirty || swarmEnabled) {

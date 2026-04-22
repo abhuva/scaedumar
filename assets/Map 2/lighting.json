@@ -3,8 +3,19 @@
   "useShadows": true,
   "heightScale": 80,
   "shadowStrength": 0.6,
+  "shadowBlur": 2,
   "ambient": 0.35,
   "diffuse": 1.24,
-  "cycleHour": 23.700052100015615,
-  "cycleSpeed": 0.02
+  "useVolumetric": false,
+  "volumetricStrength": 0.24,
+  "volumetricDensity": 0.85,
+  "volumetricAnisotropy": 0.45,
+  "volumetricLength": 52,
+  "volumetricSamples": 12,
+  "cycleHour": 14.308289100000886,
+  "cycleSpeed": 0.07,
+  "pointFlickerEnabled": false,
+  "pointFlickerStrength": 0.55,
+  "pointFlickerSpeed": 2.4,
+  "pointFlickerSpatial": 1
 }

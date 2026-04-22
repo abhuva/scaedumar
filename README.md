@@ -116,6 +116,13 @@ One-command helper:
 - `Path Window` slider controls local Dijkstra field size (`30x30 .. 100x100`).
 - Player state is read from `<mapFolder>/npc.json` (`charID`, `pixelX`, `pixelY`, `color`) and rendered as a map-pixel circle.
 - `Cursor Light` mode turns the mouse into a live point light (no bake per mouse move).
+- `Fully Lit Swarm` toggle renders swarm agents through the terrain lighting stack (sun/moon, point lights, cloud shading, fog, volumetric scattering).
+- Lit swarm shadows are evaluated per agent via directional height-map ray tests (sun + moon), avoiding false blinking from terrain shadow-map micro crevice detail.
+- When `Fully Lit Swarm` is off, swarm uses the previous unlit overlay shading.
+- In lit mode, baked point-light brightness is treated as swarm vertical reach in height units:
+  - full effect at terrain height
+  - linear falloff with altitude above terrain
+  - reaches a small minimum at the brightness edge, then drops to zero above the reach
 - Cursor light supports:
   - terrain-following elevation (`cursor terrain height + offset`)
   - old fixed-height behavior (height derived from light strength)

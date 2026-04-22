@@ -138,6 +138,11 @@ No game engine is used.
 - `LM` dock toggle enables `lighting` interaction mode.
 - `PF` dock toggle enables `pathfinding` interaction mode.
 - `Agent Swarm` panel has a `Use Agent Swarm` toggle for enabling/disabling swarm simulation.
+- `Agent Swarm` panel has a `Fully Lit Swarm` toggle:
+  - `off`: previous unlit overlay swarm rendering
+  - `on`: swarm rendered in WebGL using terrain lighting pipeline (sun/moon, baked point lights, cloud shading, fog, volumetrics)
+  - lit mode shadowing uses per-agent directional height-ray tests (sun + moon) instead of terrain shadow-texture sampling, reducing altitude-inconsistent shadow flicker over rugged terrain
+  - lit mode applies height-aware point-light reach for swarm: baked brightness is treated as vertical reach from terrain height, with linear falloff by altitude
 - `Agent Swarm` panel has a `Follow Agent Mode` button that tracks camera pan to a random selected swarm agent while keeping zoom/other controls available.
 - Follow mode now has optional speed-driven zoom:
   - `Speed Zoom` toggle enables dynamic camera zoom while follow mode is active.
@@ -155,7 +160,7 @@ No game engine is used.
 - Mode behavior:
   - `lighting`: left click adds/selects point lights.
   - `pathfinding`: hover shows live path preview from player; left click moves player instantly to clicked cell.
-  - swarm is not an interaction mode; it runs in map space as an overlay system while normal camera controls and interaction modes remain available.
+  - swarm is not an interaction mode; it runs in map space while normal camera controls and interaction modes remain available.
   - Agent swarm simulation space uses map coordinates (`0..mapWidth-1`, `0..mapHeight-1`) with edge-bounce constraints (no toroidal wraparound).
   - Swarm altitude is modeled in `z: 0..256`; each integration step validates against `height.png` at target `(x,y)` and clamps to at least `terrainHeight + clearance` so agents cannot move below terrain.
   - Swarm controls expose `Min Height` and `Max Height` to define an allowed altitude band (for example `30..200`) while still enforcing terrain floor constraints.

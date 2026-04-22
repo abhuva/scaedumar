@@ -6,7 +6,7 @@
   "pathWeightWater": 100,
   "pathSlopeCutoff": 51,
   "pathBaseCost": 0.7,
-  "cursorLightEnabled": false,
+  "cursorLightEnabled": true,
   "cursorLightFollowHeight": true,
   "cursorLightColor": "#ff9b2f",
   "cursorLightStrength": 30,
