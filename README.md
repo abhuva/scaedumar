@@ -95,6 +95,25 @@ One-command helper:
 .\build-tauri.ps1 -Mode build
 ```
 
+## Tests
+
+Run targeted architecture migration tests with Node's built-in test runner:
+
+```powershell
+node --test tests/*.test.js
+```
+
+Current tests cover:
+- mode capability gating contracts
+- weather-system deterministic normalization output
+- settings-registry contract wiring/roundtrip behavior
+
+Architecture map:
+- `docs/ARCHITECTURE.md`
+- visual diagnostic checklist/baselines:
+  - `SMOKE_CHECKLIST.md`
+  - `docs/visual-baselines/README.md`
+
 ## Notes
 
 - Directional light is modeled as a sun direction vector.

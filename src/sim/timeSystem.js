@@ -5,6 +5,11 @@ export function createTimeSystem(deps) {
       deps.setTimeState({
         cycleSpeedHoursPerSec,
       });
+      if (typeof deps.updateStoreTime === "function") {
+        deps.updateStoreTime({
+          cycleSpeedHoursPerSec,
+        });
+      }
 
       if (cycleSpeedHoursPerSec > 0 && !deps.isCycleHourScrubbing()) {
         deps.cycleState.hour = deps.wrapHour(deps.cycleState.hour + cycleSpeedHoursPerSec * ctx.dtSec);

@@ -2,6 +2,8 @@ export function buildFrameRenderState(input) {
   const coreState = input.coreState || {};
   const coreCamera = coreState.camera || {};
   const coreMap = coreState.map || {};
+  const coreSystems = coreState.systems || {};
+  const weather = coreSystems.weather || {};
   const nowSec = Math.max(0, Number(input.nowMs) * 0.001);
 
   return {
@@ -22,6 +24,15 @@ export function buildFrameRenderState(input) {
       width: Number(coreMap.width) || input.splatSize.width,
       height: Number(coreMap.height) || input.splatSize.height,
       loaded: Boolean(coreMap.loaded),
+    },
+    weather: {
+      type: typeof weather.type === "string" ? weather.type : "clear",
+      intensity: Number.isFinite(Number(weather.intensity)) ? Number(weather.intensity) : 0,
+      windDirDeg: Number.isFinite(Number(weather.windDirDeg)) ? Number(weather.windDirDeg) : 0,
+      windSpeed: Number.isFinite(Number(weather.windSpeed)) ? Number(weather.windSpeed) : 0,
+      localModulation: Number.isFinite(Number(weather.localModulation)) ? Number(weather.localModulation) : 0,
+      windDirX: Number.isFinite(Number(weather.windDirX)) ? Number(weather.windDirX) : 1,
+      windDirY: Number.isFinite(Number(weather.windDirY)) ? Number(weather.windDirY) : 0,
     },
     lightingParams: input.lightingParams,
     uniformInput: input.uniformInput || {},

@@ -1,7 +1,7 @@
 export function createCloudSystem(deps) {
   return {
     update() {
-      deps.setCloudState({
+      const value = {
         useClouds: deps.cloudToggle.checked,
         cloudCoverage: deps.clamp(Number(deps.cloudCoverageInput.value), 0, 1),
         cloudSoftness: deps.clamp(Number(deps.cloudSoftnessInput.value), 0.01, 0.35),
@@ -11,7 +11,11 @@ export function createCloudSystem(deps) {
         cloudSpeed2: deps.clamp(Number(deps.cloudSpeed2Input.value), -0.3, 0.3),
         cloudSunParallax: deps.clamp(Number(deps.cloudSunParallaxInput.value), 0, 2),
         cloudUseSunProjection: deps.cloudSunProjectToggle.checked,
-      });
+      };
+      deps.setCloudState(value);
+      if (typeof deps.updateStoreClouds === "function") {
+        deps.updateStoreClouds(value);
+      }
     },
   };
 }

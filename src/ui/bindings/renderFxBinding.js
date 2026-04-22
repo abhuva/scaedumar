@@ -1,73 +1,75 @@
 export function bindRenderFxControls(deps) {
-  deps.parallaxStrengthInput.addEventListener("input", deps.updateParallaxStrengthLabel);
-  deps.parallaxBandsInput.addEventListener("input", deps.updateParallaxBandsLabel);
-  deps.parallaxToggle.addEventListener("change", deps.updateParallaxUi);
-  deps.shadowBlurInput.addEventListener("input", deps.updateShadowBlurLabel);
-  deps.volumetricStrengthInput.addEventListener("input", deps.updateVolumetricLabels);
-  deps.volumetricDensityInput.addEventListener("input", deps.updateVolumetricLabels);
-  deps.volumetricAnisotropyInput.addEventListener("input", deps.updateVolumetricLabels);
-  deps.volumetricLengthInput.addEventListener("input", deps.updateVolumetricLabels);
-  deps.volumetricSamplesInput.addEventListener("input", deps.updateVolumetricLabels);
-  deps.volumetricToggle.addEventListener("change", deps.updateVolumetricUi);
-  deps.pointFlickerStrengthInput.addEventListener("input", deps.updatePointFlickerLabels);
-  deps.pointFlickerSpeedInput.addEventListener("input", deps.updatePointFlickerLabels);
-  deps.pointFlickerSpatialInput.addEventListener("input", deps.updatePointFlickerLabels);
-  deps.pointFlickerToggle.addEventListener("change", deps.updatePointFlickerUi);
-  deps.fogMinAlphaInput.addEventListener("input", deps.updateFogAlphaLabels);
-  deps.fogMaxAlphaInput.addEventListener("input", deps.updateFogAlphaLabels);
-  deps.fogFalloffInput.addEventListener("input", deps.updateFogFalloffLabel);
-  deps.fogStartOffsetInput.addEventListener("input", deps.updateFogStartOffsetLabel);
-  deps.fogToggle.addEventListener("change", deps.updateFogUi);
-  deps.fogColorInput.addEventListener("input", deps.markFogColorManual);
-  deps.cloudCoverageInput.addEventListener("input", deps.updateCloudLabels);
-  deps.cloudSoftnessInput.addEventListener("input", deps.updateCloudLabels);
-  deps.cloudOpacityInput.addEventListener("input", deps.updateCloudLabels);
-  deps.cloudScaleInput.addEventListener("input", deps.updateCloudLabels);
-  deps.cloudSpeed1Input.addEventListener("input", deps.updateCloudLabels);
-  deps.cloudSpeed2Input.addEventListener("input", deps.updateCloudLabels);
-  deps.cloudSunParallaxInput.addEventListener("input", deps.updateCloudLabels);
-  deps.cloudToggle.addEventListener("change", deps.updateCloudUi);
-  deps.waterFlowDirectionInput.addEventListener("input", deps.updateWaterLabels);
-  deps.waterLocalFlowMixInput.addEventListener("input", deps.updateWaterLabels);
-  deps.waterDownhillBoostInput.addEventListener("input", deps.updateWaterLabels);
+  function dispatchRenderFxChange(section, options = {}) {
+    deps.dispatchCoreCommand({
+      type: "core/renderFx/changed",
+      section,
+      rebuildFlowMap: Boolean(options.rebuildFlowMap),
+      markFogColorManual: Boolean(options.markFogColorManual),
+    });
+  }
+
+  deps.parallaxStrengthInput.addEventListener("input", () => dispatchRenderFxChange("parallax"));
+  deps.parallaxBandsInput.addEventListener("input", () => dispatchRenderFxChange("parallax"));
+  deps.parallaxToggle.addEventListener("change", () => dispatchRenderFxChange("parallax"));
+  deps.shadowBlurInput.addEventListener("input", () => dispatchRenderFxChange("lighting"));
+  deps.volumetricStrengthInput.addEventListener("input", () => dispatchRenderFxChange("lighting"));
+  deps.volumetricDensityInput.addEventListener("input", () => dispatchRenderFxChange("lighting"));
+  deps.volumetricAnisotropyInput.addEventListener("input", () => dispatchRenderFxChange("lighting"));
+  deps.volumetricLengthInput.addEventListener("input", () => dispatchRenderFxChange("lighting"));
+  deps.volumetricSamplesInput.addEventListener("input", () => dispatchRenderFxChange("lighting"));
+  deps.volumetricToggle.addEventListener("change", () => dispatchRenderFxChange("lighting"));
+  deps.pointFlickerStrengthInput.addEventListener("input", () => dispatchRenderFxChange("lighting"));
+  deps.pointFlickerSpeedInput.addEventListener("input", () => dispatchRenderFxChange("lighting"));
+  deps.pointFlickerSpatialInput.addEventListener("input", () => dispatchRenderFxChange("lighting"));
+  deps.pointFlickerToggle.addEventListener("change", () => dispatchRenderFxChange("lighting"));
+  deps.fogMinAlphaInput.addEventListener("input", () => dispatchRenderFxChange("fog"));
+  deps.fogMaxAlphaInput.addEventListener("input", () => dispatchRenderFxChange("fog"));
+  deps.fogFalloffInput.addEventListener("input", () => dispatchRenderFxChange("fog"));
+  deps.fogStartOffsetInput.addEventListener("input", () => dispatchRenderFxChange("fog"));
+  deps.fogToggle.addEventListener("change", () => dispatchRenderFxChange("fog"));
+  deps.fogColorInput.addEventListener("input", () => dispatchRenderFxChange("fog", { markFogColorManual: true }));
+  deps.cloudCoverageInput.addEventListener("input", () => dispatchRenderFxChange("clouds"));
+  deps.cloudSoftnessInput.addEventListener("input", () => dispatchRenderFxChange("clouds"));
+  deps.cloudOpacityInput.addEventListener("input", () => dispatchRenderFxChange("clouds"));
+  deps.cloudScaleInput.addEventListener("input", () => dispatchRenderFxChange("clouds"));
+  deps.cloudSpeed1Input.addEventListener("input", () => dispatchRenderFxChange("clouds"));
+  deps.cloudSpeed2Input.addEventListener("input", () => dispatchRenderFxChange("clouds"));
+  deps.cloudSunParallaxInput.addEventListener("input", () => dispatchRenderFxChange("clouds"));
+  deps.cloudToggle.addEventListener("change", () => dispatchRenderFxChange("clouds"));
+  deps.waterFlowDirectionInput.addEventListener("input", () => dispatchRenderFxChange("waterfx"));
+  deps.waterLocalFlowMixInput.addEventListener("input", () => dispatchRenderFxChange("waterfx"));
+  deps.waterDownhillBoostInput.addEventListener("input", () => dispatchRenderFxChange("waterfx"));
   deps.waterFlowRadius1Input.addEventListener("input", () => {
-    deps.updateWaterLabels();
-    deps.rebuildFlowMapTexture();
+    dispatchRenderFxChange("waterfx", { rebuildFlowMap: true });
   });
   deps.waterFlowRadius2Input.addEventListener("input", () => {
-    deps.updateWaterLabels();
-    deps.rebuildFlowMapTexture();
+    dispatchRenderFxChange("waterfx", { rebuildFlowMap: true });
   });
   deps.waterFlowRadius3Input.addEventListener("input", () => {
-    deps.updateWaterLabels();
-    deps.rebuildFlowMapTexture();
+    dispatchRenderFxChange("waterfx", { rebuildFlowMap: true });
   });
   deps.waterFlowWeight1Input.addEventListener("input", () => {
-    deps.updateWaterLabels();
-    deps.rebuildFlowMapTexture();
+    dispatchRenderFxChange("waterfx", { rebuildFlowMap: true });
   });
   deps.waterFlowWeight2Input.addEventListener("input", () => {
-    deps.updateWaterLabels();
-    deps.rebuildFlowMapTexture();
+    dispatchRenderFxChange("waterfx", { rebuildFlowMap: true });
   });
   deps.waterFlowWeight3Input.addEventListener("input", () => {
-    deps.updateWaterLabels();
-    deps.rebuildFlowMapTexture();
+    dispatchRenderFxChange("waterfx", { rebuildFlowMap: true });
   });
-  deps.waterFlowStrengthInput.addEventListener("input", deps.updateWaterLabels);
-  deps.waterFlowSpeedInput.addEventListener("input", deps.updateWaterLabels);
-  deps.waterFlowScaleInput.addEventListener("input", deps.updateWaterLabels);
-  deps.waterShimmerStrengthInput.addEventListener("input", deps.updateWaterLabels);
-  deps.waterGlintStrengthInput.addEventListener("input", deps.updateWaterLabels);
-  deps.waterGlintSharpnessInput.addEventListener("input", deps.updateWaterLabels);
-  deps.waterShoreFoamStrengthInput.addEventListener("input", deps.updateWaterLabels);
-  deps.waterShoreWidthInput.addEventListener("input", deps.updateWaterLabels);
-  deps.waterReflectivityInput.addEventListener("input", deps.updateWaterLabels);
-  deps.waterTintStrengthInput.addEventListener("input", deps.updateWaterLabels);
-  deps.waterFxToggle.addEventListener("change", deps.updateWaterUi);
+  deps.waterFlowStrengthInput.addEventListener("input", () => dispatchRenderFxChange("waterfx"));
+  deps.waterFlowSpeedInput.addEventListener("input", () => dispatchRenderFxChange("waterfx"));
+  deps.waterFlowScaleInput.addEventListener("input", () => dispatchRenderFxChange("waterfx"));
+  deps.waterShimmerStrengthInput.addEventListener("input", () => dispatchRenderFxChange("waterfx"));
+  deps.waterGlintStrengthInput.addEventListener("input", () => dispatchRenderFxChange("waterfx"));
+  deps.waterGlintSharpnessInput.addEventListener("input", () => dispatchRenderFxChange("waterfx"));
+  deps.waterShoreFoamStrengthInput.addEventListener("input", () => dispatchRenderFxChange("waterfx"));
+  deps.waterShoreWidthInput.addEventListener("input", () => dispatchRenderFxChange("waterfx"));
+  deps.waterReflectivityInput.addEventListener("input", () => dispatchRenderFxChange("waterfx"));
+  deps.waterTintStrengthInput.addEventListener("input", () => dispatchRenderFxChange("waterfx"));
+  deps.waterFxToggle.addEventListener("change", () => dispatchRenderFxChange("waterfx"));
   deps.waterFlowDownhillToggle.addEventListener("change", () => {
-    deps.updateWaterUi();
-    deps.rebuildFlowMapTexture();
+    dispatchRenderFxChange("waterfx", { rebuildFlowMap: true });
   });
-  deps.waterFlowInvertDownhillToggle.addEventListener("change", deps.updateWaterUi);
+  deps.waterFlowInvertDownhillToggle.addEventListener("change", () => dispatchRenderFxChange("waterfx"));
 }

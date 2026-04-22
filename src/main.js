@@ -2,6 +2,18 @@ import { createRuntimeCore, createCoreCommandDispatch } from "./core/runtimeCore
 import { bindPointLightWorker } from "./core/pointLightWorkerBinding.js";
 import { registerMainCommands } from "./core/registerMainCommands.js";
 import { updateCoreFrameSnapshot } from "./core/frameSnapshot.js";
+import { applyRuntimeParityFromCoreState } from "./core/runtimeParityAdapter.js";
+import { normalizeRuntimeMode, canUseInteractionMode as canUseModeInteraction, canUseTopic as canUseModeTopic } from "./core/modeCapabilities.js";
+import {
+  DEFAULT_LIGHTING_SETTINGS,
+  DEFAULT_FOG_SETTINGS,
+  DEFAULT_PARALLAX_SETTINGS,
+  DEFAULT_CLOUD_SETTINGS,
+  DEFAULT_WATER_SETTINGS,
+  DEFAULT_INTERACTION_SETTINGS,
+  DEFAULT_SWARM_SETTINGS,
+  registerMainSettingsContracts,
+} from "./core/mainSettingsContracts.js";
 import { createRenderResources } from "./render/resources.js";
 import { createRenderer } from "./render/renderer.js";
 import { buildFrameRenderState } from "./render/frameRenderState.js";
@@ -17,6 +29,10 @@ import { createLightingSystem } from "./sim/lightingSystem.js";
 import { createFogSystem } from "./sim/fogSystem.js";
 import { createCloudSystem } from "./sim/cloudSystem.js";
 import { createWaterFxSystem } from "./sim/waterFxSystem.js";
+import { createWeatherSystem } from "./sim/weatherSystem.js";
+import { createEntityStore } from "./gameplay/entityStore.js";
+import { createPathfindingSystem } from "./gameplay/pathfindingSystem.js";
+import { createMovementSystem } from "./gameplay/movementSystem.js";
 import { bindCanvasControls } from "./ui/bindings/canvasBinding.js";
 import { bindTopicPanelControls } from "./ui/bindings/topicPanelBinding.js";
 import { bindInteractionAndCycleControls } from "./ui/bindings/interactionBinding.js";
@@ -28,6 +44,7 @@ import { bindMapIoControls } from "./ui/bindings/mapIoBinding.js";
 import { bindRenderFxControls } from "./ui/bindings/renderFxBinding.js";
 import { bindSwarmPanelControls } from "./ui/bindings/swarmPanelBinding.js";
 import { bindRuntimeControls } from "./ui/bindings/runtimeBinding.js";
+import { createOverlayHooks } from "./ui/overlays/overlayHooks.js";
 
 function getRequiredElementById(id) {
   const el = document.getElementById(id);
@@ -1376,143 +1393,12 @@ async function tryLoadJsonFromUrl(path) {
   return response.json();
 }
 
-const DEFAULT_LIGHTING_SETTINGS = {
-  useShadows: true,
-  heightScale: 80,
-  shadowStrength: 0.6,
-  shadowBlur: 0,
-  ambient: 0.35,
-  diffuse: 1,
-  useVolumetric: false,
-  volumetricStrength: 0.24,
-  volumetricDensity: 0.85,
-  volumetricAnisotropy: 0.45,
-  volumetricLength: 52,
-  volumetricSamples: 12,
-  cycleHour: 9.5,
-  cycleSpeed: 0.08,
-  pointFlickerEnabled: true,
-  pointFlickerStrength: 0.55,
-  pointFlickerSpeed: 2.4,
-  pointFlickerSpatial: 1.0,
-};
-
-const DEFAULT_FOG_SETTINGS = {
-  useFog: false,
-  fogColor: "#7f8d99",
-  fogColorManual: false,
-  fogMinAlpha: 0.06,
-  fogMaxAlpha: 0.55,
-  fogFalloff: 1.2,
-  fogStartOffset: 0,
-};
-
-const DEFAULT_PARALLAX_SETTINGS = {
-  useParallax: false,
-  parallaxStrength: 0.35,
-  parallaxBands: 6,
-};
-
-const DEFAULT_CLOUD_SETTINGS = {
-  useClouds: false,
-  cloudCoverage: 0.58,
-  cloudSoftness: 0.12,
-  cloudOpacity: 0.35,
-  cloudScale: 2.2,
-  cloudSpeed1: 0.045,
-  cloudSpeed2: -0.028,
-  cloudSunParallax: 0.45,
-  cloudUseSunProjection: true,
-};
-
-const DEFAULT_WATER_SETTINGS = {
-  useWaterFx: false,
-  waterFlowDownhill: true,
-  waterFlowInvertDownhill: false,
-  waterFlowDebug: false,
-  waterFlowDirectionDeg: 135,
-  waterLocalFlowMix: 0.35,
-  waterDownhillBoost: 1.0,
-  waterFlowRadius1: 1,
-  waterFlowRadius2: 3,
-  waterFlowRadius3: 6,
-  waterFlowWeight1: 0.22,
-  waterFlowWeight2: 0.33,
-  waterFlowWeight3: 0.45,
-  waterFlowStrength: 0.045,
-  waterFlowSpeed: 0.75,
-  waterFlowScale: 4.2,
-  waterShimmerStrength: 0.05,
-  waterGlintStrength: 0.55,
-  waterGlintSharpness: 0.55,
-  waterShoreFoamStrength: 0.14,
-  waterShoreWidth: 2.2,
-  waterReflectivity: 0.33,
-  waterTintColor: "#4aa6c8",
-  waterTintStrength: 0.2,
-};
-
-const DEFAULT_INTERACTION_SETTINGS = {
-  pathfindingRange: 30,
-  pathWeightSlope: 1.8,
-  pathWeightHeight: 3.0,
-  pathWeightWater: 0.0,
-  pathSlopeCutoff: 90,
-  pathBaseCost: 1.0,
-  cursorLightEnabled: false,
-  cursorLightFollowHeight: true,
-  cursorLightColor: "#ff9b2f",
-  cursorLightStrength: 30,
-  cursorLightHeightOffset: 8,
-  cursorLightGizmo: false,
-  pointLightLiveUpdate: false,
-};
-
-const DEFAULT_SWARM_SETTINGS = {
-  useAgentSwarm: false,
-  useLitSwarm: false,
-  followZoomBySpeed: false,
-  followZoomIn: 2.2,
-  followZoomOut: 0.8,
-  followHawkRangeGizmo: false,
-  followAgentSpeedSmoothing: 0.04,
-  followAgentZoomSmoothing: 0.07,
-  showStatsPanel: false,
-  showTerrainInSwarm: false,
-  backgroundColor: "#1c2b44",
-  agentCount: 300,
-  simulationSpeed: 1.0,
-  maxSpeed: 120,
-  maxSteering: 140,
-  variationStrengthPct: 0,
-  neighborRadius: 52,
-  minHeight: 0,
-  maxHeight: 256,
-  separationRadius: 22,
-  alignmentWeight: 1.1,
-  cohesionWeight: 0.85,
-  separationWeight: 2.4,
-  wanderWeight: 0.22,
-  restChancePct: 0,
-  restTicks: 1000,
-  breedingThreshold: 180,
-  breedingSpawnChance: 0.35,
-  cursorMode: "none",
-  cursorStrength: 2.5,
-  cursorRadius: 130,
-  useHawk: false,
-  hawkCount: 1,
-  hawkColor: "#ff7c5c",
-  hawkSpeed: 180,
-  hawkSteering: 240,
-  hawkTargetRange: 180,
-};
 const SWARM_Z_MAX = 256;
 const SWARM_TERRAIN_CLEARANCE = 1;
 const SWARM_Z_NEIGHBOR_SCALE = 1;
 const LIGHTING_SAVE_PRECISION = 2;
 
-function serializeLightingSettings() {
+function serializeLightingSettingsLegacy() {
   return {
     version: 1,
     useShadows: shadowsToggle.checked,
@@ -1536,7 +1422,7 @@ function serializeLightingSettings() {
   };
 }
 
-function applyLightingSettings(rawData) {
+function applyLightingSettingsLegacy(rawData) {
   const data = rawData && typeof rawData === "object" ? rawData : {};
   if (typeof data.useShadows === "boolean") {
     shadowsToggle.checked = data.useShadows;
@@ -1602,7 +1488,7 @@ function applyLightingSettings(rawData) {
   schedulePointLightBake();
 }
 
-function serializeFogSettings() {
+function serializeFogSettingsLegacy() {
   return {
     version: 1,
     useFog: fogToggle.checked,
@@ -1615,7 +1501,7 @@ function serializeFogSettings() {
   };
 }
 
-function serializeParallaxSettings() {
+function serializeParallaxSettingsLegacy() {
   return {
     version: 1,
     useParallax: parallaxToggle.checked,
@@ -1624,7 +1510,7 @@ function serializeParallaxSettings() {
   };
 }
 
-function serializeCloudSettings() {
+function serializeCloudSettingsLegacy() {
   return {
     version: 1,
     useClouds: cloudToggle.checked,
@@ -1639,7 +1525,7 @@ function serializeCloudSettings() {
   };
 }
 
-function serializeWaterSettings() {
+function serializeWaterSettingsLegacy() {
   return {
     version: 1,
     useWaterFx: waterFxToggle.checked,
@@ -1669,7 +1555,7 @@ function serializeWaterSettings() {
   };
 }
 
-function serializeInteractionSettings() {
+function serializeInteractionSettingsLegacy() {
   return {
     version: 1,
     pathfindingRange: Math.round(clamp(Number(pathfindingRangeInput.value), 30, 300)),
@@ -1698,7 +1584,7 @@ function serializeNpcState() {
   };
 }
 
-function serializeSwarmData() {
+function serializeSwarmDataLegacy() {
   const settings = getSwarmSettings();
   return {
     version: 1,
@@ -1742,7 +1628,7 @@ function serializeSwarmData() {
   };
 }
 
-function applySwarmSettings(rawData) {
+function applySwarmSettingsLegacy(rawData) {
   const data = rawData && typeof rawData === "object" ? rawData : {};
   if (typeof data.useAgentSwarm === "boolean") swarmEnabledToggle.checked = data.useAgentSwarm;
   if (typeof data.useLitSwarm === "boolean") swarmLitModeToggle.checked = data.useLitSwarm;
@@ -1886,7 +1772,7 @@ function applySwarmData(rawData) {
   requestOverlayDraw();
 }
 
-function applyFogSettings(rawData) {
+function applyFogSettingsLegacy(rawData) {
   const data = rawData && typeof rawData === "object" ? rawData : {};
   if (typeof data.useFog === "boolean") {
     fogToggle.checked = data.useFog;
@@ -1913,7 +1799,7 @@ function applyFogSettings(rawData) {
   updateFogUi();
 }
 
-function applyParallaxSettings(rawData) {
+function applyParallaxSettingsLegacy(rawData) {
   const data = rawData && typeof rawData === "object" ? rawData : {};
   if (typeof data.useParallax === "boolean") {
     parallaxToggle.checked = data.useParallax;
@@ -1929,7 +1815,7 @@ function applyParallaxSettings(rawData) {
   updateParallaxUi();
 }
 
-function applyCloudSettings(rawData) {
+function applyCloudSettingsLegacy(rawData) {
   const data = rawData && typeof rawData === "object" ? rawData : {};
   if (typeof data.useClouds === "boolean") {
     cloudToggle.checked = data.useClouds;
@@ -1962,7 +1848,7 @@ function applyCloudSettings(rawData) {
   updateCloudUi();
 }
 
-function applyWaterSettings(rawData) {
+function applyWaterSettingsLegacy(rawData) {
   const data = rawData && typeof rawData === "object" ? rawData : {};
   if (typeof data.useWaterFx === "boolean") {
     waterFxToggle.checked = data.useWaterFx;
@@ -2041,7 +1927,7 @@ function applyWaterSettings(rawData) {
   rebuildFlowMapTexture();
 }
 
-function applyInteractionSettings(rawData) {
+function applyInteractionSettingsLegacy(rawData) {
   const data = rawData && typeof rawData === "object" ? rawData : {};
   if (Number.isFinite(Number(data.pathfindingRange))) {
     pathfindingRangeInput.value = String(Math.round(clamp(Number(data.pathfindingRange), 30, 300)));
@@ -2098,6 +1984,87 @@ function applyInteractionSettings(rawData) {
   updateCursorLightStrengthLabel();
   updateCursorLightHeightOffsetLabel();
   updateCursorLightModeUi();
+}
+
+function serializeSettingsByKey(key, fallbackSerialize) {
+  if (!runtimeCore.settingsRegistry.has(key)) {
+    return fallbackSerialize();
+  }
+  return runtimeCore.settingsRegistry.serialize(key, null);
+}
+
+function applySettingsByKey(key, rawData, fallbackApply) {
+  if (!runtimeCore.settingsRegistry.has(key)) {
+    fallbackApply(rawData);
+    return;
+  }
+  if (!runtimeCore.settingsRegistry.validate(key, rawData)) {
+    return;
+  }
+  runtimeCore.settingsRegistry.apply(key, rawData, null);
+}
+
+function serializeLightingSettings() {
+  return serializeSettingsByKey("lighting", serializeLightingSettingsLegacy);
+}
+
+function applyLightingSettings(rawData) {
+  applySettingsByKey("lighting", rawData, applyLightingSettingsLegacy);
+}
+
+function serializeFogSettings() {
+  return serializeSettingsByKey("fog", serializeFogSettingsLegacy);
+}
+
+function applyFogSettings(rawData) {
+  applySettingsByKey("fog", rawData, applyFogSettingsLegacy);
+}
+
+function serializeParallaxSettings() {
+  return serializeSettingsByKey("parallax", serializeParallaxSettingsLegacy);
+}
+
+function applyParallaxSettings(rawData) {
+  applySettingsByKey("parallax", rawData, applyParallaxSettingsLegacy);
+}
+
+function serializeCloudSettings() {
+  return serializeSettingsByKey("clouds", serializeCloudSettingsLegacy);
+}
+
+function applyCloudSettings(rawData) {
+  applySettingsByKey("clouds", rawData, applyCloudSettingsLegacy);
+}
+
+function serializeWaterSettings() {
+  return serializeSettingsByKey("waterfx", serializeWaterSettingsLegacy);
+}
+
+function applyWaterSettings(rawData) {
+  applySettingsByKey("waterfx", rawData, applyWaterSettingsLegacy);
+}
+
+function serializeInteractionSettings() {
+  return serializeSettingsByKey("interaction", serializeInteractionSettingsLegacy);
+}
+
+function applyInteractionSettings(rawData) {
+  applySettingsByKey("interaction", rawData, applyInteractionSettingsLegacy);
+}
+
+function serializeSwarmData() {
+  return serializeSettingsByKey("swarm", serializeSwarmDataLegacy);
+}
+
+function applySwarmSettings(rawData) {
+  applySettingsByKey("swarm", rawData, applySwarmSettingsLegacy);
+}
+
+function getSettingsDefaults(key, fallback) {
+  if (!runtimeCore.settingsRegistry.has(key)) {
+    return fallback;
+  }
+  return runtimeCore.settingsRegistry.getDefaults(key) || fallback;
 }
 
 function createMapDataFileTexts() {
@@ -2201,13 +2168,13 @@ async function loadMapFromPath(mapFolderPath) {
   clearPointLights();
   bakePointLightsTexture();
   updateLightEditorUi();
-  applyLightingSettings(DEFAULT_LIGHTING_SETTINGS);
-  applyParallaxSettings(DEFAULT_PARALLAX_SETTINGS);
-  applyInteractionSettings(DEFAULT_INTERACTION_SETTINGS);
-  applyFogSettings(DEFAULT_FOG_SETTINGS);
-  applyCloudSettings(DEFAULT_CLOUD_SETTINGS);
-  applyWaterSettings(DEFAULT_WATER_SETTINGS);
-  applySwarmSettings(DEFAULT_SWARM_SETTINGS);
+  applyLightingSettings(getSettingsDefaults("lighting", DEFAULT_LIGHTING_SETTINGS));
+  applyParallaxSettings(getSettingsDefaults("parallax", DEFAULT_PARALLAX_SETTINGS));
+  applyInteractionSettings(getSettingsDefaults("interaction", DEFAULT_INTERACTION_SETTINGS));
+  applyFogSettings(getSettingsDefaults("fog", DEFAULT_FOG_SETTINGS));
+  applyCloudSettings(getSettingsDefaults("clouds", DEFAULT_CLOUD_SETTINGS));
+  applyWaterSettings(getSettingsDefaults("waterfx", DEFAULT_WATER_SETTINGS));
+  applySwarmSettings(getSettingsDefaults("swarm", DEFAULT_SWARM_SETTINGS));
   reseedSwarmAgents(getSwarmSettings().agentCount);
   requestOverlayDraw();
 
@@ -2329,13 +2296,13 @@ async function loadMapFromFolderSelection(fileList) {
   clearPointLights();
   bakePointLightsTexture();
   updateLightEditorUi();
-  applyLightingSettings(DEFAULT_LIGHTING_SETTINGS);
-  applyParallaxSettings(DEFAULT_PARALLAX_SETTINGS);
-  applyInteractionSettings(DEFAULT_INTERACTION_SETTINGS);
-  applyFogSettings(DEFAULT_FOG_SETTINGS);
-  applyCloudSettings(DEFAULT_CLOUD_SETTINGS);
-  applyWaterSettings(DEFAULT_WATER_SETTINGS);
-  applySwarmSettings(DEFAULT_SWARM_SETTINGS);
+  applyLightingSettings(getSettingsDefaults("lighting", DEFAULT_LIGHTING_SETTINGS));
+  applyParallaxSettings(getSettingsDefaults("parallax", DEFAULT_PARALLAX_SETTINGS));
+  applyInteractionSettings(getSettingsDefaults("interaction", DEFAULT_INTERACTION_SETTINGS));
+  applyFogSettings(getSettingsDefaults("fog", DEFAULT_FOG_SETTINGS));
+  applyCloudSettings(getSettingsDefaults("clouds", DEFAULT_CLOUD_SETTINGS));
+  applyWaterSettings(getSettingsDefaults("waterfx", DEFAULT_WATER_SETTINGS));
+  applySwarmSettings(getSettingsDefaults("swarm", DEFAULT_SWARM_SETTINGS));
   reseedSwarmAgents(getSwarmSettings().agentCount);
   requestOverlayDraw();
 
@@ -3427,7 +3394,23 @@ function setTopicPanelVisible(visible) {
   topicPanelEl.classList.toggle("hidden", !visible);
 }
 
+function getRuntimeMode() {
+  return normalizeRuntimeMode(runtimeCore.store.getState().mode);
+}
+
+function canUseTopicInCurrentMode(topic) {
+  return canUseModeTopic(getRuntimeMode(), topic);
+}
+
+function canUseInteractionInCurrentMode(mode) {
+  return canUseModeInteraction(getRuntimeMode(), mode);
+}
+
 function setActiveTopic(topicName) {
+  if (topicName && !canUseTopicInCurrentMode(topicName)) {
+    setStatus(`'${topicName}' panel is unavailable in ${getRuntimeMode()} mode.`);
+    topicName = "";
+  }
   let opened = false;
   for (const btn of topicButtons) {
     const active = btn.dataset.topic === topicName;
@@ -3442,6 +3425,23 @@ function setActiveTopic(topicName) {
     }
   }
   setTopicPanelVisible(opened);
+}
+
+function updateModeCapabilitiesUi() {
+  const mode = getRuntimeMode();
+  for (const btn of topicButtons) {
+    const topic = btn.dataset.topic || "";
+    const enabled = canUseModeTopic(mode, topic);
+    btn.disabled = !enabled;
+    btn.classList.toggle("disabled", !enabled);
+  }
+  const canLighting = canUseModeInteraction(mode, "lighting");
+  const canPathfinding = canUseModeInteraction(mode, "pathfinding");
+  dockLightingModeToggle.disabled = !canLighting;
+  dockPathfindingModeToggle.disabled = !canPathfinding;
+  if (!canUseModeInteraction(mode, interactionMode)) {
+    setInteractionMode("none");
+  }
 }
 
 function updateCursorLightFromPointer(clientX, clientY) {
@@ -3581,19 +3581,27 @@ const cursorLightState = {
 const cycleState = {
   hour: 9.5,
 };
-let frameTimeState = {
-  cycleSpeedHoursPerSec: 0,
-};
-let frameLightingState = {
-  lightingParams: null,
-};
-let frameFogState = null;
-let frameCloudState = null;
-let frameWaterFxState = null;
 let isCycleHourScrubbing = false;
 
 const runtimeCore = createRuntimeCore();
 const dispatchCoreCommand = createCoreCommandDispatch(runtimeCore);
+const entityStore = createEntityStore();
+registerMainSettingsContracts(runtimeCore.settingsRegistry, {
+  serializeLighting: serializeLightingSettingsLegacy,
+  applyLighting: applyLightingSettingsLegacy,
+  serializeFog: serializeFogSettingsLegacy,
+  applyFog: applyFogSettingsLegacy,
+  serializeParallax: serializeParallaxSettingsLegacy,
+  applyParallax: applyParallaxSettingsLegacy,
+  serializeClouds: serializeCloudSettingsLegacy,
+  applyClouds: applyCloudSettingsLegacy,
+  serializeWater: serializeWaterSettingsLegacy,
+  applyWater: applyWaterSettingsLegacy,
+  serializeInteraction: serializeInteractionSettingsLegacy,
+  applyInteraction: applyInteractionSettingsLegacy,
+  serializeSwarm: serializeSwarmDataLegacy,
+  applySwarm: applySwarmSettingsLegacy,
+});
 const renderResources = createRenderResources({ gl, canvas });
 const renderer = createRenderer({ resources: renderResources });
 renderer.registerPass("shadow", createShadowPass({ renderShadowPipeline }));
@@ -3666,16 +3674,54 @@ registerMainCommands(runtimeCore.commandBus, {
   extractPathTo,
   setPlayerPosition,
   rebuildMovementField,
+  getPathfindingStateSnapshot,
   updatePathfindingRangeLabel,
   updatePathWeightLabels,
   updatePathSlopeCutoffLabel,
   updatePathBaseCostLabel,
+  updateParallaxStrengthLabel,
+  updateParallaxBandsLabel,
+  updateParallaxUi,
+  updateShadowBlurLabel,
+  updateVolumetricLabels,
+  updateVolumetricUi,
+  updatePointFlickerLabels,
+  updatePointFlickerUi,
+  updateFogAlphaLabels,
+  updateFogFalloffLabel,
+  updateFogStartOffsetLabel,
+  updateFogUi,
+  markFogColorManual: () => {
+    fogColorManual = true;
+  },
+  updateCloudLabels,
+  updateCloudUi,
+  updateWaterLabels,
+  updateWaterUi,
+  rebuildFlowMapTexture,
+  serializeLightingSettings,
+  serializeParallaxSettings,
+  serializeFogSettings,
+  serializeCloudSettings,
+  serializeWaterSettings,
+  updateSwarmUi,
+  updateSwarmLabels,
+  updateSwarmStatsPanel,
+  normalizeSwarmFollowZoomInputs,
+  normalizeSwarmHeightRangeInputs,
+  reseedSwarmAgents,
+  swarmAgentCountInput,
+  swarmEnabledToggle,
+  swarmCursorState,
   isSwarmEnabled,
+  getSwarmSettings,
   resetSwarmFollowSpeedSmoothing,
   updateSwarmFollowButtonUi,
-  getSwarmSettings,
   chooseRandomFollowHawkIndex,
   chooseRandomFollowAgentIndex,
+});
+runtimeCore.store.subscribe(() => {
+  updateModeCapabilitiesUi();
 });
 
 runtimeCore.scheduler.addSystem(
@@ -3686,8 +3732,18 @@ runtimeCore.scheduler.addSystem(
     cycleState,
     isCycleHourScrubbing: () => isCycleHourScrubbing,
     setCycleHourSliderFromState,
-    setTimeState: (value) => {
-      frameTimeState = value;
+    setTimeState: () => {},
+    updateStoreTime: (value) => {
+      runtimeCore.store.update((prev) => ({
+        ...prev,
+        systems: {
+          ...prev.systems,
+          time: {
+            ...prev.systems.time,
+            ...value,
+          },
+        },
+      }));
     },
   }),
 );
@@ -3695,8 +3751,18 @@ runtimeCore.scheduler.addSystem(
 runtimeCore.scheduler.addSystem(
   createLightingSystem({
     computeLightingParams,
-    setLightingState: (value) => {
-      frameLightingState = value;
+    setLightingState: () => {},
+    updateStoreLighting: (value) => {
+      runtimeCore.store.update((prev) => ({
+        ...prev,
+        systems: {
+          ...prev.systems,
+          lighting: {
+            ...prev.systems.lighting,
+            ...value,
+          },
+        },
+      }));
     },
   }),
 );
@@ -3709,8 +3775,18 @@ runtimeCore.scheduler.addSystem(
     fogMaxAlphaInput,
     fogFalloffInput,
     fogStartOffsetInput,
-    setFogState: (value) => {
-      frameFogState = value;
+    setFogState: () => {},
+    updateStoreFog: (value) => {
+      runtimeCore.store.update((prev) => ({
+        ...prev,
+        systems: {
+          ...prev.systems,
+          fog: {
+            ...prev.systems.fog,
+            ...value,
+          },
+        },
+      }));
     },
   }),
 );
@@ -3727,8 +3803,18 @@ runtimeCore.scheduler.addSystem(
     cloudSpeed2Input,
     cloudSunParallaxInput,
     cloudSunProjectToggle,
-    setCloudState: (value) => {
-      frameCloudState = value;
+    setCloudState: () => {},
+    updateStoreClouds: (value) => {
+      runtimeCore.store.update((prev) => ({
+        ...prev,
+        systems: {
+          ...prev.systems,
+          clouds: {
+            ...prev.systems.clouds,
+            ...value,
+          },
+        },
+      }));
     },
   }),
 );
@@ -3755,8 +3841,77 @@ runtimeCore.scheduler.addSystem(
     waterReflectivityInput,
     waterTintColorInput,
     waterTintStrengthInput,
-    setWaterFxState: (value) => {
-      frameWaterFxState = value;
+    setWaterFxState: () => {},
+    updateStoreWaterFx: (value) => {
+      runtimeCore.store.update((prev) => ({
+        ...prev,
+        systems: {
+          ...prev.systems,
+          waterFx: {
+            ...prev.systems.waterFx,
+            ...value,
+          },
+        },
+      }));
+    },
+  }),
+);
+
+runtimeCore.scheduler.addSystem(
+  createWeatherSystem({
+    clamp,
+    updateStoreWeather: (value) => {
+      runtimeCore.store.update((prev) => ({
+        ...prev,
+        systems: {
+          ...prev.systems,
+          weather: {
+            ...prev.systems.weather,
+            ...value,
+          },
+        },
+      }));
+    },
+  }),
+);
+
+runtimeCore.scheduler.addSystem(
+  createPathfindingSystem({
+    getPathfindingState: getPathfindingStateSnapshot,
+    setPathfindingState: (value) => {
+      runtimeCore.store.update((prev) => ({
+        ...prev,
+        gameplay: {
+          ...prev.gameplay,
+          pathfinding: {
+            ...prev.gameplay.pathfinding,
+            ...value,
+          },
+        },
+      }));
+    },
+  }),
+);
+
+runtimeCore.scheduler.addSystem(
+  createMovementSystem({
+    entityStore,
+    getPlayerState: () => ({
+      pixelX: playerState.pixelX,
+      pixelY: playerState.pixelY,
+    }),
+    setPlayerSnapshot: (value) => {
+      runtimeCore.store.update((prev) => ({
+        ...prev,
+        gameplay: {
+          ...prev.gameplay,
+          player: {
+            ...prev.gameplay.player,
+            pixelX: value.pixelX,
+            pixelY: value.pixelY,
+          },
+        },
+      }));
     },
   }),
 );
@@ -3828,6 +3983,56 @@ function getSwarmSettings() {
     hawkSpeed: clamp(Number(swarmHawkSpeedInput.value), 30, 420),
     hawkSteering: clamp(Number(swarmHawkSteeringInput.value), 20, 700),
     hawkTargetRange: Math.round(clamp(Number(swarmHawkTargetRangeInput.value), 20, 500)),
+  };
+}
+
+function getPathfindingStateSnapshot() {
+  return {
+    range: Math.round(clamp(Number(pathfindingRangeInput.value), 30, 300)),
+    weightSlope: clamp(Number(pathWeightSlopeInput.value), 0, 10),
+    weightHeight: clamp(Number(pathWeightHeightInput.value), 0, 10),
+    weightWater: clamp(Number(pathWeightWaterInput.value), 0, 100),
+    slopeCutoff: Math.round(clamp(Number(pathSlopeCutoffInput.value), 0, 90)),
+    baseCost: clamp(Number(pathBaseCostInput.value), 0, 2),
+  };
+}
+
+function getSwarmRuntimeStateSnapshot() {
+  return {
+    enabled: isSwarmEnabled(),
+    count: Math.max(0, Math.round(Number(swarmState.count) || 0)),
+    followEnabled: Boolean(swarmFollowState.enabled),
+    followTargetType: swarmFollowState.targetType === "hawk" ? "hawk" : "agent",
+  };
+}
+
+function getWeatherInputSnapshot() {
+  const prev = runtimeCore.store.getState().simulation.weather;
+  return {
+    type: typeof prev.type === "string" ? prev.type : "clear",
+    intensity: clamp(Number(prev.intensity), 0, 1),
+    windDirDeg: clamp(Number(prev.windDirDeg), 0, 360),
+    windSpeed: clamp(Number(prev.windSpeed), 0, 1),
+    localModulation: clamp(Number(prev.localModulation), 0, 1),
+  };
+}
+
+function getSimulationKnobsSnapshot() {
+  return {
+    lighting: serializeLightingSettings(),
+    parallax: serializeParallaxSettings(),
+    fog: serializeFogSettings(),
+    clouds: serializeCloudSettings(),
+    waterFx: serializeWaterSettings(),
+  };
+}
+
+function getCursorLightSnapshot() {
+  return {
+    enabled: cursorLightModeToggle.checked,
+    useTerrainHeight: Boolean(cursorLightState.useTerrainHeight),
+    strength: Math.round(clamp(Number(cursorLightState.strength), 1, 200)),
+    heightOffset: Math.round(clamp(Number(cursorLightState.heightOffset), 0, 120)),
   };
 }
 
@@ -5145,7 +5350,8 @@ function updatePathBaseCostLabel() {
 }
 
 function setInteractionMode(mode) {
-  const nextMode = mode === "lighting" || mode === "pathfinding" ? mode : "none";
+  const requestedMode = mode === "lighting" || mode === "pathfinding" ? mode : "none";
+  const nextMode = canUseInteractionInCurrentMode(requestedMode) ? requestedMode : "none";
   interactionMode = nextMode;
   dockLightingModeToggle.classList.toggle("active", nextMode === "lighting");
   dockPathfindingModeToggle.classList.toggle("active", nextMode === "pathfinding");
@@ -5597,6 +5803,16 @@ function requestOverlayDraw() {
   overlayDirty = true;
 }
 
+const overlayHooks = createOverlayHooks({
+  updateSwarm,
+  updateSwarmFollowCamera,
+  drawOverlay,
+  isOverlayDirty: () => overlayDirty,
+  clearOverlayDirty: () => {
+    overlayDirty = false;
+  },
+});
+
 function rgbToHex(rgb) {
   const r = Math.round(clamp(rgb[0], 0, 1) * 255);
   const g = Math.round(clamp(rgb[1], 0, 1) * 255);
@@ -5771,6 +5987,7 @@ bindSwarmPanelControls({
   swarmHawkSteeringInput,
   swarmHawkTargetRangeInput,
   swarmEnabledToggle,
+  dispatchCoreCommand,
   swarmState,
   swarmCursorState,
   swarmFollowState,
@@ -5798,6 +6015,8 @@ bindTopicPanelControls({
   topicPanelCloseBtn,
   windowEl: window,
   setActiveTopic,
+  canUseTopic: canUseTopicInCurrentMode,
+  setStatus,
 });
 
 bindInteractionAndCycleControls({
@@ -5807,6 +6026,7 @@ bindInteractionAndCycleControls({
   cycleHourInput,
   dispatchCoreCommand,
   getInteractionMode: () => interactionMode,
+  canUseInteractionMode: canUseInteractionInCurrentMode,
   movePreviewState,
   rebuildMovementField,
   setStatus,
@@ -5945,6 +6165,7 @@ bindRenderFxControls({
   waterFxToggle,
   waterFlowDownhillToggle,
   waterFlowInvertDownhillToggle,
+  dispatchCoreCommand,
   updateParallaxStrengthLabel,
   updateParallaxBandsLabel,
   updateParallaxUi,
@@ -6229,14 +6450,38 @@ function render(nowMs) {
     getZoom: () => zoom,
     currentMapFolderPath,
     splatSize,
+    getInteractionMode: () => interactionMode,
+    getPlayerState: () => playerState,
+    getPathfindingState: getPathfindingStateSnapshot,
+    getSwarmRuntimeState: getSwarmRuntimeStateSnapshot,
+    getWeatherInput: getWeatherInputSnapshot,
+    getSimulationKnobs: getSimulationKnobsSnapshot,
+    getCursorLightState: getCursorLightSnapshot,
   });
   runtimeCore.scheduler.updateAll({ nowMs, dtSec }, runtimeCore.store.getState());
   const coreState = runtimeCore.store.getState();
+  applyRuntimeParityFromCoreState(coreState, {
+    clamp,
+    panWorld,
+    cycleSpeedInput,
+    setZoom: (value) => {
+      zoom = value;
+    },
+    setInteractionMode,
+    pathfindingRangeInput,
+    pathWeightSlopeInput,
+    pathWeightHeightInput,
+    pathWeightWaterInput,
+    pathSlopeCutoffInput,
+    pathBaseCostInput,
+  });
 
   resize();
-  updateSwarm(nowMs);
-  updateSwarmFollowCamera();
-  const lightingParams = frameLightingState.lightingParams || computeLightingParams();
+  overlayHooks.updateGameplay(nowMs);
+  const systemState = coreState.systems || {};
+  const lightingParams = systemState.lighting && systemState.lighting.lightingParams
+    ? systemState.lighting.lightingParams
+    : computeLightingParams();
   const uniformInput = buildUniformInputState({
     clamp,
     getMapAspect,
@@ -6292,11 +6537,13 @@ function render(nowMs) {
     waterTintColorInput,
     waterTintStrengthInput,
     hexToRgb01,
-    fogState: frameFogState,
-    cloudState: frameCloudState,
-    waterFxState: frameWaterFxState,
+    fogState: systemState.fog || null,
+    cloudState: systemState.clouds || null,
+    waterFxState: systemState.waterFx || null,
+    weatherState: systemState.weather || null,
   });
-  cycleInfoEl.textContent = `Time: ${formatHour(cycleState.hour)} | Speed: ${frameTimeState.cycleSpeedHoursPerSec.toFixed(2)} h/s`;
+  const cycleSpeed = Number(systemState.time && systemState.time.cycleSpeedHoursPerSec) || 0;
+  cycleInfoEl.textContent = `Time: ${formatHour(cycleState.hour)} | Speed: ${cycleSpeed.toFixed(2)} h/s`;
   updateInfoPanel();
   updateSwarmStatsPanel();
   updateCycleHourLabel();
@@ -6304,12 +6551,17 @@ function render(nowMs) {
   const swarmSettings = getSwarmSettings();
   const swarmEnabled = swarmSettings.useAgentSwarm;
   const showTerrain = !swarmEnabled || swarmSettings.showTerrainInSwarm;
+  renderResources.setWeatherFieldMeta({
+    width: Math.max(1, Math.floor(splatSize.width * 0.25)),
+    height: Math.max(1, Math.floor(splatSize.height * 0.25)),
+    updatedAtSec: Number(systemState.weather && systemState.weather.timeSec) || nowMs * 0.001,
+  });
   const frameState = buildFrameRenderState({
     coreState,
     nowMs,
     dtSec,
     cycleHour: cycleState.hour,
-    cycleSpeedHoursPerSec: frameTimeState.cycleSpeedHoursPerSec,
+    cycleSpeedHoursPerSec: cycleSpeed,
     panWorld,
     zoom,
     currentMapFolderPath,
@@ -6326,10 +6578,7 @@ function render(nowMs) {
     renderSwarmLit(frameState.lightingParams, frameState.time.nowSec, swarmSettings);
   }
 
-  if (overlayDirty || frameState.swarm.enabled) {
-    drawOverlay();
-    overlayDirty = false;
-  }
+  overlayHooks.renderOverlayIfNeeded(frameState);
   requestAnimationFrame(render);
 }
 
@@ -6385,6 +6634,7 @@ updateCloudUi();
 updateWaterUi();
 setActiveTopic("");
 setInteractionMode("none");
+updateModeCapabilitiesUi();
 reseedSwarmAgents(getSwarmSettings().agentCount);
 setStatus(`${statusEl.textContent} | Load maps by folder/path, use left dock mode toggles (LM/PF), wheel zoom + middle-drag pan for terrain, and Agent Swarm panel toggle for boid testing.`);
 requestAnimationFrame(render);

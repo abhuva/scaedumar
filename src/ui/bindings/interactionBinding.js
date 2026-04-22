@@ -1,5 +1,9 @@
 export function bindInteractionAndCycleControls(deps) {
   deps.dockLightingModeToggle.addEventListener("click", () => {
+    if (typeof deps.canUseInteractionMode === "function" && !deps.canUseInteractionMode("lighting")) {
+      deps.setStatus("Lighting mode is unavailable in current runtime mode.");
+      return;
+    }
     if (deps.getInteractionMode() === "lighting") {
       deps.dispatchCoreCommand({ type: "core/interaction/setMode", mode: "none" });
       deps.setStatus("Lighting mode disabled.");
@@ -12,6 +16,10 @@ export function bindInteractionAndCycleControls(deps) {
   });
 
   deps.dockPathfindingModeToggle.addEventListener("click", () => {
+    if (typeof deps.canUseInteractionMode === "function" && !deps.canUseInteractionMode("pathfinding")) {
+      deps.setStatus("Pathfinding mode is unavailable in current runtime mode.");
+      return;
+    }
     if (deps.getInteractionMode() === "pathfinding") {
       deps.dispatchCoreCommand({ type: "core/interaction/setMode", mode: "none" });
       deps.movePreviewState.hoverPixel = null;

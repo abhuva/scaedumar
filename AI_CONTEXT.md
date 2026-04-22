@@ -20,8 +20,13 @@ No game engine is used.
 - Main implementation: `src/main.js`
 - Desktop wrapper: `src-tauri/` (Tauri v2)
 - Rendering backend: WebGL2 terrain pass + 2D overlay canvas for interaction markers
+- Gameplay scaffolding modules now exist under `src/gameplay/` (`entityStore`, `pathfindingSystem`, `movementSystem`) and are scheduler-driven adapters around existing runtime behavior.
+- Interaction command routing is now extracted to `src/gameplay/interactionCommands.js` and composed into main command registration.
+- Overlay/gameplay frame integration now goes through `src/ui/overlays/overlayHooks.js` (gameplay update hook + overlay render hook).
+- Core/runtime migration parity now uses `src/core/runtimeParityAdapter.js` to keep legacy inputs/globals aligned with core state during refactor.
 - Settings UI: left vertical topic-icon dock + single side panel (one topic open at a time)
   - Mode toggles: `LM` and `PF` (note: `AS` is a topic button that opens the Agent Swarm panel in `index.html`, not a mode toggle)
+  - Runtime mode capability gating is now active (`dev`/`gameplay`/`hybrid`) for topic buttons + interaction mode toggles.
 - Map bundle auto-load tries these folders in order:
   - `assets/Map 1/`
   - `assets/`
@@ -129,6 +134,11 @@ No game engine is used.
 - Map-level persistence:
   - `Load Map -> Save All` writes `pointlights.json`, `lighting.json`, `parallax.json`, `interaction.json`, `fog.json`, `clouds.json`, `waterfx.json`, `swarm.json`, and `npc.json`
   - map loading auto-applies these files when present
+- Weather groundwork (architecture scaffold only):
+  - core state now includes weather contract (`type`, `intensity`, `windDirDeg`, `windSpeed`, `localModulation`)
+  - scheduler includes `weatherSystem` producing per-frame weather/wind vectors
+  - render resources include placeholder weather-field metadata hook (no visible weather rendering feature yet)
+  - main render path now consumes scheduler-updated values from `coreState.systems` for time/lighting/fog/cloud/water/weather.
 
 ## Camera/Interaction
 
@@ -177,10 +187,15 @@ No game engine is used.
   - chases a random agent and switches target on reach
   - flock agents apply hawk-repulsion using the same radius/strength controls as cursor repulsion
 - Swarm breeding bounce-back:
-  - when bird count drops below `Breeding Threshold`, breeding mode becomes active
+- when bird count drops below `Breeding Threshold`, breeding mode becomes active
   - while breeding mode is active, each new rest event has `Breed Spawn Chance` to create one adjacent resting bird
   - breeding mode auto-disables when bird count returns to configured `Agent Count`
-  - `none`: left click is no-op.
+- `none`: left click is no-op.
+- Core settings registry usage:
+  - lighting/fog/parallax/cloud/water/interaction/swarm defaults + serialize/apply flows are registered through `src/core/mainSettingsContracts.js`.
+  - JSON compatibility is preserved (existing map-sidecar keys unchanged).
+  - Render FX UI controls are command-routed via `core/renderFx/changed` (handler updates labels/UI + synchronizes `simulation.knobs` in core state).
+  - Swarm panel controls are command-routed via `core/swarm/settingsChanged` (handler owns swarm UI side effects, reseed behavior, and gameplay swarm state sync).
 - Lighting mode on:
   - Left click adds a point light unless one already exists at that map pixel
   - Clicking an existing light selects it and opens the side editor
@@ -252,12 +267,16 @@ After lighting/camera/map-load changes, verify:
 7. LM/PF mode toggles correctly enforce mutual exclusivity and expected click behavior.
 8. Point-light edits (save/delete) visibly rebake terrain local lighting.
 
+Targeted architecture tests:
+- `node --test tests/*.test.js`
+- current suite covers mode capabilities, weather normalization contract, and settings-registry wiring.
+
 ## Known Non-Goals (Current Prototype)
 
 - No physically accurate astronomy.
 - No georeferenced sun position.
 - No animated movement yet (currently instant click-to-move).
-- No multi-file module architecture yet; all runtime code is in `src/main.js`.
+- Full modularization is still in progress; `src/main.js` remains the largest integration surface, but core/render/sim/ui/gameplay modules are now established and wired.
 
 ## Session Handoff (2026-04-20)
 

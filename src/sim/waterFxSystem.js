@@ -3,7 +3,7 @@ export function createWaterFxSystem(deps) {
     update() {
       const flowDeg = deps.clamp(Number(deps.waterFlowDirectionInput.value), 0, 360);
       const flowRad = (flowDeg * Math.PI) / 180;
-      deps.setWaterFxState({
+      const value = {
         useWaterFx: deps.waterFxToggle.checked,
         waterFlowDownhill: deps.waterFlowDownhillToggle.checked,
         waterFlowInvertDownhill: deps.waterFlowInvertDownhillToggle.checked,
@@ -23,7 +23,11 @@ export function createWaterFxSystem(deps) {
         waterReflectivity: deps.clamp(Number(deps.waterReflectivityInput.value), 0, 1),
         waterTintColor: deps.hexToRgb01(deps.waterTintColorInput.value),
         waterTintStrength: deps.clamp(Number(deps.waterTintStrengthInput.value), 0, 1),
-      });
+      };
+      deps.setWaterFxState(value);
+      if (typeof deps.updateStoreWaterFx === "function") {
+        deps.updateStoreWaterFx(value);
+      }
     },
   };
 }

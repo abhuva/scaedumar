@@ -69,3 +69,27 @@ Policy: architecture-first; visual drift is acceptable unless it breaks usabilit
   - failed map/json IO
   - severe performance collapse or crash
   - missing/incorrect save-load behavior
+
+## Visual Regression Scenes (Diagnostic, Non-Blocking)
+
+Capture screenshots for the same map/zoom/pan each run and store under `docs/visual-baselines/`:
+
+- `scene-01-day-default.png`
+  - defaults loaded, `Time of Day` around `09:30`
+- `scene-02-night-moon.png`
+  - `Time of Day` around `22:30`
+- `scene-03-shadow-blur.png`
+  - `Use Shadows` on, `Shadow Blur` > `0`
+- `scene-04-water-downhill-debug.png`
+  - `Water FX` on, downhill mode + debug enabled
+- `scene-05-fog-clouds-volumetric.png`
+  - fog/clouds/volumetric enabled together
+- `scene-06-pathfinding-preview.png`
+  - `PF` mode on with visible path preview
+- `scene-07-lighting-editor.png`
+  - `LM` mode with at least one selected point light
+
+Compare against previous capture set for major regressions only:
+- controls/overlays missing
+- severe shader failures (all black/white, NaN artifacts)
+- clearly broken mode behavior

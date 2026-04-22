@@ -1,129 +1,105 @@
 export function bindSwarmPanelControls(deps) {
+  function dispatchSwarmSettingChange(action) {
+    deps.dispatchCoreCommand({
+      type: "core/swarm/settingsChanged",
+      action,
+    });
+  }
+
   deps.swarmShowTerrainToggle.addEventListener("change", () => {
-    deps.requestOverlayDraw();
+    dispatchSwarmSettingChange("showTerrainChanged");
   });
 
   deps.swarmLitModeToggle.addEventListener("change", () => {
-    deps.requestOverlayDraw();
+    dispatchSwarmSettingChange("litModeChanged");
   });
 
   deps.swarmFollowZoomToggle.addEventListener("change", () => {
-    deps.updateSwarmUi();
-    deps.updateSwarmLabels();
+    dispatchSwarmSettingChange("followZoomToggleChanged");
   });
 
   deps.swarmFollowZoomInInput.addEventListener("input", () => {
-    deps.normalizeSwarmFollowZoomInputs("in");
-    deps.updateSwarmLabels();
+    dispatchSwarmSettingChange("followZoomInChanged");
   });
 
   deps.swarmFollowZoomOutInput.addEventListener("input", () => {
-    deps.normalizeSwarmFollowZoomInputs("out");
-    deps.updateSwarmLabels();
+    dispatchSwarmSettingChange("followZoomOutChanged");
   });
 
   deps.swarmFollowHawkRangeGizmoToggle.addEventListener("change", () => {
-    deps.updateSwarmUi();
-    deps.requestOverlayDraw();
+    dispatchSwarmSettingChange("followHawkRangeGizmoChanged");
   });
 
-  deps.swarmFollowAgentSpeedSmoothingInput.addEventListener("input", deps.updateSwarmLabels);
-  deps.swarmFollowAgentZoomSmoothingInput.addEventListener("input", deps.updateSwarmLabels);
+  deps.swarmFollowAgentSpeedSmoothingInput.addEventListener("input", () => dispatchSwarmSettingChange("followSmoothingChanged"));
+  deps.swarmFollowAgentZoomSmoothingInput.addEventListener("input", () => dispatchSwarmSettingChange("followSmoothingChanged"));
 
   deps.swarmStatsPanelToggle.addEventListener("change", () => {
-    deps.updateSwarmUi();
-    deps.updateSwarmStatsPanel();
+    dispatchSwarmSettingChange("statsPanelChanged");
   });
 
   deps.swarmBackgroundColorInput.addEventListener("input", () => {
-    deps.requestOverlayDraw();
+    dispatchSwarmSettingChange("backgroundColorChanged");
   });
 
   deps.swarmAgentCountInput.addEventListener("input", () => {
-    deps.updateSwarmLabels();
-    deps.reseedSwarmAgents(Math.round(deps.clamp(Number(deps.swarmAgentCountInput.value), 100, 1000)));
+    dispatchSwarmSettingChange("agentCountChanged");
   });
 
-  deps.swarmUpdateIntervalInput.addEventListener("input", deps.updateSwarmLabels);
+  deps.swarmUpdateIntervalInput.addEventListener("input", () => dispatchSwarmSettingChange("labelOnlyChanged"));
 
   deps.swarmMaxSpeedInput.addEventListener("input", () => {
-    deps.updateSwarmLabels();
-    deps.reseedSwarmAgents(deps.swarmState.count || deps.getSwarmSettings().agentCount);
+    dispatchSwarmSettingChange("maxSpeedChanged");
   });
 
   deps.swarmSteeringMaxInput.addEventListener("input", () => {
-    deps.updateSwarmLabels();
-    deps.reseedSwarmAgents(deps.swarmState.count || deps.getSwarmSettings().agentCount);
+    dispatchSwarmSettingChange("maxSteeringChanged");
   });
 
   deps.swarmVariationStrengthInput.addEventListener("input", () => {
-    deps.updateSwarmLabels();
-    deps.reseedSwarmAgents(deps.swarmState.count || deps.getSwarmSettings().agentCount);
+    dispatchSwarmSettingChange("variationChanged");
   });
 
-  deps.swarmNeighborRadiusInput.addEventListener("input", deps.updateSwarmLabels);
+  deps.swarmNeighborRadiusInput.addEventListener("input", () => dispatchSwarmSettingChange("labelOnlyChanged"));
 
   deps.swarmMinHeightInput.addEventListener("input", () => {
-    deps.normalizeSwarmHeightRangeInputs("min");
-    deps.updateSwarmLabels();
-    deps.reseedSwarmAgents(deps.swarmState.count);
+    dispatchSwarmSettingChange("minHeightChanged");
   });
 
   deps.swarmMaxHeightInput.addEventListener("input", () => {
-    deps.normalizeSwarmHeightRangeInputs("max");
-    deps.updateSwarmLabels();
-    deps.reseedSwarmAgents(deps.swarmState.count);
+    dispatchSwarmSettingChange("maxHeightChanged");
   });
 
-  deps.swarmSeparationRadiusInput.addEventListener("input", deps.updateSwarmLabels);
-  deps.swarmAlignmentWeightInput.addEventListener("input", deps.updateSwarmLabels);
-  deps.swarmCohesionWeightInput.addEventListener("input", deps.updateSwarmLabels);
-  deps.swarmSeparationWeightInput.addEventListener("input", deps.updateSwarmLabels);
-  deps.swarmWanderWeightInput.addEventListener("input", deps.updateSwarmLabels);
-  deps.swarmRestChanceInput.addEventListener("input", deps.updateSwarmLabels);
-  deps.swarmRestTicksInput.addEventListener("input", deps.updateSwarmLabels);
-  deps.swarmBreedingThresholdInput.addEventListener("input", deps.updateSwarmLabels);
-  deps.swarmBreedingSpawnChanceInput.addEventListener("input", deps.updateSwarmLabels);
+  deps.swarmSeparationRadiusInput.addEventListener("input", () => dispatchSwarmSettingChange("labelOnlyChanged"));
+  deps.swarmAlignmentWeightInput.addEventListener("input", () => dispatchSwarmSettingChange("labelOnlyChanged"));
+  deps.swarmCohesionWeightInput.addEventListener("input", () => dispatchSwarmSettingChange("labelOnlyChanged"));
+  deps.swarmSeparationWeightInput.addEventListener("input", () => dispatchSwarmSettingChange("labelOnlyChanged"));
+  deps.swarmWanderWeightInput.addEventListener("input", () => dispatchSwarmSettingChange("labelOnlyChanged"));
+  deps.swarmRestChanceInput.addEventListener("input", () => dispatchSwarmSettingChange("labelOnlyChanged"));
+  deps.swarmRestTicksInput.addEventListener("input", () => dispatchSwarmSettingChange("labelOnlyChanged"));
+  deps.swarmBreedingThresholdInput.addEventListener("input", () => dispatchSwarmSettingChange("labelOnlyChanged"));
+  deps.swarmBreedingSpawnChanceInput.addEventListener("input", () => dispatchSwarmSettingChange("labelOnlyChanged"));
 
   deps.swarmCursorModeInput.addEventListener("change", () => {
-    deps.updateSwarmUi();
-    deps.requestOverlayDraw();
+    dispatchSwarmSettingChange("cursorModeChanged");
   });
 
-  deps.swarmCursorStrengthInput.addEventListener("input", deps.updateSwarmLabels);
-  deps.swarmCursorRadiusInput.addEventListener("input", deps.updateSwarmLabels);
+  deps.swarmCursorStrengthInput.addEventListener("input", () => dispatchSwarmSettingChange("labelOnlyChanged"));
+  deps.swarmCursorRadiusInput.addEventListener("input", () => dispatchSwarmSettingChange("labelOnlyChanged"));
 
   deps.swarmHawkEnabledToggle.addEventListener("change", () => {
-    deps.updateSwarmUi();
-    deps.updateSwarmLabels();
-    deps.reseedSwarmAgents(deps.swarmState.count || deps.getSwarmSettings().agentCount);
+    dispatchSwarmSettingChange("hawkEnabledChanged");
   });
 
   deps.swarmHawkCountInput.addEventListener("input", () => {
-    deps.updateSwarmLabels();
-    deps.reseedSwarmAgents(deps.swarmState.count || deps.getSwarmSettings().agentCount);
+    dispatchSwarmSettingChange("hawkCountChanged");
   });
 
-  deps.swarmHawkColorInput.addEventListener("input", deps.requestOverlayDraw);
-  deps.swarmHawkSpeedInput.addEventListener("input", deps.updateSwarmLabels);
-  deps.swarmHawkSteeringInput.addEventListener("input", deps.updateSwarmLabels);
-  deps.swarmHawkTargetRangeInput.addEventListener("input", deps.updateSwarmLabels);
+  deps.swarmHawkColorInput.addEventListener("input", () => dispatchSwarmSettingChange("hawkColorChanged"));
+  deps.swarmHawkSpeedInput.addEventListener("input", () => dispatchSwarmSettingChange("labelOnlyChanged"));
+  deps.swarmHawkSteeringInput.addEventListener("input", () => dispatchSwarmSettingChange("labelOnlyChanged"));
+  deps.swarmHawkTargetRangeInput.addEventListener("input", () => dispatchSwarmSettingChange("labelOnlyChanged"));
 
   deps.swarmEnabledToggle.addEventListener("change", () => {
-    deps.updateSwarmUi();
-    deps.swarmState.lastUpdateMs = null;
-    deps.swarmCursorState.active = false;
-    if (deps.swarmEnabledToggle.checked) {
-      deps.reseedSwarmAgents(deps.swarmState.count || deps.getSwarmSettings().agentCount);
-      deps.setStatus("Agent swarm enabled.");
-    } else {
-      deps.swarmFollowState.enabled = false;
-      deps.swarmFollowState.agentIndex = -1;
-      deps.swarmFollowState.hawkIndex = -1;
-      deps.resetSwarmFollowSpeedSmoothing();
-      deps.updateSwarmFollowButtonUi();
-      deps.requestOverlayDraw();
-      deps.setStatus("Agent swarm disabled.");
-    }
+    dispatchSwarmSettingChange("enabledToggleChanged");
   });
 }

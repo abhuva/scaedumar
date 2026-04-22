@@ -16,8 +16,74 @@ export function createInitialState() {
       height: 0,
       loaded: false,
     },
-    systems: {},
-    gameplay: {},
+    systems: {
+      time: {
+        cycleSpeedHoursPerSec: 0,
+      },
+      lighting: {
+        hasFrameLighting: false,
+        lightingParams: null,
+      },
+      fog: {
+        useFog: false,
+      },
+      clouds: {
+        useClouds: false,
+      },
+      waterFx: {
+        useWaterFx: false,
+      },
+      weather: {
+        type: "clear",
+        intensity: 0,
+        windDirDeg: 0,
+        windSpeed: 0,
+        localModulation: 0,
+      },
+    },
+    simulation: {
+      knobs: {
+        lighting: {},
+        parallax: {},
+        fog: {},
+        clouds: {},
+        waterFx: {},
+      },
+      weather: {
+        type: "clear",
+        intensity: 0,
+        windDirDeg: 0,
+        windSpeed: 0.2,
+        localModulation: 0.15,
+      },
+    },
+    gameplay: {
+      player: {
+        pixelX: 0,
+        pixelY: 0,
+      },
+      interactionMode: "none",
+      cursorLight: {
+        enabled: false,
+        useTerrainHeight: true,
+        strength: 30,
+        heightOffset: 8,
+      },
+      pathfinding: {
+        range: 30,
+        weightSlope: 1.8,
+        weightHeight: 3,
+        weightWater: 0,
+        slopeCutoff: 90,
+        baseCost: 1,
+      },
+      swarm: {
+        enabled: false,
+        count: 0,
+        followEnabled: false,
+        followTargetType: "agent",
+      },
+    },
     ui: {},
   };
 }

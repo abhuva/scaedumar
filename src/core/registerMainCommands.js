@@ -1,21 +1,251 @@
+import { normalizeRuntimeMode } from "./modeCapabilities.js";
+import { registerInteractionCommands } from "../gameplay/interactionCommands.js";
+
 export function registerMainCommands(commandBus, deps) {
+  function syncCameraToStore(ctx) {
+    ctx.store.update((prev) => ({
+      ...prev,
+      camera: {
+        ...prev.camera,
+        panX: deps.panWorld.x,
+        panY: deps.panWorld.y,
+        zoom: deps.getZoom(),
+      },
+    }));
+  }
+
+  function syncCursorLightToStore(ctx) {
+    ctx.store.update((prev) => ({
+      ...prev,
+      gameplay: {
+        ...prev.gameplay,
+        cursorLight: {
+          ...prev.gameplay.cursorLight,
+          enabled: deps.cursorLightState.active,
+          useTerrainHeight: Boolean(deps.cursorLightState.useTerrainHeight),
+          strength: Math.round(deps.clamp(Number(deps.cursorLightState.strength), 1, 200)),
+          heightOffset: Math.round(deps.clamp(Number(deps.cursorLightState.heightOffset), 0, 120)),
+        },
+      },
+    }));
+  }
+
   commandBus.register("core/setMode", (command, ctx) => {
-    const nextMode = command.mode === "gameplay" || command.mode === "hybrid" ? command.mode : "dev";
+    const nextMode = normalizeRuntimeMode(command.mode);
     ctx.store.update((prev) => ({ ...prev, mode: nextMode }));
+    deps.setInteractionMode(deps.getInteractionMode());
   });
 
-  commandBus.register("core/interaction/setMode", (command) => {
-    deps.setInteractionMode(command.mode);
+  registerInteractionCommands(commandBus, deps);
+
+  commandBus.register("core/renderFx/changed", (command, ctx) => {
+    const section = String(command.section || "");
+    if (section === "parallax") {
+      deps.updateParallaxStrengthLabel();
+      deps.updateParallaxBandsLabel();
+      deps.updateParallaxUi();
+      ctx.store.update((prev) => ({
+        ...prev,
+        simulation: {
+          ...prev.simulation,
+          knobs: {
+            ...prev.simulation.knobs,
+            parallax: deps.serializeParallaxSettings(),
+          },
+        },
+      }));
+      return;
+    }
+
+    if (section === "lighting") {
+      deps.updateShadowBlurLabel();
+      deps.updateVolumetricLabels();
+      deps.updateVolumetricUi();
+      deps.updatePointFlickerLabels();
+      deps.updatePointFlickerUi();
+      ctx.store.update((prev) => ({
+        ...prev,
+        simulation: {
+          ...prev.simulation,
+          knobs: {
+            ...prev.simulation.knobs,
+            lighting: deps.serializeLightingSettings(),
+          },
+        },
+      }));
+      return;
+    }
+
+    if (section === "fog") {
+      if (command.markFogColorManual) {
+        deps.markFogColorManual();
+      }
+      deps.updateFogAlphaLabels();
+      deps.updateFogFalloffLabel();
+      deps.updateFogStartOffsetLabel();
+      deps.updateFogUi();
+      ctx.store.update((prev) => ({
+        ...prev,
+        simulation: {
+          ...prev.simulation,
+          knobs: {
+            ...prev.simulation.knobs,
+            fog: deps.serializeFogSettings(),
+          },
+        },
+      }));
+      return;
+    }
+
+    if (section === "clouds") {
+      deps.updateCloudLabels();
+      deps.updateCloudUi();
+      ctx.store.update((prev) => ({
+        ...prev,
+        simulation: {
+          ...prev.simulation,
+          knobs: {
+            ...prev.simulation.knobs,
+            clouds: deps.serializeCloudSettings(),
+          },
+        },
+      }));
+      return;
+    }
+
+    if (section === "waterfx") {
+      deps.updateWaterLabels();
+      deps.updateWaterUi();
+      if (command.rebuildFlowMap) {
+        deps.rebuildFlowMapTexture();
+      }
+      ctx.store.update((prev) => ({
+        ...prev,
+        simulation: {
+          ...prev.simulation,
+          knobs: {
+            ...prev.simulation.knobs,
+            waterFx: deps.serializeWaterSettings(),
+          },
+        },
+      }));
+    }
   });
 
-  commandBus.register("core/camera/reset", () => {
+  commandBus.register("core/swarm/settingsChanged", (command, ctx) => {
+    function syncSwarmToStore() {
+      const settings = deps.getSwarmSettings();
+      ctx.store.update((prev) => ({
+        ...prev,
+        gameplay: {
+          ...prev.gameplay,
+          swarm: {
+            ...prev.gameplay.swarm,
+            ...settings,
+            enabled: deps.isSwarmEnabled(),
+            count: Math.max(0, Math.round(Number(deps.swarmState.count) || 0)),
+            followEnabled: deps.swarmFollowState.enabled,
+            followTargetType: deps.swarmFollowState.targetType === "hawk" ? "hawk" : "agent",
+          },
+        },
+      }));
+    }
+
+    const action = String(command.action || "");
+    switch (action) {
+      case "showTerrainChanged":
+      case "litModeChanged":
+      case "backgroundColorChanged":
+      case "hawkColorChanged":
+      case "cursorModeChanged":
+        if (action === "cursorModeChanged") {
+          deps.updateSwarmUi();
+        }
+        deps.requestOverlayDraw();
+        break;
+      case "followZoomToggleChanged":
+        deps.updateSwarmUi();
+        deps.updateSwarmLabels();
+        break;
+      case "followZoomInChanged":
+        deps.normalizeSwarmFollowZoomInputs("in");
+        deps.updateSwarmLabels();
+        break;
+      case "followZoomOutChanged":
+        deps.normalizeSwarmFollowZoomInputs("out");
+        deps.updateSwarmLabels();
+        break;
+      case "followHawkRangeGizmoChanged":
+        deps.updateSwarmUi();
+        deps.requestOverlayDraw();
+        break;
+      case "followSmoothingChanged":
+      case "labelOnlyChanged":
+        deps.updateSwarmLabels();
+        break;
+      case "statsPanelChanged":
+        deps.updateSwarmUi();
+        deps.updateSwarmStatsPanel();
+        break;
+      case "agentCountChanged":
+        deps.updateSwarmLabels();
+        deps.reseedSwarmAgents(Math.round(deps.clamp(Number(deps.swarmAgentCountInput.value), 100, 1000)));
+        break;
+      case "maxSpeedChanged":
+      case "maxSteeringChanged":
+      case "variationChanged":
+        deps.updateSwarmLabels();
+        deps.reseedSwarmAgents(deps.swarmState.count || deps.getSwarmSettings().agentCount);
+        break;
+      case "minHeightChanged":
+        deps.normalizeSwarmHeightRangeInputs("min");
+        deps.updateSwarmLabels();
+        deps.reseedSwarmAgents(deps.swarmState.count);
+        break;
+      case "maxHeightChanged":
+        deps.normalizeSwarmHeightRangeInputs("max");
+        deps.updateSwarmLabels();
+        deps.reseedSwarmAgents(deps.swarmState.count);
+        break;
+      case "hawkEnabledChanged":
+      case "hawkCountChanged":
+        deps.updateSwarmUi();
+        deps.updateSwarmLabels();
+        deps.reseedSwarmAgents(deps.swarmState.count || deps.getSwarmSettings().agentCount);
+        break;
+      case "enabledToggleChanged":
+        deps.updateSwarmUi();
+        deps.swarmState.lastUpdateMs = null;
+        deps.swarmCursorState.active = false;
+        if (deps.swarmEnabledToggle.checked) {
+          deps.reseedSwarmAgents(deps.swarmState.count || deps.getSwarmSettings().agentCount);
+          deps.setStatus("Agent swarm enabled.");
+        } else {
+          deps.swarmFollowState.enabled = false;
+          deps.swarmFollowState.agentIndex = -1;
+          deps.swarmFollowState.hawkIndex = -1;
+          deps.resetSwarmFollowSpeedSmoothing();
+          deps.updateSwarmFollowButtonUi();
+          deps.requestOverlayDraw();
+          deps.setStatus("Agent swarm disabled.");
+        }
+        break;
+      default:
+        break;
+    }
+
+    syncSwarmToStore();
+  });
+
+  commandBus.register("core/camera/reset", (command, ctx) => {
     deps.setZoom(1);
     deps.panWorld.x = 0;
     deps.panWorld.y = 0;
+    syncCameraToStore(ctx);
     deps.requestOverlayDraw();
   });
 
-  commandBus.register("core/camera/zoomAtClient", (command) => {
+  commandBus.register("core/camera/zoomAtClient", (command, ctx) => {
     const ndc = deps.clientToNdc(command.clientX, command.clientY);
     const worldBefore = deps.worldFromNdc(ndc, deps.getZoom(), deps.panWorld);
     const nextZoom = Math.min(deps.zoomMax, Math.max(deps.zoomMin, deps.getZoom() * Math.exp(-command.deltaY * 0.0015)));
@@ -23,6 +253,7 @@ export function registerMainCommands(commandBus, deps) {
     deps.panWorld.x += worldBefore.x - worldAfter.x;
     deps.panWorld.y += worldBefore.y - worldAfter.y;
     deps.setZoom(nextZoom);
+    syncCameraToStore(ctx);
     deps.requestOverlayDraw();
   });
 
@@ -36,7 +267,7 @@ export function registerMainCommands(commandBus, deps) {
     deps.setMiddleDragging(false);
   });
 
-  commandBus.register("core/camera/dragToClient", (command) => {
+  commandBus.register("core/camera/dragToClient", (command, ctx) => {
     const prevNdc = deps.clientToNdc(deps.lastDragClient.x, deps.lastDragClient.y);
     const currNdc = deps.clientToNdc(command.clientX, command.clientY);
     const worldPrev = deps.worldFromNdc(prevNdc, deps.getZoom(), deps.panWorld);
@@ -45,6 +276,7 @@ export function registerMainCommands(commandBus, deps) {
     deps.panWorld.y += worldPrev.y - worldCurr.y;
     deps.lastDragClient.x = command.clientX;
     deps.lastDragClient.y = command.clientY;
+    syncCameraToStore(ctx);
     deps.requestOverlayDraw();
   });
 
@@ -52,123 +284,72 @@ export function registerMainCommands(commandBus, deps) {
     deps.setCycleHourScrubbing(Boolean(command.scrubbing));
   });
 
-  commandBus.register("core/time/setHour", (command) => {
+  commandBus.register("core/time/setHour", (command, ctx) => {
     deps.cycleState.hour = deps.clamp(Number(command.hour), 0, 24);
+    ctx.store.update((prev) => ({
+      ...prev,
+      ui: {
+        ...prev.ui,
+        cycleHour: deps.cycleState.hour,
+      },
+    }));
     deps.updateCycleHourLabel();
   });
 
-  commandBus.register("core/cursorLight/setEnabled", (command) => {
+  commandBus.register("core/cursorLight/setEnabled", (command, ctx) => {
     if (command.enabled) return;
     deps.cursorLightState.active = false;
+    syncCursorLightToStore(ctx);
     deps.requestOverlayDraw();
   });
 
-  commandBus.register("core/cursorLight/setTerrainFollow", (command) => {
+  commandBus.register("core/cursorLight/setTerrainFollow", (command, ctx) => {
     deps.cursorLightState.useTerrainHeight = Boolean(command.useTerrainHeight);
+    syncCursorLightToStore(ctx);
     deps.updateCursorLightModeUi();
   });
 
-  commandBus.register("core/cursorLight/setColor", (command) => {
+  commandBus.register("core/cursorLight/setColor", (command, ctx) => {
     deps.cursorLightState.color = deps.hexToRgb01(command.colorHex);
+    syncCursorLightToStore(ctx);
     deps.requestOverlayDraw();
   });
 
-  commandBus.register("core/cursorLight/setStrength", (command) => {
+  commandBus.register("core/cursorLight/setStrength", (command, ctx) => {
     deps.cursorLightState.strength = Math.round(deps.clamp(Number(command.strength), 1, 200));
+    syncCursorLightToStore(ctx);
     deps.updateCursorLightStrengthLabel();
     deps.requestOverlayDraw();
   });
 
-  commandBus.register("core/cursorLight/setHeightOffset", (command) => {
+  commandBus.register("core/cursorLight/setHeightOffset", (command, ctx) => {
     deps.cursorLightState.heightOffset = Math.round(deps.clamp(Number(command.heightOffset), 0, 120));
+    syncCursorLightToStore(ctx);
     deps.updateCursorLightHeightOffsetLabel();
     deps.requestOverlayDraw();
   });
 
-  commandBus.register("core/cursorLight/setGizmo", (command) => {
+  commandBus.register("core/cursorLight/setGizmo", (command, ctx) => {
     deps.cursorLightState.showGizmo = Boolean(command.showGizmo);
+    syncCursorLightToStore(ctx);
     deps.requestOverlayDraw();
   });
 
-  commandBus.register("core/interaction/clickMapPixel", (command) => {
-    const pixel = {
-      x: Number(command.x),
-      y: Number(command.y),
-    };
-
-    if (deps.getInteractionMode() === "lighting") {
-      const existing = deps.findPointLightAtPixel(pixel.x, pixel.y);
-      if (existing) {
-        deps.beginLightEdit(existing);
-        deps.setStatus(`Selected point light at (${existing.pixelX}, ${existing.pixelY})`);
-      } else {
-        deps.createPointLight(pixel.x, pixel.y);
-      }
-      deps.requestOverlayDraw();
-      return;
+  commandBus.register("core/swarm/toggleFollow", (command, ctx) => {
+    function syncSwarmFollowToStore() {
+      ctx.store.update((prev) => ({
+        ...prev,
+        gameplay: {
+          ...prev.gameplay,
+          swarm: {
+            ...prev.gameplay.swarm,
+            followEnabled: deps.swarmFollowState.enabled,
+            followTargetType: deps.swarmFollowState.targetType,
+          },
+        },
+      }));
     }
 
-    if (deps.getInteractionMode() === "pathfinding") {
-      deps.movePreviewState.hoverPixel = { x: pixel.x, y: pixel.y };
-      deps.movePreviewState.pathPixels = deps.extractPathTo(pixel.x, pixel.y);
-      if (!deps.movePreviewState.pathPixels.length) {
-        deps.setStatus("No reachable preview path at clicked cell.");
-        return;
-      }
-      deps.setPlayerPosition(pixel.x, pixel.y);
-      deps.rebuildMovementField();
-      deps.setStatus(`Player moved to (${deps.playerState.pixelX}, ${deps.playerState.pixelY})`);
-      return;
-    }
-
-    deps.setPlayerPosition(pixel.x, pixel.y);
-    deps.rebuildMovementField();
-    deps.setStatus(`Player moved to (${deps.playerState.pixelX}, ${deps.playerState.pixelY})`);
-  });
-
-  commandBus.register("core/pathfinding/setRange", () => {
-    deps.updatePathfindingRangeLabel();
-    if (deps.getInteractionMode() === "pathfinding") {
-      deps.rebuildMovementField();
-    }
-  });
-
-  commandBus.register("core/pathfinding/setWeightSlope", () => {
-    deps.updatePathWeightLabels();
-    if (deps.getInteractionMode() === "pathfinding") {
-      deps.rebuildMovementField();
-    }
-  });
-
-  commandBus.register("core/pathfinding/setWeightHeight", () => {
-    deps.updatePathWeightLabels();
-    if (deps.getInteractionMode() === "pathfinding") {
-      deps.rebuildMovementField();
-    }
-  });
-
-  commandBus.register("core/pathfinding/setWeightWater", () => {
-    deps.updatePathWeightLabels();
-    if (deps.getInteractionMode() === "pathfinding") {
-      deps.rebuildMovementField();
-    }
-  });
-
-  commandBus.register("core/pathfinding/setSlopeCutoff", () => {
-    deps.updatePathSlopeCutoffLabel();
-    if (deps.getInteractionMode() === "pathfinding") {
-      deps.rebuildMovementField();
-    }
-  });
-
-  commandBus.register("core/pathfinding/setBaseCost", () => {
-    deps.updatePathBaseCostLabel();
-    if (deps.getInteractionMode() === "pathfinding") {
-      deps.rebuildMovementField();
-    }
-  });
-
-  commandBus.register("core/swarm/toggleFollow", () => {
     if (!deps.isSwarmEnabled()) {
       deps.setStatus("Enable Agent Swarm first.");
       return;
@@ -179,6 +360,7 @@ export function registerMainCommands(commandBus, deps) {
       deps.swarmFollowState.hawkIndex = -1;
       deps.resetSwarmFollowSpeedSmoothing();
       deps.updateSwarmFollowButtonUi();
+      syncSwarmFollowToStore();
       deps.setStatus("Swarm follow stopped.");
       return;
     }
@@ -202,10 +384,11 @@ export function registerMainCommands(commandBus, deps) {
     deps.swarmFollowState.enabled = true;
     deps.resetSwarmFollowSpeedSmoothing();
     deps.updateSwarmFollowButtonUi();
+    syncSwarmFollowToStore();
     deps.setStatus(`Swarm follow enabled (${targetType}).`);
   });
 
-  commandBus.register("core/swarm/setFollowTarget", (command) => {
+  commandBus.register("core/swarm/setFollowTarget", (command, ctx) => {
     deps.swarmFollowState.targetType = command.targetType === "hawk" ? "hawk" : "agent";
     deps.updateSwarmFollowButtonUi();
     if (deps.swarmFollowState.enabled) {
@@ -215,5 +398,16 @@ export function registerMainCommands(commandBus, deps) {
       deps.resetSwarmFollowSpeedSmoothing();
       deps.setStatus("Swarm follow stopped. Start follow again to apply new target type.");
     }
+    ctx.store.update((prev) => ({
+      ...prev,
+      gameplay: {
+        ...prev.gameplay,
+        swarm: {
+          ...prev.gameplay.swarm,
+          followEnabled: deps.swarmFollowState.enabled,
+          followTargetType: deps.swarmFollowState.targetType,
+        },
+      },
+    }));
   });
 }
