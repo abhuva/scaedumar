@@ -48,6 +48,9 @@ export function registerMainCommands(commandBus, deps) {
 
   commandBus.register("core/renderFx/changed", (command, ctx) => {
     const section = String(command.section || "");
+    if (typeof deps.markSimulationKnobsDirty === "function") {
+      deps.markSimulationKnobsDirty(section);
+    }
     if (section === "parallax") {
       deps.updateParallaxStrengthLabel();
       deps.updateParallaxBandsLabel();

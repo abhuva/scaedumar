@@ -6,7 +6,7 @@ export function bindMapIoControls(deps) {
         return;
       }
       let targetPath = deps.normalizeMapFolderPath(rawTarget);
-      if (!rawTarget && deps.tauriInvoke) {
+      if (!targetPath && deps.tauriInvoke) {
         let pickedFolder = "";
         try {
           pickedFolder = await deps.pickMapFolderViaTauri();

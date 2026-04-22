@@ -69,10 +69,10 @@ export function updateCoreFrameSnapshot(store, nowMs, deps) {
     },
     map: {
       ...prev.map,
-      folderPath: deps.currentMapFolderPath,
+      folderPath: deps.currentMapFolderPath ?? "",
       width: mapWidth,
       height: mapHeight,
-      loaded: Boolean(deps.currentMapFolderPath),
+      loaded: Boolean(deps.currentMapFolderPath ?? ""),
     },
     simulation: buildSimulationUpdate(prev.simulation, weatherInput, simulationKnobs),
     gameplay: {

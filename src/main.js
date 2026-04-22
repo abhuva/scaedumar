@@ -1671,8 +1671,14 @@ function applySwarmSettingsLegacy(rawData) {
   if (Number.isFinite(Number(data.hawkSpeed))) swarmHawkSpeedInput.value = String(clamp(Number(data.hawkSpeed), 30, 420));
   if (Number.isFinite(Number(data.hawkSteering))) swarmHawkSteeringInput.value = String(clamp(Number(data.hawkSteering), 20, 700));
   if (Number.isFinite(Number(data.hawkTargetRange))) swarmHawkTargetRangeInput.value = String(Math.round(clamp(Number(data.hawkTargetRange), 20, 500)));
+  const defaultFollowTarget = swarmFollowTargetInput && swarmFollowTargetInput.options && swarmFollowTargetInput.options.length > 0
+    ? swarmFollowTargetInput.options[0].value
+    : "agent";
+  swarmFollowTargetInput.value = defaultFollowTarget;
   swarmFollowState.enabled = false;
+  swarmFollowState.targetType = "";
   swarmFollowState.agentIndex = -1;
+  swarmFollowState.hawkIndex = -1;
   swarmState.breedingActive = false;
   resetSwarmFollowSpeedSmoothing();
   normalizeSwarmFollowZoomInputs("out");
@@ -2010,6 +2016,7 @@ function serializeLightingSettings() {
 }
 
 function applyLightingSettings(rawData) {
+  markSimulationKnobsDirty("lighting");
   applySettingsByKey("lighting", rawData, applyLightingSettingsLegacy);
 }
 
@@ -2018,6 +2025,7 @@ function serializeFogSettings() {
 }
 
 function applyFogSettings(rawData) {
+  markSimulationKnobsDirty("fog");
   applySettingsByKey("fog", rawData, applyFogSettingsLegacy);
 }
 
@@ -2026,6 +2034,7 @@ function serializeParallaxSettings() {
 }
 
 function applyParallaxSettings(rawData) {
+  markSimulationKnobsDirty("parallax");
   applySettingsByKey("parallax", rawData, applyParallaxSettingsLegacy);
 }
 
@@ -2034,6 +2043,7 @@ function serializeCloudSettings() {
 }
 
 function applyCloudSettings(rawData) {
+  markSimulationKnobsDirty("clouds");
   applySettingsByKey("clouds", rawData, applyCloudSettingsLegacy);
 }
 
@@ -2042,6 +2052,7 @@ function serializeWaterSettings() {
 }
 
 function applyWaterSettings(rawData) {
+  markSimulationKnobsDirty("waterfx");
   applySettingsByKey("waterfx", rawData, applyWaterSettingsLegacy);
 }
 
@@ -3705,6 +3716,7 @@ registerMainCommands(runtimeCore.commandBus, {
   updateWaterLabels,
   updateWaterUi,
   rebuildFlowMapTexture,
+  markSimulationKnobsDirty,
   serializeLightingSettings,
   serializeParallaxSettings,
   serializeFogSettings,
@@ -4029,14 +4041,77 @@ function getWeatherInputSnapshot() {
   };
 }
 
+const simulationKnobDirty = {
+  lighting: true,
+  parallax: true,
+  fog: true,
+  clouds: true,
+  waterFx: true,
+};
+let cachedSimulationKnobs = null;
+
+function markSimulationKnobsDirty(section) {
+  if (section === "lighting" || section === "parallax" || section === "fog" || section === "clouds") {
+    simulationKnobDirty[section] = true;
+    return;
+  }
+  if (section === "waterfx") {
+    simulationKnobDirty.waterFx = true;
+    return;
+  }
+  simulationKnobDirty.lighting = true;
+  simulationKnobDirty.parallax = true;
+  simulationKnobDirty.fog = true;
+  simulationKnobDirty.clouds = true;
+  simulationKnobDirty.waterFx = true;
+}
+
 function getSimulationKnobsSnapshot() {
-  return {
-    lighting: serializeLightingSettings(),
-    parallax: serializeParallaxSettings(),
-    fog: serializeFogSettings(),
-    clouds: serializeCloudSettings(),
-    waterFx: serializeWaterSettings(),
-  };
+  if (!cachedSimulationKnobs) {
+    cachedSimulationKnobs = {
+      lighting: serializeLightingSettings(),
+      parallax: serializeParallaxSettings(),
+      fog: serializeFogSettings(),
+      clouds: serializeCloudSettings(),
+      waterFx: serializeWaterSettings(),
+    };
+    simulationKnobDirty.lighting = false;
+    simulationKnobDirty.parallax = false;
+    simulationKnobDirty.fog = false;
+    simulationKnobDirty.clouds = false;
+    simulationKnobDirty.waterFx = false;
+    return cachedSimulationKnobs;
+  }
+  if (
+    !simulationKnobDirty.lighting
+    && !simulationKnobDirty.parallax
+    && !simulationKnobDirty.fog
+    && !simulationKnobDirty.clouds
+    && !simulationKnobDirty.waterFx
+  ) {
+    return cachedSimulationKnobs;
+  }
+  if (simulationKnobDirty.lighting) {
+    cachedSimulationKnobs.lighting = serializeLightingSettings();
+    simulationKnobDirty.lighting = false;
+  }
+  if (simulationKnobDirty.parallax) {
+    cachedSimulationKnobs.parallax = serializeParallaxSettings();
+    simulationKnobDirty.parallax = false;
+  }
+  if (simulationKnobDirty.fog) {
+    cachedSimulationKnobs.fog = serializeFogSettings();
+    simulationKnobDirty.fog = false;
+  }
+  if (simulationKnobDirty.clouds) {
+    cachedSimulationKnobs.clouds = serializeCloudSettings();
+    simulationKnobDirty.clouds = false;
+  }
+  if (simulationKnobDirty.waterFx) {
+    cachedSimulationKnobs.waterFx = serializeWaterSettings();
+    simulationKnobDirty.waterFx = false;
+  }
+  return cachedSimulationKnobs;
 }
 
 function getCursorLightSnapshot() {
@@ -6569,9 +6644,10 @@ function render(nowMs) {
   renderResources.setWeatherFieldMeta({
     width: Math.max(1, Math.floor(splatSize.width * 0.25)),
     height: Math.max(1, Math.floor(splatSize.height * 0.25)),
-    updatedAtSec: simulationWeather != null && simulationWeather.timeSec != null
-      ? Number(simulationWeather.timeSec)
-      : nowMs * 0.001,
+    updatedAtSec:
+      simulationWeather != null && simulationWeather.timeSec != null
+        ? Number(simulationWeather.timeSec)
+        : nowMs * 0.001,
   });
   const frameState = buildFrameRenderState({
     coreState,

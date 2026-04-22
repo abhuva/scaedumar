@@ -41,6 +41,9 @@ export function createRenderer(deps) {
       return Array.from(passes.keys());
     },
     renderTerrainFrame(frame) {
+      if (!frame || typeof frame !== "object") {
+        throw new TypeError("renderTerrainFrame requires a valid frame object.");
+      }
       deps.resources.setViewport();
       if (frame.showTerrain) {
         executePass("shadow", frame);
