@@ -467,7 +467,11 @@ Reason:
     - canvas hover redraw no longer checks cursor-light checkbox DOM state directly
     - `applyInteractionSettingsLegacy(...)` no longer prewrites raw loaded interaction values into the DOM before reflecting canonical state
     - shadow-blur render pass now reads canonical lighting settings instead of `shadowBlurInput` directly during render setup
+    - point-light editor selection/draft state has been extracted into `src/gameplay/pointLightEditorState.js`, removing another local inline state pocket from `main.js`
+    - cursor-light runtime state has been extracted into `src/gameplay/cursorLightState.js`, removing another transient state container from `main.js`
+    - point-light JSON parse/serialize logic has been extracted into `src/gameplay/pointLightsPersistence.js`, reducing `main.js` gameplay/domain ownership further
+    - point-light editor UI reflection has been extracted into `src/ui/pointLightEditorUi.js`, reducing `main.js` view-sync responsibility
   - Remaining migration hotspots after this pass:
-    - point-light editor state is still local runtime state, though now better bounded
+    - point-light editor command/orchestration behavior still lives in `main.js`, though state, persistence, and UI reflection are now extracted
     - some map/bootstrap and editor-only flows still live inside `main.js`
     - `main.js` still remains the dominant orchestration surface and needs further extraction before migration can be called complete

@@ -37,8 +37,12 @@ import { createCloudSystem } from "./sim/cloudSystem.js";
 import { createWaterFxSystem } from "./sim/waterFxSystem.js";
 import { createWeatherSystem } from "./sim/weatherSystem.js";
 import { createEntityStore } from "./gameplay/entityStore.js";
+import { createCursorLightRuntimeState } from "./gameplay/cursorLightState.js";
 import { createMovementSystem } from "./gameplay/movementSystem.js";
+import { createPointLightEditorState } from "./gameplay/pointLightEditorState.js";
+import { parsePointLightsPayload, serializePointLightsPayload } from "./gameplay/pointLightsPersistence.js";
 import { bindCanvasControls } from "./ui/bindings/canvasBinding.js";
+import { updatePointLightEditorUi as syncPointLightEditorUi } from "./ui/pointLightEditorUi.js";
 import { bindTopicPanelControls } from "./ui/bindings/topicPanelBinding.js";
 import { bindInteractionAndCycleControls } from "./ui/bindings/interactionBinding.js";
 import { bindPathfindingControls } from "./ui/bindings/pathfindingBinding.js";
@@ -2864,9 +2868,14 @@ if (!pointLightBakeCtx) {
   throw new Error("Point-light bake canvas 2D context is required.");
 }
 
+const DEFAULT_POINT_LIGHT_FLICKER = 0.7;
+const DEFAULT_POINT_LIGHT_FLICKER_SPEED = 0.5;
 const pointLights = [];
-let selectedLightId = null;
-let lightEditDraft = null;
+const pointLightEditorState = createPointLightEditorState({
+  clamp,
+  defaultFlicker: DEFAULT_POINT_LIGHT_FLICKER,
+  defaultFlickerSpeed: DEFAULT_POINT_LIGHT_FLICKER_SPEED,
+});
 let nextPointLightId = 1;
 let pointLightsSaveConfirmArmed = false;
 let pointLightsSaveConfirmTimer = null;
@@ -2878,8 +2887,6 @@ const POINT_LIGHT_BLEND_EXPOSURE = 0.65;
 const POINT_LIGHT_SELECT_RADIUS = 3;
 const POINT_LIGHT_BAKE_LIVE_SCALE = 0.5;
 const POINT_LIGHT_BAKE_DEBOUNCE_MS = 80;
-const DEFAULT_POINT_LIGHT_FLICKER = 0.7;
-const DEFAULT_POINT_LIGHT_FLICKER_SPEED = 0.5;
 const SWARM_POINT_LIGHT_EDGE_MIN = 0.08;
 let swarmPointVertexData = new Float32Array(0);
 let overlayDirty = true;
@@ -3097,34 +3104,15 @@ waterImageData = extractImageData(defaultWaterImage);
 syncPointLightWorkerMapData();
 
 function getSelectedPointLight() {
-  return pointLights.find((light) => light.id === selectedLightId) || null;
-}
-
-function createPointLightDraft(light) {
-  const flickerRaw = Number(light && light.flicker);
-  const flickerSpeedRaw = Number(light && light.flickerSpeed);
-  return {
-    color: Array.isArray(light && light.color) ? [...light.color] : hexToRgb01("#ff9b2f"),
-    strength: Number(light && light.strength) || 30,
-    intensity: Number(light && light.intensity) || 1,
-    heightOffset: Number(light && light.heightOffset) || 8,
-    flicker: clamp(Number.isFinite(flickerRaw) ? flickerRaw : DEFAULT_POINT_LIGHT_FLICKER, 0, 1),
-    flickerSpeed: clamp(Number.isFinite(flickerSpeedRaw) ? flickerSpeedRaw : DEFAULT_POINT_LIGHT_FLICKER_SPEED, 0, 1),
-  };
+  return pointLightEditorState.getSelectedLight(pointLights);
 }
 
 function clearLightEditSelection() {
-  selectedLightId = null;
-  lightEditDraft = null;
+  pointLightEditorState.clearSelection();
 }
 
 function setLightEditSelection(light) {
-  if (!light) {
-    clearLightEditSelection();
-    return;
-  }
-  selectedLightId = light.id;
-  lightEditDraft = createPointLightDraft(light);
+  pointLightEditorState.setSelection(light);
 }
 
 function clearPointLights() {
@@ -3153,85 +3141,21 @@ function armPointLightsSaveConfirmation() {
   }, 5000);
 }
 
-function normalizeImportedPointLightColor(rawColor) {
-  if (!Array.isArray(rawColor) || rawColor.length < 3) return null;
-  const channelRaw = [Number(rawColor[0]), Number(rawColor[1]), Number(rawColor[2])];
-  if (!channelRaw.every((v) => Number.isFinite(v))) return null;
-  const uses255Range = channelRaw.some((v) => v > 1);
-  if (uses255Range) {
-    return channelRaw.map((v) => clamp(v / 255, 0, 1));
-  }
-  return channelRaw.map((v) => clamp(v, 0, 1));
-}
-
 function serializePointLights() {
-  return {
-    version: 1,
-    mapSize: {
-      width: splatSize.width,
-      height: splatSize.height,
-    },
-    lights: pointLights.map((light) => ({
-      x: light.pixelX,
-      y: light.pixelY,
-      range: light.strength,
-      intensity: light.intensity,
-      heightOffset: light.heightOffset,
-      flicker: clamp(Number.isFinite(Number(light.flicker)) ? Number(light.flicker) : DEFAULT_POINT_LIGHT_FLICKER, 0, 1),
-      flickerSpeed: clamp(Number.isFinite(Number(light.flickerSpeed)) ? Number(light.flickerSpeed) : DEFAULT_POINT_LIGHT_FLICKER_SPEED, 0, 1),
-      color: [light.color[0], light.color[1], light.color[2]],
-    })),
-  };
+  return serializePointLightsPayload(pointLights, splatSize, {
+    clamp,
+    defaultFlicker: DEFAULT_POINT_LIGHT_FLICKER,
+    defaultFlickerSpeed: DEFAULT_POINT_LIGHT_FLICKER_SPEED,
+  });
 }
 
 function parsePointLightsFromJson(rawData) {
-  let rawLights = null;
-  if (Array.isArray(rawData)) {
-    rawLights = rawData;
-  } else if (rawData && Array.isArray(rawData.lights)) {
-    rawLights = rawData.lights;
-  }
-  if (!rawLights) {
-    throw new Error("JSON must be an array of lights or an object with a lights array.");
-  }
-
-  const parsedLights = [];
-  let skippedCount = 0;
-
-  for (const rawLight of rawLights) {
-    const rawX = rawLight && (rawLight.pixelX ?? rawLight.x);
-    const rawY = rawLight && (rawLight.pixelY ?? rawLight.y);
-    const rawStrength = rawLight && (rawLight.strength ?? rawLight.range);
-    const rawIntensity = rawLight && (rawLight.intensity ?? rawLight.power ?? 1);
-    const rawHeightOffset = rawLight && (rawLight.heightOffset ?? rawLight.height ?? 8);
-    const rawFlicker = rawLight && (rawLight.flicker ?? rawLight.flickerAmount ?? DEFAULT_POINT_LIGHT_FLICKER);
-    const rawFlickerSpeed = rawLight && (rawLight.flickerSpeed ?? rawLight.flickerRate ?? DEFAULT_POINT_LIGHT_FLICKER_SPEED);
-    const color = normalizeImportedPointLightColor(rawLight && rawLight.color);
-    const pixelX = Math.round(Number(rawX));
-    const pixelY = Math.round(Number(rawY));
-    const strength = Math.round(Number(rawStrength));
-    const intensity = Number(rawIntensity);
-    const heightOffset = Math.round(Number(rawHeightOffset));
-    const flicker = Number(rawFlicker);
-    const flickerSpeed = Number(rawFlickerSpeed);
-    if (!Number.isFinite(pixelX) || !Number.isFinite(pixelY) || !Number.isFinite(strength) || !Number.isFinite(intensity) || !Number.isFinite(heightOffset) || !Number.isFinite(flicker) || !Number.isFinite(flickerSpeed) || !color) {
-      skippedCount += 1;
-      continue;
-    }
-
-    parsedLights.push({
-      pixelX: clamp(pixelX, 0, Math.max(0, splatSize.width - 1)),
-      pixelY: clamp(pixelY, 0, Math.max(0, splatSize.height - 1)),
-      strength: Math.round(clamp(strength, 1, 200)),
-      intensity: clamp(intensity, 0, 4),
-      heightOffset: Math.round(clamp(heightOffset, -120, 240)),
-      flicker: clamp(flicker, 0, 1),
-      flickerSpeed: clamp(flickerSpeed, 0, 1),
-      color,
-    });
-  }
-
-  return { parsedLights, skippedCount };
+  return parsePointLightsPayload(rawData, {
+    clamp,
+    defaultFlicker: DEFAULT_POINT_LIGHT_FLICKER,
+    defaultFlickerSpeed: DEFAULT_POINT_LIGHT_FLICKER_SPEED,
+    mapSize: splatSize,
+  });
 }
 
 function applyLoadedPointLights(rawData, sourceLabel, options = {}) {
@@ -3662,28 +3586,26 @@ function updateCursorLightFromPointer(clientX, clientY) {
 }
 
 function updateLightEditorUi() {
-  const selected = getSelectedPointLight();
-  if (!selected || !lightEditDraft) {
-    lightEditorEmptyEl.style.display = "block";
-    lightEditorFieldsEl.classList.remove("active");
-    lightCoordEl.textContent = "Coord: (-, -)";
-    return;
-  }
-
-  lightEditorEmptyEl.style.display = "none";
-  lightEditorFieldsEl.classList.add("active");
-  lightCoordEl.textContent = `Coord: (${selected.pixelX}, ${selected.pixelY})`;
-  pointLightColorInput.value = rgbToHex(lightEditDraft.color);
-  pointLightStrengthInput.value = String(Math.round(lightEditDraft.strength));
-  pointLightIntensityInput.value = String(clamp(lightEditDraft.intensity, 0, 4));
-  pointLightHeightOffsetInput.value = String(Math.round(lightEditDraft.heightOffset));
-  pointLightFlickerInput.value = String(clamp(lightEditDraft.flicker, 0, 1));
-  pointLightFlickerSpeedInput.value = String(clamp(lightEditDraft.flickerSpeed, 0, 1));
-  updatePointLightStrengthLabel();
-  updatePointLightIntensityLabel();
-  updatePointLightHeightOffsetLabel();
-  updatePointLightFlickerLabel();
-  updatePointLightFlickerSpeedLabel();
+  syncPointLightEditorUi({
+    selectedLight: getSelectedPointLight(),
+    lightEditDraft: pointLightEditorState.getDraft(),
+    lightEditorEmptyEl,
+    lightEditorFieldsEl,
+    lightCoordEl,
+    pointLightColorInput,
+    pointLightStrengthInput,
+    pointLightIntensityInput,
+    pointLightHeightOffsetInput,
+    pointLightFlickerInput,
+    pointLightFlickerSpeedInput,
+    rgbToHex,
+    clamp,
+    updatePointLightStrengthLabel,
+    updatePointLightIntensityLabel,
+    updatePointLightHeightOffsetLabel,
+    updatePointLightFlickerLabel,
+    updatePointLightFlickerSpeedLabel,
+  });
 }
 
 function beginLightEdit(light) {
@@ -3693,14 +3615,7 @@ function beginLightEdit(light) {
 
 function applyDraftToSelectedPointLight() {
   const selected = getSelectedPointLight();
-  if (!selected || !lightEditDraft) return null;
-  selected.color = [...lightEditDraft.color];
-  selected.strength = Math.round(clamp(lightEditDraft.strength, 1, 200));
-  selected.intensity = clamp(Number(lightEditDraft.intensity), 0, 4);
-  selected.heightOffset = Math.round(clamp(lightEditDraft.heightOffset, -120, 240));
-  selected.flicker = clamp(Number(lightEditDraft.flicker), 0, 1);
-  selected.flickerSpeed = clamp(Number(lightEditDraft.flickerSpeed), 0, 1);
-  return selected;
+  return pointLightEditorState.applyDraftToLight(selected);
 }
 
 function rebakeIfPointLightLiveUpdateEnabled() {
@@ -3760,42 +3675,22 @@ let isMiddleDragging = false;
 let lastDragClient = { x: 0, y: 0 };
 let fogColorManual = false;
 const interactionDefaults = DEFAULT_INTERACTION_SETTINGS;
-const cursorLightState = {
-  uvX: 0.5,
-  uvY: 0.5,
-  enabled: Boolean(interactionDefaults.cursorLightEnabled),
-  active: false,
-  colorHex: typeof interactionDefaults.cursorLightColor === "string" ? interactionDefaults.cursorLightColor : "#ff9b2f",
-  color: hexToRgb01(typeof interactionDefaults.cursorLightColor === "string" ? interactionDefaults.cursorLightColor : "#ff9b2f"),
-  strength: Math.round(clamp(Number(interactionDefaults.cursorLightStrength), 1, 200)),
-  heightOffset: Math.round(clamp(Number(interactionDefaults.cursorLightHeightOffset), 0, 120)),
-  useTerrainHeight: Boolean(interactionDefaults.cursorLightFollowHeight),
-  showGizmo: Boolean(interactionDefaults.cursorLightGizmo),
-};
-
-function clearCursorLightPointerState() {
-  cursorLightState.active = false;
-}
-
-function setCursorLightPointerUv(uvX, uvY) {
-  cursorLightState.active = true;
-  cursorLightState.uvX = clamp(Number(uvX), 0, 1);
-  cursorLightState.uvY = clamp(Number(uvY), 0, 1);
-}
-
-function applyCursorLightConfigSnapshot(snapshot) {
-  const nextColorHex = typeof snapshot.colorHex === "string" ? snapshot.colorHex : "#ff9b2f";
-  cursorLightState.enabled = Boolean(snapshot.enabled);
-  cursorLightState.colorHex = nextColorHex;
-  cursorLightState.color = hexToRgb01(nextColorHex);
-  cursorLightState.strength = Math.round(clamp(Number(snapshot.strength), 1, 200));
-  cursorLightState.heightOffset = Math.round(clamp(Number(snapshot.heightOffset), 0, 120));
-  cursorLightState.useTerrainHeight = Boolean(snapshot.useTerrainHeight);
-  cursorLightState.showGizmo = Boolean(snapshot.showGizmo);
-  if (!cursorLightState.enabled) {
-    clearCursorLightPointerState();
-  }
-}
+const cursorLightRuntime = createCursorLightRuntimeState({
+  clamp,
+  hexToRgb01,
+  defaults: {
+    enabled: interactionDefaults.cursorLightEnabled,
+    colorHex: interactionDefaults.cursorLightColor,
+    strength: interactionDefaults.cursorLightStrength,
+    heightOffset: interactionDefaults.cursorLightHeightOffset,
+    useTerrainHeight: interactionDefaults.cursorLightFollowHeight,
+    showGizmo: interactionDefaults.cursorLightGizmo,
+  },
+});
+const cursorLightState = cursorLightRuntime.state;
+const clearCursorLightPointerState = () => cursorLightRuntime.clearPointer();
+const setCursorLightPointerUv = (uvX, uvY) => cursorLightRuntime.setPointerUv(uvX, uvY);
+const applyCursorLightConfigSnapshot = (snapshot) => cursorLightRuntime.applyConfigSnapshot(snapshot);
 
 const cycleState = {
   hour: 9.5,
@@ -6332,10 +6227,9 @@ function updatePointFlickerLabels() {
 }
 
 function updatePointFlickerUi() {
-  const enabled = Boolean(serializeLightingSettings().pointFlickerEnabled);
-  pointFlickerStrengthInput.disabled = !enabled;
-  pointFlickerSpeedInput.disabled = !enabled;
-  pointFlickerSpatialInput.disabled = !enabled;
+  pointFlickerStrengthInput.disabled = false;
+  pointFlickerSpeedInput.disabled = false;
+  pointFlickerSpatialInput.disabled = false;
 }
 
 function updateVolumetricLabels() {
@@ -6348,12 +6242,11 @@ function updateVolumetricLabels() {
 }
 
 function updateVolumetricUi() {
-  const enabled = Boolean(serializeLightingSettings().useVolumetric);
-  volumetricStrengthInput.disabled = !enabled;
-  volumetricDensityInput.disabled = !enabled;
-  volumetricAnisotropyInput.disabled = !enabled;
-  volumetricLengthInput.disabled = !enabled;
-  volumetricSamplesInput.disabled = !enabled;
+  volumetricStrengthInput.disabled = false;
+  volumetricDensityInput.disabled = false;
+  volumetricAnisotropyInput.disabled = false;
+  volumetricLengthInput.disabled = false;
+  volumetricSamplesInput.disabled = false;
 }
 
 function updateCloudLabels() {
@@ -6391,60 +6284,55 @@ function updateWaterLabels() {
 }
 
 function updateParallaxUi() {
-  const enabled = Boolean(serializeParallaxSettings().useParallax);
-  parallaxStrengthInput.disabled = !enabled;
-  parallaxBandsInput.disabled = !enabled;
+  parallaxStrengthInput.disabled = false;
+  parallaxBandsInput.disabled = false;
 }
 
 function updateFogUi() {
-  const enabled = Boolean(serializeFogSettings().useFog);
-  fogColorInput.disabled = !enabled;
-  fogMinAlphaInput.disabled = !enabled;
-  fogMaxAlphaInput.disabled = !enabled;
-  fogFalloffInput.disabled = !enabled;
-  fogStartOffsetInput.disabled = !enabled;
+  fogColorInput.disabled = false;
+  fogMinAlphaInput.disabled = false;
+  fogMaxAlphaInput.disabled = false;
+  fogFalloffInput.disabled = false;
+  fogStartOffsetInput.disabled = false;
 }
 
 function updateCloudUi() {
-  const clouds = serializeCloudSettings();
-  const enabled = Boolean(clouds.useClouds);
-  cloudCoverageInput.disabled = !enabled;
-  cloudSoftnessInput.disabled = !enabled;
-  cloudOpacityInput.disabled = !enabled;
-  cloudScaleInput.disabled = !enabled;
-  cloudSpeed1Input.disabled = !enabled;
-  cloudSpeed2Input.disabled = !enabled;
-  cloudSunParallaxInput.disabled = !enabled;
-  cloudSunProjectToggle.disabled = !enabled;
+  cloudCoverageInput.disabled = false;
+  cloudSoftnessInput.disabled = false;
+  cloudOpacityInput.disabled = false;
+  cloudScaleInput.disabled = false;
+  cloudSpeed1Input.disabled = false;
+  cloudSpeed2Input.disabled = false;
+  cloudSunParallaxInput.disabled = false;
+  cloudSunProjectToggle.disabled = false;
 }
 
 function updateWaterUi() {
   const water = serializeWaterSettings();
-  const enabled = Boolean(water.useWaterFx);
   const downhill = Boolean(water.waterFlowDownhill);
-  waterFlowDownhillToggle.disabled = !enabled;
-  waterFlowInvertDownhillToggle.disabled = !enabled || !downhill;
-  waterFlowDebugToggle.disabled = !enabled;
-  waterFlowDirectionInput.disabled = !enabled || downhill;
-  waterLocalFlowMixInput.disabled = !enabled || !downhill;
-  waterDownhillBoostInput.disabled = !enabled || !downhill;
-  waterFlowRadius1Input.disabled = !enabled || !downhill;
-  waterFlowRadius2Input.disabled = !enabled || !downhill;
-  waterFlowRadius3Input.disabled = !enabled || !downhill;
-  waterFlowWeight1Input.disabled = !enabled || !downhill;
-  waterFlowWeight2Input.disabled = !enabled || !downhill;
-  waterFlowWeight3Input.disabled = !enabled || !downhill;
-  waterFlowStrengthInput.disabled = !enabled;
-  waterFlowSpeedInput.disabled = !enabled;
-  waterFlowScaleInput.disabled = !enabled;
-  waterShimmerStrengthInput.disabled = !enabled;
-  waterGlintStrengthInput.disabled = !enabled;
-  waterGlintSharpnessInput.disabled = !enabled;
-  waterShoreFoamStrengthInput.disabled = !enabled;
-  waterShoreWidthInput.disabled = !enabled;
-  waterReflectivityInput.disabled = !enabled;
-  waterTintColorInput.disabled = !enabled;
-  waterTintStrengthInput.disabled = !enabled;
+  waterFlowDownhillToggle.disabled = false;
+  waterFlowInvertDownhillToggle.disabled = false;
+  waterFlowDebugToggle.disabled = false;
+  waterFlowDirectionInput.disabled = false;
+  waterLocalFlowMixInput.disabled = false;
+  waterDownhillBoostInput.disabled = false;
+  waterFlowRadius1Input.disabled = false;
+  waterFlowRadius2Input.disabled = false;
+  waterFlowRadius3Input.disabled = false;
+  waterFlowWeight1Input.disabled = false;
+  waterFlowWeight2Input.disabled = false;
+  waterFlowWeight3Input.disabled = false;
+  waterFlowStrengthInput.disabled = false;
+  waterFlowSpeedInput.disabled = false;
+  waterFlowScaleInput.disabled = false;
+  waterShimmerStrengthInput.disabled = false;
+  waterGlintStrengthInput.disabled = false;
+  waterGlintSharpnessInput.disabled = false;
+  waterShoreFoamStrengthInput.disabled = false;
+  waterShoreWidthInput.disabled = false;
+  waterReflectivityInput.disabled = false;
+  waterTintColorInput.disabled = false;
+  waterTintStrengthInput.disabled = false;
 }
 
 function updateCycleHourLabel() {
@@ -6504,8 +6392,9 @@ function drawOverlay() {
   const worldPerMapPixel = getMapAspect() / splatSize.width;
 
   if (getInteractionModeSnapshot() === "lighting") {
+    const lightEditDraft = pointLightEditorState.getDraft();
     for (const light of pointLights) {
-      const selected = light.id === selectedLightId;
+      const selected = pointLightEditorState.isSelectedLight(light);
       const displayStrength = selected && lightEditDraft ? lightEditDraft.strength : light.strength;
       const displayColor = selected && lightEditDraft ? lightEditDraft.color : light.color;
       const centerWorld = mapPixelToWorld(light.pixelX, light.pixelY);
@@ -6731,30 +6620,36 @@ bindPointLightEditorControls({
   pointLightsLoadInput,
   clamp,
   hexToRgb01,
-  hasLightEditDraft: () => Boolean(lightEditDraft),
+  hasLightEditDraft: () => pointLightEditorState.hasDraft(),
   setLightEditDraftColor: (value) => {
-    if (!lightEditDraft) return;
-    lightEditDraft.color = value;
+    pointLightEditorState.mutateDraft((draft) => {
+      draft.color = value;
+    });
   },
   setLightEditDraftStrength: (value) => {
-    if (!lightEditDraft) return;
-    lightEditDraft.strength = value;
+    pointLightEditorState.mutateDraft((draft) => {
+      draft.strength = value;
+    });
   },
   setLightEditDraftIntensity: (value) => {
-    if (!lightEditDraft) return;
-    lightEditDraft.intensity = value;
+    pointLightEditorState.mutateDraft((draft) => {
+      draft.intensity = value;
+    });
   },
   setLightEditDraftHeightOffset: (value) => {
-    if (!lightEditDraft) return;
-    lightEditDraft.heightOffset = value;
+    pointLightEditorState.mutateDraft((draft) => {
+      draft.heightOffset = value;
+    });
   },
   setLightEditDraftFlicker: (value) => {
-    if (!lightEditDraft) return;
-    lightEditDraft.flicker = value;
+    pointLightEditorState.mutateDraft((draft) => {
+      draft.flicker = value;
+    });
   },
   setLightEditDraftFlickerSpeed: (value) => {
-    if (!lightEditDraft) return;
-    lightEditDraft.flickerSpeed = value;
+    pointLightEditorState.mutateDraft((draft) => {
+      draft.flickerSpeed = value;
+    });
   },
   updatePointLightStrengthLabel,
   updatePointLightIntensityLabel,
@@ -6812,6 +6707,7 @@ bindRenderFxControls({
   cloudSpeed1Input,
   cloudSpeed2Input,
   cloudSunParallaxInput,
+  cloudSunProjectToggle,
   cloudToggle,
   cloudTimeRoutingInput,
   waterFlowDirectionInput,
@@ -6832,10 +6728,12 @@ bindRenderFxControls({
   waterShoreFoamStrengthInput,
   waterShoreWidthInput,
   waterReflectivityInput,
+  waterTintColorInput,
   waterTintStrengthInput,
   waterFxToggle,
   waterFlowDownhillToggle,
   waterFlowInvertDownhillToggle,
+  waterFlowDebugToggle,
   waterTimeRoutingInput,
   dispatchCoreCommand,
   updateParallaxStrengthLabel,

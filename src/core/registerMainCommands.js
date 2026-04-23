@@ -42,6 +42,7 @@ export function registerMainCommands(commandBus, deps) {
 
   commandBus.register("core/renderFx/changed", (command, ctx) => {
     const section = String(command.section || "");
+    const patch = command.patch && typeof command.patch === "object" ? command.patch : null;
     if (typeof deps.markSimulationKnobsDirty === "function") {
       deps.markSimulationKnobsDirty(section);
     }
@@ -55,7 +56,10 @@ export function registerMainCommands(commandBus, deps) {
           ...prev.simulation,
           knobs: {
             ...prev.simulation.knobs,
-            parallax: deps.serializeParallaxSettings(),
+            parallax: {
+              ...(prev.simulation.knobs && prev.simulation.knobs.parallax ? prev.simulation.knobs.parallax : {}),
+              ...(patch || {}),
+            },
           },
         },
       }));
@@ -74,7 +78,10 @@ export function registerMainCommands(commandBus, deps) {
           ...prev.simulation,
           knobs: {
             ...prev.simulation.knobs,
-            lighting: deps.serializeLightingSettings(),
+            lighting: {
+              ...(prev.simulation.knobs && prev.simulation.knobs.lighting ? prev.simulation.knobs.lighting : {}),
+              ...(patch || {}),
+            },
           },
         },
       }));
@@ -95,7 +102,10 @@ export function registerMainCommands(commandBus, deps) {
           ...prev.simulation,
           knobs: {
             ...prev.simulation.knobs,
-            fog: deps.serializeFogSettings(),
+            fog: {
+              ...(prev.simulation.knobs && prev.simulation.knobs.fog ? prev.simulation.knobs.fog : {}),
+              ...(patch || {}),
+            },
           },
         },
       }));
@@ -111,7 +121,10 @@ export function registerMainCommands(commandBus, deps) {
           ...prev.simulation,
           knobs: {
             ...prev.simulation.knobs,
-            clouds: deps.serializeCloudSettings(),
+            clouds: {
+              ...(prev.simulation.knobs && prev.simulation.knobs.clouds ? prev.simulation.knobs.clouds : {}),
+              ...(patch || {}),
+            },
           },
         },
       }));
@@ -130,7 +143,10 @@ export function registerMainCommands(commandBus, deps) {
           ...prev.simulation,
           knobs: {
             ...prev.simulation.knobs,
-            waterFx: deps.serializeWaterSettings(),
+            waterFx: {
+              ...(prev.simulation.knobs && prev.simulation.knobs.waterFx ? prev.simulation.knobs.waterFx : {}),
+              ...(patch || {}),
+            },
           },
         },
       }));
