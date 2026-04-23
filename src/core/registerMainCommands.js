@@ -43,9 +43,6 @@ export function registerMainCommands(commandBus, deps) {
   commandBus.register("core/renderFx/changed", (command, ctx) => {
     const section = String(command.section || "");
     const patch = command.patch && typeof command.patch === "object" ? command.patch : null;
-    if (typeof deps.markSimulationKnobsDirty === "function") {
-      deps.markSimulationKnobsDirty(section);
-    }
     if (section === "parallax") {
       deps.updateParallaxStrengthLabel();
       deps.updateParallaxBandsLabel();
@@ -518,6 +515,22 @@ export function registerMainCommands(commandBus, deps) {
     deps.requestOverlayDraw();
   });
 
+  commandBus.register("core/camera/setPose", (command, ctx) => {
+    if (Number.isFinite(Number(command.panX))) {
+      deps.panWorld.x = Number(command.panX);
+    }
+    if (Number.isFinite(Number(command.panY))) {
+      deps.panWorld.y = Number(command.panY);
+    }
+    if (Number.isFinite(Number(command.zoom))) {
+      deps.setZoom(deps.clamp(Number(command.zoom), deps.zoomMin, deps.zoomMax));
+    }
+    syncCameraToStore(ctx);
+    if (command.requestOverlay !== false) {
+      deps.requestOverlayDraw();
+    }
+  });
+
   commandBus.register("core/time/setHourScrubbing", (command) => {
     deps.setCycleHourScrubbing(Boolean(command.scrubbing));
   });
@@ -599,6 +612,23 @@ export function registerMainCommands(commandBus, deps) {
             ...(prev.systems.time && prev.systems.time.routing ? prev.systems.time.routing : {}),
             [target]: mode,
           },
+        },
+      },
+    }));
+  });
+
+  commandBus.register("core/pointLights/setLiveUpdate", (command, ctx) => {
+    const liveUpdate = Boolean(command.liveUpdate);
+    if (deps.pointLightLiveUpdateToggle) {
+      deps.pointLightLiveUpdateToggle.checked = liveUpdate;
+    }
+    ctx.store.update((prev) => ({
+      ...prev,
+      gameplay: {
+        ...prev.gameplay,
+        pointLights: {
+          ...(prev.gameplay && prev.gameplay.pointLights ? prev.gameplay.pointLights : {}),
+          liveUpdate,
         },
       },
     }));

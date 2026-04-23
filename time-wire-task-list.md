@@ -104,9 +104,18 @@ Dependencies: none
   - [x] P1.2.1 Time routing foundation is in place.
   - [x] P1.2.2 Movement queue/tick execution is in place.
   - [x] P1.2.3 Render, DOM, and much of runtime state are still `main.js` owned.
-- [-] P1.3 Create explicit ownership map for remaining migration
-  - [-] P1.3.1 List all runtime domains still reading DOM inputs directly.
-  - [ ] P1.3.2 List all core state branches that are still snapshots instead of authoritative state.
+- [x] P1.3 Create explicit ownership map for remaining migration
+  - [x] P1.3.1 List all runtime domains still reading DOM inputs directly.
+    - point-light editor draft controls still read DOM input values directly during editor interaction (`strength`, `intensity`, `heightOffset`, `flicker`, `flickerSpeed`).
+    - swarm range normalization helpers still read DOM values to clamp/correct paired controls (`min/max height`, `follow zoom in/out`) before reflecting normalized values.
+    - map/load-save and file-picker flows still read DOM/path inputs directly by design at event time.
+    - note: runtime-hot render/system settings reads are now store-backed; remaining direct reads are mostly event-time UI/editor paths.
+  - [x] P1.3.2 List all core state branches that are still snapshots instead of authoritative state.
+    - `camera` is still runtime-driven (local `panWorld`/`zoom`) and mirrored into store; follow-camera path now explicitly syncs this mirror.
+    - `gameplay.swarm.enabled/count/follow*` mirrors live swarm runtime (`swarmState`, follow locals) rather than being the sole simulation authority.
+    - `gameplay.movement` is a movement-system runtime snapshot exposed into store for UI/scheduler integration.
+    - `map.folderPath/loaded/size` is runtime/map-load driven and synchronized into store.
+    - several transient editor/runtime states remain local-only (point-light editor draft/selection, cursor pointer transient, hover/path preview caches).
   - [x] P1.3.3 List all places where parity writes state back into runtime/DOM.
 
 Exit criteria:
@@ -118,7 +127,7 @@ Exit criteria:
 Dependencies: Phase 1
 
 - [-] P2.1 Make core state complete enough to become sole runtime authority
-  - [ ] P2.1.1 Audit missing authoritative state branches for:
+  - [x] P2.1.1 Audit missing authoritative state branches for:
     - render FX controls
     - pathfinding settings
     - swarm settings
@@ -127,10 +136,10 @@ Dependencies: Phase 1
     - map/session state
   - [-] P2.1.2 Remove any remaining dependence on reading those values primarily from DOM inputs.
   - [-] P2.1.3 Ensure settings defaults/serialize/apply paths align with canonical core state shape.
-- [ ] P2.2 Define stable command surface for all user-driven state changes
-  - [ ] P2.2.1 Route all mutable UI-backed settings through commands.
-  - [ ] P2.2.2 Remove direct imperative state mutation where command routing should own behavior.
-  - [ ] P2.2.3 Ensure commands update both state and required side effects.
+- [-] P2.2 Define stable command surface for all user-driven state changes
+  - [-] P2.2.1 Route all mutable UI-backed settings through commands.
+  - [-] P2.2.2 Remove direct imperative state mutation where command routing should own behavior.
+  - [-] P2.2.3 Ensure commands update both state and required side effects.
 - [ ] P2.3 Clarify ownership boundaries
   - [ ] P2.3.1 Core store owns persistent/config/runtime gameplay state.
   - [ ] P2.3.2 Renderer consumes resolved state but does not own it.
@@ -155,7 +164,7 @@ Dependencies: Phase 2
 - [-] P3.3 Make UI update one-way
   - [-] P3.3.1 State change updates labels/inputs/UI.
   - [-] P3.3.2 User interaction dispatches command.
-  - [ ] P3.3.3 Remove implicit two-way parity behavior.
+  - [-] P3.3.3 Remove implicit two-way parity behavior.
 
 Exit criteria:
 - Runtime logic no longer depends on DOM inputs as the primary state source.
@@ -164,22 +173,22 @@ Exit criteria:
 
 Dependencies: Phase 2, Phase 3
 
-- [ ] P4.1 Make scheduler/core systems read only canonical core state
-  - [ ] P4.1.1 Time system.
-  - [ ] P4.1.2 Lighting system.
-  - [ ] P4.1.3 Fog system.
-  - [ ] P4.1.4 Cloud system.
-  - [ ] P4.1.5 Water FX system.
-  - [ ] P4.1.6 Weather system.
-  - [ ] P4.1.7 Pathfinding/movement integration.
-- [ ] P4.2 Move remaining gameplay runtime ownership out of `main.js`
-  - [ ] P4.2.1 Player/gameplay state snapshots become authoritative state or system-owned runtime.
-  - [ ] P4.2.2 Swarm settings/runtime ownership boundaries are explicit and non-duplicated.
-  - [ ] P4.2.3 Camera state ownership is explicit and does not bounce between runtime and core.
-- [ ] P4.3 Stop per-frame snapshot feeding
+- [-] P4.1 Make scheduler/core systems read only canonical core state
+  - [x] P4.1.1 Time system.
+  - [x] P4.1.2 Lighting system.
+  - [x] P4.1.3 Fog system.
+  - [x] P4.1.4 Cloud system.
+  - [x] P4.1.5 Water FX system.
+  - [x] P4.1.6 Weather system.
+  - [-] P4.1.7 Pathfinding/movement integration.
+- [-] P4.2 Move remaining gameplay runtime ownership out of `main.js`
+  - [-] P4.2.1 Player/gameplay state snapshots become authoritative state or system-owned runtime.
+  - [-] P4.2.2 Swarm settings/runtime ownership boundaries are explicit and non-duplicated.
+  - [-] P4.2.3 Camera state ownership is explicit and does not bounce between runtime and core.
+- [-] P4.3 Stop per-frame snapshot feeding
   - [ ] P4.3.1 Replace `updateCoreFrameSnapshot(...)` inputs with authoritative state access.
   - [ ] P4.3.2 Ensure scheduler update context only carries transient frame values (`nowMs`, `dtSec`, routed time), not mirrored runtime state.
-  - [ ] P4.3.3 Delete remaining snapshot-only helper functions once no longer needed.
+  - [-] P4.3.3 Delete remaining snapshot-only helper functions once no longer needed.
 
 Exit criteria:
 - Scheduler no longer depends on frame-by-frame mirrored runtime state.
@@ -188,17 +197,17 @@ Exit criteria:
 
 Dependencies: Phase 4
 
-- [ ] P5.1 Make render preparation consume resolved state, not raw inputs
-  - [ ] P5.1.1 Uniform input construction reads from core/system state.
-  - [ ] P5.1.2 Frame render state construction reads from core/system state.
-  - [ ] P5.1.3 Overlay rendering reads canonical gameplay/render state.
+- [-] P5.1 Make render preparation consume resolved state, not raw inputs
+  - [-] P5.1.1 Uniform input construction reads from core/system state.
+  - [-] P5.1.2 Frame render state construction reads from core/system state.
+  - [-] P5.1.3 Overlay rendering reads canonical gameplay/render state.
 - [ ] P5.2 Remove ad hoc render-time settings assembly where possible
   - [ ] P5.2.1 Avoid recomputing settings snapshots from DOM every frame.
   - [ ] P5.2.2 Keep only genuinely transient frame calculations in render loop.
-- [ ] P5.3 Reduce `main.js` to orchestration
+- [-] P5.3 Reduce `main.js` to orchestration
   - [ ] P5.3.1 Keep boot/setup.
   - [ ] P5.3.2 Keep render loop orchestration.
-  - [ ] P5.3.3 Move runtime domain logic into modules when still embedded.
+  - [-] P5.3.3 Move runtime domain logic into modules when still embedded.
 
 Exit criteria:
 - Render loop consumes canonical state with minimal state reconstruction.
@@ -273,20 +282,16 @@ Migration is only complete when all of the following are true:
 ## Immediate Next Work
 
 Recommended next sequence:
-- [-] N1 Finish Phase 1 ownership map.
-- [-] N2 Start Phase 2 by auditing missing canonical state branches.
-- [-] N3 Choose the first concrete ownership slice to migrate fully:
-  - render FX controls
-  - pathfinding controls
-  - swarm controls
-
-Recommended first slice:
-- render FX controls
-
-Reason:
-- They have high runtime read frequency.
-- They are a direct source of current snapshot/parity churn.
-- They are lower-risk than camera/gameplay ownership changes.
+- [-] N1 Close remaining Phase 2 command-surface/state-contract work:
+  - finish removing remaining DOM-primary dependencies in settings/control flows
+  - complete ownership-boundary clarification across core/renderer/DOM
+- [-] N2 Close explicit runtime ownership boundaries in Phase 4:
+  - finish camera ownership migration to command/state-authoritative writes
+  - finish swarm/player ownership split so runtime mirrors are minimized and deliberate
+- [-] N3 Continue Phase 5 extraction and reduce `main.js` further:
+  - move remaining point-light editor orchestration out of `main.js`
+  - move remaining embedded render/gameplay orchestration out of `main.js`
+  - keep `main.js` focused on boot + wiring + frame orchestration
 
 ## Session Log
 
@@ -475,3 +480,53 @@ Reason:
     - point-light editor command/orchestration behavior still lives in `main.js`, though state, persistence, and UI reflection are now extracted
     - some map/bootstrap and editor-only flows still live inside `main.js`
     - `main.js` still remains the dominant orchestration surface and needs further extraction before migration can be called complete
+  - Continued camera ownership cleanup:
+    - added explicit camera-store synchronization when swarm follow updates camera pan/zoom directly, so `coreState.camera` stays aligned outside command-driven camera events
+    - added camera branch synchronization to `syncCoreSettingsStateFromRuntime(...)` to keep bootstrap/apply sync paths consistent
+  - Continued command-surface + apply-path cleanup:
+    - added explicit `core/pointLights/setLiveUpdate` command; point-light live-update toggle now routes through command handling instead of calling full runtime->store sync
+    - removed `syncCoreSettingsStateFromRuntime(...)` calls from per-settings apply paths (`lighting`, `fog`, `parallax`, `clouds`, `waterfx`, `interaction`, `swarm`) to reduce implicit two-way parity churn
+    - `applyLoadedNpc(...)` now performs targeted player-store sync instead of full runtime sync
+  - Continued runtime snapshot-boundary cleanup:
+    - added guarded `syncSwarmRuntimeStateToStore()` and wired it into swarm simulation update and swarm-data apply flows
+    - swarm runtime (`enabled`, `count`, follow flags/target) now stays synchronized with canonical gameplay state without requiring global runtime-sync passes
+    - removed leftover naming/intent drift by switching time-router frame setup helpers from `...FromStoreOrInputs` to `...FromStoreOrDefaults`
+  - Continued camera command-surface cleanup:
+    - added `core/camera/setPose` command for direct pose updates (pan/zoom + optional overlay invalidation)
+    - swarm follow camera path now uses command dispatch instead of direct `panWorld`/`zoom` mutation + ad hoc sync
+    - removed now-unused local `syncCameraStateToStore()` helper after follow path migrated to command routing
+  - Continued interaction ownership cleanup:
+    - interaction command handlers now use a single player-store sync helper instead of repeating inline `ctx.store.update(...)` player writes in multiple branches
+    - `registerMainCommands(...)` now passes explicit `syncPlayerStateToStore` dependency into interaction command registration
+  - Continued bridge-removal cleanup:
+    - removed startup usage of broad `syncCoreSettingsStateFromRuntime(...)` runtime->store mirroring and replaced it with targeted bootstrap syncs (`map`, `player`, `swarm`, `pointLights`)
+    - deleted now-unused snapshot/cache helpers from `main.js`:
+      - `syncCoreSettingsStateFromRuntime(...)`
+      - `getWeatherInputSnapshot(...)`
+      - simulation-knob dirty/cache snapshot helpers
+    - removed dead `markSimulationKnobsDirty` wiring from main command dependencies and apply-path calls
+  - Continued `main.js` decomposition:
+    - extracted swarm follow-camera domain logic into `src/gameplay/swarmFollowCamera.js`
+    - `main.js` now composes a `createSwarmFollowCameraUpdater(...)` instance instead of owning full inline follow-camera behavior
+    - extracted swarm simulation update-loop orchestration into `src/gameplay/swarmUpdateLoop.js`
+    - `main.js` now composes a `createSwarmUpdateLoop(...)` instance instead of owning inline swarm step-loop/timestep orchestration
+  - Continued render ownership cleanup:
+    - extracted terrain uniform upload orchestration into `src/render/uniformUploader.js`
+    - main terrain render pass now forwards `frame.camera` into uniform upload, reducing hot-path reliance on local camera variables
+    - lit swarm render path now consumes frame-camera values for view extents/pan uniforms
+    - frame render-state assembly no longer injects local `panWorld`/`zoom` from call site
+    - extracted lit swarm render orchestration into `src/render/swarmLitRenderer.js`
+    - removed inline lit swarm GPU upload/draw logic and vertex-buffer capacity bookkeeping from `main.js`
+    - camera transform helpers (`worldFromNdc`, `worldToScreen`, default view-half lookup) now resolve camera state from canonical store first, with local fallback only for safety
+    - extracted overlay draw orchestration into `src/ui/overlays/drawOverlay.js`
+    - removed inline overlay draw body from `main.js`; `main.js` now composes `createOverlayDrawer(...)` with explicit dependencies
+  - Remaining migration hotspots after this pass:
+    - camera pan/zoom is still locally mutated in runtime paths and mirrored into store; full store-authoritative camera mutation is not complete yet
+    - point-light editor draft mutation/orchestration still lives in `main.js` command flow
+    - render/overlay logic and swarm simulation are still heavily embedded in `main.js` and need further extraction for final composition-only architecture
+  - Handoff readiness check (stop point for next session):
+    - verified status markers now match active subtask progress for P4/P5 parent items
+    - verified immediate-next-work sequence now targets unfinished migration phases instead of completed Phase 1 work
+    - re-ran sanity checks on migration-touched files:
+      - `node --check` passed for updated/new runtime modules and bindings
+      - `node --test tests/*.test.js` passed (9/9)

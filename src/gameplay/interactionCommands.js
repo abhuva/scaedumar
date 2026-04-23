@@ -5,6 +5,24 @@ export function registerInteractionCommands(commandBus, deps) {
     return Boolean(snapshot && snapshot.active);
   }
 
+  function syncPlayerToStore(ctx) {
+    if (typeof deps.syncPlayerStateToStore === "function") {
+      deps.syncPlayerStateToStore();
+      return;
+    }
+    ctx.store.update((prev) => ({
+      ...prev,
+      gameplay: {
+        ...prev.gameplay,
+        player: {
+          ...prev.gameplay.player,
+          pixelX: deps.playerState.pixelX,
+          pixelY: deps.playerState.pixelY,
+        },
+      },
+    }));
+  }
+
   commandBus.register("core/interaction/setMode", (command, ctx) => {
     deps.setInteractionMode(command.mode);
   });
@@ -46,17 +64,7 @@ export function registerInteractionCommands(commandBus, deps) {
       deps.setInteractionMode("none");
       deps.movePreviewState.hoverPixel = null;
       deps.movePreviewState.pathPixels = [];
-      ctx.store.update((prev) => ({
-        ...prev,
-        gameplay: {
-          ...prev.gameplay,
-          player: {
-            ...prev.gameplay.player,
-            pixelX: deps.playerState.pixelX,
-            pixelY: deps.playerState.pixelY,
-          },
-        },
-      }));
+      syncPlayerToStore(ctx);
       deps.requestOverlayDraw();
       return;
     }
@@ -66,17 +74,7 @@ export function registerInteractionCommands(commandBus, deps) {
       deps.movePreviewState.hoverPixel = null;
       deps.movePreviewState.pathPixels = [];
       deps.setStatus(`Movement canceled at (${deps.playerState.pixelX}, ${deps.playerState.pixelY}).`);
-      ctx.store.update((prev) => ({
-        ...prev,
-        gameplay: {
-          ...prev.gameplay,
-          player: {
-            ...prev.gameplay.player,
-            pixelX: deps.playerState.pixelX,
-            pixelY: deps.playerState.pixelY,
-          },
-        },
-      }));
+      syncPlayerToStore(ctx);
       deps.requestOverlayDraw();
       return;
     }
@@ -89,17 +87,7 @@ export function registerInteractionCommands(commandBus, deps) {
     deps.movePreviewState.hoverPixel = null;
     deps.movePreviewState.pathPixels = [];
     deps.setStatus(`Player moved to (${deps.playerState.pixelX}, ${deps.playerState.pixelY})`);
-    ctx.store.update((prev) => ({
-      ...prev,
-      gameplay: {
-        ...prev.gameplay,
-        player: {
-          ...prev.gameplay.player,
-          pixelX: deps.playerState.pixelX,
-          pixelY: deps.playerState.pixelY,
-        },
-      },
-    }));
+    syncPlayerToStore(ctx);
     deps.requestOverlayDraw();
   });
 
