@@ -834,3 +834,10 @@ Recommended next sequence:
     - `node --check src/gameplay/mapImageRuntime.js`
     - `node --check src/main.js`
     - `node --test tests/*.test.js` (pass 9/9)
+  - Continued shared math-helper extraction:
+    - extracted shared clamp/interpolation/hour-format helpers from `src/main.js` into `src/core/mathUtils.js`
+    - `main.js` now keeps `clamp(...)`, `clampRound(...)`, `lerp(...)`, `lerpVec3(...)`, `lerpAngleDeg(...)`, `smoothstep(...)`, `wrapHour(...)`, and `formatHour(...)` as thin pass-through wrappers
+  - Validation:
+    - `node --check src/core/mathUtils.js`
+    - `node --check src/main.js`
+    - `node --test tests/*.test.js` (pass 9/9)

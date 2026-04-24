@@ -11,6 +11,16 @@ import {
 } from "./core/timeRouter.js";
 import { createTimeStateAccess } from "./core/timeStateAccess.js";
 import { rgbToHex as rgbToHexUtil, hexToRgb01 as hexToRgb01Util } from "./core/colorUtils.js";
+import {
+  clamp as clampUtil,
+  clampRound as clampRoundUtil,
+  lerp as lerpUtil,
+  lerpVec3 as lerpVec3Util,
+  lerpAngleDeg as lerpAngleDegUtil,
+  smoothstep as smoothstepUtil,
+  wrapHour as wrapHourUtil,
+  formatHour as formatHourUtil,
+} from "./core/mathUtils.js";
 import { normalizeRuntimeMode, canUseInteractionMode as canUseModeInteraction, canUseTopic as canUseModeTopic } from "./core/modeCapabilities.js";
 import {
   DEFAULT_LIGHTING_SETTINGS,
@@ -1878,46 +1888,35 @@ function setStatus(text) {
 }
 
 function clamp(v, min, max) {
-  return Math.min(max, Math.max(min, v));
+  return clampUtil(v, min, max);
 }
 
 function clampRound(v, min, max, decimals = LIGHTING_SAVE_PRECISION) {
-  const clamped = clamp(v, min, max);
-  return Number(clamped.toFixed(decimals));
+  return clampRoundUtil(v, min, max, decimals);
 }
 
 function lerp(a, b, t) {
-  return a + (b - a) * t;
+  return lerpUtil(a, b, t);
 }
 
 function lerpVec3(a, b, t) {
-  return [
-    lerp(a[0], b[0], t),
-    lerp(a[1], b[1], t),
-    lerp(a[2], b[2], t),
-  ];
+  return lerpVec3Util(a, b, t);
 }
 
 function lerpAngleDeg(a, b, t) {
-  const delta = ((b - a + 540) % 360) - 180;
-  return a + delta * t;
+  return lerpAngleDegUtil(a, b, t);
 }
 
 function smoothstep(edge0, edge1, x) {
-  const t = clamp((x - edge0) / (edge1 - edge0), 0, 1);
-  return t * t * (3 - 2 * t);
+  return smoothstepUtil(edge0, edge1, x);
 }
 
 function wrapHour(hour) {
-  const h = hour % 24;
-  return h < 0 ? h + 24 : h;
+  return wrapHourUtil(hour);
 }
 
 function formatHour(hour) {
-  const h = wrapHour(hour);
-  const hh = Math.floor(h);
-  const mm = Math.floor((h - hh) * 60);
-  return `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+  return formatHourUtil(hour);
 }
 
 function setCycleHourSliderFromState() {
