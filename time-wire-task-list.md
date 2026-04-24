@@ -1248,3 +1248,10 @@ Recommended next sequence:
     - `node --check src/ui/swarmFollowBindingRuntime.js`
     - `node --check src/main.js`
     - `node --test tests/*.test.js` (pass 9/9)
+  - Continued swarm-panel binding runtime extraction:
+    - extracted swarm-panel binding orchestration (`bindSwarmPanelControls` deps composition) from `src/main.js` into `src/ui/swarmPanelBindingRuntime.js`
+    - `main.js` now delegates to `bindSwarmPanelRuntime(...)`
+  - Validation:
+    - `node --check src/ui/swarmPanelBindingRuntime.js`
+    - `node --check src/main.js`
+    - `node --test tests/*.test.js` (pass 9/9)
