@@ -70,7 +70,7 @@ import { createFrameRuntimeBinding } from "./render/frameRuntimeBinding.js";
 import { resizeViewport } from "./render/viewportRuntime.js";
 import { createCloudNoiseImage as createCloudNoiseImageRender, uploadCloudNoiseTexture as uploadCloudNoiseTextureRender } from "./render/cloudNoiseRuntime.js";
 import { createGlResourceBindingRuntime } from "./render/glResourceBindingRuntime.js";
-import { createShadowPipelineRuntime } from "./render/shadowPipelineRuntime.js";
+import { createShadowPipelineBindingRuntime } from "./render/shadowPipelineBindingRuntime.js";
 import { createTimeSystem } from "./sim/timeSystem.js";
 import { createLightingSystem } from "./sim/lightingSystem.js";
 import { createFogSystem } from "./sim/fogSystem.js";
@@ -1211,10 +1211,10 @@ function rebuildFlowMapTexture() {
   getFlowMapBindingRuntime().rebuildFlowMapTexture();
 }
 
-let shadowPipelineRuntime = null;
-function getShadowPipelineRuntime() {
-  if (shadowPipelineRuntime) return shadowPipelineRuntime;
-  shadowPipelineRuntime = createShadowPipelineRuntime({
+let shadowPipelineBindingRuntime = null;
+function getShadowPipelineBindingRuntime() {
+  if (shadowPipelineBindingRuntime) return shadowPipelineBindingRuntime;
+  shadowPipelineBindingRuntime = createShadowPipelineBindingRuntime({
     gl,
     shadowSize,
     shadowRawTex,
@@ -1228,15 +1228,15 @@ function getShadowPipelineRuntime() {
     getLightingSettings: () => getSimulationKnobSectionFromStore("lighting") || getSettingsDefaults("lighting", DEFAULT_LIGHTING_SETTINGS),
     getShadowMapScale: () => SHADOW_MAP_SCALE,
   });
-  return shadowPipelineRuntime;
+  return shadowPipelineBindingRuntime;
 }
 
 function ensureShadowTargets() {
-  getShadowPipelineRuntime().ensureShadowTargets();
+  getShadowPipelineBindingRuntime().ensureShadowTargets();
 }
 
 function renderShadowPipeline(params) {
-  getShadowPipelineRuntime().renderShadowPipeline(params);
+  getShadowPipelineBindingRuntime().renderShadowPipeline(params);
 }
 
 function createCloudNoiseImage(size = 128) {

@@ -1486,3 +1486,10 @@ Recommended next sequence:
     - `node --check src/render/flowMapBindingRuntime.js`
     - `node --check src/main.js`
     - `node --test tests/*.test.js` (pass 9/9)
+  - Continued shadow-pipeline binding runtime extraction:
+    - extracted shadow-pipeline binding runtime composition (`createShadowPipelineRuntime` deps composition + wrapper methods) from `src/main.js` into `src/render/shadowPipelineBindingRuntime.js`
+    - `main.js` now delegates `ensureShadowTargets(...)` and `renderShadowPipeline(...)` through this binding runtime
+  - Validation:
+    - `node --check src/render/shadowPipelineBindingRuntime.js`
+    - `node --check src/main.js`
+    - `node --test tests/*.test.js` (pass 9/9)
