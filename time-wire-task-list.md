@@ -1190,3 +1190,12 @@ Recommended next sequence:
     - `node --check src/render/pointLightBakeBindingRuntime.js`
     - `node --check src/main.js`
     - `node --test tests/*.test.js` (pass 9/9)
+  - Continued point-light runtime binding hardening:
+    - added `deletePointLightById(...)` binding to `src/gameplay/pointLightEditorRuntime.js`
+    - added `isPointLightsSaveConfirmArmed(...)` binding to `src/gameplay/pointLightIoRuntime.js`
+    - replaced remaining direct `pointLightEditorController`/`pointLightIoController` references in point-light editor bindings with runtime-bound calls
+  - Validation:
+    - `node --check src/gameplay/pointLightEditorRuntime.js`
+    - `node --check src/gameplay/pointLightIoRuntime.js`
+    - `node --check src/main.js`
+    - `node --test tests/*.test.js` (pass 9/9)

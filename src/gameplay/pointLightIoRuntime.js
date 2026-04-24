@@ -51,6 +51,10 @@ export function createPointLightIoRuntime(deps) {
     return pointLightIoController.applyLoadedPointLights(rawData, sourceLabel, options);
   }
 
+  function isPointLightsSaveConfirmArmed() {
+    return pointLightIoController.isPointLightsSaveConfirmArmed();
+  }
+
   async function savePointLightsJson() {
     await pointLightIoController.savePointLightsJson();
   }
@@ -65,6 +69,7 @@ export function createPointLightIoRuntime(deps) {
     armPointLightsSaveConfirmation,
     serializePointLights,
     applyLoadedPointLights,
+    isPointLightsSaveConfirmArmed,
     savePointLightsJson,
     loadPointLightsFromAssetsOrPrompt,
   };

@@ -24,9 +24,9 @@ No game engine is used.
 - Interaction command routing is now extracted to `src/gameplay/interactionCommands.js` and composed into main command registration.
 - Point-light editor orchestration is now extracted to `src/gameplay/pointLightEditorController.js`, with draft state isolated in `src/gameplay/pointLightEditorState.js`.
 - Point-light selection wrappers (`getSelectedPointLight`, `clearLightEditSelection`, `setLightEditSelection`) are now extracted to `src/gameplay/pointLightSelectionRuntime.js`.
-- Point-light editor runtime bindings (`beginLightEdit`, `applyDraftToSelectedPointLight`, `rebakeIfPointLightLiveUpdateEnabled`, `findPointLightAtPixel`, `createPointLight`) are now extracted to `src/gameplay/pointLightEditorRuntime.js`.
+- Point-light editor runtime bindings (`beginLightEdit`, `applyDraftToSelectedPointLight`, `rebakeIfPointLightLiveUpdateEnabled`, `findPointLightAtPixel`, `createPointLight`, `deletePointLightById`) are now extracted to `src/gameplay/pointLightEditorRuntime.js`.
 - Point-light save/load/confirmation I/O orchestration is now extracted to `src/gameplay/pointLightIoController.js`.
-- Point-light I/O runtime binding (controller composition + wrapper methods) is now extracted to `src/gameplay/pointLightIoRuntime.js`.
+- Point-light I/O runtime binding (controller composition + wrapper methods, including save-confirm armed-state access) is now extracted to `src/gameplay/pointLightIoRuntime.js`.
 - Map-level JSON "Save All" file-generation/save orchestration is now extracted to `src/gameplay/mapDataSaveController.js`.
 - Map-sidecar JSON load/apply orchestration for URL/folder-selection paths is now extracted to `src/gameplay/mapSidecarLoader.js`.
 - Map-load orchestration for path/folder-selection flows is now extracted to `src/gameplay/mapLoader.js` and composed from `main.js`.

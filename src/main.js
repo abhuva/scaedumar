@@ -4316,11 +4316,9 @@ bindPointLightEditorControls({
   syncPointLightsStateToStore,
   updateLightEditorUi,
   getSelectedPointLight,
-  deletePointLightById: (id) => {
-    pointLightEditorController.deletePointLightById(id);
-  },
+  deletePointLightById: (id) => pointLightEditorRuntime.deletePointLightById(id),
   clearLightEditSelection,
-  isPointLightsSaveConfirmArmed: () => pointLightIoController.isPointLightsSaveConfirmArmed(),
+  isPointLightsSaveConfirmArmed: () => pointLightIoRuntime.isPointLightsSaveConfirmArmed(),
   armPointLightsSaveConfirmation,
   resetPointLightsSaveConfirmation,
   savePointLightsJson,

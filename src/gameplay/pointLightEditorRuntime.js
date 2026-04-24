@@ -19,11 +19,16 @@ export function createPointLightEditorRuntime(deps) {
     deps.pointLightEditorController.createPointLight(pixelX, pixelY);
   }
 
+  function deletePointLightById(id) {
+    deps.pointLightEditorController.deletePointLightById(id);
+  }
+
   return {
     beginLightEdit,
     applyDraftToSelectedPointLight,
     rebakeIfPointLightLiveUpdateEnabled,
     findPointLightAtPixel,
     createPointLight,
+    deletePointLightById,
   };
 }
