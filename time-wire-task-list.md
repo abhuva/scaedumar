@@ -917,3 +917,11 @@ Recommended next sequence:
     - `node --check src/gameplay/mapRuntimeState.js`
     - `node --check src/main.js`
     - `node --test tests/*.test.js` (pass 9/9)
+  - Continued lighting-params runtime extraction:
+    - extracted lighting parameter assembly logic (`computeLightingParams(...)`) from `src/main.js` into `src/sim/lightingParamsRuntime.js`
+    - `main.js` now keeps `computeLightingParams(...)` as a thin pass-through wrapper
+    - runtime wiring uses lazy `getLightingParamsRuntime()` composition to avoid initialization-order regressions
+  - Validation:
+    - `node --check src/sim/lightingParamsRuntime.js`
+    - `node --check src/main.js`
+    - `node --test tests/*.test.js` (pass 9/9)
