@@ -1270,12 +1270,17 @@ async function loadImageFromFile(file) {
   return image;
 }
 
-const mapPathBindingRuntime = createMapPathBindingRuntime({
-  defaultMapFolder: DEFAULT_MAP_FOLDER,
-});
+let mapPathBindingRuntime = null;
+function getMapPathBindingRuntime() {
+  if (mapPathBindingRuntime) return mapPathBindingRuntime;
+  mapPathBindingRuntime = createMapPathBindingRuntime({
+    defaultMapFolder: DEFAULT_MAP_FOLDER,
+  });
+  return mapPathBindingRuntime;
+}
 
 function normalizeMapFolderPath(path) {
-  return mapPathBindingRuntime.normalizeMapFolderPath(path);
+  return getMapPathBindingRuntime().normalizeMapFolderPath(path);
 }
 
 const tauriRuntimeBinding = createTauriRuntimeBinding({
@@ -1286,15 +1291,15 @@ const tauriRuntimeBinding = createTauriRuntimeBinding({
 const tauriInvoke = tauriRuntimeBinding.tauriInvoke;
 
 function isAbsoluteFsPath(path) {
-  return mapPathBindingRuntime.isAbsoluteFsPath(path);
+  return getMapPathBindingRuntime().isAbsoluteFsPath(path);
 }
 
 function joinFsPath(folder, fileName) {
-  return mapPathBindingRuntime.joinFsPath(folder, fileName);
+  return getMapPathBindingRuntime().joinFsPath(folder, fileName);
 }
 
 function buildMapAssetPath(folder, fileName) {
-  return mapPathBindingRuntime.buildMapAssetPath(folder, fileName);
+  return getMapPathBindingRuntime().buildMapAssetPath(folder, fileName);
 }
 
 async function invokeTauri(command, args) {
@@ -1302,7 +1307,7 @@ async function invokeTauri(command, args) {
 }
 
 function toAbsoluteFileUrl(path) {
-  return mapPathBindingRuntime.toAbsoluteFileUrl(path);
+  return getMapPathBindingRuntime().toAbsoluteFileUrl(path);
 }
 
 async function pickMapFolderViaTauri() {
