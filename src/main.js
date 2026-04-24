@@ -57,6 +57,7 @@ import { createPointLightIoController } from "./gameplay/pointLightIoController.
 import { createMapDataSaveController } from "./gameplay/mapDataSaveController.js";
 import { createMapSidecarLoader } from "./gameplay/mapSidecarLoader.js";
 import { createMapLoader } from "./gameplay/mapLoader.js";
+import { createMapImageRuntime } from "./gameplay/mapImageRuntime.js";
 import {
   normalizeMapFolderPath as normalizeMapFolderPathUtil,
   isAbsoluteFsPath as isAbsoluteFsPathUtil,
@@ -1387,40 +1388,48 @@ async function validateMapFolderViaTauri(folderPath) {
   return tauriRuntimeHelpers.validateMapFolderViaTauri(folderPath);
 }
 
+let mapImageRuntime = null;
+function getMapImageRuntime() {
+  if (mapImageRuntime) return mapImageRuntime;
+  mapImageRuntime = createMapImageRuntime({
+    splatSize,
+    normalsSize,
+    heightSize,
+    splatTex,
+    normalsTex,
+    heightTex,
+    waterTex,
+    uploadImageToTexture,
+    applyMapSizeChangeIfNeeded,
+    resetCamera,
+    extractImageData,
+    rebuildFlowMapTexture,
+    syncMapStateToStore,
+    getPointLightBakeWorker: () => pointLightBakeWorker,
+    getNormalsImageData: () => normalsImageData,
+    getHeightImageData: () => heightImageData,
+    setNormalsImageData: (value) => {
+      normalsImageData = value;
+    },
+    setHeightImageData: (value) => {
+      heightImageData = value;
+    },
+    setSlopeImageData: (value) => {
+      slopeImageData = value;
+    },
+    setWaterImageData: (value) => {
+      waterImageData = value;
+    },
+  });
+  return mapImageRuntime;
+}
+
 async function applyMapImages(splatImage, normalsImage, heightImage, slopeImage, waterImage) {
-  uploadImageToTexture(splatTex, splatImage);
-  const sizeChanged = setSplatSizeFromImage(splatImage);
-  applyMapSizeChangeIfNeeded(sizeChanged);
-  resetCamera();
-
-  uploadImageToTexture(normalsTex, normalsImage);
-  setNormalsSizeFromImage(normalsImage);
-  normalsImageData = extractImageData(normalsImage);
-
-  uploadImageToTexture(heightTex, heightImage);
-  setHeightSizeFromImage(heightImage);
-  heightImageData = extractImageData(heightImage);
-  rebuildFlowMapTexture();
-  uploadImageToTexture(waterTex, waterImage);
-  slopeImageData = extractImageData(slopeImage);
-  waterImageData = extractImageData(waterImage);
-  syncPointLightWorkerMapData();
-  syncMapStateToStore();
+  await getMapImageRuntime().applyMapImages(splatImage, normalsImage, heightImage, slopeImage, waterImage);
 }
 
 function syncPointLightWorkerMapData() {
-  if (!pointLightBakeWorker || !normalsImageData || !heightImageData) return;
-  pointLightBakeWorker.postMessage({
-    type: "setMapData",
-    splatWidth: splatSize.width,
-    splatHeight: splatSize.height,
-    normalsWidth: normalsSize.width,
-    normalsHeight: normalsSize.height,
-    heightWidth: heightSize.width,
-    heightHeight: heightSize.height,
-    normalsData: normalsImageData.data,
-    heightData: heightImageData.data,
-  });
+  getMapImageRuntime().syncPointLightWorkerMapData();
 }
 
 function getFileFromFolderSelection(files, fileName) {
@@ -2369,21 +2378,15 @@ function createFallbackSplat(size = 512) {
 }
 
 function setSplatSizeFromImage(img) {
-  const prevW = splatSize.width;
-  const prevH = splatSize.height;
-  splatSize.width = img.width || 1;
-  splatSize.height = img.height || 1;
-  return splatSize.width !== prevW || splatSize.height !== prevH;
+  return getMapImageRuntime().setSplatSizeFromImage(img);
 }
 
 function setHeightSizeFromImage(img) {
-  heightSize.width = img.width || 1;
-  heightSize.height = img.height || 1;
+  getMapImageRuntime().setHeightSizeFromImage(img);
 }
 
 function setNormalsSizeFromImage(img) {
-  normalsSize.width = img.width || 1;
-  normalsSize.height = img.height || 1;
+  getMapImageRuntime().setNormalsSizeFromImage(img);
 }
 
 function extractImageData(source) {

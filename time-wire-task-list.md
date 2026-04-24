@@ -826,3 +826,11 @@ Recommended next sequence:
     - `node --check src/render/fallbackMapImages.js`
     - `node --check src/main.js`
     - `node --test tests/*.test.js` (pass 9/9)
+  - Continued map-image runtime extraction:
+    - extracted map-image apply/runtime-size helpers and point-light-worker map-data sync logic from `src/main.js` into `src/gameplay/mapImageRuntime.js`
+    - `main.js` now keeps `applyMapImages(...)`, `syncPointLightWorkerMapData(...)`, `setSplatSizeFromImage(...)`, `setHeightSizeFromImage(...)`, and `setNormalsSizeFromImage(...)` as thin pass-through wrappers
+    - runtime wiring uses lazy `getMapImageRuntime()` composition to avoid initialization-order regressions
+  - Validation:
+    - `node --check src/gameplay/mapImageRuntime.js`
+    - `node --check src/main.js`
+    - `node --test tests/*.test.js` (pass 9/9)
