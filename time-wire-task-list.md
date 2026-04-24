@@ -1409,3 +1409,10 @@ Recommended next sequence:
     - `node --check src/ui/modeTopicRuntimeBinding.js`
     - `node --check src/main.js`
     - `node --test tests/*.test.js` (pass 9/9)
+  - Continued interaction-mode snapshot binding extraction:
+    - extracted interaction-mode snapshot binding runtime composition (`createInteractionModeSnapshotRuntime` deps composition + wrapper) from `src/main.js` into `src/gameplay/interactionModeSnapshotBindingRuntime.js`
+    - `main.js` now delegates `getInteractionModeSnapshot(...)` through this binding
+  - Validation:
+    - `node --check src/gameplay/interactionModeSnapshotBindingRuntime.js`
+    - `node --check src/main.js`
+    - `node --test tests/*.test.js` (pass 9/9)

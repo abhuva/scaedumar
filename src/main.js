@@ -128,7 +128,7 @@ import { createCursorLightPointerStateRuntime } from "./gameplay/cursorLightPoin
 import { createSwarmCursorPointerRuntime } from "./gameplay/swarmCursorPointerRuntime.js";
 import { createPointLightSelectionRuntime } from "./gameplay/pointLightSelectionRuntime.js";
 import { createPointLightDraftRuntime } from "./gameplay/pointLightDraftRuntime.js";
-import { createInteractionModeSnapshotRuntime } from "./gameplay/interactionModeSnapshotRuntime.js";
+import { createInteractionModeSnapshotBindingRuntime } from "./gameplay/interactionModeSnapshotBindingRuntime.js";
 import { createPlayerStateRuntime } from "./gameplay/playerStateRuntime.js";
 import { createCameraViewRuntime } from "./gameplay/cameraViewRuntime.js";
 import { createInteractionModeRuntime } from "./gameplay/interactionModeRuntime.js";
@@ -2479,13 +2479,13 @@ function updateModeCapabilitiesUi() {
   modeTopicRuntimeBinding.updateModeCapabilitiesUi();
 }
 
-const interactionModeSnapshotRuntime = createInteractionModeSnapshotRuntime({
+const interactionModeSnapshotBindingRuntime = createInteractionModeSnapshotBindingRuntime({
   resolveInteractionModeSnapshot,
   getCoreGameplay: () => runtimeCore.store.getState().gameplay || null,
 });
 
 function getInteractionModeSnapshot() {
-  return interactionModeSnapshotRuntime.getInteractionModeSnapshot();
+  return interactionModeSnapshotBindingRuntime.getInteractionModeSnapshot();
 }
 
 let cursorLightPointerRuntime = null;

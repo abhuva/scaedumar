@@ -137,6 +137,7 @@ No game engine is used.
 - Light-label binding runtime composition (`createLightLabelRuntime` deps composition + wrapper methods) is now extracted to `src/ui/lightLabelBindingRuntime.js`.
 - Cursor-light-mode UI binding runtime composition (`createCursorLightModeUiRuntime` deps composition + wrapper) is now extracted to `src/ui/cursorLightModeUiBindingRuntime.js`.
 - Mode/topic runtime binding composition (`createModeStateRuntimeBinding` + `createModeCapabilitiesUi` + `createTopicPanelRuntime`) is now extracted to `src/ui/modeTopicRuntimeBinding.js`.
+- Interaction-mode snapshot binding runtime composition (`createInteractionModeSnapshotRuntime` deps composition + wrapper) is now extracted to `src/gameplay/interactionModeSnapshotBindingRuntime.js`.
 - Camera/coordinate transform helpers (camera state, view extents, world/uv/map/screen conversions) are now extracted to `src/gameplay/cameraTransforms.js`.
 - Camera view/command helpers (`resetCamera`, `getScreenAspect`, `getMapAspect`) are now extracted to `src/gameplay/cameraViewRuntime.js`.
 - Pathfinding label helper updates are now extracted to `src/ui/pathfindingLabelUi.js`.
