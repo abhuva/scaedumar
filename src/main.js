@@ -14,8 +14,8 @@ import { createAppliedSettingsStoreSync } from "./core/appliedSettingsStoreSync.
 import { createSimulationKnobAccess } from "./core/simulationKnobAccess.js";
 import { createSettingsRegistryBridge } from "./core/settingsRegistryBridge.js";
 import { createSettingsDefaultsAccess } from "./core/settingsDefaultsAccess.js";
+import { createModeStateRuntimeBinding } from "./core/modeStateRuntimeBinding.js";
 import { rgbToHex as rgbToHexUtil, hexToRgb01 as hexToRgb01Util } from "./core/colorUtils.js";
-import { createModeStateAccess } from "./core/modeStateAccess.js";
 import {
   clamp as clampUtil,
   clampRound as clampRoundUtil,
@@ -2441,7 +2441,7 @@ function updateCursorLightModeUi() {
   cursorLightModeUiRuntime.updateCursorLightModeUi();
 }
 
-const modeStateAccess = createModeStateAccess({
+const modeStateRuntimeBinding = createModeStateRuntimeBinding({
   getModeValue: () => runtimeCore.store.getState().mode,
   normalizeRuntimeMode,
   canUseModeTopic,
@@ -2449,15 +2449,15 @@ const modeStateAccess = createModeStateAccess({
 });
 
 function getRuntimeMode() {
-  return modeStateAccess.getRuntimeMode();
+  return modeStateRuntimeBinding.getRuntimeMode();
 }
 
 function canUseTopicInCurrentMode(topic) {
-  return modeStateAccess.canUseTopicInCurrentMode(topic);
+  return modeStateRuntimeBinding.canUseTopicInCurrentMode(topic);
 }
 
 function canUseInteractionInCurrentMode(mode) {
-  return modeStateAccess.canUseInteractionInCurrentMode(mode);
+  return modeStateRuntimeBinding.canUseInteractionInCurrentMode(mode);
 }
 
 const modeCapabilitiesUi = createModeCapabilitiesUi({
