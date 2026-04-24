@@ -819,3 +819,10 @@ Recommended next sequence:
     - `node --check src/core/colorUtils.js`
     - `node --check src/main.js`
     - `node --test tests/*.test.js` (pass 9/9)
+  - Continued fallback image helper extraction:
+    - extracted fallback map-image generation and image-data extraction helpers from `src/main.js` into `src/render/fallbackMapImages.js`
+    - `main.js` now keeps `createFlatNormalImage(...)`, `createFlatHeightImage(...)`, `createFlatSlopeImage(...)`, `createFlatWaterImage(...)`, `createFallbackSplat(...)`, and `extractImageData(...)` as thin pass-through wrappers
+  - Validation:
+    - `node --check src/render/fallbackMapImages.js`
+    - `node --check src/main.js`
+    - `node --test tests/*.test.js` (pass 9/9)
