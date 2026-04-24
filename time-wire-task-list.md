@@ -1339,3 +1339,10 @@ Recommended next sequence:
     - `node --check src/render/frameUiBindingRuntime.js`
     - `node --check src/main.js`
     - `node --test tests/*.test.js` (pass 9/9)
+  - Continued Tauri runtime binding extraction:
+    - extracted Tauri runtime binding composition (`resolveTauriInvoke` + `createTauriRuntimeHelpers`) from `src/main.js` into `src/gameplay/tauriRuntimeBinding.js`
+    - `main.js` now delegates native invoke/folder-picker/folder-validate wrappers through this runtime binding
+  - Validation:
+    - `node --check src/gameplay/tauriRuntimeBinding.js`
+    - `node --check src/main.js`
+    - `node --test tests/*.test.js` (pass 9/9)

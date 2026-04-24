@@ -100,7 +100,7 @@ import {
   buildMapAssetPath as buildMapAssetPathUtil,
   toAbsoluteFileUrl as toAbsoluteFileUrlUtil,
 } from "./gameplay/mapPathUtils.js";
-import { resolveTauriInvoke, createTauriRuntimeHelpers } from "./gameplay/tauriRuntime.js";
+import { createTauriRuntimeBinding } from "./gameplay/tauriRuntimeBinding.js";
 import { getFileFromFolderSelection as selectFileFromFolder, createMapIoHelpers } from "./gameplay/mapIoHelpers.js";
 import { parsePointLightsPayload, serializePointLightsPayload } from "./gameplay/pointLightsPersistence.js";
 import { createSwarmFollowCameraUpdater } from "./gameplay/swarmFollowCamera.js";
@@ -1279,7 +1279,12 @@ function normalizeMapFolderPath(path) {
   return normalizeMapFolderPathUtil(path, DEFAULT_MAP_FOLDER);
 }
 
-const tauriInvoke = resolveTauriInvoke(window);
+const tauriRuntimeBinding = createTauriRuntimeBinding({
+  windowEl: window,
+  normalizeMapFolderPath,
+  isAbsoluteFsPath,
+});
+const tauriInvoke = tauriRuntimeBinding.tauriInvoke;
 
 function isAbsoluteFsPath(path) {
   return isAbsoluteFsPathUtil(path);
@@ -1293,14 +1298,8 @@ function buildMapAssetPath(folder, fileName) {
   return buildMapAssetPathUtil(folder, fileName);
 }
 
-const tauriRuntimeHelpers = createTauriRuntimeHelpers({
-  tauriInvoke,
-  normalizeMapFolderPath,
-  isAbsoluteFsPath,
-});
-
 async function invokeTauri(command, args) {
-  return tauriRuntimeHelpers.invokeTauri(command, args);
+  return tauriRuntimeBinding.invokeTauri(command, args);
 }
 
 function toAbsoluteFileUrl(path) {
@@ -1308,11 +1307,11 @@ function toAbsoluteFileUrl(path) {
 }
 
 async function pickMapFolderViaTauri() {
-  return tauriRuntimeHelpers.pickMapFolderViaTauri();
+  return tauriRuntimeBinding.pickMapFolderViaTauri();
 }
 
 async function validateMapFolderViaTauri(folderPath) {
-  return tauriRuntimeHelpers.validateMapFolderViaTauri(folderPath);
+  return tauriRuntimeBinding.validateMapFolderViaTauri(folderPath);
 }
 
 let mapImageRuntime = null;
