@@ -4493,7 +4493,7 @@ function getFrameRuntime() {
     currentMapFolderPath,
     renderer,
     renderSwarmLit,
-    requestAnimationFrame,
+    requestAnimationFrame: (cb) => window.requestAnimationFrame(cb),
     renderCallback: render,
   });
   return frameRuntime;
