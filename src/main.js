@@ -59,6 +59,7 @@ import { createFrameUiRuntime } from "./render/frameUiRuntime.js";
 import { updateWeatherFieldMeta } from "./render/weatherFieldRuntime.js";
 import { renderFrameSwarmLayers } from "./render/frameSwarmRenderRuntime.js";
 import { computeFrameTiming } from "./render/frameTimeRuntime.js";
+import { createFrameRuntime } from "./render/frameRuntime.js";
 import { createTimeSystem } from "./sim/timeSystem.js";
 import { createLightingSystem } from "./sim/lightingSystem.js";
 import { createFogSystem } from "./sim/fogSystem.js";
@@ -4654,10 +4655,12 @@ function computeLightingParams(coreState = null) {
   return getLightingParamsRuntime().computeLightingParams(coreState);
 }
 
-function render(nowMs) {
-  const { dtSec, preUpdateState, frameTimeState, routedTime, smoothCloudTimeSec } = computeFrameTiming({
-    nowMs,
-    frame: runtimeCore.frame,
+let frameRuntime = null;
+function getFrameRuntime() {
+  if (frameRuntime) return frameRuntime;
+  frameRuntime = createFrameRuntime({
+    computeFrameTiming,
+    runtimeFrame: runtimeCore.frame,
     getCoreState: () => runtimeCore.store.getState(),
     clamp,
     buildFrameTimeState,
@@ -4665,70 +4668,42 @@ function render(nowMs) {
     getCurrentTimeRoutingFromStoreOrDefaults,
     getRoutedSystemTime,
     getInterpolatedRoutedTimeSec,
-  });
-  runtimeCore.scheduler.updateAll({ nowMs, dtSec, time: { ...frameTimeState, systems: routedTime } }, preUpdateState);
-  const coreState = runtimeCore.store.getState();
-
-  resize();
-  overlayHooks.updateGameplay(nowMs, dtSec, routedTime.swarm);
-  const systemState = coreState.systems || {};
-  const simulationState = coreState.simulation || {};
-  const simulationKnobs = simulationState.knobs || {};
-  const simulationWeather = simulationState.weather || null;
-  const lightingParams = systemState.lighting && systemState.lighting.lightingParams
-    ? systemState.lighting.lightingParams
-    : computeLightingParams(coreState);
-  getFrameUiRuntime().syncFogAutoColorInput(lightingParams);
-  const uniformInput = buildUniformInputState({
-    clamp,
+    schedulerUpdateAll: (ctx, state) => runtimeCore.scheduler.updateAll(ctx, state),
+    resize,
+    overlayHooks,
+    computeLightingParams,
+    getFrameUiRuntime,
+    buildUniformInputState,
     getMapAspect,
     cursorLightState,
-    lightingSettings: simulationKnobs.lighting || null,
-    parallaxSettings: simulationKnobs.parallax || null,
-    defaultLightingSettings: getSettingsDefaults("lighting", DEFAULT_LIGHTING_SETTINGS),
-    defaultParallaxSettings: getSettingsDefaults("parallax", DEFAULT_PARALLAX_SETTINGS),
-    defaultFogSettings: getSettingsDefaults("fog", DEFAULT_FOG_SETTINGS),
-    defaultCloudSettings: getSettingsDefaults("clouds", DEFAULT_CLOUD_SETTINGS),
-    defaultWaterSettings: getSettingsDefaults("waterfx", DEFAULT_WATER_SETTINGS),
+    getSettingsDefaults,
+    defaultLightingSettings: DEFAULT_LIGHTING_SETTINGS,
+    defaultParallaxSettings: DEFAULT_PARALLAX_SETTINGS,
+    defaultFogSettings: DEFAULT_FOG_SETTINGS,
+    defaultCloudSettings: DEFAULT_CLOUD_SETTINGS,
+    defaultWaterSettings: DEFAULT_WATER_SETTINGS,
     hexToRgb01,
-    fogState: systemState.fog || null,
-    cloudState: systemState.clouds || null,
-    waterFxState: systemState.waterFx || null,
-    weatherState: simulationWeather,
-    cloudTimeSec: smoothCloudTimeSec,
-    waterTimeSec: routedTime.water.timeSec,
-  });
-  const { cycleSpeed } = getFrameUiRuntime().syncCycleInfoText(systemState);
-  updateInfoPanel();
-  updateSwarmStatsPanel();
-  updateCycleHourLabel();
-
-  updateWeatherFieldMeta({
+    updateInfoPanel,
+    updateSwarmStatsPanel,
+    updateCycleHourLabel,
+    updateWeatherFieldMeta,
     renderResources,
     splatSize,
-    simulationWeather,
-    nowMs,
-  });
-  const frameState = renderFrameSwarmLayers({
+    renderFrameSwarmLayers,
     getSwarmSettings,
     buildFrameRenderState,
-    coreState,
-    nowMs,
-    dtSec,
     cycleState,
-    cycleSpeed,
-    smoothCloudTimeSec,
     currentMapFolderPath,
-    splatSize,
-    lightingParams,
-    uniformInput,
-    hexToRgb01,
     renderer,
     renderSwarmLit,
+    requestAnimationFrame,
+    renderCallback: render,
   });
+  return frameRuntime;
+}
 
-  overlayHooks.renderOverlayIfNeeded(frameState);
-  requestAnimationFrame(render);
+function render(nowMs) {
+  getFrameRuntime().render(nowMs);
 }
 
 bindRuntimeControls({

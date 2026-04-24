@@ -78,6 +78,7 @@ No game engine is used.
 - Weather-field render metadata update helper is now extracted to `src/render/weatherFieldRuntime.js`.
 - Render-frame swarm layer/state orchestration helper is now extracted to `src/render/frameSwarmRenderRuntime.js`.
 - Render-frame time/tick routing setup helper is now extracted to `src/render/frameTimeRuntime.js`.
+- Render-loop orchestration is now extracted to `src/render/frameRuntime.js` with `main.js` delegating via a thin wrapper.
 - Pathfinding preview runtime helpers (movement-field rebuild, preview/path extraction, pointer preview update, path metrics) are now extracted to `src/gameplay/pathfindingPreviewRuntime.js`.
 - Info-panel status composition/update logic is now extracted to `src/ui/infoPanelRuntime.js`.
 - Render-FX label/UI helper updates (`update*Label`/`update*Ui`) are now extracted to `src/ui/renderFxUiRuntime.js`.

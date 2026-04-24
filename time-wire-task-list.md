@@ -974,3 +974,10 @@ Recommended next sequence:
     - `node --check src/render/frameTimeRuntime.js`
     - `node --check src/main.js`
     - `node --test tests/*.test.js` (pass 9/9)
+  - Continued render-loop runtime extraction:
+    - extracted `render(nowMs)` orchestration from `src/main.js` into `src/render/frameRuntime.js`
+    - `main.js` now keeps `render(...)` as a thin pass-through wrapper
+  - Validation:
+    - `node --check src/render/frameRuntime.js`
+    - `node --check src/main.js`
+    - `node --test tests/*.test.js` (pass 9/9)
