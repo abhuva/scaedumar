@@ -7,6 +7,10 @@ export function bindSwarmPanelControls(deps) {
     });
   }
 
+  function getCurrentSwarmSettings() {
+    return typeof deps.getSwarmSettings === "function" ? deps.getSwarmSettings() : {};
+  }
+
   deps.swarmShowTerrainToggle.addEventListener("change", () => {
     dispatchSwarmSettingChange("showTerrainChanged", {
       value: deps.swarmShowTerrainToggle.checked,
@@ -26,15 +30,17 @@ export function bindSwarmPanelControls(deps) {
   });
 
   deps.swarmFollowZoomInInput.addEventListener("input", () => {
+    const settings = getCurrentSwarmSettings();
     dispatchSwarmSettingChange("followZoomInChanged", {
       zoomIn: Number(deps.swarmFollowZoomInInput.value),
-      zoomOut: Number(deps.swarmFollowZoomOutInput.value),
+      zoomOut: Number(settings.followZoomOut),
     });
   });
 
   deps.swarmFollowZoomOutInput.addEventListener("input", () => {
+    const settings = getCurrentSwarmSettings();
     dispatchSwarmSettingChange("followZoomOutChanged", {
-      zoomIn: Number(deps.swarmFollowZoomInInput.value),
+      zoomIn: Number(settings.followZoomIn),
       zoomOut: Number(deps.swarmFollowZoomOutInput.value),
     });
   });
@@ -105,15 +111,17 @@ export function bindSwarmPanelControls(deps) {
   });
 
   deps.swarmMinHeightInput.addEventListener("input", () => {
+    const settings = getCurrentSwarmSettings();
     dispatchSwarmSettingChange("minHeightChanged", {
       minHeight: Number(deps.swarmMinHeightInput.value),
-      maxHeight: Number(deps.swarmMaxHeightInput.value),
+      maxHeight: Number(settings.maxHeight),
     });
   });
 
   deps.swarmMaxHeightInput.addEventListener("input", () => {
+    const settings = getCurrentSwarmSettings();
     dispatchSwarmSettingChange("maxHeightChanged", {
-      minHeight: Number(deps.swarmMinHeightInput.value),
+      minHeight: Number(settings.minHeight),
       maxHeight: Number(deps.swarmMaxHeightInput.value),
     });
   });
