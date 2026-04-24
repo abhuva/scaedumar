@@ -1262,3 +1262,10 @@ Recommended next sequence:
     - `node --check src/ui/canvasBindingRuntime.js`
     - `node --check src/main.js`
     - `node --test tests/*.test.js` (pass 9/9)
+  - Continued runtime-binding extraction:
+    - extracted runtime binding orchestration (`bindRuntimeControls` deps composition) from `src/main.js` into `src/ui/runtimeBindingRuntime.js`
+    - `main.js` now delegates to `bindRuntimeBindingRuntime(...)`
+  - Validation:
+    - `node --check src/ui/runtimeBindingRuntime.js`
+    - `node --check src/main.js`
+    - `node --test tests/*.test.js` (pass 9/9)

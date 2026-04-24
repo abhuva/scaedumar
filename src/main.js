@@ -159,7 +159,6 @@ import {
   worldToScreen as worldToScreenTransform,
 } from "./gameplay/cameraTransforms.js";
 import { updatePointLightEditorUi as syncPointLightEditorUi } from "./ui/pointLightEditorUi.js";
-import { bindRuntimeControls } from "./ui/bindings/runtimeBinding.js";
 import { bindCanvasRuntime } from "./ui/canvasBindingRuntime.js";
 import { bindPointLightEditorRuntime } from "./ui/pointLightEditorBindingRuntime.js";
 import { bindRenderFxRuntime } from "./ui/renderFxBindingRuntime.js";
@@ -170,6 +169,7 @@ import { bindMapIoRuntime } from "./ui/mapIoBindingRuntime.js";
 import { bindPathfindingRuntime } from "./ui/pathfindingBindingRuntime.js";
 import { bindSwarmFollowRuntime } from "./ui/swarmFollowBindingRuntime.js";
 import { bindSwarmPanelRuntime } from "./ui/swarmPanelBindingRuntime.js";
+import { bindRuntimeBindingRuntime } from "./ui/runtimeBindingRuntime.js";
 import { getRequiredElementById, getRequiredElements } from "./ui/domElementLookup.js";
 import { createOverlayHooks } from "./ui/overlays/overlayHooks.js";
 import { createOverlayAnimationRuntime } from "./ui/overlays/overlayAnimationRuntime.js";
@@ -4510,7 +4510,7 @@ function render(nowMs) {
   getFrameRuntime().render(nowMs);
 }
 
-bindRuntimeControls({
+bindRuntimeBindingRuntime({
   windowEl: window,
   heightScaleInput,
   schedulePointLightBake,
