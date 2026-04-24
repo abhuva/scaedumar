@@ -218,13 +218,13 @@ Dependencies: Phases 3, 4, 5
 
 - [-] P6.1 Remove runtime-to-core mirroring
   - [x] P6.1.1 Delete `src/core/frameSnapshot.js` usage from `src/main.js`.
-  - [ ] P6.1.2 Remove obsolete snapshot getters whose only role was frame mirroring.
+  - [-] P6.1.2 Remove obsolete snapshot getters whose only role was frame mirroring.
 - [-] P6.2 Remove core-to-runtime parity writes
   - [x] P6.2.1 Delete `src/core/runtimeParityAdapter.js` usage from `src/main.js`.
-  - [ ] P6.2.2 Remove remaining DOM/runtime write-back assumptions.
-- [ ] P6.3 Simplify interfaces after bridge removal
-  - [ ] P6.3.1 Remove dead command/state plumbing that existed only for parity.
-  - [ ] P6.3.2 Remove duplicate state derivations and duplicate caches.
+  - [-] P6.2.2 Remove remaining DOM/runtime write-back assumptions.
+- [-] P6.3 Simplify interfaces after bridge removal
+  - [-] P6.3.1 Remove dead command/state plumbing that existed only for parity.
+  - [-] P6.3.2 Remove duplicate state derivations and duplicate caches.
 
 Exit criteria:
 - No frame snapshot bridge remains.
@@ -287,9 +287,10 @@ Recommended next sequence:
   - complete ownership-boundary clarification across core/renderer/DOM
 - [-] N2 Close explicit runtime ownership boundaries in Phase 4:
   - finish swarm/player ownership split so runtime mirrors are minimized and deliberate
-  - complete point-light editor ownership extraction out of `main.js` command flow
+  - close remaining point-light runtime helper ownership now that bake/editor/io paths are mostly extracted
 - [-] N3 Continue Phase 5 extraction and reduce `main.js` further:
   - move remaining embedded render/gameplay orchestration out of `main.js`
+  - collapse remaining thin wrappers whose only role is legacy naming shims after call-sites migrate
   - keep `main.js` focused on boot + wiring + frame orchestration
 
 ## Session Log
