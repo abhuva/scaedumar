@@ -160,7 +160,6 @@ import {
 } from "./gameplay/cameraTransforms.js";
 import { bindCanvasControls } from "./ui/bindings/canvasBinding.js";
 import { updatePointLightEditorUi as syncPointLightEditorUi } from "./ui/pointLightEditorUi.js";
-import { bindTopicPanelControls } from "./ui/bindings/topicPanelBinding.js";
 import { bindPathfindingControls } from "./ui/bindings/pathfindingBinding.js";
 import { bindSwarmFollowControls } from "./ui/bindings/swarmFollowBinding.js";
 import { bindMapIoControls } from "./ui/bindings/mapIoBinding.js";
@@ -170,6 +169,7 @@ import { bindPointLightEditorRuntime } from "./ui/pointLightEditorBindingRuntime
 import { bindRenderFxRuntime } from "./ui/renderFxBindingRuntime.js";
 import { bindInteractionCycleRuntime } from "./ui/interactionCycleBindingRuntime.js";
 import { bindCursorLightRuntime } from "./ui/cursorLightBindingRuntime.js";
+import { bindTopicPanelRuntime } from "./ui/topicPanelBindingRuntime.js";
 import { getRequiredElementById, getRequiredElements } from "./ui/domElementLookup.js";
 import { createOverlayHooks } from "./ui/overlays/overlayHooks.js";
 import { createOverlayAnimationRuntime } from "./ui/overlays/overlayAnimationRuntime.js";
@@ -4252,7 +4252,7 @@ bindSwarmFollowControls({
   swarmFollowTargetInput,
   dispatchCoreCommand,
 });
-bindTopicPanelControls({
+bindTopicPanelRuntime({
   topicButtons,
   topicPanelCloseBtn,
   windowEl: window,
