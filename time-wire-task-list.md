@@ -1367,3 +1367,10 @@ Recommended next sequence:
     - `node --check src/core/settingsApplyBindingRuntime.js`
     - `node --check src/main.js`
     - `node --test tests/*.test.js` (pass 9/9)
+  - Continued map-image runtime binding extraction:
+    - extracted map-image runtime binding composition (`createMapImageRuntime` deps composition) from `src/main.js` into `src/gameplay/mapImageRuntimeBinding.js`
+    - `main.js` now delegates `getMapImageRuntime` construction through `createMapImageRuntimeBinding(...)`
+  - Validation:
+    - `node --check src/gameplay/mapImageRuntimeBinding.js`
+    - `node --check src/main.js`
+    - `node --test tests/*.test.js` (pass 9/9)

@@ -89,7 +89,7 @@ import { createPointLightEditorRuntime } from "./gameplay/pointLightEditorRuntim
 import { createPointLightIoRuntime } from "./gameplay/pointLightIoRuntime.js";
 import { createMapDataSaveRuntime } from "./gameplay/mapDataSaveRuntime.js";
 import { createMapLoadingRuntime } from "./gameplay/mapLoadingRuntime.js";
-import { createMapImageRuntime } from "./gameplay/mapImageRuntime.js";
+import { createMapImageRuntimeBinding } from "./gameplay/mapImageRuntimeBinding.js";
 import { createMapSampling } from "./gameplay/mapSampling.js";
 import { createMapRuntimeStateBinding } from "./gameplay/mapRuntimeStateBinding.js";
 import { createMapBootstrapBindingRuntime } from "./gameplay/mapBootstrapBindingRuntime.js";
@@ -1318,7 +1318,7 @@ let mapImageRuntime = null;
 let pointLightBakeWorker = null;
 function getMapImageRuntime() {
   if (mapImageRuntime) return mapImageRuntime;
-  mapImageRuntime = createMapImageRuntime({
+  mapImageRuntime = createMapImageRuntimeBinding({
     splatSize,
     normalsSize,
     heightSize,
