@@ -4,6 +4,11 @@ export function bindCanvasControls(deps) {
     return clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom;
   }
 
+  function isUiTarget(target) {
+    if (!target || typeof target.closest !== "function") return false;
+    return Boolean(target.closest(".topic-dock, .topic-panel, .swarm-stats-panel"));
+  }
+
   function handlePointerMove(clientX, clientY) {
     deps.updateSwarmCursorFromPointer(clientX, clientY);
     deps.updateCursorLightFromPointer(clientX, clientY);
@@ -52,7 +57,11 @@ export function bindCanvasControls(deps) {
     { passive: false },
   );
 
-  deps.canvas.addEventListener("mousedown", (e) => {
+  deps.canvas.addEventListener("pointerdown", (e) => {
+    if (e.button === 0) {
+      handleMapClick(e.clientX, e.clientY, e.button);
+      return;
+    }
     if (e.button !== 1) return;
     e.preventDefault();
     deps.dispatchCoreCommand({
@@ -62,37 +71,36 @@ export function bindCanvasControls(deps) {
     });
   });
 
-  deps.windowEl.addEventListener("mouseup", (e) => {
+  deps.windowEl.addEventListener("pointerup", (e) => {
     if (e.button !== 1) return;
     deps.dispatchCoreCommand({ type: "core/camera/endMiddleDrag" });
   });
 
-  deps.canvas.addEventListener("mousemove", (e) => {
+  deps.canvas.addEventListener("pointermove", (e) => {
     handlePointerMove(e.clientX, e.clientY);
-  });
-
-  deps.canvas.addEventListener("click", (e) => {
-    handleMapClick(e.clientX, e.clientY, e.button);
   });
 
   deps.canvas.addEventListener("auxclick", (e) => {
     if (e.button === 1) e.preventDefault();
   });
 
-  deps.canvas.addEventListener("mouseleave", () => {
+  deps.canvas.addEventListener("pointerleave", () => {
     deps.dispatchCoreCommand({ type: "core/canvas/leave" });
   });
 
   // Fallback: some layouts/overlays can prevent direct canvas event targeting.
-  deps.windowEl.addEventListener("mousemove", (e) => {
+  deps.windowEl.addEventListener("pointermove", (e) => {
     if (e.target === deps.canvas) return;
+    if (isUiTarget(e.target)) return;
     if (!isInsideCanvas(e.clientX, e.clientY)) return;
     handlePointerMove(e.clientX, e.clientY);
-  });
+  }, true);
 
-  deps.windowEl.addEventListener("click", (e) => {
+  deps.windowEl.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0) return;
     if (e.target === deps.canvas) return;
+    if (isUiTarget(e.target)) return;
     if (!isInsideCanvas(e.clientX, e.clientY)) return;
     handleMapClick(e.clientX, e.clientY, e.button);
-  });
+  }, true);
 }

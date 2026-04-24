@@ -308,3 +308,7 @@ Use this section to keep continuity across refreshes.
   - Converted Render FX panel bindings to command-dispatch flow (`core/renderFx/changed`) and moved FX UI/state sync into command handlers; handlers now persist updated FX settings into `coreState.simulation.knobs`.
   - Converted Swarm panel bindings to command-dispatch flow (`core/swarm/settingsChanged`) and centralized swarm settings side effects/state sync in command handlers.
   - Manual end-to-end smoke test was run via local server and passed; compatibility checklist items validated and marked complete.
+- 2026-04-24:
+  - Fixed a terrain interaction regression introduced during migration where pointer hover/click stopped reaching pathfinding, player teleport, and point-light placement/selection.
+  - Hardened canvas input handling with pointer-event fallback outside panel chrome so terrain interactions still work when the canvas is not the direct event target.
+  - Fixed camera transform helpers to reject invalid map dimensions and to treat `zoomValue: null` as "use active camera zoom" instead of coercing to `0`, which had expanded hit-testing to the wrong view extents.

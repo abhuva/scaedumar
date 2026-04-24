@@ -1,0 +1,18 @@
+{
+	"nodes":[
+		{"id":"41c56d0abe96ea43","x":254,"y":-299,"width":250,"height":60,"type":"text","text":"Lightning Atmosphere\n"},
+		{"id":"398e66d0afca44ed","x":232,"y":-111,"width":250,"height":60,"type":"text","text":"Sonstiges"},
+		{"id":"8daa094ff3feef1e","x":166,"y":39,"width":250,"height":60,"type":"text","text":"Agent Swarms"},
+		{"id":"a83128846f735b35","x":-457,"y":-349,"width":453,"height":160,"type":"text","text":"Clouds\nFogs\nLighting\nWater\nPoint Lights\n\n\n\n"},
+		{"id":"91c01c5ba5f4bba5","x":-399,"y":-127,"width":395,"height":92,"type":"text","text":"Pathfinding\nMap Load/Save"},
+		{"id":"fca20b04052d33d8","x":-355,"y":39,"width":250,"height":60,"type":"text","text":"Agent Swarm (bird/hawk)"},
+		{"id":"b3998aa6d198eb16","x":73,"y":258,"width":250,"height":60,"type":"text","text":"Modes"},
+		{"id":"dd2f9fb897fec8f9","x":-355,"y":244,"width":250,"height":74,"type":"text","text":"Point Light mode\nPathfinding Mode"}
+	],
+	"edges":[
+		{"id":"670658d159584c47","fromNode":"a83128846f735b35","fromSide":"right","toNode":"41c56d0abe96ea43","toSide":"left"},
+		{"id":"d8c0dc89a7bb7098","fromNode":"fca20b04052d33d8","fromSide":"right","toNode":"8daa094ff3feef1e","toSide":"left"},
+		{"id":"ba017713564dc451","fromNode":"91c01c5ba5f4bba5","fromSide":"right","toNode":"398e66d0afca44ed","toSide":"left"},
+		{"id":"a8cf9bc0728f7e18","fromNode":"dd2f9fb897fec8f9","fromSide":"right","toNode":"b3998aa6d198eb16","toSide":"left"}
+	]
+}

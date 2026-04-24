@@ -1,4 +1,10 @@
 export function createCameraViewRuntime(deps) {
+  function getSafeMapSize() {
+    const width = Math.max(1, Number(deps.splatSize.width) || 1);
+    const height = Math.max(1, Number(deps.splatSize.height) || 1);
+    return { width, height };
+  }
+
   function resetCamera() {
     deps.dispatchCoreCommand({ type: "core/camera/reset" });
   }
@@ -8,7 +14,8 @@ export function createCameraViewRuntime(deps) {
   }
 
   function getMapAspect() {
-    return deps.splatSize.width / deps.splatSize.height;
+    const size = getSafeMapSize();
+    return size.width / size.height;
   }
 
   return {
