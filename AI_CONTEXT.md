@@ -71,6 +71,7 @@ No game engine is used.
 - Fallback map-image generation and image-data extraction helpers are now extracted to `src/render/fallbackMapImages.js`.
 - Map-image apply/runtime-size/point-light-worker sync helpers are now extracted to `src/gameplay/mapImageRuntime.js`.
 - Point-light/cursor-light label update helpers are now extracted to `src/ui/lightLabelRuntime.js`.
+- Point-light editor UI orchestration (`updateLightEditorUi`) is now extracted to `src/ui/pointLightEditorRuntime.js`.
 - Sun keyframe interpolation model (`sampleSunAtHour`) is now extracted to `src/sim/sunModel.js`.
 - Map normal/height sampling helpers (`normalize3`, `sampleNormalAtMapPixel`, `sampleHeightAtMapPixel`, `sampleHeightAtMapCoord`) are now extracted to `src/gameplay/mapSampling.js`.
 - Shadow/occlusion helpers (`computeSwarmDirectionalShadow`, `hasLineOfSightToLight`) are now extracted to `src/gameplay/shadowOcclusion.js`.

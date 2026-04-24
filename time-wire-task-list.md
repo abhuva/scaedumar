@@ -1120,3 +1120,10 @@ Recommended next sequence:
     - `node --check src/gameplay/interactionModeRuntime.js`
     - `node --check src/main.js`
     - `node --test tests/*.test.js` (pass 9/9)
+  - Continued point-light editor UI runtime extraction:
+    - extracted point-light editor UI orchestration (`updateLightEditorUi`) from `src/main.js` into `src/ui/pointLightEditorRuntime.js`
+    - `main.js` now keeps `updateLightEditorUi(...)` as a thin pass-through wrapper
+  - Validation:
+    - `node --check src/ui/pointLightEditorRuntime.js`
+    - `node --check src/main.js`
+    - `node --test tests/*.test.js` (pass 9/9)

@@ -178,6 +178,7 @@ import { createStatusRuntime } from "./ui/statusRuntime.js";
 import { createInfoPanelRuntime } from "./ui/infoPanelRuntime.js";
 import { createModeCapabilitiesUi } from "./ui/modeCapabilitiesUi.js";
 import { createLightLabelRuntime } from "./ui/lightLabelRuntime.js";
+import { createPointLightEditorRuntime } from "./ui/pointLightEditorRuntime.js";
 import { createTimeUiRuntime } from "./ui/timeUiRuntime.js";
 import { runStartupUiSync } from "./ui/startupUiSync.js";
 import { createSwarmOverlayRuntime } from "./ui/swarmOverlayRuntime.js";
@@ -2475,27 +2476,30 @@ function updateCursorLightFromPointer(clientX, clientY) {
   getCursorLightPointerRuntime().updateCursorLightFromPointer(clientX, clientY);
 }
 
+const pointLightEditorRuntime = createPointLightEditorRuntime({
+  syncPointLightEditorUi,
+  getSelectedPointLight,
+  getLightEditDraft: () => pointLightEditorState.getDraft(),
+  lightEditorEmptyEl,
+  lightEditorFieldsEl,
+  lightCoordEl,
+  pointLightColorInput,
+  pointLightStrengthInput,
+  pointLightIntensityInput,
+  pointLightHeightOffsetInput,
+  pointLightFlickerInput,
+  pointLightFlickerSpeedInput,
+  rgbToHex,
+  clamp,
+  updatePointLightStrengthLabel,
+  updatePointLightIntensityLabel,
+  updatePointLightHeightOffsetLabel,
+  updatePointLightFlickerLabel,
+  updatePointLightFlickerSpeedLabel,
+});
+
 function updateLightEditorUi() {
-  syncPointLightEditorUi({
-    selectedLight: getSelectedPointLight(),
-    lightEditDraft: pointLightEditorState.getDraft(),
-    lightEditorEmptyEl,
-    lightEditorFieldsEl,
-    lightCoordEl,
-    pointLightColorInput,
-    pointLightStrengthInput,
-    pointLightIntensityInput,
-    pointLightHeightOffsetInput,
-    pointLightFlickerInput,
-    pointLightFlickerSpeedInput,
-    rgbToHex,
-    clamp,
-    updatePointLightStrengthLabel,
-    updatePointLightIntensityLabel,
-    updatePointLightHeightOffsetLabel,
-    updatePointLightFlickerLabel,
-    updatePointLightFlickerSpeedLabel,
-  });
+  pointLightEditorRuntime.updateLightEditorUi();
 }
 
 function beginLightEdit(light) {
