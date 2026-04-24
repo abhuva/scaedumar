@@ -150,6 +150,7 @@ import { createRenderFxSettingsApplier } from "./ui/renderFxSettingsApplier.js";
 import { createInfoPanelRuntime } from "./ui/infoPanelRuntime.js";
 import { createModeCapabilitiesUi } from "./ui/modeCapabilitiesUi.js";
 import { createLightLabelRuntime } from "./ui/lightLabelRuntime.js";
+import { createTimeUiRuntime } from "./ui/timeUiRuntime.js";
 import * as renderFxUiRuntime from "./ui/renderFxUiRuntime.js";
 import * as pathfindingLabelUi from "./ui/pathfindingLabelUi.js";
 
@@ -1952,7 +1953,7 @@ function formatHour(hour) {
 }
 
 function setCycleHourSliderFromState() {
-  cycleHourInput.value = String(clamp(cycleState.hour, 0, 24));
+  getTimeUiRuntime().setCycleHourSliderFromState();
 }
 
 function sampleSunAtHour(hour) {
@@ -2771,6 +2772,18 @@ const cycleState = {
   hour: 9.5,
 };
 let isCycleHourScrubbing = false;
+let timeUiRuntime = null;
+function getTimeUiRuntime() {
+  if (timeUiRuntime) return timeUiRuntime;
+  timeUiRuntime = createTimeUiRuntime({
+    cycleHourInput,
+    cycleHourValue,
+    cycleState,
+    clamp,
+    formatHour,
+  });
+  return timeUiRuntime;
+}
 
 function getSimulationKnobSectionFromStore(key) {
   const knobs = runtimeCore.store.getState().simulation.knobs || {};
@@ -4266,7 +4279,7 @@ function updateWaterUi() {
 }
 
 function updateCycleHourLabel() {
-  cycleHourValue.textContent = formatHour(cycleState.hour);
+  getTimeUiRuntime().updateCycleHourLabel();
 }
 
 function requestOverlayDraw() {

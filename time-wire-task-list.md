@@ -886,3 +886,11 @@ Recommended next sequence:
     - `node --check src/render/pointLightBakeSync.js`
     - `node --check src/main.js`
     - `node --test tests/*.test.js` (pass 9/9)
+  - Continued time-UI helper extraction:
+    - extracted cycle-hour slider/label UI helper logic from `src/main.js` into `src/ui/timeUiRuntime.js`
+    - `main.js` now keeps `setCycleHourSliderFromState(...)` and `updateCycleHourLabel(...)` as thin pass-through wrappers
+    - runtime wiring uses lazy `getTimeUiRuntime()` composition to avoid initialization-order regressions
+  - Validation:
+    - `node --check src/ui/timeUiRuntime.js`
+    - `node --check src/main.js`
+    - `node --test tests/*.test.js` (pass 9/9)
