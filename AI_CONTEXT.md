@@ -144,6 +144,7 @@ No game engine is used.
 - Player-state runtime binding composition (`createPlayerStateRuntime` deps composition + wrapper) is now extracted to `src/gameplay/playerStateRuntimeBinding.js`.
 - Pathfinding cost-model binding runtime composition (`createPathfindingCostModel` deps composition + wrapper methods) is now extracted to `src/gameplay/pathfindingCostModelBindingRuntime.js`.
 - Point-light-editor UI binding runtime composition (`createPointLightEditorUiRuntime` deps composition + wrapper) is now extracted to `src/ui/pointLightEditorUiBindingRuntime.js`.
+- Lighting-params binding runtime composition (`createLightingParamsRuntime` deps composition + wrapper) is now extracted to `src/sim/lightingParamsBindingRuntime.js`.
 - Camera/coordinate transform helpers (camera state, view extents, world/uv/map/screen conversions) are now extracted to `src/gameplay/cameraTransforms.js`.
 - Camera view/command helpers (`resetCamera`, `getScreenAspect`, `getMapAspect`) are now extracted to `src/gameplay/cameraViewRuntime.js`.
 - Pathfinding label helper updates are now extracted to `src/ui/pathfindingLabelUi.js`.

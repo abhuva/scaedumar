@@ -1458,3 +1458,10 @@ Recommended next sequence:
     - `node --check src/ui/pointLightEditorUiBindingRuntime.js`
     - `node --check src/main.js`
     - `node --test tests/*.test.js` (pass 9/9)
+  - Continued lighting-params binding runtime extraction:
+    - extracted lighting-params binding runtime composition (`createLightingParamsRuntime` deps composition + wrapper) from `src/main.js` into `src/sim/lightingParamsBindingRuntime.js`
+    - `main.js` now delegates `computeLightingParams(...)` through this binding runtime
+  - Validation:
+    - `node --check src/sim/lightingParamsBindingRuntime.js`
+    - `node --check src/main.js`
+    - `node --test tests/*.test.js` (pass 9/9)

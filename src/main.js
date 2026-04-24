@@ -78,7 +78,7 @@ import { createCloudSystem } from "./sim/cloudSystem.js";
 import { createWaterFxSystem } from "./sim/waterFxSystem.js";
 import { createWeatherSystem } from "./sim/weatherSystem.js";
 import { sampleSunAtHour as sampleSunAtHourModel } from "./sim/sunModel.js";
-import { createLightingParamsRuntime } from "./sim/lightingParamsRuntime.js";
+import { createLightingParamsBindingRuntime } from "./sim/lightingParamsBindingRuntime.js";
 import { createEntityStore } from "./gameplay/entityStore.js";
 import { createCursorLightRuntimeState } from "./gameplay/cursorLightState.js";
 import { createMovementSystem } from "./gameplay/movementSystem.js";
@@ -2565,10 +2565,10 @@ function applyRuntimeCameraPose() {}
 let isMiddleDragging = false;
 let lastDragClient = { x: 0, y: 0 };
 let fogColorManual = false;
-let lightingParamsRuntime = null;
-function getLightingParamsRuntime() {
-  if (lightingParamsRuntime) return lightingParamsRuntime;
-  lightingParamsRuntime = createLightingParamsRuntime({
+let lightingParamsBindingRuntime = null;
+function getLightingParamsBindingRuntime() {
+  if (lightingParamsBindingRuntime) return lightingParamsBindingRuntime;
+  lightingParamsBindingRuntime = createLightingParamsBindingRuntime({
     getSettingsDefaults,
     defaultLightingSettings: DEFAULT_LIGHTING_SETTINGS,
     defaultFogSettings: DEFAULT_FOG_SETTINGS,
@@ -2584,7 +2584,7 @@ function getLightingParamsRuntime() {
     zoomMax,
     cycleState,
   });
-  return lightingParamsRuntime;
+  return lightingParamsBindingRuntime;
 }
 const interactionDefaults = DEFAULT_INTERACTION_SETTINGS;
 const cursorLightRuntime = createCursorLightRuntimeState({
@@ -4443,7 +4443,7 @@ function resize() {
 }
 
 function computeLightingParams(coreState = null) {
-  return getLightingParamsRuntime().computeLightingParams(coreState);
+  return getLightingParamsBindingRuntime().computeLightingParams(coreState);
 }
 
 let frameRuntime = null;
