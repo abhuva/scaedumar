@@ -33,6 +33,7 @@ No game engine is used.
 - Swarm target selection/follow targeting helpers are now extracted to `src/gameplay/swarmTargeting.js`.
 - Swarm terrain/water/flyability environment helpers are now extracted to `src/gameplay/swarmEnvironment.js`.
 - Cursor-light pointer-to-UV update ownership is now extracted to `src/gameplay/cursorLightPointerRuntime.js`.
+- Cursor-light pointer state mutation wrappers (`clearCursorLightPointerState`, `setCursorLightPointerUv`) are now extracted to `src/gameplay/cursorLightPointerStateRuntime.js`.
 - Swarm-cursor pointer-to-map update ownership is now extracted to `src/gameplay/swarmCursorPointerRuntime.js`.
 - Swarm agent-buffer mutation ownership (`ensure`, `append`, `remove`, resting-bird spawn) is now extracted to `src/gameplay/swarmAgentStateMutator.js`.
 - Swarm-data hydration/apply orchestration (`swarm.json` settings+state+follow apply) is now extracted to `src/gameplay/swarmDataApplier.js`.

@@ -127,6 +127,7 @@ import {
 } from "./gameplay/runtimeStateSnapshots.js";
 import { createPathfindingPreviewRuntime } from "./gameplay/pathfindingPreviewRuntime.js";
 import { createCursorLightPointerRuntime } from "./gameplay/cursorLightPointerRuntime.js";
+import { createCursorLightPointerStateRuntime } from "./gameplay/cursorLightPointerStateRuntime.js";
 import { createSwarmCursorPointerRuntime } from "./gameplay/swarmCursorPointerRuntime.js";
 import { createPlayerStateRuntime } from "./gameplay/playerStateRuntime.js";
 import { createCameraViewRuntime } from "./gameplay/cameraViewRuntime.js";
@@ -2578,8 +2579,11 @@ const cursorLightRuntime = createCursorLightRuntimeState({
   },
 });
 const cursorLightState = cursorLightRuntime.state;
-const clearCursorLightPointerState = () => cursorLightRuntime.clearPointer();
-const setCursorLightPointerUv = (uvX, uvY) => cursorLightRuntime.setPointerUv(uvX, uvY);
+const cursorLightPointerStateRuntime = createCursorLightPointerStateRuntime({
+  cursorLightRuntime,
+});
+const clearCursorLightPointerState = () => cursorLightPointerStateRuntime.clearCursorLightPointerState();
+const setCursorLightPointerUv = (uvX, uvY) => cursorLightPointerStateRuntime.setCursorLightPointerUv(uvX, uvY);
 const applyCursorLightConfigSnapshot = (snapshot) => cursorLightRuntime.applyConfigSnapshot(snapshot);
 
 const cycleState = {

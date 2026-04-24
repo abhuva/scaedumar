@@ -1141,3 +1141,10 @@ Recommended next sequence:
     - `node --check src/ui/topicPanelRuntime.js`
     - `node --check src/main.js`
     - `node --test tests/*.test.js` (pass 9/9)
+  - Continued cursor-light pointer-state runtime extraction:
+    - extracted cursor-light pointer state mutation wrappers (`clearCursorLightPointerState`, `setCursorLightPointerUv`) from `src/main.js` into `src/gameplay/cursorLightPointerStateRuntime.js`
+    - `main.js` now delegates pointer state updates through that runtime helper
+  - Validation:
+    - `node --check src/gameplay/cursorLightPointerStateRuntime.js`
+    - `node --check src/main.js`
+    - `node --test tests/*.test.js` (pass 9/9)
