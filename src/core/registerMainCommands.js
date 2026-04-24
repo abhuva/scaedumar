@@ -199,24 +199,6 @@ export function registerMainCommands(commandBus, deps) {
       }));
     }
 
-    function syncSwarmToStore() {
-      const settings = deps.getSwarmSettings();
-      ctx.store.update((prev) => ({
-        ...prev,
-        gameplay: {
-          ...prev.gameplay,
-          swarm: {
-            ...prev.gameplay.swarm,
-            ...settings,
-            enabled: deps.isSwarmEnabled(),
-            count: Math.max(0, Math.round(Number(deps.swarmState.count) || 0)),
-            followEnabled: deps.swarmFollowState.enabled,
-            followTargetType: deps.swarmFollowState.targetType === "hawk" ? "hawk" : "agent",
-          },
-        },
-      }));
-    }
-
     function normalizeHexColor(value, fallback) {
       if (typeof value === "string" && /^#?[0-9a-fA-F]{6}$/.test(value)) {
         return value.startsWith("#") ? value : `#${value}`;
@@ -504,7 +486,7 @@ export function registerMainCommands(commandBus, deps) {
         break;
     }
 
-    syncSwarmToStore();
+    deps.syncSwarmStateToStore();
   });
 
   commandBus.register("core/camera/reset", (command, ctx) => {
@@ -783,6 +765,6 @@ export function registerMainCommands(commandBus, deps) {
       deps.stopSwarmFollow({ targetType: deps.swarmFollowState.targetType });
       deps.setStatus("Swarm follow stopped. Start follow again to apply new target type.");
     }
-    deps.syncSwarmFollowToStore(ctx);
+    deps.syncSwarmFollowToStore();
   });
 }

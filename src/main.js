@@ -107,10 +107,10 @@ import { createSwarmReseeder } from "./gameplay/swarmReseed.js";
 import { createSwarmTargeting } from "./gameplay/swarmTargeting.js";
 import { createSwarmEnvironment } from "./gameplay/swarmEnvironment.js";
 import { createSwarmAgentStateMutator } from "./gameplay/swarmAgentStateMutator.js";
-import { createSwarmFollowStateController } from "./gameplay/swarmFollowStateController.js";
 import { createSwarmFollowSmoothingRuntime } from "./gameplay/swarmFollowSmoothingRuntime.js";
 import { createSwarmDataApplier } from "./gameplay/swarmDataApplier.js";
 import { createSwarmDataSerializer } from "./gameplay/swarmDataSerializer.js";
+import { createSwarmRuntime } from "./gameplay/swarmRuntime.js";
 import { createInteractionDataSerializer } from "./gameplay/interactionDataSerializer.js";
 import { createNpcPersistence } from "./gameplay/npcPersistence.js";
 import { createRenderFxDataSerializer } from "./gameplay/renderFxDataSerializer.js";
@@ -135,11 +135,6 @@ import { createCameraViewRuntimeBinding } from "./gameplay/cameraViewRuntimeBind
 import { createInteractionModeRuntime } from "./gameplay/interactionModeRuntime.js";
 import { setInteractionMode as applyInteractionMode } from "./gameplay/interactionModeController.js";
 import { createPathfindingCostModelBindingRuntime } from "./gameplay/pathfindingCostModelBindingRuntime.js";
-import {
-  getSwarmRuntimeStateSnapshot as buildSwarmRuntimeStateSnapshot,
-  syncSwarmFollowToStore as syncSwarmFollowToStoreState,
-  syncSwarmRuntimeStateToStore as syncSwarmRuntimeStateToStoreState,
-} from "./gameplay/swarmStoreSync.js";
 import {
   getBaseViewHalfExtents as getBaseViewHalfExtentsTransform,
   getActiveCameraState as getActiveCameraStateTransform,
@@ -1619,7 +1614,7 @@ function serializeSwarmData() {
 function applySwarmSettings(rawData) {
   updateStoreFromAppliedSettings("swarm", normalizeAppliedSettings("swarm", rawData, DEFAULT_SWARM_SETTINGS));
   applySwarmSettingsLegacy(rawData);
-  syncSwarmRuntimeStateToStore();
+  syncSwarmStateToStore();
 }
 
 function getSettingsDefaults(key, fallback) {
@@ -2638,28 +2633,21 @@ function getSimulationKnobSectionFromStore(key) {
   return simulationKnobAccess.getSimulationKnobSectionFromStore(key);
 }
 
-function syncSwarmFollowToStore() {
-  syncSwarmFollowToStoreState({
-    store: runtimeCore.store,
-    getSwarmRuntimeStateSnapshot,
-  });
-}
-
-const swarmFollowStateController = createSwarmFollowStateController({
+const swarmRuntime = createSwarmRuntime({
+  store: runtimeCore.store,
+  isSwarmEnabled,
+  getSwarmSettings,
+  swarmState,
   swarmFollowState,
   swarmFollowTargetInput,
   resetSwarmFollowSpeedSmoothing,
   updateSwarmFollowButtonUi: () => updateSwarmFollowButtonUi(),
-  syncSwarmFollowToStore,
 });
-
-function applySwarmFollowState(nextState, options = {}) {
-  swarmFollowStateController.applySwarmFollowState(nextState, options);
-}
-
-function stopSwarmFollow(options = {}) {
-  swarmFollowStateController.stopSwarmFollow(options);
-}
+const applySwarmFollowState = swarmRuntime.applySwarmFollowState;
+const stopSwarmFollow = swarmRuntime.stopSwarmFollow;
+const syncSwarmFollowToStore = swarmRuntime.syncSwarmFollowToStore;
+const syncSwarmRuntimeStateToStore = swarmRuntime.syncSwarmRuntimeStateToStore;
+const syncSwarmStateToStore = swarmRuntime.syncSwarmStateToStore;
 
 const movementSystem = createMovementSystem({
   entityStore,
@@ -2860,6 +2848,7 @@ registerMainCommands(runtimeCore.commandBus, {
   applySwarmFollowState,
   stopSwarmFollow,
   syncSwarmFollowToStore,
+  syncSwarmStateToStore,
   swarmFollowZoomInInput,
   swarmFollowZoomOutInput,
   swarmFollowAgentSpeedSmoothingInput,
@@ -3046,7 +3035,7 @@ runtimeCore.scheduler.addSystem(movementSystem);
 runtimeCore.scheduler.initAll({ nowMs: 0, dtSec: 0 }, runtimeCore.store.getState());
 syncMapStateToStore();
 syncPlayerStateToStore();
-syncSwarmRuntimeStateToStore();
+syncSwarmStateToStore();
 syncPointLightsStateToStore();
 
 function resetCamera() {
@@ -3097,21 +3086,6 @@ function getPathfindingStateSnapshot() {
   return resolvePathfindingStateSnapshot({
     getCorePathfinding: () => runtimeCore.store.getState().gameplay.pathfinding || {},
     clamp,
-  });
-}
-
-function getSwarmRuntimeStateSnapshot() {
-  return buildSwarmRuntimeStateSnapshot({
-    isSwarmEnabled,
-    swarmState,
-    swarmFollowState,
-  });
-}
-
-function syncSwarmRuntimeStateToStore() {
-  syncSwarmRuntimeStateToStoreState({
-    store: runtimeCore.store,
-    getSwarmRuntimeStateSnapshot,
   });
 }
 

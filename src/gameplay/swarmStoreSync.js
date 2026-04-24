@@ -7,6 +7,24 @@ export function getSwarmRuntimeStateSnapshot(deps) {
   };
 }
 
+export function getSwarmStoreSnapshot(deps) {
+  const settings = typeof deps.getSwarmSettings === "function" ? (deps.getSwarmSettings() || {}) : {};
+  return {
+    ...settings,
+    ...getSwarmRuntimeStateSnapshot(deps),
+  };
+}
+
+function hasSwarmSnapshotChanged(prevSwarm, nextSwarm) {
+  const keys = Object.keys(nextSwarm);
+  for (const key of keys) {
+    if (prevSwarm[key] !== nextSwarm[key]) {
+      return true;
+    }
+  }
+  return false;
+}
+
 export function syncSwarmFollowToStore(deps) {
   const runtimeSwarm = deps.getSwarmRuntimeStateSnapshot();
   deps.store.update((prev) => ({
@@ -41,6 +59,26 @@ export function syncSwarmRuntimeStateToStore(deps) {
         swarm: {
           ...prevSwarm,
           ...runtimeSwarm,
+        },
+      },
+    };
+  });
+}
+
+export function syncSwarmStateToStore(deps) {
+  const nextSwarm = getSwarmStoreSnapshot(deps);
+  deps.store.update((prev) => {
+    const prevSwarm = prev.gameplay && prev.gameplay.swarm ? prev.gameplay.swarm : {};
+    if (!hasSwarmSnapshotChanged(prevSwarm, nextSwarm)) {
+      return prev;
+    }
+    return {
+      ...prev,
+      gameplay: {
+        ...prev.gameplay,
+        swarm: {
+          ...prevSwarm,
+          ...nextSwarm,
         },
       },
     };

@@ -316,6 +316,7 @@ Keep this section short. Detailed extraction history belongs in git log and code
   - Reduced a remaining DOM-primary pattern in swarm panel bindings by sourcing paired follow-zoom and min/max-height values from canonical swarm settings instead of sibling input elements.
   - Clarified point-light editor ownership by syncing save-confirm armed state into canonical `gameplay.pointLights` state instead of leaving it only in controller-local memory.
   - Clarified player ownership for manual reposition by making `setPlayerPosition(...)` publish canonical player state immediately rather than relying on a second sync call afterward.
+  - Reduced duplicated swarm ownership by extracting follow apply/stop plus swarm runtime/store sync composition into `src/gameplay/swarmRuntime.js`, and by removing inline swarm store snapshot assembly from `registerMainCommands.js`.
   - Current recommended next sequence remains:
     - close remaining Phase 2 command-surface/state-contract work
     - close Phase 4 ownership boundaries for swarm/player/point-light runtime
