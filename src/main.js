@@ -129,7 +129,7 @@ import { createSwarmCursorPointerBindingRuntime } from "./gameplay/swarmCursorPo
 import { createPointLightSelectionRuntime } from "./gameplay/pointLightSelectionRuntime.js";
 import { createPointLightDraftRuntime } from "./gameplay/pointLightDraftRuntime.js";
 import { createInteractionModeSnapshotBindingRuntime } from "./gameplay/interactionModeSnapshotBindingRuntime.js";
-import { createPlayerStateRuntime } from "./gameplay/playerStateRuntime.js";
+import { createPlayerStateRuntimeBinding } from "./gameplay/playerStateRuntimeBinding.js";
 import { createCameraViewRuntimeBinding } from "./gameplay/cameraViewRuntimeBinding.js";
 import { createInteractionModeRuntime } from "./gameplay/interactionModeRuntime.js";
 import { setInteractionMode as applyInteractionMode } from "./gameplay/interactionModeController.js";
@@ -3812,7 +3812,7 @@ const interactionModeRuntime = createInteractionModeRuntime({
 });
 
 function setPlayerPosition(pixelX, pixelY) {
-  getPlayerStateRuntime().setPlayerPosition(pixelX, pixelY);
+  getPlayerStateRuntimeBinding().setPlayerPosition(pixelX, pixelY);
 }
 
 function parseNpcPlayer(rawData) {
@@ -3823,15 +3823,15 @@ function applyLoadedNpc(rawData) {
   applyLoadedNpcImpl(rawData);
 }
 
-let playerStateRuntime = null;
-function getPlayerStateRuntime() {
-  if (playerStateRuntime) return playerStateRuntime;
-  playerStateRuntime = createPlayerStateRuntime({
+let playerStateRuntimeBinding = null;
+function getPlayerStateRuntimeBinding() {
+  if (playerStateRuntimeBinding) return playerStateRuntimeBinding;
+  playerStateRuntimeBinding = createPlayerStateRuntimeBinding({
     playerState,
     clamp,
     splatSize,
   });
-  return playerStateRuntime;
+  return playerStateRuntimeBinding;
 }
 
 const pathfindingCostModel = createPathfindingCostModel({

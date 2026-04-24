@@ -1437,3 +1437,10 @@ Recommended next sequence:
     - `node --check src/gameplay/cameraViewRuntimeBinding.js`
     - `node --check src/main.js`
     - `node --test tests/*.test.js` (pass 9/9)
+  - Continued player-state binding runtime extraction:
+    - extracted player-state runtime binding composition (`createPlayerStateRuntime` deps composition + wrapper) from `src/main.js` into `src/gameplay/playerStateRuntimeBinding.js`
+    - `main.js` now delegates `setPlayerPosition(...)` through this binding runtime
+  - Validation:
+    - `node --check src/gameplay/playerStateRuntimeBinding.js`
+    - `node --check src/main.js`
+    - `node --test tests/*.test.js` (pass 9/9)
