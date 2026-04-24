@@ -1055,3 +1055,10 @@ Recommended next sequence:
     - `node --check src/ui/domElementLookup.js`
     - `node --check src/main.js`
     - `node --test tests/*.test.js` (pass 9/9)
+  - Continued status UI runtime extraction:
+    - extracted UI status text update helper (`setStatus`) from `src/main.js` into `src/ui/statusRuntime.js`
+    - `main.js` now keeps `setStatus(...)` as a thin pass-through wrapper
+  - Validation:
+    - `node --check src/ui/statusRuntime.js`
+    - `node --check src/main.js`
+    - `node --test tests/*.test.js` (pass 9/9)

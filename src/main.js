@@ -166,6 +166,7 @@ import { createSwarmSettingsApplier } from "./ui/swarmSettingsApplier.js";
 import { createInteractionSettingsApplier } from "./ui/interactionSettingsApplier.js";
 import { createLightingSettingsApplier } from "./ui/lightingSettingsApplier.js";
 import { createRenderFxSettingsApplier } from "./ui/renderFxSettingsApplier.js";
+import { createStatusRuntime } from "./ui/statusRuntime.js";
 import { createInfoPanelRuntime } from "./ui/infoPanelRuntime.js";
 import { createModeCapabilitiesUi } from "./ui/modeCapabilitiesUi.js";
 import { createLightLabelRuntime } from "./ui/lightLabelRuntime.js";
@@ -187,6 +188,7 @@ const topicPanelTitleEl = getRequiredElementById("topicPanelTitle");
 const topicPanelCloseBtn = getRequiredElementById("topicPanelClose");
 const topicCards = getRequiredElements(".topic-card");
 const statusEl = getRequiredElementById("status");
+const statusRuntime = createStatusRuntime({ statusEl });
 const cycleInfoEl = getRequiredElementById("cycleInfo");
 const playerInfoEl = getRequiredElementById("playerInfo");
 const pathInfoEl = getRequiredElementById("pathInfo");
@@ -1663,7 +1665,7 @@ async function loadMapFromFolderSelection(fileList) {
 }
 
 function setStatus(text) {
-  statusEl.textContent = text;
+  statusRuntime.setStatus(text);
 }
 
 function clamp(v, min, max) {
