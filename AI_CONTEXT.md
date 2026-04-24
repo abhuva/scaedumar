@@ -93,6 +93,7 @@ No game engine is used.
 - Pathfinding label helper updates are now extracted to `src/ui/pathfindingLabelUi.js`.
 - Interaction-mode apply/toggle controller logic is now extracted to `src/gameplay/interactionModeController.js`.
 - Overlay/gameplay frame integration now goes through `src/ui/overlays/overlayHooks.js` (gameplay update hook + overlay render hook).
+- Overlay animation gating policy (`shouldAnimateOverlay`) is now extracted to `src/ui/overlays/overlayAnimationRuntime.js`.
 - The old per-frame `frameSnapshot` / `runtimeParityAdapter` bridge has been removed.
 - Core state is now updated through command handlers, settings apply flows, bootstrap/map-load synchronization, and scheduler-owned system updates.
 - Camera commands (`reset`, `zoomAtClient`, `dragToClient`, `setPose`) now commit canonical camera pose in store first and then apply a runtime camera adapter.

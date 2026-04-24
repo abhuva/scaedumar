@@ -1034,3 +1034,10 @@ Recommended next sequence:
     - `node --check src/core/appliedSettingsStoreSync.js`
     - `node --check src/main.js`
     - `node --test tests/*.test.js` (pass 9/9)
+  - Continued overlay animation policy extraction:
+    - extracted overlay animation gating policy (`shouldAnimateOverlay`) from `src/main.js` into `src/ui/overlays/overlayAnimationRuntime.js`
+    - `main.js` now delegates `shouldAnimateOverlay` in overlay hooks through the runtime helper
+  - Validation:
+    - `node --check src/ui/overlays/overlayAnimationRuntime.js`
+    - `node --check src/main.js`
+    - `node --test tests/*.test.js` (pass 9/9)

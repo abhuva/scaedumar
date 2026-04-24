@@ -156,6 +156,7 @@ import { bindRenderFxControls } from "./ui/bindings/renderFxBinding.js";
 import { bindSwarmPanelControls } from "./ui/bindings/swarmPanelBinding.js";
 import { bindRuntimeControls } from "./ui/bindings/runtimeBinding.js";
 import { createOverlayHooks } from "./ui/overlays/overlayHooks.js";
+import { createOverlayAnimationRuntime } from "./ui/overlays/overlayAnimationRuntime.js";
 import { createOverlayDrawer } from "./ui/overlays/drawOverlay.js";
 import { createSwarmInputNormalization } from "./ui/swarmInputNormalization.js";
 import { createSwarmPanelUi } from "./ui/swarmPanelUi.js";
@@ -4042,25 +4043,18 @@ function requestOverlayDraw() {
   overlayDirty = true;
 }
 
+const overlayAnimationRuntime = createOverlayAnimationRuntime({
+  isSwarmEnabled,
+  getSwarmSettings,
+  swarmCursorState,
+  swarmFollowState,
+});
+
 const overlayHooks = createOverlayHooks({
   updateSwarm,
   updateSwarmFollowCamera,
   drawOverlay: (...args) => drawOverlay(...args),
-  shouldAnimateOverlay: () => {
-    if (!isSwarmEnabled()) {
-      return false;
-    }
-    const settings = getSwarmSettings();
-    if (!settings.useLitSwarm) {
-      return true;
-    }
-    return Boolean(
-      (swarmCursorState.active && settings.cursorMode !== "none")
-      || (settings.followHawkRangeGizmo
-        && swarmFollowState.enabled
-        && swarmFollowState.targetType === "hawk")
-    );
-  },
+  shouldAnimateOverlay: () => overlayAnimationRuntime.shouldAnimateOverlay(),
   isOverlayDirty: () => overlayDirty,
   clearOverlayDirty: () => {
     overlayDirty = false;
