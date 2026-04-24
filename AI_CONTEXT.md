@@ -77,6 +77,7 @@ No game engine is used.
 - Render-frame UI synchronization helpers (fog auto-color input + cycle info text) are now extracted to `src/render/frameUiRuntime.js`.
 - Weather-field render metadata update helper is now extracted to `src/render/weatherFieldRuntime.js`.
 - Render-frame swarm layer/state orchestration helper is now extracted to `src/render/frameSwarmRenderRuntime.js`.
+- Render-frame time/tick routing setup helper is now extracted to `src/render/frameTimeRuntime.js`.
 - Pathfinding preview runtime helpers (movement-field rebuild, preview/path extraction, pointer preview update, path metrics) are now extracted to `src/gameplay/pathfindingPreviewRuntime.js`.
 - Info-panel status composition/update logic is now extracted to `src/ui/infoPanelRuntime.js`.
 - Render-FX label/UI helper updates (`update*Label`/`update*Ui`) are now extracted to `src/ui/renderFxUiRuntime.js`.

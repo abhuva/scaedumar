@@ -58,6 +58,7 @@ import { createPointLightBakeRuntime } from "./render/pointLightBakeRuntime.js";
 import { createFrameUiRuntime } from "./render/frameUiRuntime.js";
 import { updateWeatherFieldMeta } from "./render/weatherFieldRuntime.js";
 import { renderFrameSwarmLayers } from "./render/frameSwarmRenderRuntime.js";
+import { computeFrameTiming } from "./render/frameTimeRuntime.js";
 import { createTimeSystem } from "./sim/timeSystem.js";
 import { createLightingSystem } from "./sim/lightingSystem.js";
 import { createFogSystem } from "./sim/fogSystem.js";
@@ -4649,31 +4650,17 @@ function computeLightingParams(coreState = null) {
 }
 
 function render(nowMs) {
-  const dtSec =
-    runtimeCore.frame.lastNowMs === null
-      ? 0
-      : Math.min(0.25, Math.max(0, (nowMs - runtimeCore.frame.lastNowMs) * 0.001));
-  runtimeCore.frame.lastNowMs = nowMs;
-  const preUpdateState = runtimeCore.store.getState();
-  const prevTimeState = preUpdateState.systems && preUpdateState.systems.time
-    ? preUpdateState.systems.time
-    : null;
-  const cycleSpeedHoursPerSec = clamp(Number(preUpdateState.clock && preUpdateState.clock.timeScale), 0, 1);
-  const frameTimeState = buildFrameTimeState({
-    prevTimeState,
-    dtSec,
-    cycleSpeedHoursPerSec,
-    simTickHours: getConfiguredSimTickHoursFromStoreOrDefaults(),
-    routing: getCurrentTimeRoutingFromStoreOrDefaults(),
+  const { dtSec, preUpdateState, frameTimeState, routedTime, smoothCloudTimeSec } = computeFrameTiming({
+    nowMs,
+    frame: runtimeCore.frame,
+    getCoreState: () => runtimeCore.store.getState(),
+    clamp,
+    buildFrameTimeState,
+    getConfiguredSimTickHoursFromStoreOrDefaults,
+    getCurrentTimeRoutingFromStoreOrDefaults,
+    getRoutedSystemTime,
+    getInterpolatedRoutedTimeSec,
   });
-  const routedTime = {
-    movement: getRoutedSystemTime(frameTimeState, "movement", dtSec),
-    swarm: getRoutedSystemTime(frameTimeState, "swarm", dtSec),
-    clouds: getRoutedSystemTime(frameTimeState, "clouds", dtSec),
-    water: getRoutedSystemTime(frameTimeState, "water", dtSec),
-    weather: getRoutedSystemTime(frameTimeState, "weather", dtSec),
-  };
-  const smoothCloudTimeSec = getInterpolatedRoutedTimeSec(routedTime.clouds);
   runtimeCore.scheduler.updateAll({ nowMs, dtSec, time: { ...frameTimeState, systems: routedTime } }, preUpdateState);
   const coreState = runtimeCore.store.getState();
 

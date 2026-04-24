@@ -967,3 +967,10 @@ Recommended next sequence:
     - `node --check src/render/frameSwarmRenderRuntime.js`
     - `node --check src/main.js`
     - `node --test tests/*.test.js` (pass 9/9)
+  - Continued frame-time runtime extraction:
+    - extracted render-frame time/tick routing setup from `src/main.js` into `src/render/frameTimeRuntime.js`
+    - render loop now delegates dt/routed-time/frame-time-state setup through this helper
+  - Validation:
+    - `node --check src/render/frameTimeRuntime.js`
+    - `node --check src/main.js`
+    - `node --test tests/*.test.js` (pass 9/9)
