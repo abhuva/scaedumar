@@ -319,6 +319,8 @@ Keep this section short. Detailed extraction history belongs in git log and code
   - Reduced duplicated swarm ownership by extracting follow apply/stop plus swarm runtime/store sync composition into `src/gameplay/swarmRuntime.js`, and by removing inline swarm store snapshot assembly from `registerMainCommands.js`.
   - Reduced another swarm ownership hotspot by moving follow target-index/smoothing mutations behind `src/gameplay/swarmFollowRuntimeState.js` instead of scattering direct `swarmFollowState` writes across reseed, remove, serialization, and follow-camera paths.
   - Reduced `main.js` further by extracting swarm interpolation/update/follow-camera composition into `src/gameplay/swarmLoopRuntime.js`.
+  - Moved swarm follow target indices into canonical `gameplay.swarm` state (`followAgentIndex`, `followHawkIndex`) so follow target ownership no longer lives only in runtime locals.
+  - Reduced `main.js` further by extracting swarm gameplay composition (environment, targeting, mutator, reseed, swarm data apply/serialize) into `src/gameplay/swarmGameplayRuntime.js`.
   - Current recommended next sequence remains:
     - close remaining Phase 2 command-surface/state-contract work
     - close Phase 4 ownership boundaries for swarm/player/point-light runtime

@@ -100,15 +100,10 @@ import { getFileFromFolderSelection as selectFileFromFolder } from "./gameplay/m
 import { createMapIoHelpersRuntime } from "./gameplay/mapIoHelpersRuntime.js";
 import { parsePointLightsPayload, serializePointLightsPayload } from "./gameplay/pointLightsPersistence.js";
 import { createSwarmStepFunction } from "./gameplay/swarmStep.js";
-import { createSwarmReseeder } from "./gameplay/swarmReseed.js";
-import { createSwarmTargeting } from "./gameplay/swarmTargeting.js";
-import { createSwarmEnvironment } from "./gameplay/swarmEnvironment.js";
-import { createSwarmAgentStateMutator } from "./gameplay/swarmAgentStateMutator.js";
 import { createSwarmFollowSmoothingRuntime } from "./gameplay/swarmFollowSmoothingRuntime.js";
 import { createSwarmFollowRuntimeState } from "./gameplay/swarmFollowRuntimeState.js";
-import { createSwarmDataApplier } from "./gameplay/swarmDataApplier.js";
-import { createSwarmDataSerializer } from "./gameplay/swarmDataSerializer.js";
 import { createSwarmLoopRuntime } from "./gameplay/swarmLoopRuntime.js";
+import { createSwarmGameplayRuntime } from "./gameplay/swarmGameplayRuntime.js";
 import { createSwarmRuntime } from "./gameplay/swarmRuntime.js";
 import { createInteractionDataSerializer } from "./gameplay/interactionDataSerializer.js";
 import { createNpcPersistence } from "./gameplay/npcPersistence.js";
@@ -2129,6 +2124,11 @@ const swarmFollowRuntimeState = createSwarmFollowRuntimeState({
 const swarmFollowSmoothingRuntime = createSwarmFollowSmoothingRuntime({
   resetSwarmFollowSpeedNormFiltered: swarmFollowRuntimeState.resetSwarmFollowSpeedNormFiltered,
 });
+
+function getSwarmFollowSnapshot() {
+  return swarmFollowRuntimeState.getSwarmFollowSnapshot();
+}
+
 let movementField = null;
 const pointLightBakeTempCanvas = document.createElement("canvas");
 const pointLightBakeTempCtx = pointLightBakeTempCanvas.getContext("2d");
@@ -2641,6 +2641,11 @@ const swarmRuntime = createSwarmRuntime({
   getSwarmSettings,
   swarmState,
   swarmFollowState,
+  getSwarmFollowSnapshot: swarmFollowRuntimeState.getSwarmFollowSnapshot,
+  setSwarmFollowEnabled: swarmFollowRuntimeState.setSwarmFollowEnabled,
+  setSwarmFollowTargetType: swarmFollowRuntimeState.setSwarmFollowTargetType,
+  setSwarmFollowAgentIndex: swarmFollowRuntimeState.setSwarmFollowAgentIndex,
+  setSwarmFollowHawkIndex: swarmFollowRuntimeState.setSwarmFollowHawkIndex,
   swarmFollowTargetInput,
   resetSwarmFollowSpeedSmoothing,
   updateSwarmFollowButtonUi: () => updateSwarmFollowButtonUi(),
@@ -2766,6 +2771,7 @@ registerMainCommands(runtimeCore.commandBus, {
   movePreviewState,
   playerState,
   swarmFollowState,
+  getSwarmFollowSnapshot: swarmFollowRuntimeState.getSwarmFollowSnapshot,
   swarmState,
   swarmFollowTargetInput,
   applyCameraPose: applyRuntimeCameraPose,
@@ -3163,7 +3169,7 @@ const normalizeSwarmFollowZoomInputs = swarmInputNormalization.normalizeSwarmFol
 const swarmPanelUi = createSwarmPanelUi({
   getSwarmSettings,
   swarmState,
-  swarmFollowState,
+  getSwarmFollowSnapshot: swarmFollowRuntimeState.getSwarmFollowSnapshot,
   swarmFollowToggleBtn,
   swarmStatsPanelEl,
   swarmStatsBirdsValue,
@@ -3293,78 +3299,35 @@ function resetSwarmFollowSpeedSmoothing() {
   swarmFollowSmoothingRuntime.resetSwarmFollowSpeedSmoothing();
 }
 
-const swarmEnvironment = createSwarmEnvironment({
+const swarmGameplayRuntime = createSwarmGameplayRuntime({
   sampleHeightAtMapPixel,
   getGrayAt,
   waterImageData,
   swarmHeightMax: SWARM_Z_MAX,
   terrainClearance: SWARM_TERRAIN_CLEARANCE,
-});
-const terrainFloorAtSwarmCoord = swarmEnvironment.terrainFloorAtSwarmCoord;
-const isWaterAtSwarmCoord = swarmEnvironment.isWaterAtSwarmCoord;
-const isSwarmCoordFlyable = swarmEnvironment.isSwarmCoordFlyable;
-const swarmTargeting = createSwarmTargeting({
   swarmState,
   splatSize,
-  terrainFloorAtSwarmCoord,
   clamp,
-});
-const chooseRandomSwarmTargetIndexNear = swarmTargeting.chooseRandomSwarmTargetIndexNear;
-const chooseRandomFollowAgentIndex = swarmTargeting.chooseRandomFollowAgentIndex;
-const chooseRandomFollowHawkIndex = swarmTargeting.chooseRandomFollowHawkIndex;
-const swarmAgentStateMutator = createSwarmAgentStateMutator({
-  swarmState,
-  invalidateSwarmInterpolation,
   getSwarmSettings,
-  chooseRandomSwarmTargetIndexNear,
-  chooseRandomFollowAgentIndex,
-  getSwarmFollowSnapshot: swarmFollowRuntimeState.getSwarmFollowSnapshot,
+  getSwarmFollowSnapshot,
   setSwarmFollowAgentIndex: swarmFollowRuntimeState.setSwarmFollowAgentIndex,
   stopSwarmFollow,
-  clamp,
-  splatSize,
-  isSwarmCoordFlyable,
-  isWaterAtSwarmCoord,
-  terrainFloorAtSwarmCoord,
-});
-const ensureSwarmBuffers = swarmAgentStateMutator.ensureSwarmBuffers;
-
-const reseedSwarmAgents = createSwarmReseeder({
-  getSwarmSettings,
   invalidateSwarmInterpolation,
-  ensureSwarmBuffers: swarmAgentStateMutator.ensureSwarmBuffers,
-  splatSize,
-  isSwarmCoordFlyable,
-  terrainFloorAtSwarmCoord,
-  clamp,
-  swarmState,
-  chooseRandomFollowAgentIndex,
-  getSwarmFollowSnapshot: swarmFollowRuntimeState.getSwarmFollowSnapshot,
-  setSwarmFollowAgentIndex: swarmFollowRuntimeState.setSwarmFollowAgentIndex,
-  createSpawnedHawk: swarmTargeting.createSpawnedHawk,
   requestOverlayDraw,
-});
-const applySwarmDataImpl = createSwarmDataApplier({
   applySwarmSettings,
-  getSwarmSettings,
-  swarmState,
-  clamp,
-  ensureSwarmBuffers: swarmAgentStateMutator.ensureSwarmBuffers,
-  splatSize,
-  isSwarmCoordFlyable,
-  terrainFloorAtSwarmCoord,
-  chooseRandomSwarmTargetIndexNear,
-  reseedSwarmAgents,
   applySwarmFollowState,
-  invalidateSwarmInterpolation,
   syncSwarmRuntimeStateToStore,
-  requestOverlayDraw,
 });
-const serializeSwarmDataImpl = createSwarmDataSerializer({
-  getSwarmSettings,
-  getSwarmFollowSnapshot: swarmFollowRuntimeState.getSwarmFollowSnapshot,
-  swarmState,
-});
+const terrainFloorAtSwarmCoord = swarmGameplayRuntime.terrainFloorAtSwarmCoord;
+const isWaterAtSwarmCoord = swarmGameplayRuntime.isWaterAtSwarmCoord;
+const isSwarmCoordFlyable = swarmGameplayRuntime.isSwarmCoordFlyable;
+const chooseRandomSwarmTargetIndexNear = swarmGameplayRuntime.chooseRandomSwarmTargetIndexNear;
+const chooseRandomFollowAgentIndex = swarmGameplayRuntime.chooseRandomFollowAgentIndex;
+const chooseRandomFollowHawkIndex = swarmGameplayRuntime.chooseRandomFollowHawkIndex;
+const ensureSwarmBuffers = swarmGameplayRuntime.ensureSwarmBuffers;
+const reseedSwarmAgents = swarmGameplayRuntime.reseedSwarmAgents;
+const applySwarmDataImpl = swarmGameplayRuntime.applySwarmData;
+const serializeSwarmDataImpl = swarmGameplayRuntime.serializeSwarmData;
 const serializeInteractionSettingsImpl = createInteractionDataSerializer({
   getPathfindingStateSnapshot,
   getCursorLightSnapshot,
@@ -3557,8 +3520,8 @@ const stepSwarm = createSwarmStepFunction({
   isWaterAtSwarmCoord,
   terrainFloorAtSwarmCoord,
   isSwarmCoordFlyable,
-  spawnRestingBirdNear: swarmAgentStateMutator.spawnRestingBirdNear,
-  removeSwarmAgentAtIndex: swarmAgentStateMutator.removeSwarmAgentAtIndex,
+  spawnRestingBirdNear: swarmGameplayRuntime.spawnRestingBirdNear,
+  removeSwarmAgentAtIndex: swarmGameplayRuntime.removeSwarmAgentAtIndex,
   chooseRandomSwarmTargetIndexNear,
 });
 
@@ -3624,7 +3587,7 @@ const swarmOverlayBindingRuntime = createSwarmOverlayBindingRuntime({
   swarmOverlayHawkScratch,
   swarmGizmoHawkScratch,
   swarmCursorState,
-  swarmFollowState,
+  getSwarmFollowSnapshot: swarmFollowRuntimeState.getSwarmFollowSnapshot,
   writeInterpolatedSwarmAgentPos,
   writeInterpolatedSwarmHawkPos,
   mapCoordToWorld,
@@ -4101,7 +4064,7 @@ const overlayAnimationRuntime = createOverlayAnimationRuntime({
   isSwarmEnabled,
   getSwarmSettings,
   swarmCursorState,
-  swarmFollowState,
+  getSwarmFollowSnapshot: swarmFollowRuntimeState.getSwarmFollowSnapshot,
 });
 
 const overlayHooks = createOverlayHooksRuntime({

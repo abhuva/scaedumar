@@ -11,7 +11,7 @@ export function createSwarmRuntime(deps) {
     return buildSwarmRuntimeStateSnapshot({
       isSwarmEnabled: deps.isSwarmEnabled,
       swarmState: deps.swarmState,
-      swarmFollowState: deps.swarmFollowState,
+      getSwarmFollowSnapshot: deps.getSwarmFollowSnapshot,
     });
   }
 
@@ -39,8 +39,12 @@ export function createSwarmRuntime(deps) {
   }
 
   const swarmFollowStateController = createSwarmFollowStateController({
-    swarmFollowState: deps.swarmFollowState,
     swarmFollowTargetInput: deps.swarmFollowTargetInput,
+    getSwarmFollowSnapshot: deps.getSwarmFollowSnapshot,
+    setSwarmFollowEnabled: deps.setSwarmFollowEnabled,
+    setSwarmFollowTargetType: deps.setSwarmFollowTargetType,
+    setSwarmFollowAgentIndex: deps.setSwarmFollowAgentIndex,
+    setSwarmFollowHawkIndex: deps.setSwarmFollowHawkIndex,
     resetSwarmFollowSpeedSmoothing: deps.resetSwarmFollowSpeedSmoothing,
     updateSwarmFollowButtonUi: deps.updateSwarmFollowButtonUi,
     syncSwarmFollowToStore,

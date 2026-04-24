@@ -43,8 +43,9 @@ export function createSwarmOverlayRuntime(deps) {
   }
 
   function drawSwarmGizmos(settings) {
-    if (settings.followHawkRangeGizmo && deps.swarmFollowState.enabled && deps.swarmFollowState.targetType === "hawk") {
-      const followHawkIndex = deps.swarmFollowState.hawkIndex;
+    const follow = deps.getSwarmFollowSnapshot();
+    if (settings.followHawkRangeGizmo && follow.enabled && follow.targetType === "hawk") {
+      const followHawkIndex = follow.hawkIndex;
       if (Number.isInteger(followHawkIndex) && followHawkIndex >= 0 && followHawkIndex < deps.swarmState.hawks.length) {
         const hawk = deps.writeInterpolatedSwarmHawkPos(followHawkIndex, deps.swarmGizmoHawkScratch);
         const centerWorld = deps.mapCoordToWorld(hawk.x, hawk.y);

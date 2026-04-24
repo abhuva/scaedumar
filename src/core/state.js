@@ -34,6 +34,8 @@ export const DEFAULT_GAMEPLAY_SWARM = {
   count: 0,
   followEnabled: false,
   followTargetType: "agent",
+  followAgentIndex: -1,
+  followHawkIndex: -1,
 };
 
 export const DEFAULT_GAMEPLAY_MOVEMENT = {

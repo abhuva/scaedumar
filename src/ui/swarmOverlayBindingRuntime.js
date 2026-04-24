@@ -7,7 +7,7 @@ export function createSwarmOverlayBindingRuntime(deps) {
     swarmOverlayHawkScratch: deps.swarmOverlayHawkScratch,
     swarmGizmoHawkScratch: deps.swarmGizmoHawkScratch,
     swarmCursorState: deps.swarmCursorState,
-    swarmFollowState: deps.swarmFollowState,
+    getSwarmFollowSnapshot: deps.getSwarmFollowSnapshot,
     writeInterpolatedSwarmAgentPos: deps.writeInterpolatedSwarmAgentPos,
     writeInterpolatedSwarmHawkPos: deps.writeInterpolatedSwarmHawkPos,
     mapCoordToWorld: deps.mapCoordToWorld,

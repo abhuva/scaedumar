@@ -718,11 +718,12 @@ export function registerMainCommands(commandBus, deps) {
   });
 
   commandBus.register("core/swarm/toggleFollow", (command, ctx) => {
+    const follow = deps.getSwarmFollowSnapshot();
     if (!deps.isSwarmEnabled()) {
       deps.setStatus("Enable Agent Swarm first.");
       return;
     }
-    if (deps.swarmFollowState.enabled) {
+    if (follow.enabled) {
       deps.stopSwarmFollow({ syncStore: true });
       deps.setStatus("Swarm follow stopped.");
       return;
@@ -755,14 +756,15 @@ export function registerMainCommands(commandBus, deps) {
   });
 
   commandBus.register("core/swarm/setFollowTarget", (command, ctx) => {
+    const follow = deps.getSwarmFollowSnapshot();
     deps.applySwarmFollowState({
-      enabled: deps.swarmFollowState.enabled,
+      enabled: follow.enabled,
       targetType: command.targetType === "hawk" ? "hawk" : "agent",
-      agentIndex: deps.swarmFollowState.agentIndex,
-      hawkIndex: deps.swarmFollowState.hawkIndex,
+      agentIndex: follow.agentIndex,
+      hawkIndex: follow.hawkIndex,
     }, { resetSpeed: false });
-    if (deps.swarmFollowState.enabled) {
-      deps.stopSwarmFollow({ targetType: deps.swarmFollowState.targetType });
+    if (follow.enabled) {
+      deps.stopSwarmFollow({ targetType: follow.targetType });
       deps.setStatus("Swarm follow stopped. Start follow again to apply new target type.");
     }
     deps.syncSwarmFollowToStore();

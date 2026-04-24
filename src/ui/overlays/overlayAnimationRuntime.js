@@ -4,14 +4,15 @@ export function createOverlayAnimationRuntime(deps) {
       return false;
     }
     const settings = deps.getSwarmSettings();
+    const follow = deps.getSwarmFollowSnapshot();
     if (!settings.useLitSwarm) {
       return true;
     }
     return Boolean(
       (deps.swarmCursorState.active && settings.cursorMode !== "none")
       || (settings.followHawkRangeGizmo
-        && deps.swarmFollowState.enabled
-        && deps.swarmFollowState.targetType === "hawk")
+        && follow.enabled
+        && follow.targetType === "hawk")
     );
   }
 
