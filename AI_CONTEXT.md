@@ -153,6 +153,7 @@ No game engine is used.
 - Mode/interaction runtime composition (mode-topic binding plus interaction-mode snapshot wrapper methods) is now extracted to `src/ui/modeInteractionRuntimeBinding.js`.
 - Interaction-mode snapshot binding runtime composition (`createInteractionModeSnapshotRuntime` deps composition + wrapper) is now extracted to `src/gameplay/interactionModeSnapshotBindingRuntime.js`.
 - Cursor-light pointer binding runtime composition (`createCursorLightPointerRuntime` deps composition + wrapper) is now extracted to `src/gameplay/cursorLightPointerBindingRuntime.js`.
+- Light interaction runtime composition (cursor-light state/pointer/ui plus point-light editor UI/action wrapper methods) is now extracted to `src/gameplay/lightInteractionRuntimeBinding.js`.
 - Swarm-cursor pointer binding runtime composition (`createSwarmCursorPointerRuntime` deps composition + wrapper) is now extracted to `src/gameplay/swarmCursorPointerBindingRuntime.js`.
 - Camera-view binding runtime composition (`createCameraViewRuntime` deps composition + wrapper methods) is now extracted to `src/gameplay/cameraViewRuntimeBinding.js`.
 - Camera runtime composition (camera-view binding plus coordinate/camera transform wrapper methods) is now extracted to `src/gameplay/cameraRuntimeBinding.js`.

@@ -76,8 +76,8 @@ import { createWeatherSystem } from "./sim/weatherSystem.js";
 import { sampleSunAtHour as sampleSunAtHourModel } from "./sim/sunModel.js";
 import { createLightingParamsBindingRuntime } from "./sim/lightingParamsBindingRuntime.js";
 import { createEntityStore } from "./gameplay/entityStore.js";
-import { createCursorLightRuntimeState } from "./gameplay/cursorLightState.js";
 import { createMovementSystem } from "./gameplay/movementSystem.js";
+import { createLightInteractionRuntimeBinding } from "./gameplay/lightInteractionRuntimeBinding.js";
 import { createPointLightRuntime } from "./gameplay/pointLightRuntime.js";
 import { createMapLifecycleRuntime } from "./gameplay/mapLifecycleRuntime.js";
 import { createMapImageRuntimeBinding } from "./gameplay/mapImageRuntimeBinding.js";
@@ -105,8 +105,6 @@ import {
   getSwarmSettings as resolveSwarmSettings,
   getPathfindingStateSnapshot as resolvePathfindingStateSnapshot,
 } from "./gameplay/runtimeStateSnapshots.js";
-import { createCursorLightPointerBindingRuntime } from "./gameplay/cursorLightPointerBindingRuntime.js";
-import { createCursorLightPointerStateRuntime } from "./gameplay/cursorLightPointerStateRuntime.js";
 import { createSwarmCursorPointerBindingRuntime } from "./gameplay/swarmCursorPointerBindingRuntime.js";
 import { createPlayerRuntimeBinding } from "./gameplay/playerRuntimeBinding.js";
 import { createCameraRuntimeBinding } from "./gameplay/cameraRuntimeBinding.js";
@@ -139,8 +137,6 @@ import { createRenderFxSettingsApplier } from "./ui/renderFxSettingsApplier.js";
 import { createStatusRuntime } from "./ui/statusRuntime.js";
 import { createInfoPanelRuntime } from "./ui/infoPanelRuntime.js";
 import { createLightLabelBindingRuntime } from "./ui/lightLabelBindingRuntime.js";
-import { createPointLightEditorUiBindingRuntime } from "./ui/pointLightEditorUiBindingRuntime.js";
-import { createCursorLightModeUiBindingRuntime } from "./ui/cursorLightModeUiBindingRuntime.js";
 import { createTimeUiBindingRuntime } from "./ui/timeUiBindingRuntime.js";
 import { runStartupUiSyncRuntime } from "./ui/startupUiSyncRuntime.js";
 import { createSwarmOverlayBindingRuntime } from "./ui/swarmOverlayBindingRuntime.js";
@@ -2333,15 +2329,6 @@ function updateCursorLightHeightOffsetLabel() {
   lightLabelBindingRuntime.updateCursorLightHeightOffsetLabel();
 }
 
-const cursorLightModeUiBindingRuntime = createCursorLightModeUiBindingRuntime({
-  getCursorLightSnapshot,
-  cursorLightHeightOffsetInput,
-});
-
-function updateCursorLightModeUi() {
-  cursorLightModeUiBindingRuntime.updateCursorLightModeUi();
-}
-
 const modeInteractionRuntimeBinding = createModeInteractionRuntimeBinding({
   getModeValue: () => runtimeCore.store.getState().mode,
   normalizeRuntimeMode,
@@ -2366,25 +2353,28 @@ const setActiveTopic = modeInteractionRuntimeBinding.setActiveTopic;
 const updateModeCapabilitiesUi = modeInteractionRuntimeBinding.updateModeCapabilitiesUi;
 const getInteractionModeSnapshot = modeInteractionRuntimeBinding.getInteractionModeSnapshot;
 
-let cursorLightPointerBindingRuntime = null;
-function getCursorLightPointerBindingRuntime() {
-  if (cursorLightPointerBindingRuntime) return cursorLightPointerBindingRuntime;
-  cursorLightPointerBindingRuntime = createCursorLightPointerBindingRuntime({
-    getCursorLightSnapshot,
-    clearCursorLightPointerState,
-    clientToNdc,
-    worldFromNdc,
-    worldToUv,
-    setCursorLightPointerUv,
-  });
-  return cursorLightPointerBindingRuntime;
+function applyMapSizeChangeIfNeeded(changed) {
+  mapLifecycleRuntime.applyMapSizeChangeIfNeeded(changed);
 }
-
-function updateCursorLightFromPointer(clientX, clientY) {
-  getCursorLightPointerBindingRuntime().updateCursorLightFromPointer(clientX, clientY);
-}
-
-const pointLightEditorUiBindingRuntime = createPointLightEditorUiBindingRuntime({
+bakePointLightsTexture();
+const interactionDefaults = DEFAULT_INTERACTION_SETTINGS;
+const lightInteractionRuntimeBinding = createLightInteractionRuntimeBinding({
+  clamp,
+  hexToRgb01,
+  rgbToHex,
+  cursorLightDefaults: {
+    enabled: interactionDefaults.cursorLightEnabled,
+    colorHex: interactionDefaults.cursorLightColor,
+    strength: interactionDefaults.cursorLightStrength,
+    heightOffset: interactionDefaults.cursorLightHeightOffset,
+    useTerrainHeight: interactionDefaults.cursorLightFollowHeight,
+    showGizmo: interactionDefaults.cursorLightGizmo,
+  },
+  getCursorLightSnapshot,
+  clientToNdc,
+  worldFromNdc,
+  worldToUv,
+  cursorLightHeightOffsetInput,
   syncPointLightEditorUi,
   getSelectedPointLight,
   getLightEditDraft: () => pointLightRuntime.getDraft(),
@@ -2397,43 +2387,25 @@ const pointLightEditorUiBindingRuntime = createPointLightEditorUiBindingRuntime(
   pointLightHeightOffsetInput,
   pointLightFlickerInput,
   pointLightFlickerSpeedInput,
-  rgbToHex,
-  clamp,
   updatePointLightStrengthLabel,
   updatePointLightIntensityLabel,
   updatePointLightHeightOffsetLabel,
   updatePointLightFlickerLabel,
   updatePointLightFlickerSpeedLabel,
+  pointLightRuntime,
 });
-
-function updateLightEditorUi() {
-  pointLightEditorUiBindingRuntime.updateLightEditorUi();
-}
-
-function beginLightEdit(light) {
-  pointLightRuntime.beginLightEdit(light);
-}
-
-function applyDraftToSelectedPointLight() {
-  return pointLightRuntime.applyDraftToSelectedPointLight();
-}
-
-function rebakeIfPointLightLiveUpdateEnabled() {
-  pointLightRuntime.rebakeIfPointLightLiveUpdateEnabled();
-}
-
-function findPointLightAtPixel(pixelX, pixelY, radiusPx = POINT_LIGHT_SELECT_RADIUS) {
-  return pointLightRuntime.findPointLightAtPixel(pixelX, pixelY, radiusPx);
-}
-
-function createPointLight(pixelX, pixelY) {
-  pointLightRuntime.createPointLight(pixelX, pixelY);
-}
-
-function applyMapSizeChangeIfNeeded(changed) {
-  mapLifecycleRuntime.applyMapSizeChangeIfNeeded(changed);
-}
-bakePointLightsTexture();
+const cursorLightState = lightInteractionRuntimeBinding.cursorLightState;
+const clearCursorLightPointerState = lightInteractionRuntimeBinding.clearCursorLightPointerState;
+const setCursorLightPointerUv = lightInteractionRuntimeBinding.setCursorLightPointerUv;
+const applyCursorLightConfigSnapshot = lightInteractionRuntimeBinding.applyCursorLightConfigSnapshot;
+const updateCursorLightFromPointer = lightInteractionRuntimeBinding.updateCursorLightFromPointer;
+const updateCursorLightModeUi = lightInteractionRuntimeBinding.updateCursorLightModeUi;
+const updateLightEditorUi = lightInteractionRuntimeBinding.updateLightEditorUi;
+const beginLightEdit = lightInteractionRuntimeBinding.beginLightEdit;
+const applyDraftToSelectedPointLight = lightInteractionRuntimeBinding.applyDraftToSelectedPointLight;
+const rebakeIfPointLightLiveUpdateEnabled = lightInteractionRuntimeBinding.rebakeIfPointLightLiveUpdateEnabled;
+const findPointLightAtPixel = lightInteractionRuntimeBinding.findPointLightAtPixel;
+const createPointLight = lightInteractionRuntimeBinding.createPointLight;
 updateLightEditorUi();
 
 const zoomMin = 0.5;
@@ -2464,27 +2436,6 @@ function getLightingParamsBindingRuntime() {
   });
   return lightingParamsBindingRuntime;
 }
-const interactionDefaults = DEFAULT_INTERACTION_SETTINGS;
-const cursorLightRuntime = createCursorLightRuntimeState({
-  clamp,
-  hexToRgb01,
-  defaults: {
-    enabled: interactionDefaults.cursorLightEnabled,
-    colorHex: interactionDefaults.cursorLightColor,
-    strength: interactionDefaults.cursorLightStrength,
-    heightOffset: interactionDefaults.cursorLightHeightOffset,
-    useTerrainHeight: interactionDefaults.cursorLightFollowHeight,
-    showGizmo: interactionDefaults.cursorLightGizmo,
-  },
-});
-const cursorLightState = cursorLightRuntime.state;
-const cursorLightPointerStateRuntime = createCursorLightPointerStateRuntime({
-  cursorLightRuntime,
-});
-const clearCursorLightPointerState = () => cursorLightPointerStateRuntime.clearCursorLightPointerState();
-const setCursorLightPointerUv = (uvX, uvY) => cursorLightPointerStateRuntime.setCursorLightPointerUv(uvX, uvY);
-const applyCursorLightConfigSnapshot = (snapshot) => cursorLightRuntime.applyConfigSnapshot(snapshot);
-
 const cycleState = {
   hour: 9.5,
 };

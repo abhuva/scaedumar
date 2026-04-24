@@ -332,6 +332,7 @@ Keep this section short. Detailed extraction history belongs in git log and code
   - Reduced `main.js` further by extracting camera view/coordinate transform composition into `src/gameplay/cameraRuntimeBinding.js`.
   - Reduced `main.js` further by extracting player/NPC composition into `src/gameplay/playerRuntimeBinding.js`.
   - Reduced `main.js` further by extracting mode/topic plus interaction-snapshot composition into `src/ui/modeInteractionRuntimeBinding.js`.
+  - Reduced `main.js` further by extracting cursor-light and point-light editor interaction composition into `src/gameplay/lightInteractionRuntimeBinding.js`.
   - Current recommended next sequence remains:
     - close remaining Phase 2 command-surface/state-contract work
     - close Phase 4 ownership boundaries for swarm/player/point-light runtime
