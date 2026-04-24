@@ -1134,3 +1134,10 @@ Recommended next sequence:
     - `node --check src/ui/cursorLightModeUiRuntime.js`
     - `node --check src/main.js`
     - `node --test tests/*.test.js` (pass 9/9)
+  - Continued topic-panel runtime extraction:
+    - extracted topic-panel runtime orchestration (`setTopicPanelVisible`, guarded `setActiveTopic`, `updateModeCapabilitiesUi`) from `src/main.js` into `src/ui/topicPanelRuntime.js`
+    - `main.js` now keeps these helpers as thin pass-through wrappers
+  - Validation:
+    - `node --check src/ui/topicPanelRuntime.js`
+    - `node --check src/main.js`
+    - `node --test tests/*.test.js` (pass 9/9)

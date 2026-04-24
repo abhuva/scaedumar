@@ -58,6 +58,7 @@ No game engine is used.
 - Swarm follow-camera smoothing reset helper (`resetSwarmFollowSpeedSmoothing`) is now extracted to `src/gameplay/swarmFollowSmoothingRuntime.js`.
 - Pathfinding movement-window and step-cost helpers are now extracted to `src/gameplay/pathfindingCostModel.js`.
 - Mode/topic capability UI orchestration is now extracted to `src/ui/modeCapabilitiesUi.js`.
+- Topic-panel runtime orchestration (`setTopicPanelVisible`, guarded `setActiveTopic`, `updateModeCapabilitiesUi`) is now extracted to `src/ui/topicPanelRuntime.js`.
 - Map-path/file-URL helper utilities are now extracted to `src/gameplay/mapPathUtils.js`.
 - Tauri runtime invoke/folder-picker/folder-validation helpers are now extracted to `src/gameplay/tauriRuntime.js`.
 - Map IO helpers for folder-selection file lookup and JSON load (Tauri+fetch fallback) are now extracted to `src/gameplay/mapIoHelpers.js`.

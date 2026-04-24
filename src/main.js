@@ -180,6 +180,7 @@ import { createModeCapabilitiesUi } from "./ui/modeCapabilitiesUi.js";
 import { createLightLabelRuntime } from "./ui/lightLabelRuntime.js";
 import { createPointLightEditorRuntime } from "./ui/pointLightEditorRuntime.js";
 import { createCursorLightModeUiRuntime } from "./ui/cursorLightModeUiRuntime.js";
+import { createTopicPanelRuntime } from "./ui/topicPanelRuntime.js";
 import { createTimeUiRuntime } from "./ui/timeUiRuntime.js";
 import { runStartupUiSync } from "./ui/startupUiSync.js";
 import { createSwarmOverlayRuntime } from "./ui/swarmOverlayRuntime.js";
@@ -2440,21 +2441,23 @@ const modeCapabilitiesUi = createModeCapabilitiesUi({
   getInteractionModeSnapshot,
   setInteractionMode,
 });
+const topicPanelRuntime = createTopicPanelRuntime({
+  modeCapabilitiesUi,
+  canUseTopicInCurrentMode,
+  setStatus,
+  getRuntimeMode,
+});
 
 function setTopicPanelVisible(visible) {
-  modeCapabilitiesUi.setTopicPanelVisible(visible);
+  topicPanelRuntime.setTopicPanelVisible(visible);
 }
 
 function setActiveTopic(topicName) {
-  if (topicName && !canUseTopicInCurrentMode(topicName)) {
-    setStatus(`'${topicName}' panel is unavailable in ${getRuntimeMode()} mode.`);
-    topicName = "";
-  }
-  modeCapabilitiesUi.setActiveTopic(topicName);
+  topicPanelRuntime.setActiveTopic(topicName);
 }
 
 function updateModeCapabilitiesUi() {
-  modeCapabilitiesUi.updateModeCapabilitiesUi();
+  topicPanelRuntime.updateModeCapabilitiesUi();
 }
 
 function getInteractionModeSnapshot() {
