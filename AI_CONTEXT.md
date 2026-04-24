@@ -95,6 +95,7 @@ No game engine is used.
 - Lighting parameter assembly logic (`computeLightingParams`) is now extracted to `src/sim/lightingParamsRuntime.js`.
 - Startup UI synchronization sequence is now extracted to `src/ui/startupUiSync.js`.
 - Map bootstrap/default-folder auto-load flow is now extracted to `src/gameplay/mapBootstrap.js`.
+- Map bootstrap runtime binding (default-folder candidate wiring + `tryAutoLoadDefaultMap`) is now extracted to `src/gameplay/mapBootstrapRuntime.js`.
 - Swarm unlit-overlay and gizmo drawing helpers are now extracted to `src/ui/swarmOverlayRuntime.js`.
 - Render-frame UI synchronization helpers (fog auto-color input + cycle info text) are now extracted to `src/render/frameUiRuntime.js`.
 - Weather-field render metadata update helper is now extracted to `src/render/weatherFieldRuntime.js`.

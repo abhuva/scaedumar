@@ -92,7 +92,7 @@ import { createMapLoader } from "./gameplay/mapLoader.js";
 import { createMapImageRuntime } from "./gameplay/mapImageRuntime.js";
 import { createMapSampling } from "./gameplay/mapSampling.js";
 import { createMapRuntimeState } from "./gameplay/mapRuntimeState.js";
-import { createMapBootstrap } from "./gameplay/mapBootstrap.js";
+import { createMapBootstrapRuntime } from "./gameplay/mapBootstrapRuntime.js";
 import { createShadowOcclusion } from "./gameplay/shadowOcclusion.js";
 import {
   normalizeMapFolderPath as normalizeMapFolderPathUtil,
@@ -4419,12 +4419,14 @@ bindRenderFxControls({
   rebuildFlowMapTexture,
 });
 
+const mapBootstrapRuntime = createMapBootstrapRuntime({
+  defaultMapFolderCandidates: DEFAULT_MAP_FOLDER_CANDIDATES,
+  loadMapFromPath,
+  setStatus,
+});
+
 async function tryAutoLoadDefaultMap() {
-  await createMapBootstrap({
-    defaultMapFolderCandidates: DEFAULT_MAP_FOLDER_CANDIDATES,
-    loadMapFromPath,
-    setStatus,
-  }).tryAutoLoadDefaultMap();
+  await mapBootstrapRuntime.tryAutoLoadDefaultMap();
 }
 
 bindMapIoControls({

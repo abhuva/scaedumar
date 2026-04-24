@@ -1204,6 +1204,13 @@ Recommended next sequence:
     - `node --check src/gameplay/interactionModeSnapshotRuntime.js`
     - `node --check src/main.js`
     - `node --test tests/*.test.js` (pass 9/9)
+  - Continued map-bootstrap runtime binding extraction:
+    - extracted map bootstrap runtime binding (default-folder candidate wiring + `tryAutoLoadDefaultMap`) from `src/main.js` into `src/gameplay/mapBootstrapRuntime.js`
+    - `main.js` now keeps `tryAutoLoadDefaultMap(...)` as a thin pass-through wrapper
+  - Validation:
+    - `node --check src/gameplay/mapBootstrapRuntime.js`
+    - `node --check src/main.js`
+    - `node --test tests/*.test.js` (pass 9/9)
   - Continued point-light runtime binding hardening:
     - added `deletePointLightById(...)` binding to `src/gameplay/pointLightEditorRuntime.js`
     - added `isPointLightsSaveConfirmArmed(...)` binding to `src/gameplay/pointLightIoRuntime.js`
