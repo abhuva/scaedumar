@@ -58,6 +58,7 @@ No game engine is used.
 - Interaction state access helpers for cursor-light snapshot and point-light live-update are now extracted to `src/gameplay/interactionStateAccess.js`.
 - Swarm state access helpers for defaults/reset and enabled-state lookup are now extracted to `src/gameplay/swarmStateAccess.js`.
 - Runtime gameplay/state snapshot helpers for interaction mode, pathfinding settings, swarm cursor mode, and normalized swarm settings are now extracted to `src/gameplay/runtimeStateSnapshots.js`.
+- Interaction-mode snapshot runtime binding (`getInteractionModeSnapshot`) is now extracted to `src/gameplay/interactionModeSnapshotRuntime.js`.
 - Swarm runtime/store synchronization helpers are now extracted to `src/gameplay/swarmStoreSync.js`.
 - Swarm follow-state apply/stop controller logic is now extracted to `src/gameplay/swarmFollowStateController.js`.
 - Swarm follow-camera smoothing reset helper (`resetSwarmFollowSpeedSmoothing`) is now extracted to `src/gameplay/swarmFollowSmoothingRuntime.js`.

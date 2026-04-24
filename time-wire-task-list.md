@@ -1197,6 +1197,13 @@ Recommended next sequence:
     - `node --check src/gameplay/pointLightDraftRuntime.js`
     - `node --check src/main.js`
     - `node --test tests/*.test.js` (pass 9/9)
+  - Continued interaction-mode snapshot runtime extraction:
+    - extracted interaction-mode snapshot runtime binding (`getInteractionModeSnapshot`) from `src/main.js` into `src/gameplay/interactionModeSnapshotRuntime.js`
+    - `main.js` now keeps `getInteractionModeSnapshot(...)` as a thin pass-through wrapper
+  - Validation:
+    - `node --check src/gameplay/interactionModeSnapshotRuntime.js`
+    - `node --check src/main.js`
+    - `node --test tests/*.test.js` (pass 9/9)
   - Continued point-light runtime binding hardening:
     - added `deletePointLightById(...)` binding to `src/gameplay/pointLightEditorRuntime.js`
     - added `isPointLightsSaveConfirmArmed(...)` binding to `src/gameplay/pointLightIoRuntime.js`
