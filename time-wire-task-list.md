@@ -1218,6 +1218,13 @@ Recommended next sequence:
     - `node --check src/core/modeStateRuntimeBinding.js`
     - `node --check src/main.js`
     - `node --test tests/*.test.js` (pass 9/9)
+  - Continued point-light editor binding runtime extraction:
+    - extracted point-light editor binding orchestration (`bindPointLightEditorControls` deps composition) from `src/main.js` into `src/ui/pointLightEditorBindingRuntime.js`
+    - `main.js` now delegates to `bindPointLightEditorRuntime(...)`
+  - Validation:
+    - `node --check src/ui/pointLightEditorBindingRuntime.js`
+    - `node --check src/main.js`
+    - `node --test tests/*.test.js` (pass 9/9)
   - Continued point-light runtime binding hardening:
     - added `deletePointLightById(...)` binding to `src/gameplay/pointLightEditorRuntime.js`
     - added `isPointLightsSaveConfirmArmed(...)` binding to `src/gameplay/pointLightIoRuntime.js`

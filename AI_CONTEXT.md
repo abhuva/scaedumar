@@ -80,6 +80,7 @@ No game engine is used.
 - Map-image apply/runtime-size/point-light-worker sync helpers are now extracted to `src/gameplay/mapImageRuntime.js`.
 - Point-light/cursor-light label update helpers are now extracted to `src/ui/lightLabelRuntime.js`.
 - Point-light editor UI orchestration (`updateLightEditorUi`) is now extracted to `src/ui/pointLightEditorRuntime.js`.
+- Point-light editor binding orchestration (`bindPointLightEditorControls` deps composition) is now extracted to `src/ui/pointLightEditorBindingRuntime.js`.
 - Cursor-light mode UI reflection helper (`updateCursorLightModeUi`) is now extracted to `src/ui/cursorLightModeUiRuntime.js`.
 - Sun keyframe interpolation model (`sampleSunAtHour`) is now extracted to `src/sim/sunModel.js`.
 - Map normal/height sampling helpers (`normalize3`, `sampleNormalAtMapPixel`, `sampleHeightAtMapPixel`, `sampleHeightAtMapCoord`) are now extracted to `src/gameplay/mapSampling.js`.
