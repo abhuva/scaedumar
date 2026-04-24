@@ -83,7 +83,7 @@ import { createCursorLightRuntimeState } from "./gameplay/cursorLightState.js";
 import { createMovementSystem } from "./gameplay/movementSystem.js";
 import { createPointLightEditorState } from "./gameplay/pointLightEditorState.js";
 import { createPointLightEditorController } from "./gameplay/pointLightEditorController.js";
-import { createPointLightIoController } from "./gameplay/pointLightIoController.js";
+import { createPointLightIoRuntime } from "./gameplay/pointLightIoRuntime.js";
 import { createMapDataSaveController } from "./gameplay/mapDataSaveController.js";
 import { createMapSidecarLoader } from "./gameplay/mapSidecarLoader.js";
 import { createMapLoader } from "./gameplay/mapLoader.js";
@@ -2236,7 +2236,7 @@ function setLightEditSelection(light) {
   pointLightSelectionRuntime.setLightEditSelection(light);
 }
 
-const pointLightIoController = createPointLightIoController({
+const pointLightIoRuntime = createPointLightIoRuntime({
   pointLights,
   splatSize,
   clamp,
@@ -2274,31 +2274,31 @@ const pointLightIoController = createPointLightIoController({
 });
 
 function clearPointLights() {
-  pointLightIoController.clearPointLights();
+  pointLightIoRuntime.clearPointLights();
 }
 
 function resetPointLightsSaveConfirmation() {
-  pointLightIoController.resetPointLightsSaveConfirmation();
+  pointLightIoRuntime.resetPointLightsSaveConfirmation();
 }
 
 function armPointLightsSaveConfirmation() {
-  pointLightIoController.armPointLightsSaveConfirmation();
+  pointLightIoRuntime.armPointLightsSaveConfirmation();
 }
 
 function serializePointLights() {
-  return pointLightIoController.serializePointLights();
+  return pointLightIoRuntime.serializePointLights();
 }
 
 function applyLoadedPointLights(rawData, sourceLabel, options = {}) {
-  return pointLightIoController.applyLoadedPointLights(rawData, sourceLabel, options);
+  return pointLightIoRuntime.applyLoadedPointLights(rawData, sourceLabel, options);
 }
 
 async function savePointLightsJson() {
-  await pointLightIoController.savePointLightsJson();
+  await pointLightIoRuntime.savePointLightsJson();
 }
 
 async function loadPointLightsFromAssetsOrPrompt() {
-  await pointLightIoController.loadPointLightsFromAssetsOrPrompt();
+  await pointLightIoRuntime.loadPointLightsFromAssetsOrPrompt();
 }
 
 function ensurePointLightBakeSize() {

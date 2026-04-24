@@ -1169,3 +1169,10 @@ Recommended next sequence:
     - `node --check src/render/pointLightBakeSyncBindingRuntime.js`
     - `node --check src/main.js`
     - `node --test tests/*.test.js` (pass 9/9)
+  - Continued point-light I/O runtime binding extraction:
+    - extracted point-light I/O runtime binding (controller composition + wrapper methods) from `src/main.js` into `src/gameplay/pointLightIoRuntime.js`
+    - `main.js` now keeps point-light I/O helpers as thin pass-through wrappers
+  - Validation:
+    - `node --check src/gameplay/pointLightIoRuntime.js`
+    - `node --check src/main.js`
+    - `node --test tests/*.test.js` (pass 9/9)
