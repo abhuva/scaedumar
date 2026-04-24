@@ -1444,3 +1444,10 @@ Recommended next sequence:
     - `node --check src/gameplay/playerStateRuntimeBinding.js`
     - `node --check src/main.js`
     - `node --test tests/*.test.js` (pass 9/9)
+  - Continued pathfinding cost-model binding runtime extraction:
+    - extracted pathfinding cost-model binding runtime composition (`createPathfindingCostModel` deps composition + wrapper methods) from `src/main.js` into `src/gameplay/pathfindingCostModelBindingRuntime.js`
+    - `main.js` now delegates `getGrayAt` / `movementWindowBounds` / `computeMoveStepCost` through this runtime binding
+  - Validation:
+    - `node --check src/gameplay/pathfindingCostModelBindingRuntime.js`
+    - `node --check src/main.js`
+    - `node --test tests/*.test.js` (pass 9/9)

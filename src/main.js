@@ -133,7 +133,7 @@ import { createPlayerStateRuntimeBinding } from "./gameplay/playerStateRuntimeBi
 import { createCameraViewRuntimeBinding } from "./gameplay/cameraViewRuntimeBinding.js";
 import { createInteractionModeRuntime } from "./gameplay/interactionModeRuntime.js";
 import { setInteractionMode as applyInteractionMode } from "./gameplay/interactionModeController.js";
-import { createPathfindingCostModel } from "./gameplay/pathfindingCostModel.js";
+import { createPathfindingCostModelBindingRuntime } from "./gameplay/pathfindingCostModelBindingRuntime.js";
 import {
   getSwarmRuntimeStateSnapshot as buildSwarmRuntimeStateSnapshot,
   syncSwarmFollowToStore as syncSwarmFollowToStoreState,
@@ -3834,7 +3834,7 @@ function getPlayerStateRuntimeBinding() {
   return playerStateRuntimeBinding;
 }
 
-const pathfindingCostModel = createPathfindingCostModel({
+const pathfindingCostModelBindingRuntime = createPathfindingCostModelBindingRuntime({
   clamp,
   playerState,
   getMapSize: () => splatSize,
@@ -3845,15 +3845,15 @@ const pathfindingCostModel = createPathfindingCostModel({
 });
 
 function getGrayAt(imageData, x, y, sourceWidth = splatSize.width, sourceHeight = splatSize.height) {
-  return pathfindingCostModel.getGrayAt(imageData, x, y, sourceWidth, sourceHeight);
+  return pathfindingCostModelBindingRuntime.getGrayAt(imageData, x, y, sourceWidth, sourceHeight);
 }
 
 function movementWindowBounds() {
-  return pathfindingCostModel.movementWindowBounds();
+  return pathfindingCostModelBindingRuntime.movementWindowBounds();
 }
 
 function computeMoveStepCost(fromX, fromY, toX, toY) {
-  return pathfindingCostModel.computeMoveStepCost(fromX, fromY, toX, toY);
+  return pathfindingCostModelBindingRuntime.computeMoveStepCost(fromX, fromY, toX, toY);
 }
 
 const pathfindingPreviewRuntime = createPathfindingPreviewRuntime({
