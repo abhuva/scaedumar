@@ -69,7 +69,7 @@ import { computeFrameTiming } from "./render/frameTimeRuntime.js";
 import { createFrameRuntimeBinding } from "./render/frameRuntimeBinding.js";
 import { resizeViewport } from "./render/viewportRuntime.js";
 import { createCloudNoiseImage as createCloudNoiseImageRender, uploadCloudNoiseTexture as uploadCloudNoiseTextureRender } from "./render/cloudNoiseRuntime.js";
-import { createGlResourceRuntime } from "./render/glResourceRuntime.js";
+import { createGlResourceBindingRuntime } from "./render/glResourceBindingRuntime.js";
 import { createShadowPipelineRuntime } from "./render/shadowPipelineRuntime.js";
 import { createTimeSystem } from "./sim/timeSystem.js";
 import { createLightingSystem } from "./sim/lightingSystem.js";
@@ -1165,31 +1165,31 @@ void main() {
   outColor = vec4(blurred, 0.0, 1.0);
 }`;
 
-let glResourceRuntime = null;
-function getGlResourceRuntime() {
-  if (glResourceRuntime) return glResourceRuntime;
-  glResourceRuntime = createGlResourceRuntime({ gl });
-  return glResourceRuntime;
+let glResourceBindingRuntime = null;
+function getGlResourceBindingRuntime() {
+  if (glResourceBindingRuntime) return glResourceBindingRuntime;
+  glResourceBindingRuntime = createGlResourceBindingRuntime({ gl });
+  return glResourceBindingRuntime;
 }
 
 function createShader(type, src) {
-  return getGlResourceRuntime().createShader(type, src);
+  return getGlResourceBindingRuntime().createShader(type, src);
 }
 
 function createProgram(vsSrc, fsSrc) {
-  return getGlResourceRuntime().createProgram(vsSrc, fsSrc);
+  return getGlResourceBindingRuntime().createProgram(vsSrc, fsSrc);
 }
 
 function createTexture() {
-  return getGlResourceRuntime().createTexture();
+  return getGlResourceBindingRuntime().createTexture();
 }
 
 function createLinearTexture() {
-  return getGlResourceRuntime().createLinearTexture();
+  return getGlResourceBindingRuntime().createLinearTexture();
 }
 
 function uploadImageToTexture(tex, image) {
-  getGlResourceRuntime().uploadImageToTexture(tex, image);
+  getGlResourceBindingRuntime().uploadImageToTexture(tex, image);
 }
 
 let flowMapRuntime = null;

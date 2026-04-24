@@ -1472,3 +1472,10 @@ Recommended next sequence:
     - `node --check src/ui/timeUiBindingRuntime.js`
     - `node --check src/main.js`
     - `node --test tests/*.test.js` (pass 9/9)
+  - Continued GL-resource binding runtime extraction:
+    - extracted GL-resource binding runtime composition (`createGlResourceRuntime` deps composition + wrapper methods) from `src/main.js` into `src/render/glResourceBindingRuntime.js`
+    - `main.js` now delegates `createShader`/`createProgram`/texture creation and upload wrappers through this binding runtime
+  - Validation:
+    - `node --check src/render/glResourceBindingRuntime.js`
+    - `node --check src/main.js`
+    - `node --test tests/*.test.js` (pass 9/9)
