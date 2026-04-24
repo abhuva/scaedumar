@@ -1283,3 +1283,10 @@ Recommended next sequence:
     - `node --check src/render/frameRuntimeBinding.js`
     - `node --check src/main.js`
     - `node --test tests/*.test.js` (pass 9/9)
+  - Continued overlay-hooks runtime extraction:
+    - extracted overlay-hooks composition (`createOverlayHooks` deps composition) from `src/main.js` into `src/ui/overlays/overlayHooksRuntime.js`
+    - `main.js` now delegates to `createOverlayHooksRuntime(...)`
+  - Validation:
+    - `node --check src/ui/overlays/overlayHooksRuntime.js`
+    - `node --check src/main.js`
+    - `node --test tests/*.test.js` (pass 9/9)

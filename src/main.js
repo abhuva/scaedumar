@@ -171,7 +171,7 @@ import { bindSwarmFollowRuntime } from "./ui/swarmFollowBindingRuntime.js";
 import { bindSwarmPanelRuntime } from "./ui/swarmPanelBindingRuntime.js";
 import { bindRuntimeBindingRuntime } from "./ui/runtimeBindingRuntime.js";
 import { getRequiredElementById, getRequiredElements } from "./ui/domElementLookup.js";
-import { createOverlayHooks } from "./ui/overlays/overlayHooks.js";
+import { createOverlayHooksRuntime } from "./ui/overlays/overlayHooksRuntime.js";
 import { createOverlayAnimationRuntime } from "./ui/overlays/overlayAnimationRuntime.js";
 import { createOverlayDirtyRuntime } from "./ui/overlays/overlayDirtyRuntime.js";
 import { createOverlayDrawer } from "./ui/overlays/drawOverlay.js";
@@ -4121,7 +4121,7 @@ const overlayAnimationRuntime = createOverlayAnimationRuntime({
   swarmFollowState,
 });
 
-const overlayHooks = createOverlayHooks({
+const overlayHooks = createOverlayHooksRuntime({
   updateSwarm,
   updateSwarmFollowCamera,
   drawOverlay: (...args) => drawOverlay(...args),

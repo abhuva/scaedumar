@@ -119,6 +119,7 @@ No game engine is used.
 - Runtime binding orchestration (`bindRuntimeControls` deps composition) is now extracted to `src/ui/runtimeBindingRuntime.js`.
 - Startup UI sync orchestration (`runStartupUiSync` deps composition) is now extracted to `src/ui/startupUiSyncRuntime.js`.
 - Frame-runtime binding orchestration (`createFrameRuntime` deps composition) is now extracted to `src/render/frameRuntimeBinding.js`.
+- Overlay-hooks composition (`createOverlayHooks` deps composition) is now extracted to `src/ui/overlays/overlayHooksRuntime.js`.
 - Camera/coordinate transform helpers (camera state, view extents, world/uv/map/screen conversions) are now extracted to `src/gameplay/cameraTransforms.js`.
 - Camera view/command helpers (`resetCamera`, `getScreenAspect`, `getMapAspect`) are now extracted to `src/gameplay/cameraViewRuntime.js`.
 - Pathfinding label helper updates are now extracted to `src/ui/pathfindingLabelUi.js`.
