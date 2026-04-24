@@ -908,3 +908,11 @@ Recommended next sequence:
     - `node --check src/render/pointLightBakeRuntime.js`
     - `node --check src/main.js`
     - `node --test tests/*.test.js` (pass 9/9)
+  - Continued map-runtime-state extraction:
+    - extracted map runtime state helpers from `src/main.js` into `src/gameplay/mapRuntimeState.js`
+    - `main.js` now keeps `setCurrentMapFolderPath(...)`, `applyDefaultMapSettings(...)`, `resetMapRuntimeStateAfterImages(...)`, and `applyMapSizeChangeIfNeeded(...)` as thin pass-through wrappers
+    - runtime wiring uses lazy `getMapRuntimeState()` composition to avoid initialization-order regressions
+  - Validation:
+    - `node --check src/gameplay/mapRuntimeState.js`
+    - `node --check src/main.js`
+    - `node --test tests/*.test.js` (pass 9/9)

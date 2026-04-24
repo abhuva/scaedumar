@@ -73,6 +73,7 @@ import { createMapSidecarLoader } from "./gameplay/mapSidecarLoader.js";
 import { createMapLoader } from "./gameplay/mapLoader.js";
 import { createMapImageRuntime } from "./gameplay/mapImageRuntime.js";
 import { createMapSampling } from "./gameplay/mapSampling.js";
+import { createMapRuntimeState } from "./gameplay/mapRuntimeState.js";
 import { createShadowOcclusion } from "./gameplay/shadowOcclusion.js";
 import {
   normalizeMapFolderPath as normalizeMapFolderPathUtil,
@@ -1851,28 +1852,15 @@ function getSettingsDefaults(key, fallback) {
 }
 
 function setCurrentMapFolderPath(nextPath) {
-  currentMapFolderPath = normalizeMapFolderPath(nextPath);
-  mapPathInput.value = currentMapFolderPath;
-  syncMapStateToStore();
+  getMapRuntimeState().setCurrentMapFolderPath(nextPath);
 }
 
 function applyDefaultMapSettings() {
-  applyLightingSettings(getSettingsDefaults("lighting", DEFAULT_LIGHTING_SETTINGS));
-  applyParallaxSettings(getSettingsDefaults("parallax", DEFAULT_PARALLAX_SETTINGS));
-  applyInteractionSettings(getSettingsDefaults("interaction", DEFAULT_INTERACTION_SETTINGS));
-  applyFogSettings(getSettingsDefaults("fog", DEFAULT_FOG_SETTINGS));
-  applyCloudSettings(getSettingsDefaults("clouds", DEFAULT_CLOUD_SETTINGS));
-  applyWaterSettings(getSettingsDefaults("waterfx", DEFAULT_WATER_SETTINGS));
-  applySwarmSettings(getSettingsDefaults("swarm", DEFAULT_SWARM_SETTINGS));
+  getMapRuntimeState().applyDefaultMapSettings();
 }
 
 function resetMapRuntimeStateAfterImages() {
-  clearPointLights();
-  bakePointLightsTexture();
-  updateLightEditorUi();
-  applyDefaultMapSettings();
-  reseedSwarmAgents(getSwarmSettings().agentCount);
-  requestOverlayDraw();
+  getMapRuntimeState().resetMapRuntimeStateAfterImages();
 }
 
 const mapDataSaveController = createMapDataSaveController({
@@ -2227,6 +2215,41 @@ const DEFAULT_PLAYER = {
   pixelY: 96,
   color: "#ff69b4",
 };
+let mapRuntimeState = null;
+function getMapRuntimeState() {
+  if (mapRuntimeState) return mapRuntimeState;
+  mapRuntimeState = createMapRuntimeState({
+    normalizeMapFolderPath,
+    setCurrentMapFolderPathValue: (value) => {
+      currentMapFolderPath = value;
+    },
+    getCurrentMapFolderPath: () => currentMapFolderPath,
+    mapPathInput,
+    syncMapStateToStore,
+    getSettingsDefaults,
+    defaultLightingSettings: DEFAULT_LIGHTING_SETTINGS,
+    defaultParallaxSettings: DEFAULT_PARALLAX_SETTINGS,
+    defaultInteractionSettings: DEFAULT_INTERACTION_SETTINGS,
+    defaultFogSettings: DEFAULT_FOG_SETTINGS,
+    defaultCloudSettings: DEFAULT_CLOUD_SETTINGS,
+    defaultWaterSettings: DEFAULT_WATER_SETTINGS,
+    defaultSwarmSettings: DEFAULT_SWARM_SETTINGS,
+    applyLightingSettings,
+    applyParallaxSettings,
+    applyInteractionSettings,
+    applyFogSettings,
+    applyCloudSettings,
+    applyWaterSettings,
+    applySwarmSettings,
+    clearPointLights,
+    bakePointLightsTexture,
+    updateLightEditorUi,
+    reseedSwarmAgents,
+    getSwarmSettings,
+    requestOverlayDraw,
+  });
+  return mapRuntimeState;
+}
 const mapSidecarLoader = createMapSidecarLoader({
   tryLoadJsonFromUrl,
   applyLoadedPointLights,
@@ -2733,11 +2756,7 @@ function createPointLight(pixelX, pixelY) {
 }
 
 function applyMapSizeChangeIfNeeded(changed) {
-  if (!changed) return;
-  clearPointLights();
-  bakePointLightsTexture();
-  updateLightEditorUi();
-  reseedSwarmAgents(getSwarmSettings().agentCount);
+  getMapRuntimeState().applyMapSizeChangeIfNeeded(changed);
 }
 bakePointLightsTexture();
 updateLightEditorUi();

@@ -69,6 +69,7 @@ No game engine is used.
 - Point-light worker + bake-orchestrator runtime wiring is now extracted to `src/render/pointLightBakeRuntime.js`.
 - Cycle-hour slider/label UI helpers are now extracted to `src/ui/timeUiRuntime.js`.
 - Runtime mode state-access helpers (`getRuntimeMode`, capability checks) are now extracted to `src/core/modeStateAccess.js`.
+- Map runtime state helpers (`setCurrentMapFolderPath`, default-settings apply, map-reset, map-size-change apply) are now extracted to `src/gameplay/mapRuntimeState.js`.
 - Pathfinding preview runtime helpers (movement-field rebuild, preview/path extraction, pointer preview update, path metrics) are now extracted to `src/gameplay/pathfindingPreviewRuntime.js`.
 - Info-panel status composition/update logic is now extracted to `src/ui/infoPanelRuntime.js`.
 - Render-FX label/UI helper updates (`update*Label`/`update*Ui`) are now extracted to `src/ui/renderFxUiRuntime.js`.
