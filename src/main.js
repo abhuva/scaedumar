@@ -133,6 +133,7 @@ import { createCursorLightPointerRuntime } from "./gameplay/cursorLightPointerRu
 import { createCursorLightPointerStateRuntime } from "./gameplay/cursorLightPointerStateRuntime.js";
 import { createSwarmCursorPointerRuntime } from "./gameplay/swarmCursorPointerRuntime.js";
 import { createPointLightSelectionRuntime } from "./gameplay/pointLightSelectionRuntime.js";
+import { createPointLightDraftRuntime } from "./gameplay/pointLightDraftRuntime.js";
 import { createPlayerStateRuntime } from "./gameplay/playerStateRuntime.js";
 import { createCameraViewRuntime } from "./gameplay/cameraViewRuntime.js";
 import { createInteractionModeRuntime } from "./gameplay/interactionModeRuntime.js";
@@ -1946,6 +1947,9 @@ const pointLightEditorState = createPointLightEditorState({
   clamp,
   defaultFlicker: DEFAULT_POINT_LIGHT_FLICKER,
   defaultFlickerSpeed: DEFAULT_POINT_LIGHT_FLICKER_SPEED,
+});
+const pointLightDraftRuntime = createPointLightDraftRuntime({
+  pointLightEditorState,
 });
 let nextPointLightId = 1;
 let normalsImageData = null;
@@ -4296,13 +4300,13 @@ bindPointLightEditorControls({
   pointLightsLoadInput,
   clamp,
   hexToRgb01,
-  hasLightEditDraft: () => pointLightEditorState.hasDraft(),
-  setLightEditDraftColor: (value) => pointLightEditorState.setDraftColor(value),
-  setLightEditDraftStrength: (value) => pointLightEditorState.setDraftStrength(value),
-  setLightEditDraftIntensity: (value) => pointLightEditorState.setDraftIntensity(value),
-  setLightEditDraftHeightOffset: (value) => pointLightEditorState.setDraftHeightOffset(value),
-  setLightEditDraftFlicker: (value) => pointLightEditorState.setDraftFlicker(value),
-  setLightEditDraftFlickerSpeed: (value) => pointLightEditorState.setDraftFlickerSpeed(value),
+  hasLightEditDraft: () => pointLightDraftRuntime.hasLightEditDraft(),
+  setLightEditDraftColor: (value) => pointLightDraftRuntime.setLightEditDraftColor(value),
+  setLightEditDraftStrength: (value) => pointLightDraftRuntime.setLightEditDraftStrength(value),
+  setLightEditDraftIntensity: (value) => pointLightDraftRuntime.setLightEditDraftIntensity(value),
+  setLightEditDraftHeightOffset: (value) => pointLightDraftRuntime.setLightEditDraftHeightOffset(value),
+  setLightEditDraftFlicker: (value) => pointLightDraftRuntime.setLightEditDraftFlicker(value),
+  setLightEditDraftFlickerSpeed: (value) => pointLightDraftRuntime.setLightEditDraftFlickerSpeed(value),
   updatePointLightStrengthLabel,
   updatePointLightIntensityLabel,
   updatePointLightHeightOffsetLabel,

@@ -1190,6 +1190,13 @@ Recommended next sequence:
     - `node --check src/render/pointLightBakeBindingRuntime.js`
     - `node --check src/main.js`
     - `node --test tests/*.test.js` (pass 9/9)
+  - Continued point-light draft-state runtime extraction:
+    - extracted point-light draft-state binding helpers (has/set draft fields) from `src/main.js` into `src/gameplay/pointLightDraftRuntime.js`
+    - `main.js` now delegates point-light draft bindings through this runtime helper
+  - Validation:
+    - `node --check src/gameplay/pointLightDraftRuntime.js`
+    - `node --check src/main.js`
+    - `node --test tests/*.test.js` (pass 9/9)
   - Continued point-light runtime binding hardening:
     - added `deletePointLightById(...)` binding to `src/gameplay/pointLightEditorRuntime.js`
     - added `isPointLightsSaveConfirmArmed(...)` binding to `src/gameplay/pointLightIoRuntime.js`
