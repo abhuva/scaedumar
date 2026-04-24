@@ -13,6 +13,7 @@ import { createTimeStateAccess } from "./core/timeStateAccess.js";
 import { createAppliedSettingsStoreSync } from "./core/appliedSettingsStoreSync.js";
 import { createSimulationKnobAccess } from "./core/simulationKnobAccess.js";
 import { createSettingsRegistryBridge } from "./core/settingsRegistryBridge.js";
+import { createSettingsDefaultsAccess } from "./core/settingsDefaultsAccess.js";
 import { rgbToHex as rgbToHexUtil, hexToRgb01 as hexToRgb01Util } from "./core/colorUtils.js";
 import { createModeStateAccess } from "./core/modeStateAccess.js";
 import {
@@ -1438,6 +1439,9 @@ const simulationKnobAccess = createSimulationKnobAccess({
 const settingsRegistryBridge = createSettingsRegistryBridge({
   settingsRegistry: runtimeCore.settingsRegistry,
 });
+const settingsDefaultsAccess = createSettingsDefaultsAccess({
+  settingsRegistry: runtimeCore.settingsRegistry,
+});
 
 let frameUiRuntime = null;
 function getFrameUiRuntime() {
@@ -1598,10 +1602,7 @@ function applySwarmSettings(rawData) {
 }
 
 function getSettingsDefaults(key, fallback) {
-  if (!runtimeCore.settingsRegistry.has(key)) {
-    return fallback;
-  }
-  return runtimeCore.settingsRegistry.getDefaults(key) || fallback;
+  return settingsDefaultsAccess.getSettingsDefaults(key, fallback);
 }
 
 function setCurrentMapFolderPath(nextPath) {

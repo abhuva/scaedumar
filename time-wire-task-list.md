@@ -1085,3 +1085,10 @@ Recommended next sequence:
     - `node --check src/gameplay/playerStateRuntime.js`
     - `node --check src/main.js`
     - `node --test tests/*.test.js` (pass 9/9)
+  - Continued settings-defaults access extraction:
+    - extracted settings-defaults access helper (`getSettingsDefaults`) from `src/main.js` into `src/core/settingsDefaultsAccess.js`
+    - `main.js` now keeps `getSettingsDefaults(...)` as a thin pass-through wrapper
+  - Validation:
+    - `node --check src/core/settingsDefaultsAccess.js`
+    - `node --check src/main.js`
+    - `node --test tests/*.test.js` (pass 9/9)
