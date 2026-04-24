@@ -1451,3 +1451,10 @@ Recommended next sequence:
     - `node --check src/gameplay/pathfindingCostModelBindingRuntime.js`
     - `node --check src/main.js`
     - `node --test tests/*.test.js` (pass 9/9)
+  - Continued point-light-editor UI binding runtime extraction:
+    - extracted point-light-editor UI binding runtime composition (`createPointLightEditorUiRuntime` deps composition + wrapper) from `src/main.js` into `src/ui/pointLightEditorUiBindingRuntime.js`
+    - `main.js` now delegates `updateLightEditorUi(...)` through this runtime binding
+  - Validation:
+    - `node --check src/ui/pointLightEditorUiBindingRuntime.js`
+    - `node --check src/main.js`
+    - `node --test tests/*.test.js` (pass 9/9)
