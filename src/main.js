@@ -86,7 +86,7 @@ import { createPointLightEditorState } from "./gameplay/pointLightEditorState.js
 import { createPointLightEditorController } from "./gameplay/pointLightEditorController.js";
 import { createPointLightEditorRuntime } from "./gameplay/pointLightEditorRuntime.js";
 import { createPointLightIoRuntime } from "./gameplay/pointLightIoRuntime.js";
-import { createMapDataSaveController } from "./gameplay/mapDataSaveController.js";
+import { createMapDataSaveRuntime } from "./gameplay/mapDataSaveRuntime.js";
 import { createMapSidecarLoader } from "./gameplay/mapSidecarLoader.js";
 import { createMapLoader } from "./gameplay/mapLoader.js";
 import { createMapImageRuntime } from "./gameplay/mapImageRuntime.js";
@@ -1631,7 +1631,7 @@ function resetMapRuntimeStateAfterImages() {
   getMapRuntimeState().resetMapRuntimeStateAfterImages();
 }
 
-const mapDataSaveController = createMapDataSaveController({
+const mapDataSaveRuntime = createMapDataSaveRuntime({
   serializePointLights,
   serializeLightingSettings,
   serializeParallaxSettings,
@@ -1655,15 +1655,15 @@ const mapDataSaveController = createMapDataSaveController({
 });
 
 function createMapDataFileTexts() {
-  return mapDataSaveController.createMapDataFileTexts();
+  return mapDataSaveRuntime.createMapDataFileTexts();
 }
 
 function downloadTextFile(fileName, text) {
-  mapDataSaveController.downloadTextFile(fileName, text);
+  mapDataSaveRuntime.downloadTextFile(fileName, text);
 }
 
 async function saveAllMapDataFiles() {
-  await mapDataSaveController.saveAllMapDataFiles();
+  await mapDataSaveRuntime.saveAllMapDataFiles();
 }
 
 async function loadMapFromPath(mapFolderPath) {

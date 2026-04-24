@@ -1297,3 +1297,10 @@ Recommended next sequence:
     - `node --check src/ui/overlays/overlayDrawerRuntime.js`
     - `node --check src/main.js`
     - `node --test tests/*.test.js` (pass 9/9)
+  - Continued map-data-save runtime extraction:
+    - extracted map-data-save runtime composition (`createMapDataSaveController` deps composition) from `src/main.js` into `src/gameplay/mapDataSaveRuntime.js`
+    - `main.js` now delegates map-data save calls through `mapDataSaveRuntime`
+  - Validation:
+    - `node --check src/gameplay/mapDataSaveRuntime.js`
+    - `node --check src/main.js`
+    - `node --test tests/*.test.js` (pass 9/9)
