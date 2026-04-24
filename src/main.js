@@ -90,7 +90,7 @@ import { createMapDataSaveRuntime } from "./gameplay/mapDataSaveRuntime.js";
 import { createMapLoadingRuntime } from "./gameplay/mapLoadingRuntime.js";
 import { createMapImageRuntime } from "./gameplay/mapImageRuntime.js";
 import { createMapSampling } from "./gameplay/mapSampling.js";
-import { createMapRuntimeState } from "./gameplay/mapRuntimeState.js";
+import { createMapRuntimeStateBinding } from "./gameplay/mapRuntimeStateBinding.js";
 import { createMapBootstrapRuntime } from "./gameplay/mapBootstrapRuntime.js";
 import { createShadowOcclusion } from "./gameplay/shadowOcclusion.js";
 import {
@@ -1991,7 +1991,7 @@ const DEFAULT_PLAYER = {
 let mapRuntimeState = null;
 function getMapRuntimeState() {
   if (mapRuntimeState) return mapRuntimeState;
-  mapRuntimeState = createMapRuntimeState({
+  mapRuntimeState = createMapRuntimeStateBinding({
     normalizeMapFolderPath,
     setCurrentMapFolderPathValue: (value) => {
       currentMapFolderPath = value;

@@ -1311,3 +1311,10 @@ Recommended next sequence:
     - `node --check src/gameplay/mapLoadingRuntime.js`
     - `node --check src/main.js`
     - `node --test tests/*.test.js` (pass 9/9)
+  - Continued map-runtime-state binding extraction:
+    - extracted map-runtime-state binding composition (`createMapRuntimeState` deps composition) from `src/main.js` into `src/gameplay/mapRuntimeStateBinding.js`
+    - `main.js` now delegates map runtime-state creation through `createMapRuntimeStateBinding(...)`
+  - Validation:
+    - `node --check src/gameplay/mapRuntimeStateBinding.js`
+    - `node --check src/main.js`
+    - `node --test tests/*.test.js` (pass 9/9)
