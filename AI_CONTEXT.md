@@ -150,12 +150,14 @@ No game engine is used.
 - Light-label binding runtime composition (`createLightLabelRuntime` deps composition + wrapper methods) is now extracted to `src/ui/lightLabelBindingRuntime.js`.
 - Cursor-light-mode UI binding runtime composition (`createCursorLightModeUiRuntime` deps composition + wrapper) is now extracted to `src/ui/cursorLightModeUiBindingRuntime.js`.
 - Mode/topic runtime binding composition (`createModeStateRuntimeBinding` + `createModeCapabilitiesUi` + `createTopicPanelRuntime`) is now extracted to `src/ui/modeTopicRuntimeBinding.js`.
+- Mode/interaction runtime composition (mode-topic binding plus interaction-mode snapshot wrapper methods) is now extracted to `src/ui/modeInteractionRuntimeBinding.js`.
 - Interaction-mode snapshot binding runtime composition (`createInteractionModeSnapshotRuntime` deps composition + wrapper) is now extracted to `src/gameplay/interactionModeSnapshotBindingRuntime.js`.
 - Cursor-light pointer binding runtime composition (`createCursorLightPointerRuntime` deps composition + wrapper) is now extracted to `src/gameplay/cursorLightPointerBindingRuntime.js`.
 - Swarm-cursor pointer binding runtime composition (`createSwarmCursorPointerRuntime` deps composition + wrapper) is now extracted to `src/gameplay/swarmCursorPointerBindingRuntime.js`.
 - Camera-view binding runtime composition (`createCameraViewRuntime` deps composition + wrapper methods) is now extracted to `src/gameplay/cameraViewRuntimeBinding.js`.
 - Camera runtime composition (camera-view binding plus coordinate/camera transform wrapper methods) is now extracted to `src/gameplay/cameraRuntimeBinding.js`.
 - Player-state runtime binding composition (`createPlayerStateRuntime` deps composition + wrapper) is now extracted to `src/gameplay/playerStateRuntimeBinding.js`.
+- Player runtime composition (player-state binding, NPC persistence, and player store-sync wrapper methods) is now extracted to `src/gameplay/playerRuntimeBinding.js`.
 - Pathfinding cost-model binding runtime composition (`createPathfindingCostModel` deps composition + wrapper methods) is now extracted to `src/gameplay/pathfindingCostModelBindingRuntime.js`.
 - Point-light-editor UI binding runtime composition (`createPointLightEditorUiRuntime` deps composition + wrapper) is now extracted to `src/ui/pointLightEditorUiBindingRuntime.js`.
 - Lighting-params binding runtime composition (`createLightingParamsRuntime` deps composition + wrapper) is now extracted to `src/sim/lightingParamsBindingRuntime.js`.

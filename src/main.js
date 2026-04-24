@@ -95,7 +95,6 @@ import { createSwarmLoopRuntime } from "./gameplay/swarmLoopRuntime.js";
 import { createSwarmGameplayRuntime } from "./gameplay/swarmGameplayRuntime.js";
 import { createSwarmRuntime } from "./gameplay/swarmRuntime.js";
 import { createInteractionDataSerializer } from "./gameplay/interactionDataSerializer.js";
-import { createNpcPersistence } from "./gameplay/npcPersistence.js";
 import { createRenderFxDataSerializer } from "./gameplay/renderFxDataSerializer.js";
 import { syncMapState, syncPlayerState, syncPointLightsState } from "./gameplay/stateSync.js";
 import { getCursorLightSnapshot as buildCursorLightSnapshot, isPointLightLiveUpdateEnabled as getPointLightLiveUpdateEnabled } from "./gameplay/interactionStateAccess.js";
@@ -109,8 +108,7 @@ import {
 import { createCursorLightPointerBindingRuntime } from "./gameplay/cursorLightPointerBindingRuntime.js";
 import { createCursorLightPointerStateRuntime } from "./gameplay/cursorLightPointerStateRuntime.js";
 import { createSwarmCursorPointerBindingRuntime } from "./gameplay/swarmCursorPointerBindingRuntime.js";
-import { createInteractionModeSnapshotBindingRuntime } from "./gameplay/interactionModeSnapshotBindingRuntime.js";
-import { createPlayerStateRuntimeBinding } from "./gameplay/playerStateRuntimeBinding.js";
+import { createPlayerRuntimeBinding } from "./gameplay/playerRuntimeBinding.js";
 import { createCameraRuntimeBinding } from "./gameplay/cameraRuntimeBinding.js";
 import { createInteractionModeRuntime } from "./gameplay/interactionModeRuntime.js";
 import { setInteractionMode as applyInteractionMode } from "./gameplay/interactionModeController.js";
@@ -140,7 +138,6 @@ import { createLightingSettingsApplier } from "./ui/lightingSettingsApplier.js";
 import { createRenderFxSettingsApplier } from "./ui/renderFxSettingsApplier.js";
 import { createStatusRuntime } from "./ui/statusRuntime.js";
 import { createInfoPanelRuntime } from "./ui/infoPanelRuntime.js";
-import { createModeTopicRuntimeBinding } from "./ui/modeTopicRuntimeBinding.js";
 import { createLightLabelBindingRuntime } from "./ui/lightLabelBindingRuntime.js";
 import { createPointLightEditorUiBindingRuntime } from "./ui/pointLightEditorUiBindingRuntime.js";
 import { createCursorLightModeUiBindingRuntime } from "./ui/cursorLightModeUiBindingRuntime.js";
@@ -149,6 +146,7 @@ import { runStartupUiSyncRuntime } from "./ui/startupUiSyncRuntime.js";
 import { createSwarmOverlayBindingRuntime } from "./ui/swarmOverlayBindingRuntime.js";
 import { createRenderFxUiBindingRuntime } from "./ui/renderFxUiBindingRuntime.js";
 import { createPathfindingLabelBindingRuntime } from "./ui/pathfindingLabelBindingRuntime.js";
+import { createModeInteractionRuntimeBinding } from "./ui/modeInteractionRuntimeBinding.js";
 
 const runtimeCore = createRuntimeCore();
 const dispatchCoreCommand = createCoreCommandDispatch(runtimeCore);
@@ -1916,6 +1914,14 @@ const playerState = {
   pixelY: DEFAULT_PLAYER.pixelY,
   color: DEFAULT_PLAYER.color,
 };
+const playerRuntimeBinding = createPlayerRuntimeBinding({
+  store: runtimeCore.store,
+  playerState,
+  defaultPlayer: DEFAULT_PLAYER,
+  clamp,
+  splatSize,
+});
+const syncPlayerStateToStore = playerRuntimeBinding.syncPlayerStateToStore;
 const movePreviewState = {
   hoverPixel: null,
   pathPixels: [],
@@ -2336,7 +2342,7 @@ function updateCursorLightModeUi() {
   cursorLightModeUiBindingRuntime.updateCursorLightModeUi();
 }
 
-const modeTopicRuntimeBinding = createModeTopicRuntimeBinding({
+const modeInteractionRuntimeBinding = createModeInteractionRuntimeBinding({
   getModeValue: () => runtimeCore.store.getState().mode,
   normalizeRuntimeMode,
   canUseModeTopic,
@@ -2347,43 +2353,18 @@ const modeTopicRuntimeBinding = createModeTopicRuntimeBinding({
   topicPanelTitleEl,
   dockLightingModeToggle,
   dockPathfindingModeToggle,
-  getInteractionModeSnapshot,
   setInteractionMode,
   setStatus,
-});
-
-function getRuntimeMode() {
-  return modeTopicRuntimeBinding.getRuntimeMode();
-}
-
-function canUseTopicInCurrentMode(topic) {
-  return modeTopicRuntimeBinding.canUseTopicInCurrentMode(topic);
-}
-
-function canUseInteractionInCurrentMode(mode) {
-  return modeTopicRuntimeBinding.canUseInteractionInCurrentMode(mode);
-}
-
-function setTopicPanelVisible(visible) {
-  modeTopicRuntimeBinding.setTopicPanelVisible(visible);
-}
-
-function setActiveTopic(topicName) {
-  modeTopicRuntimeBinding.setActiveTopic(topicName);
-}
-
-function updateModeCapabilitiesUi() {
-  modeTopicRuntimeBinding.updateModeCapabilitiesUi();
-}
-
-const interactionModeSnapshotBindingRuntime = createInteractionModeSnapshotBindingRuntime({
   resolveInteractionModeSnapshot,
   getCoreGameplay: () => runtimeCore.store.getState().gameplay || null,
 });
-
-function getInteractionModeSnapshot() {
-  return interactionModeSnapshotBindingRuntime.getInteractionModeSnapshot();
-}
+const getRuntimeMode = modeInteractionRuntimeBinding.getRuntimeMode;
+const canUseTopicInCurrentMode = modeInteractionRuntimeBinding.canUseTopicInCurrentMode;
+const canUseInteractionInCurrentMode = modeInteractionRuntimeBinding.canUseInteractionInCurrentMode;
+const setTopicPanelVisible = modeInteractionRuntimeBinding.setTopicPanelVisible;
+const setActiveTopic = modeInteractionRuntimeBinding.setActiveTopic;
+const updateModeCapabilitiesUi = modeInteractionRuntimeBinding.updateModeCapabilitiesUi;
+const getInteractionModeSnapshot = modeInteractionRuntimeBinding.getInteractionModeSnapshot;
 
 let cursorLightPointerBindingRuntime = null;
 function getCursorLightPointerBindingRuntime() {
@@ -2985,13 +2966,6 @@ function syncMapStateToStore() {
   });
 }
 
-function syncPlayerStateToStore() {
-  syncPlayerState({
-    store: runtimeCore.store,
-    playerState,
-  });
-}
-
 function syncPointLightsStateToStore(nextLiveUpdate = null, nextSaveConfirmArmed = null) {
   syncPointLightsState({
     store: runtimeCore.store,
@@ -3368,17 +3342,9 @@ const serializeFogSettingsLegacyImpl = renderFxDataSerializer.serializeFogSettin
 const serializeParallaxSettingsLegacyImpl = renderFxDataSerializer.serializeParallaxSettingsLegacy;
 const serializeCloudSettingsLegacyImpl = renderFxDataSerializer.serializeCloudSettingsLegacy;
 const serializeWaterSettingsLegacyImpl = renderFxDataSerializer.serializeWaterSettingsLegacy;
-const npcPersistence = createNpcPersistence({
-  playerState,
-  defaultPlayer: DEFAULT_PLAYER,
-  clamp,
-  splatSize,
-  setPlayerPosition,
-  syncPlayerStateToStore,
-});
-const serializeNpcStateImpl = npcPersistence.serializeNpcState;
-const parseNpcPlayerImpl = npcPersistence.parseNpcPlayer;
-const applyLoadedNpcImpl = npcPersistence.applyLoadedNpc;
+const serializeNpcStateImpl = playerRuntimeBinding.serializeNpcState;
+const parseNpcPlayerImpl = playerRuntimeBinding.parseNpcPlayer;
+const applyLoadedNpcImpl = playerRuntimeBinding.applyLoadedNpc;
 const updateInfoPanelImpl = createInfoPanelRuntime({
   isSwarmEnabled,
   getSwarmCursorMode,
@@ -3531,7 +3497,7 @@ const interactionModeRuntime = createInteractionModeRuntime({
 });
 
 function setPlayerPosition(pixelX, pixelY) {
-  getPlayerStateRuntimeBinding().setPlayerPosition(pixelX, pixelY);
+  playerRuntimeBinding.setPlayerPosition(pixelX, pixelY);
 }
 
 function parseNpcPlayer(rawData) {
@@ -3540,30 +3506,6 @@ function parseNpcPlayer(rawData) {
 
 function applyLoadedNpc(rawData) {
   applyLoadedNpcImpl(rawData);
-}
-
-let playerStateRuntimeBinding = null;
-function getPlayerStateRuntimeBinding() {
-  if (playerStateRuntimeBinding) return playerStateRuntimeBinding;
-  playerStateRuntimeBinding = createPlayerStateRuntimeBinding({
-    playerState,
-    clamp,
-    splatSize,
-    setPlayerSnapshot: ({ pixelX, pixelY }) => {
-      runtimeCore.store.update((prev) => ({
-        ...prev,
-        gameplay: {
-          ...prev.gameplay,
-          player: {
-            ...prev.gameplay.player,
-            pixelX,
-            pixelY,
-          },
-        },
-      }));
-    },
-  });
-  return playerStateRuntimeBinding;
 }
 
 const pathfindingRuntimeBinding = createPathfindingRuntimeBinding({

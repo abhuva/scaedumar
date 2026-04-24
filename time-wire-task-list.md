@@ -330,6 +330,8 @@ Keep this section short. Detailed extraction history belongs in git log and code
   - Reduced `main.js` further by extracting render-FX UI wrapper composition into `src/ui/renderFxUiBindingRuntime.js` and pathfinding label wrapper composition into `src/ui/pathfindingLabelBindingRuntime.js`.
   - Reduced `main.js` further by extracting pathfinding cost-model/preview composition and movement-field ownership into `src/gameplay/pathfindingRuntimeBinding.js`.
   - Reduced `main.js` further by extracting camera view/coordinate transform composition into `src/gameplay/cameraRuntimeBinding.js`.
+  - Reduced `main.js` further by extracting player/NPC composition into `src/gameplay/playerRuntimeBinding.js`.
+  - Reduced `main.js` further by extracting mode/topic plus interaction-snapshot composition into `src/ui/modeInteractionRuntimeBinding.js`.
   - Current recommended next sequence remains:
     - close remaining Phase 2 command-surface/state-contract work
     - close Phase 4 ownership boundaries for swarm/player/point-light runtime
