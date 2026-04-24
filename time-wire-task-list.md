@@ -1416,3 +1416,10 @@ Recommended next sequence:
     - `node --check src/gameplay/interactionModeSnapshotBindingRuntime.js`
     - `node --check src/main.js`
     - `node --test tests/*.test.js` (pass 9/9)
+  - Continued cursor-light pointer binding runtime extraction:
+    - extracted cursor-light pointer binding runtime composition (`createCursorLightPointerRuntime` deps composition + wrapper) from `src/main.js` into `src/gameplay/cursorLightPointerBindingRuntime.js`
+    - `main.js` now delegates `updateCursorLightFromPointer(...)` through this binding runtime
+  - Validation:
+    - `node --check src/gameplay/cursorLightPointerBindingRuntime.js`
+    - `node --check src/main.js`
+    - `node --test tests/*.test.js` (pass 9/9)

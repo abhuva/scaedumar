@@ -123,7 +123,7 @@ import {
   getPathfindingStateSnapshot as resolvePathfindingStateSnapshot,
 } from "./gameplay/runtimeStateSnapshots.js";
 import { createPathfindingPreviewRuntime } from "./gameplay/pathfindingPreviewRuntime.js";
-import { createCursorLightPointerRuntime } from "./gameplay/cursorLightPointerRuntime.js";
+import { createCursorLightPointerBindingRuntime } from "./gameplay/cursorLightPointerBindingRuntime.js";
 import { createCursorLightPointerStateRuntime } from "./gameplay/cursorLightPointerStateRuntime.js";
 import { createSwarmCursorPointerRuntime } from "./gameplay/swarmCursorPointerRuntime.js";
 import { createPointLightSelectionRuntime } from "./gameplay/pointLightSelectionRuntime.js";
@@ -2488,10 +2488,10 @@ function getInteractionModeSnapshot() {
   return interactionModeSnapshotBindingRuntime.getInteractionModeSnapshot();
 }
 
-let cursorLightPointerRuntime = null;
-function getCursorLightPointerRuntime() {
-  if (cursorLightPointerRuntime) return cursorLightPointerRuntime;
-  cursorLightPointerRuntime = createCursorLightPointerRuntime({
+let cursorLightPointerBindingRuntime = null;
+function getCursorLightPointerBindingRuntime() {
+  if (cursorLightPointerBindingRuntime) return cursorLightPointerBindingRuntime;
+  cursorLightPointerBindingRuntime = createCursorLightPointerBindingRuntime({
     getCursorLightSnapshot,
     clearCursorLightPointerState,
     clientToNdc,
@@ -2499,11 +2499,11 @@ function getCursorLightPointerRuntime() {
     worldToUv,
     setCursorLightPointerUv,
   });
-  return cursorLightPointerRuntime;
+  return cursorLightPointerBindingRuntime;
 }
 
 function updateCursorLightFromPointer(clientX, clientY) {
-  getCursorLightPointerRuntime().updateCursorLightFromPointer(clientX, clientY);
+  getCursorLightPointerBindingRuntime().updateCursorLightFromPointer(clientX, clientY);
 }
 
 const pointLightEditorUiRuntime = createPointLightEditorUiRuntime({
