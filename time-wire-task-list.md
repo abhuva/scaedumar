@@ -981,3 +981,10 @@ Recommended next sequence:
     - `node --check src/render/frameRuntime.js`
     - `node --check src/main.js`
     - `node --test tests/*.test.js` (pass 9/9)
+  - Continued viewport runtime extraction:
+    - extracted viewport/canvas resize helper from `src/main.js` into `src/render/viewportRuntime.js`
+    - `main.js` now keeps `resize(...)` as a thin pass-through wrapper
+  - Validation:
+    - `node --check src/render/viewportRuntime.js`
+    - `node --check src/main.js`
+    - `node --test tests/*.test.js` (pass 9/9)

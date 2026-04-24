@@ -60,6 +60,7 @@ import { updateWeatherFieldMeta } from "./render/weatherFieldRuntime.js";
 import { renderFrameSwarmLayers } from "./render/frameSwarmRenderRuntime.js";
 import { computeFrameTiming } from "./render/frameTimeRuntime.js";
 import { createFrameRuntime } from "./render/frameRuntime.js";
+import { resizeViewport } from "./render/viewportRuntime.js";
 import { createTimeSystem } from "./sim/timeSystem.js";
 import { createLightingSystem } from "./sim/lightingSystem.js";
 import { createFogSystem } from "./sim/fogSystem.js";
@@ -4632,23 +4633,15 @@ bindMapIoControls({
 });
 
 function resize() {
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  const w = Math.floor(window.innerWidth * dpr);
-  const h = Math.floor(window.innerHeight * dpr);
-  let overlayResized = false;
-  if (canvas.width !== w || canvas.height !== h) {
-    canvas.width = w;
-    canvas.height = h;
-  }
-  if (overlayCanvas.width !== w || overlayCanvas.height !== h) {
-    overlayCanvas.width = w;
-    overlayCanvas.height = h;
-    overlayResized = true;
-  }
-  gl.viewport(0, 0, canvas.width, canvas.height);
-  if (overlayResized) {
-    requestOverlayDraw();
-  }
+  resizeViewport({
+    getDevicePixelRatio: () => window.devicePixelRatio || 1,
+    getWindowInnerWidth: () => window.innerWidth,
+    getWindowInnerHeight: () => window.innerHeight,
+    canvas,
+    overlayCanvas,
+    gl,
+    requestOverlayDraw,
+  });
 }
 
 function computeLightingParams(coreState = null) {
