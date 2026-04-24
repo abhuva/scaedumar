@@ -101,6 +101,7 @@ No game engine is used.
 - Camera view/command helpers (`resetCamera`, `getScreenAspect`, `getMapAspect`) are now extracted to `src/gameplay/cameraViewRuntime.js`.
 - Pathfinding label helper updates are now extracted to `src/ui/pathfindingLabelUi.js`.
 - Interaction-mode apply/toggle controller logic is now extracted to `src/gameplay/interactionModeController.js`.
+- Interaction-mode runtime binding (`setInteractionMode` deps composition) is now extracted to `src/gameplay/interactionModeRuntime.js`.
 - Overlay/gameplay frame integration now goes through `src/ui/overlays/overlayHooks.js` (gameplay update hook + overlay render hook).
 - Overlay animation gating policy (`shouldAnimateOverlay`) is now extracted to `src/ui/overlays/overlayAnimationRuntime.js`.
 - Overlay dirty-flag state ownership is now extracted to `src/ui/overlays/overlayDirtyRuntime.js`.

@@ -130,6 +130,7 @@ import { createCursorLightPointerRuntime } from "./gameplay/cursorLightPointerRu
 import { createSwarmCursorPointerRuntime } from "./gameplay/swarmCursorPointerRuntime.js";
 import { createPlayerStateRuntime } from "./gameplay/playerStateRuntime.js";
 import { createCameraViewRuntime } from "./gameplay/cameraViewRuntime.js";
+import { createInteractionModeRuntime } from "./gameplay/interactionModeRuntime.js";
 import { setInteractionMode as applyInteractionMode } from "./gameplay/interactionModeController.js";
 import { createPathfindingCostModel } from "./gameplay/pathfindingCostModel.js";
 import {
@@ -3761,15 +3762,17 @@ function updatePathBaseCostLabel() {
 }
 
 function setInteractionMode(mode) {
-  applyInteractionMode({
-    canUseInteractionInCurrentMode,
-    dockLightingModeToggle,
-    dockPathfindingModeToggle,
-    movePreviewState,
-    store: runtimeCore.store,
-    requestOverlayDraw,
-  }, mode);
+  interactionModeRuntime.setInteractionMode(mode);
 }
+const interactionModeRuntime = createInteractionModeRuntime({
+  applyInteractionMode,
+  canUseInteractionInCurrentMode,
+  dockLightingModeToggle,
+  dockPathfindingModeToggle,
+  movePreviewState,
+  store: runtimeCore.store,
+  requestOverlayDraw,
+});
 
 function setPlayerPosition(pixelX, pixelY) {
   getPlayerStateRuntime().setPlayerPosition(pixelX, pixelY);
