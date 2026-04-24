@@ -12,6 +12,7 @@ import {
 import { createTimeStateAccess } from "./core/timeStateAccess.js";
 import { createAppliedSettingsStoreSync } from "./core/appliedSettingsStoreSync.js";
 import { createSimulationKnobAccess } from "./core/simulationKnobAccess.js";
+import { createSettingsRegistryBridge } from "./core/settingsRegistryBridge.js";
 import { rgbToHex as rgbToHexUtil, hexToRgb01 as hexToRgb01Util } from "./core/colorUtils.js";
 import { createModeStateAccess } from "./core/modeStateAccess.js";
 import {
@@ -1432,6 +1433,9 @@ const appliedSettingsStoreSync = createAppliedSettingsStoreSync({
 const simulationKnobAccess = createSimulationKnobAccess({
   getCoreState: () => runtimeCore.store.getState(),
 });
+const settingsRegistryBridge = createSettingsRegistryBridge({
+  settingsRegistry: runtimeCore.settingsRegistry,
+});
 
 let frameUiRuntime = null;
 function getFrameUiRuntime() {
@@ -1512,22 +1516,11 @@ function applyInteractionSettingsLegacy(rawData) {
 }
 
 function serializeSettingsByKey(key, fallbackSerialize) {
-  if (!runtimeCore.settingsRegistry.has(key)) {
-    return fallbackSerialize();
-  }
-  return runtimeCore.settingsRegistry.serialize(key, null);
+  return settingsRegistryBridge.serializeSettingsByKey(key, fallbackSerialize);
 }
 
 function applySettingsByKey(key, rawData, fallbackApply) {
-  if (!runtimeCore.settingsRegistry.has(key)) {
-    fallbackApply(rawData);
-    return;
-  }
-  if (!runtimeCore.settingsRegistry.validate(key, rawData)) {
-    fallbackApply(rawData);
-    return;
-  }
-  runtimeCore.settingsRegistry.apply(key, rawData, null);
+  settingsRegistryBridge.applySettingsByKey(key, rawData, fallbackApply);
 }
 
 function normalizeAppliedSettings(key, rawData, fallbackDefaults) {

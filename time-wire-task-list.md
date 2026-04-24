@@ -1062,3 +1062,10 @@ Recommended next sequence:
     - `node --check src/ui/statusRuntime.js`
     - `node --check src/main.js`
     - `node --test tests/*.test.js` (pass 9/9)
+  - Continued settings-registry bridge extraction:
+    - extracted settings-registry bridge helpers (`serializeSettingsByKey`, `applySettingsByKey`) from `src/main.js` into `src/core/settingsRegistryBridge.js`
+    - `main.js` now keeps both helpers as thin pass-through wrappers
+  - Validation:
+    - `node --check src/core/settingsRegistryBridge.js`
+    - `node --check src/main.js`
+    - `node --test tests/*.test.js` (pass 9/9)

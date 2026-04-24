@@ -61,6 +61,7 @@ No game engine is used.
 - Time-routing/time-config state-access helpers are now extracted to `src/core/timeStateAccess.js`.
 - Applied-settings normalization/store-sync helpers (`normalizeAppliedSettings`, `updateStoreFromAppliedSettings`) are now extracted to `src/core/appliedSettingsStoreSync.js`.
 - Simulation-knob section state-access helper (`getSimulationKnobSectionFromStore`) is now extracted to `src/core/simulationKnobAccess.js`.
+- Settings-registry bridge helpers (`serializeSettingsByKey`, `applySettingsByKey`) are now extracted to `src/core/settingsRegistryBridge.js`.
 - Color conversion helpers are now extracted to `src/core/colorUtils.js`.
 - Shared clamp/interpolation/hour-format helpers are now extracted to `src/core/mathUtils.js`.
 - Fallback map-image generation and image-data extraction helpers are now extracted to `src/render/fallbackMapImages.js`.
