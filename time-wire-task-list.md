@@ -1127,3 +1127,10 @@ Recommended next sequence:
     - `node --check src/ui/pointLightEditorRuntime.js`
     - `node --check src/main.js`
     - `node --test tests/*.test.js` (pass 9/9)
+  - Continued cursor-light mode UI runtime extraction:
+    - extracted cursor-light mode UI reflection helper (`updateCursorLightModeUi`) from `src/main.js` into `src/ui/cursorLightModeUiRuntime.js`
+    - `main.js` now keeps `updateCursorLightModeUi(...)` as a thin pass-through wrapper
+  - Validation:
+    - `node --check src/ui/cursorLightModeUiRuntime.js`
+    - `node --check src/main.js`
+    - `node --test tests/*.test.js` (pass 9/9)

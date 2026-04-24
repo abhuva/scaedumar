@@ -179,6 +179,7 @@ import { createInfoPanelRuntime } from "./ui/infoPanelRuntime.js";
 import { createModeCapabilitiesUi } from "./ui/modeCapabilitiesUi.js";
 import { createLightLabelRuntime } from "./ui/lightLabelRuntime.js";
 import { createPointLightEditorRuntime } from "./ui/pointLightEditorRuntime.js";
+import { createCursorLightModeUiRuntime } from "./ui/cursorLightModeUiRuntime.js";
 import { createTimeUiRuntime } from "./ui/timeUiRuntime.js";
 import { runStartupUiSync } from "./ui/startupUiSync.js";
 import { createSwarmOverlayRuntime } from "./ui/swarmOverlayRuntime.js";
@@ -2398,9 +2399,13 @@ function updateCursorLightHeightOffsetLabel() {
   lightLabelRuntime.updateCursorLightHeightOffsetLabel();
 }
 
+const cursorLightModeUiRuntime = createCursorLightModeUiRuntime({
+  getCursorLightSnapshot,
+  cursorLightHeightOffsetInput,
+});
+
 function updateCursorLightModeUi() {
-  const followTerrain = getCursorLightSnapshot().useTerrainHeight;
-  cursorLightHeightOffsetInput.disabled = !followTerrain;
+  cursorLightModeUiRuntime.updateCursorLightModeUi();
 }
 
 const modeStateAccess = createModeStateAccess({
