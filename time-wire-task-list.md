@@ -1276,3 +1276,10 @@ Recommended next sequence:
     - `node --check src/ui/startupUiSyncRuntime.js`
     - `node --check src/main.js`
     - `node --test tests/*.test.js` (pass 9/9)
+  - Continued frame-runtime binding extraction:
+    - extracted frame-runtime binding orchestration (`createFrameRuntime` deps composition) from `src/main.js` into `src/render/frameRuntimeBinding.js`
+    - `main.js` now delegates to `createFrameRuntimeBinding(...)`
+  - Validation:
+    - `node --check src/render/frameRuntimeBinding.js`
+    - `node --check src/main.js`
+    - `node --test tests/*.test.js` (pass 9/9)

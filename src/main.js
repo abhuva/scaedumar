@@ -66,7 +66,7 @@ import { createFrameUiRuntime } from "./render/frameUiRuntime.js";
 import { updateWeatherFieldMeta } from "./render/weatherFieldRuntime.js";
 import { renderFrameSwarmLayers } from "./render/frameSwarmRenderRuntime.js";
 import { computeFrameTiming } from "./render/frameTimeRuntime.js";
-import { createFrameRuntime } from "./render/frameRuntime.js";
+import { createFrameRuntimeBinding } from "./render/frameRuntimeBinding.js";
 import { resizeViewport } from "./render/viewportRuntime.js";
 import { createCloudNoiseImage as createCloudNoiseImageRender, uploadCloudNoiseTexture as uploadCloudNoiseTextureRender } from "./render/cloudNoiseRuntime.js";
 import { createGlResourceRuntime } from "./render/glResourceRuntime.js";
@@ -4462,7 +4462,7 @@ function computeLightingParams(coreState = null) {
 let frameRuntime = null;
 function getFrameRuntime() {
   if (frameRuntime) return frameRuntime;
-  frameRuntime = createFrameRuntime({
+  frameRuntime = createFrameRuntimeBinding({
     computeFrameTiming,
     runtimeFrame: runtimeCore.frame,
     getCoreState: () => runtimeCore.store.getState(),
