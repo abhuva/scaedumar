@@ -1255,3 +1255,10 @@ Recommended next sequence:
     - `node --check src/ui/swarmPanelBindingRuntime.js`
     - `node --check src/main.js`
     - `node --test tests/*.test.js` (pass 9/9)
+  - Continued canvas binding runtime extraction:
+    - extracted canvas binding orchestration (`bindCanvasControls` deps composition) from `src/main.js` into `src/ui/canvasBindingRuntime.js`
+    - `main.js` now delegates to `bindCanvasRuntime(...)`
+  - Validation:
+    - `node --check src/ui/canvasBindingRuntime.js`
+    - `node --check src/main.js`
+    - `node --test tests/*.test.js` (pass 9/9)

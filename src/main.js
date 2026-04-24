@@ -158,9 +158,9 @@ import {
   mapCoordToWorld as mapCoordToWorldTransform,
   worldToScreen as worldToScreenTransform,
 } from "./gameplay/cameraTransforms.js";
-import { bindCanvasControls } from "./ui/bindings/canvasBinding.js";
 import { updatePointLightEditorUi as syncPointLightEditorUi } from "./ui/pointLightEditorUi.js";
 import { bindRuntimeControls } from "./ui/bindings/runtimeBinding.js";
+import { bindCanvasRuntime } from "./ui/canvasBindingRuntime.js";
 import { bindPointLightEditorRuntime } from "./ui/pointLightEditorBindingRuntime.js";
 import { bindRenderFxRuntime } from "./ui/renderFxBindingRuntime.js";
 import { bindInteractionCycleRuntime } from "./ui/interactionCycleBindingRuntime.js";
@@ -4160,7 +4160,7 @@ const drawOverlay = createOverlayDrawer({
   drawSwarmGizmos,
 });
 
-bindCanvasControls({
+bindCanvasRuntime({
   canvas,
   windowEl: window,
   dispatchCoreCommand,
