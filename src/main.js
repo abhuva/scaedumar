@@ -1539,14 +1539,19 @@ function getInterpolatedRoutedTimeSec(systemTiming) {
   return timeStateAccess.getInterpolatedRoutedTimeSec(systemTiming);
 }
 
-const frameUiRuntime = createFrameUiRuntime({
-  fogColorInput,
-  cycleInfoEl,
-  normalizeSimTickHours,
-  getConfiguredSimTickHours,
-  formatHour,
-  cycleState,
-});
+let frameUiRuntime = null;
+function getFrameUiRuntime() {
+  if (frameUiRuntime) return frameUiRuntime;
+  frameUiRuntime = createFrameUiRuntime({
+    fogColorInput,
+    cycleInfoEl,
+    normalizeSimTickHours,
+    getConfiguredSimTickHours,
+    formatHour,
+    cycleState,
+  });
+  return frameUiRuntime;
+}
 
 function serializeLightingSettingsLegacy() {
   return serializeLightingSettingsLegacyImpl();
@@ -4673,7 +4678,7 @@ function render(nowMs) {
   const lightingParams = systemState.lighting && systemState.lighting.lightingParams
     ? systemState.lighting.lightingParams
     : computeLightingParams(coreState);
-  frameUiRuntime.syncFogAutoColorInput(lightingParams);
+  getFrameUiRuntime().syncFogAutoColorInput(lightingParams);
   const uniformInput = buildUniformInputState({
     clamp,
     getMapAspect,
@@ -4693,7 +4698,7 @@ function render(nowMs) {
     cloudTimeSec: smoothCloudTimeSec,
     waterTimeSec: routedTime.water.timeSec,
   });
-  const { cycleSpeed } = frameUiRuntime.syncCycleInfoText(systemState);
+  const { cycleSpeed } = getFrameUiRuntime().syncCycleInfoText(systemState);
   updateInfoPanel();
   updateSwarmStatsPanel();
   updateCycleHourLabel();
