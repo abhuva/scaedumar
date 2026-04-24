@@ -1183,3 +1183,10 @@ Recommended next sequence:
     - `node --check src/gameplay/pointLightEditorRuntime.js`
     - `node --check src/main.js`
     - `node --test tests/*.test.js` (pass 9/9)
+  - Continued point-light bake binding extraction:
+    - extracted point-light bake operation bindings (`ensurePointLightBakeSize`, `applyPointLightBakeRgba`, `schedulePointLightBake`, `bakePointLightsTexture`) from `src/main.js` into `src/render/pointLightBakeBindingRuntime.js`
+    - `main.js` now keeps these helpers as thin pass-through wrappers
+  - Validation:
+    - `node --check src/render/pointLightBakeBindingRuntime.js`
+    - `node --check src/main.js`
+    - `node --test tests/*.test.js` (pass 9/9)

@@ -86,6 +86,7 @@ No game engine is used.
 - Point-light bake-sync accumulation/occlusion/packing logic (`bakePointLightsTextureSync`) is now extracted to `src/render/pointLightBakeSync.js`.
 - Point-light bake-sync lazy runtime composition/binding is now extracted to `src/render/pointLightBakeSyncBindingRuntime.js`.
 - Point-light worker + bake-orchestrator runtime wiring is now extracted to `src/render/pointLightBakeRuntime.js`.
+- Point-light bake operation bindings (`ensurePointLightBakeSize`, `applyPointLightBakeRgba`, `schedulePointLightBake`, `bakePointLightsTexture`) are now extracted to `src/render/pointLightBakeBindingRuntime.js`.
 - Cycle-hour slider/label UI helpers are now extracted to `src/ui/timeUiRuntime.js`.
 - Runtime mode state-access helpers (`getRuntimeMode`, capability checks) are now extracted to `src/core/modeStateAccess.js`.
 - Map runtime state helpers (`setCurrentMapFolderPath`, default-settings apply, map-reset, map-size-change apply) are now extracted to `src/gameplay/mapRuntimeState.js`.

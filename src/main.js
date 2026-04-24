@@ -60,6 +60,7 @@ import { createFlowMapRuntime } from "./render/flowMapRuntime.js";
 import { createDefaultMapImageRuntime } from "./render/defaultMapImageRuntime.js";
 import { createPointLightBakeCanvasRuntime } from "./render/pointLightBakeCanvasRuntime.js";
 import { createPointLightBakeSyncBindingRuntime } from "./render/pointLightBakeSyncBindingRuntime.js";
+import { createPointLightBakeBindingRuntime } from "./render/pointLightBakeBindingRuntime.js";
 import { createPointLightBakeRuntime } from "./render/pointLightBakeRuntime.js";
 import { createFrameUiRuntime } from "./render/frameUiRuntime.js";
 import { updateWeatherFieldMeta } from "./render/weatherFieldRuntime.js";
@@ -2156,6 +2157,10 @@ const pointLightBakeRuntime = createPointLightBakeRuntime({
   bakePointLightsTextureSync,
   applyPointLightBakeRgba,
 });
+const pointLightBakeBindingRuntime = createPointLightBakeBindingRuntime({
+  pointLightBakeCanvasRuntime,
+  pointLightBakeRuntime,
+});
 
 function createFlatNormalImage(size = 2) {
   return createFlatNormalImageRender(size);
@@ -2306,7 +2311,7 @@ async function loadPointLightsFromAssetsOrPrompt() {
 }
 
 function ensurePointLightBakeSize() {
-  pointLightBakeCanvasRuntime.ensurePointLightBakeSize();
+  pointLightBakeBindingRuntime.ensurePointLightBakeSize();
 }
 
 function normalize3(x, y, z) {
@@ -2342,15 +2347,15 @@ function hasLineOfSightToLight(surfaceX, surfaceY, surfaceH, lightX, lightY, lig
 }
 
 function applyPointLightBakeRgba(rgba, sourceWidth, sourceHeight) {
-  pointLightBakeCanvasRuntime.applyPointLightBakeRgba(rgba, sourceWidth, sourceHeight);
+  pointLightBakeBindingRuntime.applyPointLightBakeRgba(rgba, sourceWidth, sourceHeight);
 }
 
 function schedulePointLightBake() {
-  pointLightBakeRuntime.scheduleBake();
+  pointLightBakeBindingRuntime.schedulePointLightBake();
 }
 
 function bakePointLightsTexture() {
-  pointLightBakeRuntime.bakeNow();
+  pointLightBakeBindingRuntime.bakePointLightsTexture();
 }
 
 const pointLightBakeSyncBindingRuntime = createPointLightBakeSyncBindingRuntime({
