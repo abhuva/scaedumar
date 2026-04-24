@@ -82,6 +82,7 @@ No game engine is used.
 - Viewport/canvas resize helper is now extracted to `src/render/viewportRuntime.js`.
 - Cloud-noise generation + texture upload helpers are now extracted to `src/render/cloudNoiseRuntime.js`.
 - Shadow-target sizing/framebuffer attach and shadow-pass draw orchestration are now extracted to `src/render/shadowPipelineRuntime.js`.
+- WebGL shader/program/texture creation and image upload helpers are now extracted to `src/render/glResourceRuntime.js`.
 - Pathfinding preview runtime helpers (movement-field rebuild, preview/path extraction, pointer preview update, path metrics) are now extracted to `src/gameplay/pathfindingPreviewRuntime.js`.
 - Info-panel status composition/update logic is now extracted to `src/ui/infoPanelRuntime.js`.
 - Render-FX label/UI helper updates (`update*Label`/`update*Ui`) are now extracted to `src/ui/renderFxUiRuntime.js`.

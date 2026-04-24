@@ -1003,3 +1003,11 @@ Recommended next sequence:
     - `node --check src/render/shadowPipelineRuntime.js`
     - `node --check src/main.js`
     - `node --test tests/*.test.js` (pass 9/9)
+  - Continued GL-resource runtime extraction:
+    - extracted WebGL shader/program/texture creation and image upload helpers from `src/main.js` into `src/render/glResourceRuntime.js`
+    - `main.js` now keeps `createShader(...)`, `createProgram(...)`, `createTexture(...)`, `createLinearTexture(...)`, and `uploadImageToTexture(...)` as thin pass-through wrappers
+    - runtime wiring uses lazy `getGlResourceRuntime()` composition to avoid initialization-order regressions
+  - Validation:
+    - `node --check src/render/glResourceRuntime.js`
+    - `node --check src/main.js`
+    - `node --test tests/*.test.js` (pass 9/9)

@@ -62,6 +62,7 @@ import { computeFrameTiming } from "./render/frameTimeRuntime.js";
 import { createFrameRuntime } from "./render/frameRuntime.js";
 import { resizeViewport } from "./render/viewportRuntime.js";
 import { createCloudNoiseImage as createCloudNoiseImageRender, uploadCloudNoiseTexture as uploadCloudNoiseTextureRender } from "./render/cloudNoiseRuntime.js";
+import { createGlResourceRuntime } from "./render/glResourceRuntime.js";
 import { createShadowPipelineRuntime } from "./render/shadowPipelineRuntime.js";
 import { createTimeSystem } from "./sim/timeSystem.js";
 import { createLightingSystem } from "./sim/lightingSystem.js";
@@ -1160,58 +1161,31 @@ void main() {
   outColor = vec4(blurred, 0.0, 1.0);
 }`;
 
+let glResourceRuntime = null;
+function getGlResourceRuntime() {
+  if (glResourceRuntime) return glResourceRuntime;
+  glResourceRuntime = createGlResourceRuntime({ gl });
+  return glResourceRuntime;
+}
+
 function createShader(type, src) {
-  const shader = gl.createShader(type);
-  gl.shaderSource(shader, src);
-  gl.compileShader(shader);
-  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-    const info = gl.getShaderInfoLog(shader);
-    gl.deleteShader(shader);
-    throw new Error(info || "Shader compilation failed.");
-  }
-  return shader;
+  return getGlResourceRuntime().createShader(type, src);
 }
 
 function createProgram(vsSrc, fsSrc) {
-  const vs = createShader(gl.VERTEX_SHADER, vsSrc);
-  const fs = createShader(gl.FRAGMENT_SHADER, fsSrc);
-  const program = gl.createProgram();
-  gl.attachShader(program, vs);
-  gl.attachShader(program, fs);
-  gl.linkProgram(program);
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-    const info = gl.getProgramInfoLog(program);
-    gl.deleteProgram(program);
-    throw new Error(info || "Program linking failed.");
-  }
-  gl.deleteShader(vs);
-  gl.deleteShader(fs);
-  return program;
+  return getGlResourceRuntime().createProgram(vsSrc, fsSrc);
 }
 
 function createTexture() {
-  const tex = gl.createTexture();
-  gl.bindTexture(gl.TEXTURE_2D, tex);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-  return tex;
+  return getGlResourceRuntime().createTexture();
 }
 
 function createLinearTexture() {
-  const tex = gl.createTexture();
-  gl.bindTexture(gl.TEXTURE_2D, tex);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-  return tex;
+  return getGlResourceRuntime().createLinearTexture();
 }
 
 function uploadImageToTexture(tex, image) {
-  gl.bindTexture(gl.TEXTURE_2D, tex);
-  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+  getGlResourceRuntime().uploadImageToTexture(tex, image);
 }
 
 function rebuildFlowMapTexture() {
