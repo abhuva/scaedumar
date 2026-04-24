@@ -1241,3 +1241,10 @@ Recommended next sequence:
     - `node --check src/gameplay/pointLightIoRuntime.js`
     - `node --check src/main.js`
     - `node --test tests/*.test.js` (pass 9/9)
+  - Continued swarm-follow binding runtime extraction:
+    - extracted swarm-follow binding orchestration (`bindSwarmFollowControls` deps composition) from `src/main.js` into `src/ui/swarmFollowBindingRuntime.js`
+    - `main.js` now delegates to `bindSwarmFollowRuntime(...)`
+  - Validation:
+    - `node --check src/ui/swarmFollowBindingRuntime.js`
+    - `node --check src/main.js`
+    - `node --test tests/*.test.js` (pass 9/9)
