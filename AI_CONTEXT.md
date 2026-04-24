@@ -147,6 +147,7 @@ No game engine is used.
 - Lighting-params binding runtime composition (`createLightingParamsRuntime` deps composition + wrapper) is now extracted to `src/sim/lightingParamsBindingRuntime.js`.
 - Time-UI binding runtime composition (`createTimeUiRuntime` deps composition + wrapper methods) is now extracted to `src/ui/timeUiBindingRuntime.js`.
 - GL-resource binding runtime composition (`createGlResourceRuntime` deps composition + wrapper methods) is now extracted to `src/render/glResourceBindingRuntime.js`.
+- Flow-map binding runtime composition (`createFlowMapRuntime` deps composition + wrapper method) is now extracted to `src/render/flowMapBindingRuntime.js`.
 - Camera/coordinate transform helpers (camera state, view extents, world/uv/map/screen conversions) are now extracted to `src/gameplay/cameraTransforms.js`.
 - Camera view/command helpers (`resetCamera`, `getScreenAspect`, `getMapAspect`) are now extracted to `src/gameplay/cameraViewRuntime.js`.
 - Pathfinding label helper updates are now extracted to `src/ui/pathfindingLabelUi.js`.

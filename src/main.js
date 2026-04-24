@@ -56,7 +56,7 @@ import { createMainTerrainPass } from "./render/passes/mainTerrainPass.js";
 import { createBlurPass } from "./render/passes/blurPass.js";
 import { applyPointLightUsagePass } from "./render/passes/pointLightUsagePass.js";
 import { rebuildFlowMapTexture as rebuildFlowMapTexturePrecompute } from "./render/precompute/flowMap.js";
-import { createFlowMapRuntime } from "./render/flowMapRuntime.js";
+import { createFlowMapBindingRuntime } from "./render/flowMapBindingRuntime.js";
 import { createDefaultMapImageRuntime } from "./render/defaultMapImageRuntime.js";
 import { createPointLightBakeCanvasRuntime } from "./render/pointLightBakeCanvasRuntime.js";
 import { createPointLightBakeSyncBindingRuntime } from "./render/pointLightBakeSyncBindingRuntime.js";
@@ -1192,10 +1192,10 @@ function uploadImageToTexture(tex, image) {
   getGlResourceBindingRuntime().uploadImageToTexture(tex, image);
 }
 
-let flowMapRuntime = null;
-function getFlowMapRuntime() {
-  if (flowMapRuntime) return flowMapRuntime;
-  flowMapRuntime = createFlowMapRuntime({
+let flowMapBindingRuntime = null;
+function getFlowMapBindingRuntime() {
+  if (flowMapBindingRuntime) return flowMapBindingRuntime;
+  flowMapBindingRuntime = createFlowMapBindingRuntime({
     rebuildFlowMapTexturePrecompute,
     gl,
     flowMapTex,
@@ -1204,11 +1204,11 @@ function getFlowMapRuntime() {
     clamp,
     getWaterSettings: () => getSimulationKnobSectionFromStore("waterFx") || getSettingsDefaults("waterfx", DEFAULT_WATER_SETTINGS),
   });
-  return flowMapRuntime;
+  return flowMapBindingRuntime;
 }
 
 function rebuildFlowMapTexture() {
-  getFlowMapRuntime().rebuildFlowMapTexture();
+  getFlowMapBindingRuntime().rebuildFlowMapTexture();
 }
 
 let shadowPipelineRuntime = null;

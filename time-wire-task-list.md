@@ -1479,3 +1479,10 @@ Recommended next sequence:
     - `node --check src/render/glResourceBindingRuntime.js`
     - `node --check src/main.js`
     - `node --test tests/*.test.js` (pass 9/9)
+  - Continued flow-map binding runtime extraction:
+    - extracted flow-map binding runtime composition (`createFlowMapRuntime` deps composition + wrapper method) from `src/main.js` into `src/render/flowMapBindingRuntime.js`
+    - `main.js` now delegates `rebuildFlowMapTexture(...)` through this binding runtime
+  - Validation:
+    - `node --check src/render/flowMapBindingRuntime.js`
+    - `node --check src/main.js`
+    - `node --test tests/*.test.js` (pass 9/9)
