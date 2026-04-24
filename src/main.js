@@ -125,6 +125,7 @@ import {
 } from "./gameplay/runtimeStateSnapshots.js";
 import { createPathfindingPreviewRuntime } from "./gameplay/pathfindingPreviewRuntime.js";
 import { createCursorLightPointerRuntime } from "./gameplay/cursorLightPointerRuntime.js";
+import { createSwarmCursorPointerRuntime } from "./gameplay/swarmCursorPointerRuntime.js";
 import { setInteractionMode as applyInteractionMode } from "./gameplay/interactionModeController.js";
 import { createPathfindingCostModel } from "./gameplay/pathfindingCostModel.js";
 import {
@@ -3512,18 +3513,22 @@ const stepSwarm = createSwarmStepFunction({
 });
 
 function updateSwarmCursorFromPointer(clientX, clientY) {
-  if (!isSwarmEnabled()) {
-    swarmCursorState.active = false;
-    return;
-  }
-  const ndc = clientToNdc(clientX, clientY);
-  const world = worldFromNdc(ndc);
-  const uv = worldToUv(world);
-  const inside = uv.x >= 0 && uv.x <= 1 && uv.y >= 0 && uv.y <= 1;
-  swarmCursorState.active = inside;
-  if (!inside) return;
-  swarmCursorState.x = clamp(uv.x * splatSize.width, 0, Math.max(0, splatSize.width - 1));
-  swarmCursorState.y = clamp((1 - uv.y) * splatSize.height, 0, Math.max(0, splatSize.height - 1));
+  getSwarmCursorPointerRuntime().updateSwarmCursorFromPointer(clientX, clientY);
+}
+
+let swarmCursorPointerRuntime = null;
+function getSwarmCursorPointerRuntime() {
+  if (swarmCursorPointerRuntime) return swarmCursorPointerRuntime;
+  swarmCursorPointerRuntime = createSwarmCursorPointerRuntime({
+    isSwarmEnabled,
+    swarmCursorState,
+    clientToNdc,
+    worldFromNdc,
+    worldToUv,
+    clamp,
+    splatSize,
+  });
+  return swarmCursorPointerRuntime;
 }
 
 const swarmInterpolation = createSwarmInterpolation({

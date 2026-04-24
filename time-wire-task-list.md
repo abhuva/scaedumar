@@ -1069,3 +1069,11 @@ Recommended next sequence:
     - `node --check src/core/settingsRegistryBridge.js`
     - `node --check src/main.js`
     - `node --test tests/*.test.js` (pass 9/9)
+  - Continued swarm-cursor pointer runtime extraction:
+    - extracted swarm-cursor pointer-to-map update logic from `src/main.js` into `src/gameplay/swarmCursorPointerRuntime.js`
+    - `main.js` now keeps `updateSwarmCursorFromPointer(...)` as a thin pass-through wrapper
+    - runtime wiring uses lazy `getSwarmCursorPointerRuntime()` composition to avoid initialization-order regressions
+  - Validation:
+    - `node --check src/gameplay/swarmCursorPointerRuntime.js`
+    - `node --check src/main.js`
+    - `node --test tests/*.test.js` (pass 9/9)
