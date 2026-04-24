@@ -181,7 +181,7 @@ import { createInfoPanelRuntime } from "./ui/infoPanelRuntime.js";
 import { createModeCapabilitiesUi } from "./ui/modeCapabilitiesUi.js";
 import { createLightLabelBindingRuntime } from "./ui/lightLabelBindingRuntime.js";
 import { createPointLightEditorRuntime as createPointLightEditorUiRuntime } from "./ui/pointLightEditorRuntime.js";
-import { createCursorLightModeUiRuntime } from "./ui/cursorLightModeUiRuntime.js";
+import { createCursorLightModeUiBindingRuntime } from "./ui/cursorLightModeUiBindingRuntime.js";
 import { createTopicPanelRuntime } from "./ui/topicPanelRuntime.js";
 import { createTimeUiRuntime } from "./ui/timeUiRuntime.js";
 import { runStartupUiSyncRuntime } from "./ui/startupUiSyncRuntime.js";
@@ -2432,13 +2432,13 @@ function updateCursorLightHeightOffsetLabel() {
   lightLabelBindingRuntime.updateCursorLightHeightOffsetLabel();
 }
 
-const cursorLightModeUiRuntime = createCursorLightModeUiRuntime({
+const cursorLightModeUiBindingRuntime = createCursorLightModeUiBindingRuntime({
   getCursorLightSnapshot,
   cursorLightHeightOffsetInput,
 });
 
 function updateCursorLightModeUi() {
-  cursorLightModeUiRuntime.updateCursorLightModeUi();
+  cursorLightModeUiBindingRuntime.updateCursorLightModeUi();
 }
 
 const modeStateRuntimeBinding = createModeStateRuntimeBinding({

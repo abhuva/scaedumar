@@ -1395,3 +1395,10 @@ Recommended next sequence:
     - `node --check src/ui/lightLabelBindingRuntime.js`
     - `node --check src/main.js`
     - `node --test tests/*.test.js` (pass 9/9)
+  - Continued cursor-light-mode UI binding runtime extraction:
+    - extracted cursor-light-mode UI binding runtime composition (`createCursorLightModeUiRuntime` deps composition + wrapper) from `src/main.js` into `src/ui/cursorLightModeUiBindingRuntime.js`
+    - `main.js` now delegates `updateCursorLightModeUi(...)` through this runtime binding
+  - Validation:
+    - `node --check src/ui/cursorLightModeUiBindingRuntime.js`
+    - `node --check src/main.js`
+    - `node --test tests/*.test.js` (pass 9/9)
