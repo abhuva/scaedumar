@@ -1430,3 +1430,10 @@ Recommended next sequence:
     - `node --check src/gameplay/swarmCursorPointerBindingRuntime.js`
     - `node --check src/main.js`
     - `node --test tests/*.test.js` (pass 9/9)
+  - Continued camera-view binding runtime extraction:
+    - extracted camera-view binding runtime composition (`createCameraViewRuntime` deps composition + wrapper methods) from `src/main.js` into `src/gameplay/cameraViewRuntimeBinding.js`
+    - `main.js` now delegates `resetCamera` / `getScreenAspect` / `getMapAspect` through this binding runtime
+  - Validation:
+    - `node --check src/gameplay/cameraViewRuntimeBinding.js`
+    - `node --check src/main.js`
+    - `node --test tests/*.test.js` (pass 9/9)

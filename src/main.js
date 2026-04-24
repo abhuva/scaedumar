@@ -130,7 +130,7 @@ import { createPointLightSelectionRuntime } from "./gameplay/pointLightSelection
 import { createPointLightDraftRuntime } from "./gameplay/pointLightDraftRuntime.js";
 import { createInteractionModeSnapshotBindingRuntime } from "./gameplay/interactionModeSnapshotBindingRuntime.js";
 import { createPlayerStateRuntime } from "./gameplay/playerStateRuntime.js";
-import { createCameraViewRuntime } from "./gameplay/cameraViewRuntime.js";
+import { createCameraViewRuntimeBinding } from "./gameplay/cameraViewRuntimeBinding.js";
 import { createInteractionModeRuntime } from "./gameplay/interactionModeRuntime.js";
 import { setInteractionMode as applyInteractionMode } from "./gameplay/interactionModeController.js";
 import { createPathfindingCostModel } from "./gameplay/pathfindingCostModel.js";
@@ -3040,26 +3040,26 @@ syncSwarmRuntimeStateToStore();
 syncPointLightsStateToStore();
 
 function resetCamera() {
-  getCameraViewRuntime().resetCamera();
+  getCameraViewRuntimeBinding().resetCamera();
 }
 
 function getScreenAspect() {
-  return getCameraViewRuntime().getScreenAspect();
+  return getCameraViewRuntimeBinding().getScreenAspect();
 }
 
 function getMapAspect() {
-  return getCameraViewRuntime().getMapAspect();
+  return getCameraViewRuntimeBinding().getMapAspect();
 }
 
-let cameraViewRuntime = null;
-function getCameraViewRuntime() {
-  if (cameraViewRuntime) return cameraViewRuntime;
-  cameraViewRuntime = createCameraViewRuntime({
+let cameraViewRuntimeBinding = null;
+function getCameraViewRuntimeBinding() {
+  if (cameraViewRuntimeBinding) return cameraViewRuntimeBinding;
+  cameraViewRuntimeBinding = createCameraViewRuntimeBinding({
     dispatchCoreCommand,
     canvas,
     splatSize,
   });
-  return cameraViewRuntime;
+  return cameraViewRuntimeBinding;
 }
 
 function getSwarmCursorMode() {
