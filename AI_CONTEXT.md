@@ -155,7 +155,19 @@ No game engine is used.
 - Store-backed gameplay/runtime state accessors for swarm/pathfinding/cursor-light/point-light map sync are now grouped behind `src/gameplay/mainRuntimeStateBinding.js` instead of remaining as separate inline wrappers in `main.js`.
 - Swarm state/UI composition is now grouped behind `src/ui/swarmUiRuntimeBinding.js`, which composes main-runtime swarm state access, swarm panel reflection, swarm input normalization, and routing-input sync instead of leaving that integration block inline in `main.js`.
 - Bottom-of-file binding composition is now grouped behind `src/ui/mainBindingsRuntime.js` instead of leaving the full bind-* setup block inline in `main.js`.
+- Main binding dependency assembly for that bottom-of-file bind/setup block is now grouped behind `src/ui/mainBindingsSetupRuntime.js` instead of shaping the full nested binding object inline in `main.js`.
 - Remaining camera/player/interaction/info-panel facade wrappers are now grouped behind `src/gameplay/mainFacadeRuntime.js` instead of staying as individual adapter functions in `main.js`.
+- Low-level GL/flow-map/shadow-pipeline/cloud-image support glue is now grouped behind `src/render/renderSupportRuntime.js` instead of remaining inline in `main.js`.
+- Map path/Tauri/image/sampling/shadow-occlusion support glue is now grouped behind `src/gameplay/mapSupportRuntime.js` instead of remaining inline in `main.js`.
+- UI-facing light/pathfinding/render-FX wrapper surfaces are now grouped behind `src/ui/uiRuntimeFacade.js` instead of staying as separate adapter aliases in `main.js`.
+- Render resource/pass pipeline composition is now grouped behind `src/render/renderPipelineRuntime.js` instead of leaving renderer/pass assembly inline in `main.js`.
+- Lazy frame-loop binding composition is now grouped behind `src/render/frameLoopBindingRuntime.js` instead of keeping the `createFrameRuntimeBinding(...)` orchestration block inline in `main.js`.
+- Startup UI/render kickoff dependency assembly is now grouped behind `src/core/appStartupBindingRuntime.js` instead of leaving the full `runAppStartupRuntime(...)` wiring object inline in `main.js`.
+- Swarm UI binding composition is now grouped behind `src/ui/swarmUiSetupRuntime.js` instead of leaving the full `createSwarmUiRuntimeBinding(...)` assembly block inline in `main.js`.
+- Render-FX UI + sync composition is now grouped behind `src/ui/renderFxUiSetupRuntime.js` instead of leaving the `createRenderFxUiBindingRuntime(...)` / `createRenderFxSettingsSyncRuntime(...)` assembly blocks inline in `main.js`.
+- Legacy settings/UI dependency assembly is now grouped behind `src/ui/settingsLegacySetupRuntime.js` instead of leaving the large `createSettingsLegacyRuntimeBinding(...)` composition block inline in `main.js`.
+- Point-light runtime dependency assembly is now grouped behind `src/gameplay/pointLightSetupRuntime.js` instead of leaving the `createPointLightRuntime(...)` composition block inline in `main.js`.
+- Map lifecycle dependency assembly is now grouped behind `src/gameplay/mapLifecycleSetupRuntime.js` instead of leaving the `createMapLifecycleRuntime(...)` composition block inline in `main.js`.
 - Map-image runtime binding composition (`createMapImageRuntime` deps composition) is now extracted to `src/gameplay/mapImageRuntimeBinding.js`.
 - Map-sampling runtime binding composition (`createMapSampling` deps composition) is now extracted to `src/gameplay/mapSamplingRuntimeBinding.js`.
 - Shadow-occlusion runtime binding composition (`createShadowOcclusion` deps composition) is now extracted to `src/gameplay/shadowOcclusionRuntimeBinding.js`.
@@ -456,7 +468,7 @@ Targeted architecture tests:
 - No georeferenced sun position.
 - No animated movement yet (currently instant click-to-move).
 - Full modularization is still in progress; `src/main.js` remains the largest integration surface, but core/render/sim/ui/gameplay modules are now established and wired.
-- After the latest extraction pass, `src/main.js` is down to roughly 3708 lines, but it is still the largest integration surface and Phase 5/6 are not yet complete.
+- After the latest extraction pass, `src/main.js` is around 3624 lines in the current worktree, still the largest integration surface, and Phase 5/6 are not yet complete.
 
 ## Render Module Breakdown
 

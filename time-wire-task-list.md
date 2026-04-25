@@ -1,6 +1,6 @@
 # Time Wire Task List
 
-Last updated: 2026-04-24
+Last updated: 2026-04-25
 Owner: Codex + Marc
 Branch policy: dedicated implementation branch, no direct commits to `main`
 Primary scope: complete the transition from hybrid time wiring to a fully migrated runtime architecture
@@ -338,7 +338,26 @@ Keep this section short. Detailed extraction history belongs in git log and code
   - Continued Phase 5 extraction by grouping swarm state/UI composition behind `src/ui/swarmUiRuntimeBinding.js`, so `main.js` no longer owns the inline block that assembled swarm runtime-state access, swarm panel reflection, swarm normalization, and routing-input sync.
   - Continued Phase 5 extraction by grouping the bottom-of-file bind/setup orchestration behind `src/ui/mainBindingsRuntime.js` and startup kickoff/error handling behind `src/core/appStartupRuntime.js`.
   - Continued Phase 5 extraction by grouping the remaining camera/player/interaction/info-panel adapter surface behind `src/gameplay/mainFacadeRuntime.js`.
-  - `main.js` is reduced further to roughly 3708 lines, but it still remains too large to honestly mark Phase 5/6 complete.
+  - Continued Phase 5 extraction by grouping render support, map support, render pipeline, and light/pathfinding/render-FX wrapper composition behind:
+    - `src/render/renderSupportRuntime.js`
+    - `src/gameplay/mapSupportRuntime.js`
+    - `src/render/renderPipelineRuntime.js`
+    - `src/ui/uiRuntimeFacade.js`
+  - Continued Phase 5 extraction by moving more `main.js` orchestration-only assembly behind:
+    - `src/ui/mainBindingsSetupRuntime.js`
+    - `src/render/frameLoopBindingRuntime.js`
+    - `src/core/appStartupBindingRuntime.js`
+  - Continued Phase 5 extraction by moving the remaining inline swarm-UI and render-FX UI composition blocks behind:
+    - `src/ui/swarmUiSetupRuntime.js`
+    - `src/ui/renderFxUiSetupRuntime.js`
+  - Continued Phase 5 extraction by moving more large declarative setup blocks behind:
+    - `src/ui/settingsLegacySetupRuntime.js`
+    - `src/gameplay/pointLightSetupRuntime.js`
+    - `src/gameplay/mapLifecycleSetupRuntime.js`
+  - Current result after these passes: `src/main.js` is down to roughly 3624 lines in the worktree, but it is still the largest integration surface and Phase 5/6 remain open.
+  - Continued Phase 5 extraction by grouping low-level GL/flow-map/shadow/cloud support behind `src/render/renderSupportRuntime.js`.
+  - Continued Phase 5 extraction by grouping map path/Tauri/image/sampling/shadow-occlusion support behind `src/gameplay/mapSupportRuntime.js`.
+  - `main.js` remains roughly in the 3.8k-line range in the current worktree, so it is still too large to honestly mark Phase 5/6 complete.
   - Reduced `main.js` further by extracting swarm interpolation/update/follow-camera composition into `src/gameplay/swarmLoopRuntime.js`.
   - Moved swarm follow target indices into canonical `gameplay.swarm` state (`followAgentIndex`, `followHawkIndex`) so follow target ownership no longer lives only in runtime locals.
   - Reduced `main.js` further by extracting swarm gameplay composition (environment, targeting, mutator, reseed, swarm data apply/serialize) into `src/gameplay/swarmGameplayRuntime.js`.

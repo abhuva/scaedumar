@@ -1,0 +1,37 @@
+import { createPointLightRuntime } from "./pointLightRuntime.js";
+
+export function createPointLightSetupRuntime(deps) {
+  return createPointLightRuntime({
+    pointLights: deps.pointLights,
+    clamp: deps.clamp,
+    splatSize: deps.splatSize,
+    selectRadiusPx: deps.selectRadiusPx,
+    defaultFlicker: deps.defaultFlicker,
+    defaultFlickerSpeed: deps.defaultFlickerSpeed,
+    nextPointLightId: deps.nextPointLightId,
+    hexToRgb01: deps.hexToRgb01,
+    bakePointLightsTexture: deps.bakePointLightsTexture,
+    schedulePointLightBake: deps.schedulePointLightBake,
+    isPointLightLiveUpdateEnabled: deps.isPointLightLiveUpdateEnabled,
+    updateLightEditorUi: deps.updateLightEditorUi,
+    requestOverlayDraw: deps.requestOverlayDraw,
+    setStatus: deps.setStatus,
+    parsePointLightsPayload: deps.parsePointLightsPayload,
+    serializePointLightsPayload: deps.serializePointLightsPayload,
+    tauriInvoke: deps.tauriInvoke,
+    isAbsoluteFsPath: deps.isAbsoluteFsPath,
+    joinFsPath: deps.joinFsPath,
+    invokeTauri: deps.invokeTauri,
+    showSaveFilePicker: deps.showSaveFilePicker,
+    normalizeMapFolderPath: deps.normalizeMapFolderPath,
+    downloadTextFile: deps.downloadTextFile,
+    getCurrentMapFolderPath: deps.getCurrentMapFolderPath,
+    tryLoadJsonFromUrl: deps.tryLoadJsonFromUrl,
+    clearPointLightsLoadInput: deps.clearPointLightsLoadInput,
+    openPointLightsLoadInput: deps.openPointLightsLoadInput,
+    setSaveButtonText: deps.setSaveButtonText,
+    syncPointLightsStateToStore: deps.syncPointLightsStateToStore,
+    setTimeout: deps.setTimeout,
+    clearTimeout: deps.clearTimeout,
+  });
+}
