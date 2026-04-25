@@ -103,11 +103,13 @@ owner modules.
 
 ## Verification Baseline
 
-- Node suite passes: `node --test tests/*.test.js`
-- Browser smoke testing passed on `2026-04-25`
-- Tauri full build passed on `2026-04-25`
-- Installed desktop build launched and basic gameplay smoke testing passed on
-  `2026-04-25`
+Last verified pass: `2026-04-25` - update these entries when the checks are rerun.
+
+- Node suite last passed on `2026-04-25`: `node --test`
+- Browser smoke testing last passed on `2026-04-25`
+- Tauri full build last passed on `2026-04-25`
+- Installed desktop build launched and basic gameplay smoke testing last passed
+  on `2026-04-25`
 
 ## Migration Status
 

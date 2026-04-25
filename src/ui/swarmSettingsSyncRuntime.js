@@ -1,14 +1,19 @@
 export function createSwarmSettingsSyncRuntime(deps) {
+  function finiteOr(value, fallback) {
+    const num = Number(value);
+    return Number.isFinite(num) ? num : fallback;
+  }
+
   function syncSwarmSettingsInputs() {
     const settings = deps.getSwarmSettings();
     deps.swarmEnabledToggle.checked = Boolean(settings.useAgentSwarm);
     deps.swarmLitModeToggle.checked = Boolean(settings.useLitSwarm);
     deps.swarmFollowZoomToggle.checked = Boolean(settings.followZoomBySpeed);
-    deps.swarmFollowZoomInInput.value = settings.followZoomIn.toFixed(1);
-    deps.swarmFollowZoomOutInput.value = settings.followZoomOut.toFixed(1);
+    deps.swarmFollowZoomInInput.value = deps.clamp(finiteOr(settings.followZoomIn, 1), deps.zoomMin, deps.zoomMax).toFixed(1);
+    deps.swarmFollowZoomOutInput.value = deps.clamp(finiteOr(settings.followZoomOut, 1), deps.zoomMin, deps.zoomMax).toFixed(1);
     deps.swarmFollowHawkRangeGizmoToggle.checked = Boolean(settings.followHawkRangeGizmo);
-    deps.swarmFollowAgentSpeedSmoothingInput.value = settings.followAgentSpeedSmoothing.toFixed(2);
-    deps.swarmFollowAgentZoomSmoothingInput.value = settings.followAgentZoomSmoothing.toFixed(2);
+    deps.swarmFollowAgentSpeedSmoothingInput.value = deps.clamp(finiteOr(settings.followAgentSpeedSmoothing, 0.1), 0.01, 0.25).toFixed(2);
+    deps.swarmFollowAgentZoomSmoothingInput.value = deps.clamp(finiteOr(settings.followAgentZoomSmoothing, 0.1), 0.01, 0.25).toFixed(2);
     deps.swarmStatsPanelToggle.checked = Boolean(settings.showStatsPanel);
     deps.swarmShowTerrainToggle.checked = Boolean(settings.showTerrainInSwarm);
     deps.swarmBackgroundColorInput.value = settings.backgroundColor;
@@ -39,7 +44,7 @@ export function createSwarmSettingsSyncRuntime(deps) {
     deps.swarmHawkSteeringInput.value = String(settings.hawkSteering);
     deps.swarmHawkTargetRangeInput.value = String(settings.hawkTargetRange);
     if (deps.swarmTimeRoutingInput) {
-      deps.swarmTimeRoutingInput.value = settings.timeRouting;
+      deps.swarmTimeRoutingInput.value = deps.normalizeRoutingMode(settings.timeRouting, "global");
     }
   }
 

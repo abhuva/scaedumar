@@ -973,7 +973,6 @@ const pointLightBakeRuntimeBinding = createPointLightBakeRuntimeBinding({
 });
 
 let pointLightRuntime = null;
-let pointLightApi = null;
 let pathfindingRuntimeBinding = null;
 let pathfindingLabelRuntime = null;
 let renderFxUiRuntime = null;
@@ -1108,7 +1107,6 @@ const updateCursorLightHeightOffsetLabel = (...args) => lightLabelRuntime.update
 
 ({
   pointLightRuntime,
-  pointLightApi,
   mapLifecycleRuntime,
 } = createMapLightingSetupRuntime({
   pointLights,
@@ -1207,7 +1205,7 @@ const {
   savePointLightsJson,
   loadPointLightsFromAssetsOrPrompt,
   applyLoadedPointLights,
-} = pointLightApi;
+} = pointLightRuntime;
 
 const {
   ensurePointLightBakeSize,

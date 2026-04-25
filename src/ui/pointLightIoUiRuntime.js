@@ -1,13 +1,19 @@
 export function createPointLightIoUiRuntime(deps) {
   return {
     clearPointLightsLoadInput: () => {
-      deps.pointLightsLoadInput.value = "";
+      if (deps.pointLightsLoadInput) {
+        deps.pointLightsLoadInput.value = "";
+      }
     },
     openPointLightsLoadInput: () => {
-      deps.pointLightsLoadInput.click();
+      if (deps.pointLightsLoadInput) {
+        deps.pointLightsLoadInput.click();
+      }
     },
     setSaveButtonText: (text) => {
-      deps.pointLightsSaveAllBtn.textContent = text;
+      if (deps.pointLightsSaveAllBtn) {
+        deps.pointLightsSaveAllBtn.textContent = text;
+      }
     },
   };
 }

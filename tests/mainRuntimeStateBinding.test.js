@@ -10,7 +10,7 @@ test("mainRuntimeStateBinding exposes direct runtime-state ownership without ext
       gameplay: {
         map: {},
         pointLights: { liveUpdate: false, saveConfirmArmed: true },
-        cursorLight: { enabled: true, color: [1, 1, 1], strength: 12, heightOffset: 3, useTerrainHeight: false, showGizmo: true },
+        cursorLight: { enabled: true, color: "#ffffff", strength: 12, heightOffset: 3, useTerrainHeight: false, showGizmo: true },
         swarm: {},
       },
     },
@@ -36,7 +36,7 @@ test("mainRuntimeStateBinding exposes direct runtime-state ownership without ext
     applySwarmSettingsCompat: () => {},
     getCurrentMapFolderPath: () => "assets/Map 1/",
     getSplatSize: () => ({ width: 128, height: 64 }),
-    getCursorLightState: () => null,
+    getCursorLightState: () => store.state.gameplay.cursorLight,
     getStopSwarmFollow: () => () => {},
     getSwarmState: () => ({}),
     clamp: (value, min, max) => Math.min(max, Math.max(min, value)),
@@ -53,7 +53,7 @@ test("mainRuntimeStateBinding exposes direct runtime-state ownership without ext
   assert.equal(binding.isPointLightsSaveConfirmArmed(), false);
   assert.deepEqual(binding.getCursorLightSnapshot(), {
     enabled: true,
-    colorHex: "#ff9b2f",
+    colorHex: "#ffffff",
     strength: 12,
     heightOffset: 3,
     useTerrainHeight: false,

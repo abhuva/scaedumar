@@ -43,7 +43,7 @@ export function createMapIoHelpers(deps) {
           if (response.ok) {
             return response.json();
           }
-          if (response.status === 404 && missingInTauri) {
+          if (response.status === 404) {
             throw createMissingJsonError(path);
           }
           throw new Error(

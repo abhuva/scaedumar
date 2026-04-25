@@ -1,71 +1,67 @@
 export function createSettingsRuntimeBinding(deps) {
+  function make(key, compatSerializer, compatApplier, fallbackDefaults) {
+    return {
+      serialize: () => deps.settingsApplyRuntime.serializeSettingsByKey(key, compatSerializer),
+      apply: (rawData) => {
+        deps.settingsApplyRuntime.updateStoreFromAppliedSettings(
+          key,
+          deps.settingsApplyRuntime.normalizeAppliedSettings(key, rawData, fallbackDefaults),
+        );
+        deps.settingsApplyRuntime.applySettingsByKey(key, rawData, compatApplier);
+      },
+    };
+  }
+
+  const lighting = make(
+    "lighting",
+    deps.serializeLightingSettingsCompat,
+    deps.applyLightingSettingsCompat,
+    deps.defaultLightingSettings,
+  );
+  const fog = make(
+    "fog",
+    deps.serializeFogSettingsCompat,
+    deps.applyFogSettingsCompat,
+    deps.defaultFogSettings,
+  );
+  const parallax = make(
+    "parallax",
+    deps.serializeParallaxSettingsCompat,
+    deps.applyParallaxSettingsCompat,
+    deps.defaultParallaxSettings,
+  );
+  const clouds = make(
+    "clouds",
+    deps.serializeCloudSettingsCompat,
+    deps.applyCloudSettingsCompat,
+    deps.defaultCloudSettings,
+  );
+  const waterfx = make(
+    "waterfx",
+    deps.serializeWaterSettingsCompat,
+    deps.applyWaterSettingsCompat,
+    deps.defaultWaterSettings,
+  );
+  const interaction = make(
+    "interaction",
+    deps.serializeInteractionSettingsCompat,
+    deps.applyInteractionSettingsCompat,
+    deps.defaultInteractionSettings,
+  );
+
   return {
-    serializeLightingSettings: () =>
-      deps.settingsApplyRuntime.serializeSettingsByKey("lighting", deps.serializeLightingSettingsCompat),
-    applyLightingSettings: (rawData) => {
-      deps.settingsApplyRuntime.updateStoreFromAppliedSettings(
-        "lighting",
-        deps.settingsApplyRuntime.normalizeAppliedSettings(
-          "lighting",
-          rawData,
-          deps.defaultLightingSettings,
-        ),
-      );
-      deps.settingsApplyRuntime.applySettingsByKey("lighting", rawData, deps.applyLightingSettingsCompat);
-    },
-    serializeFogSettings: () =>
-      deps.settingsApplyRuntime.serializeSettingsByKey("fog", deps.serializeFogSettingsCompat),
-    applyFogSettings: (rawData) => {
-      deps.settingsApplyRuntime.updateStoreFromAppliedSettings(
-        "fog",
-        deps.settingsApplyRuntime.normalizeAppliedSettings("fog", rawData, deps.defaultFogSettings),
-      );
-      deps.settingsApplyRuntime.applySettingsByKey("fog", rawData, deps.applyFogSettingsCompat);
-    },
-    serializeParallaxSettings: () =>
-      deps.settingsApplyRuntime.serializeSettingsByKey("parallax", deps.serializeParallaxSettingsCompat),
-    applyParallaxSettings: (rawData) => {
-      deps.settingsApplyRuntime.updateStoreFromAppliedSettings(
-        "parallax",
-        deps.settingsApplyRuntime.normalizeAppliedSettings(
-          "parallax",
-          rawData,
-          deps.defaultParallaxSettings,
-        ),
-      );
-      deps.settingsApplyRuntime.applySettingsByKey("parallax", rawData, deps.applyParallaxSettingsCompat);
-    },
-    serializeCloudSettings: () =>
-      deps.settingsApplyRuntime.serializeSettingsByKey("clouds", deps.serializeCloudSettingsCompat),
-    applyCloudSettings: (rawData) => {
-      deps.settingsApplyRuntime.updateStoreFromAppliedSettings(
-        "clouds",
-        deps.settingsApplyRuntime.normalizeAppliedSettings("clouds", rawData, deps.defaultCloudSettings),
-      );
-      deps.settingsApplyRuntime.applySettingsByKey("clouds", rawData, deps.applyCloudSettingsCompat);
-    },
-    serializeWaterSettings: () =>
-      deps.settingsApplyRuntime.serializeSettingsByKey("waterfx", deps.serializeWaterSettingsCompat),
-    applyWaterSettings: (rawData) => {
-      deps.settingsApplyRuntime.updateStoreFromAppliedSettings(
-        "waterfx",
-        deps.settingsApplyRuntime.normalizeAppliedSettings("waterfx", rawData, deps.defaultWaterSettings),
-      );
-      deps.settingsApplyRuntime.applySettingsByKey("waterfx", rawData, deps.applyWaterSettingsCompat);
-    },
-    serializeInteractionSettings: () =>
-      deps.settingsApplyRuntime.serializeSettingsByKey("interaction", deps.serializeInteractionSettingsCompat),
-    applyInteractionSettings: (rawData) => {
-      deps.settingsApplyRuntime.updateStoreFromAppliedSettings(
-        "interaction",
-        deps.settingsApplyRuntime.normalizeAppliedSettings(
-          "interaction",
-          rawData,
-          deps.defaultInteractionSettings,
-        ),
-      );
-      deps.settingsApplyRuntime.applySettingsByKey("interaction", rawData, deps.applyInteractionSettingsCompat);
-    },
+    serializeLightingSettings: lighting.serialize,
+    applyLightingSettings: lighting.apply,
+    serializeFogSettings: fog.serialize,
+    applyFogSettings: fog.apply,
+    serializeParallaxSettings: parallax.serialize,
+    applyParallaxSettings: parallax.apply,
+    serializeCloudSettings: clouds.serialize,
+    applyCloudSettings: clouds.apply,
+    serializeWaterSettings: waterfx.serialize,
+    applyWaterSettings: waterfx.apply,
+    serializeInteractionSettings: interaction.serialize,
+    applyInteractionSettings: interaction.apply,
     serializeSwarmData: () =>
       deps.settingsApplyRuntime.serializeSettingsByKey("swarm", deps.serializeSwarmDataCompat),
     applySwarmSettings: (rawData) => {

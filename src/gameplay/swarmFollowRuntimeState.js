@@ -75,7 +75,7 @@ export function createSwarmFollowRuntimeState(deps) {
   }
 
   function getSwarmFollowSpeedNormFiltered() {
-    return getSwarmFollowSnapshot().speedNormFiltered;
+    return deps.swarmFollowState.speedNormFiltered;
   }
 
   function resetSwarmFollowSpeedNormFiltered() {

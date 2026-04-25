@@ -6,8 +6,8 @@ export function getSwarmRuntimeStateSnapshot(deps) {
     : {
         enabled: Boolean(followState.enabled),
         targetType: followState.targetType === "hawk" ? "hawk" : "agent",
-        agentIndex: Number.isFinite(Number(followState.agentIndex)) ? Math.round(Number(followState.agentIndex)) : -1,
-        hawkIndex: Number.isFinite(Number(followState.hawkIndex)) ? Math.round(Number(followState.hawkIndex)) : -1,
+        agentIndex: followState.agentIndex,
+        hawkIndex: followState.hawkIndex,
       };
   const enabled = typeof deps.isSwarmEnabled === "function"
     ? deps.isSwarmEnabled()
@@ -17,8 +17,8 @@ export function getSwarmRuntimeStateSnapshot(deps) {
     count: Math.max(0, Math.round(Number(swarmState.count) || 0)),
     followEnabled: Boolean(follow.enabled),
     followTargetType: follow.targetType === "hawk" ? "hawk" : "agent",
-    followAgentIndex: Number.isFinite(Number(follow.agentIndex)) ? Math.round(Number(follow.agentIndex)) : -1,
-    followHawkIndex: Number.isFinite(Number(follow.hawkIndex)) ? Math.round(Number(follow.hawkIndex)) : -1,
+    followAgentIndex: normalizeStoredFollowIndex(follow.agentIndex),
+    followHawkIndex: normalizeStoredFollowIndex(follow.hawkIndex),
   };
 }
 
@@ -31,7 +31,7 @@ export function getSwarmStoreSnapshot(deps) {
 }
 
 export function hasSwarmSnapshotChanged(prevSwarm, nextSwarm) {
-  const keys = Object.keys(nextSwarm);
+  const keys = new Set([...Object.keys(prevSwarm), ...Object.keys(nextSwarm)]);
   for (const key of keys) {
     if (prevSwarm[key] !== nextSwarm[key]) {
       return true;

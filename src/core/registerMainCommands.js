@@ -153,10 +153,14 @@ export function registerMainCommands(commandBus, deps) {
     }
 
     if (section === "fog") {
-      const nextFog = getFogSettings();
+      const currentFog = deps.serializeFogSettings();
+      const nextFog = {
+        ...currentFog,
+        ...(patch || {}),
+      };
       updateSimulationSection("fog", {
         useFog: Boolean(nextFog.useFog),
-        fogColor: normalizeHexColor(nextFog.fogColor, deps.serializeFogSettings().fogColor),
+        fogColor: normalizeHexColor(nextFog.fogColor, currentFog.fogColor),
         fogColorManual: command.markFogColorManual ? true : Boolean(nextFog.fogColorManual),
         fogMinAlpha: deps.clamp(Number(nextFog.fogMinAlpha), 0, 1),
         fogMaxAlpha: deps.clamp(Number(nextFog.fogMaxAlpha), 0, 1),
@@ -189,7 +193,11 @@ export function registerMainCommands(commandBus, deps) {
     }
 
     if (section === "waterfx") {
-      const nextWater = getWaterSettings();
+      const currentWater = deps.serializeWaterSettings();
+      const nextWater = {
+        ...currentWater,
+        ...(patch || {}),
+      };
       updateSimulationSection("waterFx", {
         ...deps.serializeWaterSettings(),
         useWaterFx: Boolean(nextWater.useWaterFx),
@@ -214,7 +222,7 @@ export function registerMainCommands(commandBus, deps) {
         waterShoreFoamStrength: deps.clamp(Number(nextWater.waterShoreFoamStrength), 0, 0.5),
         waterShoreWidth: deps.clamp(Number(nextWater.waterShoreWidth), 0.4, 6),
         waterReflectivity: deps.clamp(Number(nextWater.waterReflectivity), 0, 1),
-        waterTintColor: normalizeHexColor(nextWater.waterTintColor, deps.serializeWaterSettings().waterTintColor),
+        waterTintColor: normalizeHexColor(nextWater.waterTintColor, currentWater.waterTintColor),
         waterTintStrength: deps.clamp(Number(nextWater.waterTintStrength), 0, 1),
       });
       deps.syncRenderFxWaterUi();
@@ -230,6 +238,7 @@ export function registerMainCommands(commandBus, deps) {
     }
 
     const action = String(command.action || "");
+    let shouldSyncSwarmPanelUi = false;
     function handleHeightChange() {
       let minHeight = Math.round(deps.clamp(Number(command.minHeight), 0, 256));
       let maxHeight = Math.round(deps.clamp(Number(command.maxHeight), 0, 256));
@@ -271,12 +280,12 @@ export function registerMainCommands(commandBus, deps) {
         updateSwarmSettings({
           cursorMode: command.value === "attract" || command.value === "repel" ? command.value : "none",
         });
-        deps.syncSwarmPanelUi();
+        shouldSyncSwarmPanelUi = true;
         deps.requestOverlayDraw();
         break;
       case "followZoomToggleChanged":
         updateSwarmSettings({ followZoomBySpeed: Boolean(command.value) });
-        deps.syncSwarmPanelUi();
+        shouldSyncSwarmPanelUi = true;
         break;
       case "followZoomInChanged": {
         const settings = deps.getSwarmSettings();
@@ -287,7 +296,7 @@ export function registerMainCommands(commandBus, deps) {
         );
         const zoomIn = Math.max(zoomOut, deps.clamp(Number(command.zoomIn), deps.zoomMin, deps.zoomMax));
         updateSwarmSettings({ followZoomOut: zoomOut, followZoomIn: zoomIn });
-        deps.syncSwarmPanelUi();
+        shouldSyncSwarmPanelUi = true;
         break;
       }
       case "followZoomOutChanged": {
@@ -299,152 +308,152 @@ export function registerMainCommands(commandBus, deps) {
         );
         const zoomOut = Math.min(zoomIn, deps.clamp(Number(command.zoomOut), deps.zoomMin, deps.zoomMax));
         updateSwarmSettings({ followZoomOut: zoomOut, followZoomIn: zoomIn });
-        deps.syncSwarmPanelUi();
+        shouldSyncSwarmPanelUi = true;
         break;
       }
       case "followHawkRangeGizmoChanged":
         updateSwarmSettings({ followHawkRangeGizmo: Boolean(command.value) });
-        deps.syncSwarmPanelUi();
+        shouldSyncSwarmPanelUi = true;
         deps.requestOverlayDraw();
         break;
       case "followAgentSpeedSmoothingChanged": {
         const value = deps.clamp(Number(command.value), 0.01, 0.25);
         updateSwarmSettings({ followAgentSpeedSmoothing: value });
-        deps.syncSwarmPanelUi();
+        shouldSyncSwarmPanelUi = true;
         break;
       }
       case "followAgentZoomSmoothingChanged": {
         const value = deps.clamp(Number(command.value), 0.01, 0.25);
         updateSwarmSettings({ followAgentZoomSmoothing: value });
-        deps.syncSwarmPanelUi();
+        shouldSyncSwarmPanelUi = true;
         break;
       }
       case "simulationSpeedChanged": {
         const value = deps.clamp(Number(command.value), 0.1, 20);
         updateSwarmSettings({ simulationSpeed: value });
-        deps.syncSwarmPanelUi();
+        shouldSyncSwarmPanelUi = true;
         break;
       }
       case "neighborRadiusChanged": {
         const value = deps.clamp(Number(command.value), 10, 200);
         updateSwarmSettings({ neighborRadius: value });
-        deps.syncSwarmPanelUi();
+        shouldSyncSwarmPanelUi = true;
         break;
       }
       case "separationRadiusChanged": {
         const value = deps.clamp(Number(command.value), 6, 120);
         updateSwarmSettings({ separationRadius: value });
-        deps.syncSwarmPanelUi();
+        shouldSyncSwarmPanelUi = true;
         break;
       }
       case "alignmentWeightChanged": {
         const value = deps.clamp(Number(command.value), 0, 4);
         updateSwarmSettings({ alignmentWeight: value });
-        deps.syncSwarmPanelUi();
+        shouldSyncSwarmPanelUi = true;
         break;
       }
       case "cohesionWeightChanged": {
         const value = deps.clamp(Number(command.value), 0, 4);
         updateSwarmSettings({ cohesionWeight: value });
-        deps.syncSwarmPanelUi();
+        shouldSyncSwarmPanelUi = true;
         break;
       }
       case "separationWeightChanged": {
         const value = deps.clamp(Number(command.value), 0, 6);
         updateSwarmSettings({ separationWeight: value });
-        deps.syncSwarmPanelUi();
+        shouldSyncSwarmPanelUi = true;
         break;
       }
       case "wanderWeightChanged": {
         const value = deps.clamp(Number(command.value), 0, 2);
         updateSwarmSettings({ wanderWeight: value });
-        deps.syncSwarmPanelUi();
+        shouldSyncSwarmPanelUi = true;
         break;
       }
       case "restChanceChanged": {
         const value = deps.clamp(Number(command.value), 0, 0.002);
         updateSwarmSettings({ restChancePct: value });
-        deps.syncSwarmPanelUi();
+        shouldSyncSwarmPanelUi = true;
         break;
       }
       case "restTicksChanged": {
         const value = Math.round(deps.clamp(Number(command.value), 100, 10000));
         updateSwarmSettings({ restTicks: value });
-        deps.syncSwarmPanelUi();
+        shouldSyncSwarmPanelUi = true;
         break;
       }
       case "breedingThresholdChanged": {
         const value = Math.round(deps.clamp(Number(command.value), 0, 1000));
         updateSwarmSettings({ breedingThreshold: value });
-        deps.syncSwarmPanelUi();
+        shouldSyncSwarmPanelUi = true;
         break;
       }
       case "breedingSpawnChanceChanged": {
         const value = deps.clamp(Number(command.value), 0, 1);
         updateSwarmSettings({ breedingSpawnChance: value });
-        deps.syncSwarmPanelUi();
+        shouldSyncSwarmPanelUi = true;
         break;
       }
       case "cursorStrengthChanged": {
         const value = deps.clamp(Number(command.value), 0, 8);
         updateSwarmSettings({ cursorStrength: value });
-        deps.syncSwarmPanelUi();
+        shouldSyncSwarmPanelUi = true;
         break;
       }
       case "cursorRadiusChanged": {
         const value = deps.clamp(Number(command.value), 20, 260);
         updateSwarmSettings({ cursorRadius: value });
-        deps.syncSwarmPanelUi();
+        shouldSyncSwarmPanelUi = true;
         break;
       }
       case "hawkSpeedChanged": {
         const value = deps.clamp(Number(command.value), 30, 420);
         updateSwarmSettings({ hawkSpeed: value });
-        deps.syncSwarmPanelUi();
+        shouldSyncSwarmPanelUi = true;
         break;
       }
       case "hawkSteeringChanged": {
         const value = deps.clamp(Number(command.value), 20, 700);
         updateSwarmSettings({ hawkSteering: value });
-        deps.syncSwarmPanelUi();
+        shouldSyncSwarmPanelUi = true;
         break;
       }
       case "hawkTargetRangeChanged": {
         const value = Math.round(deps.clamp(Number(command.value), 20, 500));
         updateSwarmSettings({ hawkTargetRange: value });
-        deps.syncSwarmPanelUi();
+        shouldSyncSwarmPanelUi = true;
         break;
       }
       case "statsPanelChanged":
         updateSwarmSettings({ showStatsPanel: Boolean(command.value) });
-        deps.syncSwarmPanelUi();
+        shouldSyncSwarmPanelUi = true;
         deps.updateSwarmStatsPanel();
         break;
       case "agentCountChanged": {
         const value = Math.round(deps.clamp(Number(command.value), 100, 1000));
         updateSwarmSettings({ agentCount: value });
-        deps.syncSwarmPanelUi();
+        shouldSyncSwarmPanelUi = true;
         deps.reseedSwarmAgents(deps.getSwarmSettings().agentCount);
         break;
       }
       case "maxSpeedChanged": {
         const value = deps.clamp(Number(command.value), 30, 300);
         updateSwarmSettings({ maxSpeed: value });
-        deps.syncSwarmPanelUi();
+        shouldSyncSwarmPanelUi = true;
         deps.reseedSwarmAgents(deps.swarmState.count || deps.getSwarmSettings().agentCount);
         break;
       }
       case "maxSteeringChanged": {
         const value = deps.clamp(Number(command.value), 10, 500);
         updateSwarmSettings({ maxSteering: value });
-        deps.syncSwarmPanelUi();
+        shouldSyncSwarmPanelUi = true;
         deps.reseedSwarmAgents(deps.swarmState.count || deps.getSwarmSettings().agentCount);
         break;
       }
       case "variationChanged": {
         const value = Math.round(deps.clamp(Number(command.value), 0, 50));
         updateSwarmSettings({ variationStrengthPct: value });
-        deps.syncSwarmPanelUi();
+        shouldSyncSwarmPanelUi = true;
         deps.reseedSwarmAgents(deps.swarmState.count || deps.getSwarmSettings().agentCount);
         break;
       }
@@ -455,20 +464,20 @@ export function registerMainCommands(commandBus, deps) {
       }
       case "hawkEnabledChanged": {
         updateSwarmSettings({ useHawk: Boolean(command.value) });
-        deps.syncSwarmPanelUi();
+        shouldSyncSwarmPanelUi = true;
         deps.reseedSwarmAgents(deps.swarmState.count || deps.getSwarmSettings().agentCount);
         break;
       }
       case "hawkCountChanged": {
         const value = Math.round(deps.clamp(Number(command.value), 0, 20));
         updateSwarmSettings({ hawkCount: value });
-        deps.syncSwarmPanelUi();
+        shouldSyncSwarmPanelUi = true;
         deps.reseedSwarmAgents(deps.swarmState.count || deps.getSwarmSettings().agentCount);
         break;
       }
       case "enabledToggleChanged":
         updateSwarmSettings({ useAgentSwarm: Boolean(command.value) });
-        deps.syncSwarmPanelUi();
+        shouldSyncSwarmPanelUi = true;
         deps.swarmState.lastUpdateMs = null;
         deps.swarmCursorState.active = false;
         if (deps.getSwarmSettings().useAgentSwarm) {
@@ -484,6 +493,9 @@ export function registerMainCommands(commandBus, deps) {
         break;
     }
 
+    if (shouldSyncSwarmPanelUi) {
+      deps.syncSwarmPanelUi();
+    }
     deps.syncSwarmStateToStore();
   });
 

@@ -47,13 +47,13 @@ export function createMapSupportRuntime(deps) {
   function getMapImageRuntime() {
     if (mapImageRuntime) return mapImageRuntime;
     mapImageRuntime = createMapImageRuntime({
-      splatSize: getSplatSize(),
-      normalsSize: getNormalsSize(),
-      heightSize: getHeightSize(),
-      splatTex: getSplatTex(),
-      normalsTex: getNormalsTex(),
-      heightTex: getHeightTex(),
-      waterTex: getWaterTex(),
+      getSplatSize,
+      getNormalsSize,
+      getHeightSize,
+      getSplatTex,
+      getNormalsTex,
+      getHeightTex,
+      getWaterTex,
       uploadImageToTexture: deps.uploadImageToTexture,
       applyMapSizeChangeIfNeeded: deps.applyMapSizeChangeIfNeeded,
       resetCamera: deps.resetCamera,

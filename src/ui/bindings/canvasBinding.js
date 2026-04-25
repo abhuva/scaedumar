@@ -57,6 +57,20 @@ export function bindCanvasControls(deps) {
     { passive: false },
   );
 
+  // Fallback: wheel events may target non-canvas elements in some layouts.
+  deps.windowEl.addEventListener("wheel", (e) => {
+    if (e.target === deps.canvas) return;
+    if (isUiTarget(e.target)) return;
+    if (!isInsideCanvas(e.clientX, e.clientY)) return;
+    e.preventDefault();
+    deps.dispatchCoreCommand({
+      type: "core/camera/zoomAtClient",
+      clientX: e.clientX,
+      clientY: e.clientY,
+      deltaY: e.deltaY,
+    });
+  }, { passive: false, capture: true });
+
   deps.canvas.addEventListener("pointerdown", (e) => {
     if (e.button === 0) {
       handleMapClick(e.clientX, e.clientY, e.button);
@@ -64,6 +78,9 @@ export function bindCanvasControls(deps) {
     }
     if (e.button !== 1) return;
     e.preventDefault();
+    if (typeof deps.canvas.setPointerCapture === "function") {
+      deps.canvas.setPointerCapture(e.pointerId);
+    }
     deps.dispatchCoreCommand({
       type: "core/camera/beginMiddleDrag",
       clientX: e.clientX,
@@ -73,6 +90,9 @@ export function bindCanvasControls(deps) {
 
   deps.windowEl.addEventListener("pointerup", (e) => {
     if (e.button !== 1) return;
+    if (typeof deps.canvas.releasePointerCapture === "function" && deps.canvas.hasPointerCapture && deps.canvas.hasPointerCapture(e.pointerId)) {
+      deps.canvas.releasePointerCapture(e.pointerId);
+    }
     deps.dispatchCoreCommand({ type: "core/camera/endMiddleDrag" });
   });
 
@@ -92,7 +112,7 @@ export function bindCanvasControls(deps) {
   deps.windowEl.addEventListener("pointermove", (e) => {
     if (e.target === deps.canvas) return;
     if (isUiTarget(e.target)) return;
-    if (!isInsideCanvas(e.clientX, e.clientY)) return;
+    if (!deps.isMiddleDragging() && !isInsideCanvas(e.clientX, e.clientY)) return;
     handlePointerMove(e.clientX, e.clientY);
   }, true);
 

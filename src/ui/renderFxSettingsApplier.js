@@ -5,7 +5,7 @@ export function createRenderFxSettingsApplier(deps) {
     return ((deg % 360) + 360) % 360;
   }
 
-  function applyFogSettingsCompat(rawData) {
+  function applyFogSettingsCompat() {
     const fog = deps.getFogSettings();
     deps.fogToggle.checked = Boolean(fog.useFog);
     deps.fogColorInput.value = typeof fog.fogColor === "string"
@@ -22,7 +22,7 @@ export function createRenderFxSettingsApplier(deps) {
     deps.updateFogUi();
   }
 
-  function applyParallaxSettingsCompat(rawData) {
+  function applyParallaxSettingsCompat() {
     const parallax = deps.getParallaxSettings();
     deps.parallaxToggle.checked = Boolean(parallax.useParallax);
     deps.parallaxStrengthInput.value = String(deps.clamp(Number(parallax.parallaxStrength), 0, 1));
@@ -32,7 +32,7 @@ export function createRenderFxSettingsApplier(deps) {
     deps.updateParallaxUi();
   }
 
-  function applyCloudSettingsCompat(rawData) {
+  function applyCloudSettingsCompat() {
     const clouds = deps.getCloudSettings();
     const timeState = deps.getTimeState();
     deps.cloudToggle.checked = Boolean(clouds.useClouds);
@@ -49,7 +49,7 @@ export function createRenderFxSettingsApplier(deps) {
     deps.updateCloudUi();
   }
 
-  function applyWaterSettingsCompat(rawData) {
+  function applyWaterSettingsCompat() {
     const water = deps.getWaterSettings();
     const timeState = deps.getTimeState();
     deps.waterFxToggle.checked = Boolean(water.useWaterFx);

@@ -31,7 +31,7 @@ Current architecture state:
 - Renderer consumes resolved frame/runtime state and does not own gameplay/config state.
 - `src/main.js` is still the largest single file, but it now acts primarily as composition/orchestration.
 - App-level dependency shaping lives under `src/app/` instead of being expanded inline across `main.js`.
-- migration-era wrapper layers that previously hid ownership are removed from active runtime paths.
+- Migration-era wrapper layers that previously hid ownership are removed from active runtime paths.
 
 ## Target Architecture
 
@@ -252,7 +252,7 @@ Migration is only complete when all of the following are true:
 - Scheduler systems consume canonical state directly.
 - Render loop does not rebuild core state from runtime snapshots each frame.
 - DOM controls are not used as runtime truth.
-- migration-era ownership assumptions are gone from active runtime paths.
+- Migration-era ownership assumptions are gone from active runtime paths.
 - `src/main.js` is reduced to composition/orchestration rather than mixed ownership.
 - Cycle-hour/time-of-day authority lives in core store state; UI/runtime helpers only proxy or reflect it.
 - Active runtime source uses compatibility naming for JSON/UI apply fallbacks, not old migration-layer naming.
@@ -283,4 +283,4 @@ the final migration state.
   - Added architecture guard tests for direct store-mutation regressions,
     migration-era naming regressions, and core-owned cycle-hour behavior.
   - Confirmed the JS architecture suite passes with
-    `node --test tests/*.test.js`.
+    `node --test`.

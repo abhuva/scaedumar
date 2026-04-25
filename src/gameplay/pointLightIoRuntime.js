@@ -57,11 +57,11 @@ export function createPointLightIoRuntime(deps) {
   }
 
   async function savePointLightsJson() {
-    await pointLightIoController.savePointLightsJson();
+    return pointLightIoController.savePointLightsJson();
   }
 
   async function loadPointLightsFromAssetsOrPrompt() {
-    await pointLightIoController.loadPointLightsFromAssetsOrPrompt();
+    return pointLightIoController.loadPointLightsFromAssetsOrPrompt();
   }
 
   return {

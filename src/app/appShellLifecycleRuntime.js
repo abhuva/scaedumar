@@ -1,5 +1,4 @@
-import { tryAutoLoadDefaultMapRuntime } from "../core/appStartupRuntime.js";
-import { runAppStartupRuntime } from "../core/appStartupRuntime.js";
+import { tryAutoLoadDefaultMapRuntime, runAppStartupRuntime } from "../core/appStartupRuntime.js";
 import { createMainBindingsAssemblyRuntime } from "./mainBindingsAssemblyRuntime.js";
 import { setupMainBindingsRuntime } from "../ui/mainBindingsRuntime.js";
 

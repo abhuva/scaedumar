@@ -12,6 +12,6 @@ Recommended file set:
 - `scene-06-pathfinding-preview.png`
 - `scene-07-lighting-editor.png`
 
-Use `SMOKE_CHECKLIST.md` for exact scene conditions.
+Use `docs/plans+setups/SMOKE_CHECKLIST.md` for exact scene conditions.
 
 These are diagnostic references, not strict pixel-match gates.

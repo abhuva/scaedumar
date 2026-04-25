@@ -18,7 +18,7 @@ export function createModeInteractionRuntimeBinding(deps) {
     topicPanelTitleEl: deps.topicPanelTitleEl,
     dockLightingModeToggle: deps.dockLightingModeToggle,
     dockPathfindingModeToggle: deps.dockPathfindingModeToggle,
-    getInteractionModeSnapshot: () => interactionModeSnapshotRuntime.getInteractionModeSnapshot(),
+    getInteractionModeSnapshot: interactionModeSnapshotRuntime.getInteractionModeSnapshot,
     setInteractionMode: deps.setInteractionMode,
     setStatus: deps.setStatus,
   });
@@ -30,6 +30,6 @@ export function createModeInteractionRuntimeBinding(deps) {
     setTopicPanelVisible: (visible) => modeTopicRuntimeBinding.setTopicPanelVisible(visible),
     setActiveTopic: (topicName) => modeTopicRuntimeBinding.setActiveTopic(topicName),
     updateModeCapabilitiesUi: () => modeTopicRuntimeBinding.updateModeCapabilitiesUi(),
-    getInteractionModeSnapshot: () => interactionModeSnapshotRuntime.getInteractionModeSnapshot(),
+    getInteractionModeSnapshot: interactionModeSnapshotRuntime.getInteractionModeSnapshot,
   };
 }

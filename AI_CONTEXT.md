@@ -179,7 +179,7 @@ No game engine is used.
   - `src/app/bootstrapFeatureAssemblyRuntime.js`
 - Migration-era wrapper modules have been deleted from active runtime paths; `main.js` now depends more directly on concrete runtime owners and app-level assembly modules.
 - Startup-order hazards exposed during the extraction were hardened by switching fragile eager dependencies to getter/lazy access patterns in the affected setup paths.
-- The JS architecture suite now covers the final ownership model and currently passes with `node --test tests/*.test.js`.
+- The JS architecture suite now covers the final ownership model and currently passes with `node --test`.
   - point-light bake/setup composition
   - point-light + map-lifecycle assembly
   - light/mode interaction setup
@@ -473,7 +473,7 @@ After lighting/camera/map-load changes, verify:
 8. Point-light edits (save/delete) visibly rebake terrain local lighting.
 
 Targeted architecture tests:
-- `node --test tests/*.test.js`
+- `node --test`
 - current suite covers mode capabilities, weather normalization contract, and settings-registry wiring.
 
 Latest manual validation:

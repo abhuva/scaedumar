@@ -1,4 +1,4 @@
-export function createGameplayBootstrapState(deps) {
+export function createGameplayBootstrapState() {
   const defaultPlayer = {
     charID: "player",
     pixelX: 120,

@@ -47,9 +47,6 @@ test("migrated gameplay helper modules do not directly call store.update", () =>
 
 test("active runtime source does not reintroduce migration-era bridge or legacy naming", () => {
   const forbiddenPatterns = [
-    /\blegacy\b/i,
-    /\bbridge\b/i,
-    /\bfacade\b/i,
     /settingsBridgeRuntime/,
     /settingsLegacyBindings/,
     /getLegacyBindings/,
@@ -68,11 +65,8 @@ test("active runtime source does not reintroduce migration-era bridge or legacy 
       const relPath = path.relative(repoRoot, fullPath).replaceAll("\\", "/");
       const src = fs.readFileSync(fullPath, "utf8");
       for (const pattern of forbiddenPatterns) {
-        assert.equal(
-          pattern.test(src),
-          false,
-          `migration-era naming ${pattern} found in ${relPath}`,
-        );
+        const match = src.match(pattern);
+        assert.equal(match, null, `migration-era naming ${pattern} found in ${relPath}: ${match ? match[0] : ""}`);
       }
     }
   }

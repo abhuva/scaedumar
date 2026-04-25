@@ -41,6 +41,19 @@ export function createMainRuntimeStateBinding(deps) {
     return typeof deps.getSwarmState === "function" ? deps.getSwarmState() : deps.swarmState;
   }
 
+  function getResolveSwarmSettingsArgs() {
+    return {
+      getCoreSwarm: deps.getCoreSwarm,
+      getSettingsDefaults: deps.getSettingsDefaults,
+      defaultSwarmSettings: deps.defaultSwarmSettings,
+      clamp: deps.clamp,
+      swarmZMax: deps.swarmZMax,
+      zoomMin: deps.zoomMin,
+      zoomMax: deps.zoomMax,
+      normalizeRoutingMode: deps.normalizeRoutingMode,
+    };
+  }
+
   return {
     getSwarmCursorMode: () =>
       resolveSwarmCursorMode({
@@ -49,16 +62,7 @@ export function createMainRuntimeStateBinding(deps) {
         defaultSwarmSettings: deps.defaultSwarmSettings,
       }),
     getSwarmSettings: () =>
-      resolveSwarmSettings({
-        getCoreSwarm: deps.getCoreSwarm,
-        getSettingsDefaults: deps.getSettingsDefaults,
-        defaultSwarmSettings: deps.defaultSwarmSettings,
-        clamp: deps.clamp,
-        swarmZMax: deps.swarmZMax,
-        zoomMin: deps.zoomMin,
-        zoomMax: deps.zoomMax,
-        normalizeRoutingMode: deps.normalizeRoutingMode,
-      }),
+      resolveSwarmSettings(getResolveSwarmSettingsArgs()),
     getPathfindingStateSnapshot: () =>
       resolvePathfindingStateSnapshot({
         getCorePathfinding: deps.getCorePathfinding,
@@ -163,17 +167,7 @@ export function createMainRuntimeStateBinding(deps) {
       }),
     isSwarmEnabled: () =>
       resolveSwarmEnabled({
-        getSwarmSettings: () =>
-          resolveSwarmSettings({
-            getCoreSwarm: deps.getCoreSwarm,
-            getSettingsDefaults: deps.getSettingsDefaults,
-            defaultSwarmSettings: deps.defaultSwarmSettings,
-            clamp: deps.clamp,
-            swarmZMax: deps.swarmZMax,
-            zoomMin: deps.zoomMin,
-            zoomMax: deps.zoomMax,
-            normalizeRoutingMode: deps.normalizeRoutingMode,
-          }),
+        getSwarmSettings: () => resolveSwarmSettings(getResolveSwarmSettingsArgs()),
       }),
   };
 }

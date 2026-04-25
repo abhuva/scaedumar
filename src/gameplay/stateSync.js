@@ -75,17 +75,21 @@ export function patchSimulationKnobSection(deps) {
 }
 
 export function setCycleSpeedState(deps) {
+  const rawCycleSpeed = Number(deps.cycleSpeed);
+  const cycleSpeed = Number.isFinite(rawCycleSpeed)
+    ? Math.max(0, Math.min(1, rawCycleSpeed))
+    : 0;
   deps.store.update((prev) => ({
     ...prev,
     clock: {
       ...prev.clock,
-      timeScale: deps.cycleSpeed,
+      timeScale: cycleSpeed,
     },
     systems: {
       ...prev.systems,
       time: {
         ...(prev.systems && prev.systems.time ? prev.systems.time : {}),
-        cycleSpeedHoursPerSec: deps.cycleSpeed,
+        cycleSpeedHoursPerSec: cycleSpeed,
       },
     },
   }));

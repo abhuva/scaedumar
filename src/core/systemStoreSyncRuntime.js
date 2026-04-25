@@ -1,12 +1,13 @@
 export function createSystemStoreSyncRuntime(deps) {
   return {
     updateStoreTime: (value) => {
+      const cycleSpeed = Number(value.cycleSpeedHoursPerSec);
       deps.store.update((prev) => ({
         ...prev,
         clock: {
           ...prev.clock,
           nowSec: Math.max(0, Number(value.nowSec) || 0),
-          timeScale: deps.clamp(Number(value.cycleSpeedHoursPerSec), 0, 1),
+          timeScale: deps.clamp(Number.isFinite(cycleSpeed) ? cycleSpeed : 0, 0, 1),
         },
         systems: {
           ...prev.systems,

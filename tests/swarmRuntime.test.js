@@ -75,5 +75,6 @@ test("swarmRuntime exposes direct sync ownership after wrapper removal", () => {
   assert.equal(swarmFollowState.targetType, "hawk");
   assert.equal(swarmFollowState.hawkIndex, -1);
   assert.ok(calls.includes("update"));
+  assert.ok(calls.includes("reset"));
   assert.ok(calls.includes("button"));
 });

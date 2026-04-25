@@ -1,34 +1,10 @@
 export function createPointLightEditorRuntime(deps) {
-  function beginLightEdit(light) {
-    deps.pointLightEditorController.beginLightEdit(light);
-  }
-
-  function applyDraftToSelectedPointLight() {
-    return deps.pointLightEditorController.applyDraftToSelectedPointLight();
-  }
-
-  function rebakeIfPointLightLiveUpdateEnabled() {
-    deps.pointLightEditorController.rebakeIfPointLightLiveUpdateEnabled();
-  }
-
-  function findPointLightAtPixel(pixelX, pixelY, radiusPx) {
-    return deps.pointLightEditorController.findPointLightAtPixel(pixelX, pixelY, radiusPx);
-  }
-
-  function createPointLight(pixelX, pixelY) {
-    deps.pointLightEditorController.createPointLight(pixelX, pixelY);
-  }
-
-  function deletePointLightById(id) {
-    deps.pointLightEditorController.deletePointLightById(id);
-  }
-
   return {
-    beginLightEdit,
-    applyDraftToSelectedPointLight,
-    rebakeIfPointLightLiveUpdateEnabled,
-    findPointLightAtPixel,
-    createPointLight,
-    deletePointLightById,
+    beginLightEdit: deps.pointLightEditorController.beginLightEdit.bind(deps.pointLightEditorController),
+    applyDraftToSelectedPointLight: deps.pointLightEditorController.applyDraftToSelectedPointLight.bind(deps.pointLightEditorController),
+    rebakeIfPointLightLiveUpdateEnabled: deps.pointLightEditorController.rebakeIfPointLightLiveUpdateEnabled.bind(deps.pointLightEditorController),
+    findPointLightAtPixel: deps.pointLightEditorController.findPointLightAtPixel.bind(deps.pointLightEditorController),
+    createPointLight: deps.pointLightEditorController.createPointLight.bind(deps.pointLightEditorController),
+    deletePointLightById: deps.pointLightEditorController.deletePointLightById.bind(deps.pointLightEditorController),
   };
 }

@@ -13,7 +13,7 @@ function createStore(initialState) {
   };
 }
 
-test("systemStoreSyncRuntime writes time and system slices into canonical store state", () => {
+function createRuntime() {
   const store = createStore({
     clock: {
       nowSec: 0,
@@ -40,18 +40,16 @@ test("systemStoreSyncRuntime writes time and system slices into canonical store 
     clamp: (value, min, max) => Math.min(max, Math.max(min, value)),
     cycleState: { hour: 14.25 },
   });
+  return { store, runtime };
+}
 
+test("systemStoreSyncRuntime updates time state", () => {
+  const { store, runtime } = createRuntime();
   runtime.updateStoreTime({
     nowSec: 12,
     cycleSpeedHoursPerSec: 4,
     ticksProcessed: 3,
   });
-  runtime.updateStoreLighting({ ambient: 0.3 });
-  runtime.updateStoreFog({ enabled: true });
-  runtime.updateStoreClouds({ coverage: 0.5 });
-  runtime.updateStoreWaterFx({ useWaterFx: true });
-  runtime.updateStoreWeather({ type: "rain", intensity: 0.4 });
-
   assert.deepEqual(store.getState().clock, {
     nowSec: 12,
     timeScale: 1,
@@ -61,13 +59,47 @@ test("systemStoreSyncRuntime writes time and system slices into canonical store 
     nowSec: 12,
     ticksProcessed: 3,
   });
+  assert.equal(store.getState().ui.cycleHour, 14.25);
+});
+
+test("systemStoreSyncRuntime updates lighting state", () => {
+  const { store, runtime } = createRuntime();
+  runtime.updateStoreLighting({ ambient: 0.3 });
   assert.deepEqual(store.getState().systems.lighting, { ambient: 0.3 });
+});
+
+test("systemStoreSyncRuntime updates fog state", () => {
+  const { store, runtime } = createRuntime();
+  runtime.updateStoreFog({ enabled: true });
   assert.deepEqual(store.getState().systems.fog, { enabled: true });
+});
+
+test("systemStoreSyncRuntime updates cloud state", () => {
+  const { store, runtime } = createRuntime();
+  runtime.updateStoreClouds({ coverage: 0.5 });
   assert.deepEqual(store.getState().systems.clouds, { coverage: 0.5 });
+});
+
+test("systemStoreSyncRuntime updates water FX state", () => {
+  const { store, runtime } = createRuntime();
+  runtime.updateStoreWaterFx({ useWaterFx: true });
   assert.deepEqual(store.getState().systems.waterFx, { useWaterFx: true });
+});
+
+test("systemStoreSyncRuntime updates weather state", () => {
+  const { store, runtime } = createRuntime();
+  runtime.updateStoreWeather({ type: "rain", intensity: 0.4 });
   assert.deepEqual(store.getState().simulation.weather, {
     type: "rain",
     intensity: 0.4,
   });
-  assert.equal(store.getState().ui.cycleHour, 14.25);
+});
+
+test("systemStoreSyncRuntime normalizes invalid cycle speed when syncing time", () => {
+  const { store, runtime } = createRuntime();
+  runtime.updateStoreTime({
+    nowSec: 5,
+    cycleSpeedHoursPerSec: Number.NaN,
+  });
+  assert.equal(store.getState().clock.timeScale, 0);
 });

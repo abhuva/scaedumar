@@ -35,7 +35,7 @@ export function createOverlaySetupRuntime(deps) {
   const overlayHooks = createOverlayHooksRuntime({
     updateSwarm: deps.updateSwarm,
     updateSwarmFollowCamera: deps.updateSwarmFollowCamera,
-    drawOverlay: (...args) => drawOverlay(...args),
+    drawOverlay,
     shouldAnimateOverlay: () => overlayAnimationRuntime.shouldAnimateOverlay(),
     isOverlayDirty: deps.isOverlayDirty,
     clearOverlayDirty: deps.clearOverlayDirty,

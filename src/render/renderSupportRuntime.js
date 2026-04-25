@@ -50,22 +50,25 @@ export function createRenderSupportRuntime(deps) {
     const image = new Image();
     image.decoding = "async";
     image.src = url;
-    await image.decode();
+    try {
+      await image.decode();
+    } catch (error) {
+      throw new Error(`Failed to decode image from ${url}: ${error instanceof Error ? error.message : error}`);
+    }
     return image;
   }
 
   async function loadImageFromFile(file) {
     const image = new Image();
     image.decoding = "async";
-    const dataUrl = await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = () => reject(reader.error);
-      reader.readAsDataURL(file);
-    });
-    image.src = dataUrl;
-    await image.decode();
-    return image;
+    const blobUrl = URL.createObjectURL(file);
+    image.src = blobUrl;
+    try {
+      await image.decode();
+      return image;
+    } finally {
+      URL.revokeObjectURL(blobUrl);
+    }
   }
 
   return {

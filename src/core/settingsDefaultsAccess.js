@@ -3,7 +3,8 @@ export function createSettingsDefaultsAccess(deps) {
     if (!deps.settingsRegistry.has(key)) {
       return fallback;
     }
-    return deps.settingsRegistry.getDefaults(key) || fallback;
+    const registryDefaults = deps.settingsRegistry.getDefaults(key);
+    return registryDefaults ?? fallback;
   }
 
   return {

@@ -1,12 +1,12 @@
 export function bindRenderFxControls(deps) {
   function dispatchRenderFxChange(section, patch, options = {}) {
     if (!patch || typeof patch !== "object") {
-      throw new Error(`Unknown render FX section: ${section}`);
+      throw new Error(`Invalid render FX patch for section: ${section}`);
     }
     deps.dispatchCoreCommand({
       type: "core/renderFx/changed",
       section,
-      patch: patch && typeof patch === "object" ? patch : null,
+      patch,
       rebuildFlowMap: Boolean(options.rebuildFlowMap),
       markFogColorManual: Boolean(options.markFogColorManual),
     });

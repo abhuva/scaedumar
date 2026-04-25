@@ -11,9 +11,18 @@ export function createSwarmInterpolation(deps) {
       deps.swarmRenderState.prevZ = new Float32Array(count);
     }
     if (count > 0) {
-      deps.swarmRenderState.prevX.set(deps.swarmState.x);
-      deps.swarmRenderState.prevY.set(deps.swarmState.y);
-      deps.swarmRenderState.prevZ.set(deps.swarmState.z);
+      const srcX = deps.swarmState.x && typeof deps.swarmState.x.subarray === "function"
+        ? deps.swarmState.x.subarray(0, count)
+        : deps.swarmState.x;
+      const srcY = deps.swarmState.y && typeof deps.swarmState.y.subarray === "function"
+        ? deps.swarmState.y.subarray(0, count)
+        : deps.swarmState.y;
+      const srcZ = deps.swarmState.z && typeof deps.swarmState.z.subarray === "function"
+        ? deps.swarmState.z.subarray(0, count)
+        : deps.swarmState.z;
+      deps.swarmRenderState.prevX.set(srcX);
+      deps.swarmRenderState.prevY.set(srcY);
+      deps.swarmRenderState.prevZ.set(srcZ);
     }
     const hawkCount = deps.swarmState.hawks.length;
     if (

@@ -13,13 +13,16 @@ export function updatePointLightEditorUi(deps) {
   deps.lightCoordEl.textContent = `Coord: (${selected.pixelX}, ${selected.pixelY})`;
   deps.pointLightColorInput.value = deps.rgbToHex(draft.color);
   deps.pointLightStrengthInput.value = String(Math.round(draft.strength));
-  deps.pointLightIntensityInput.value = String(deps.clamp(draft.intensity, 0, 4));
+  const clampedIntensity = deps.clamp(draft.intensity, 0, 4);
+  const clampedFlicker = deps.clamp(draft.flicker, 0, 1);
+  const clampedFlickerSpeed = deps.clamp(draft.flickerSpeed, 0, 1);
+  deps.pointLightIntensityInput.value = String(clampedIntensity);
   deps.pointLightHeightOffsetInput.value = String(Math.round(draft.heightOffset));
-  deps.pointLightFlickerInput.value = String(deps.clamp(draft.flicker, 0, 1));
-  deps.pointLightFlickerSpeedInput.value = String(deps.clamp(draft.flickerSpeed, 0, 1));
+  deps.pointLightFlickerInput.value = String(clampedFlicker);
+  deps.pointLightFlickerSpeedInput.value = String(clampedFlickerSpeed);
   deps.updatePointLightStrengthLabel(draft.strength);
-  deps.updatePointLightIntensityLabel(draft.intensity);
+  deps.updatePointLightIntensityLabel(clampedIntensity);
   deps.updatePointLightHeightOffsetLabel(draft.heightOffset);
-  deps.updatePointLightFlickerLabel(draft.flicker);
-  deps.updatePointLightFlickerSpeedLabel(draft.flickerSpeed);
+  deps.updatePointLightFlickerLabel(clampedFlicker);
+  deps.updatePointLightFlickerSpeedLabel(clampedFlickerSpeed);
 }

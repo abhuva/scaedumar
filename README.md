@@ -103,12 +103,23 @@ One-command helper:
 .\build-tauri.ps1 -Mode build
 ```
 
+
+## Copy Tauri Folders
+
+```
+if (Test-Path .tauri-dist) { Remove-Item .tauri-dist -Recurse -Force }
+New-Item -ItemType Directory -Force .tauri-dist | Out-Null
+Copy-Item index.html .tauri-dist\ -Force
+Copy-Item styles.css .tauri-dist\ -Force
+Copy-Item src .tauri-dist\src -Recurse -Force
+Copy-Item assets .tauri-dist\assets -Recurse -Force
+```
 ## Tests
 
 Run targeted architecture migration tests with Node's built-in test runner:
 
 ```powershell
-node --test tests/*.test.js
+node --test
 ```
 
 Current tests cover:
@@ -123,7 +134,7 @@ Current tests cover:
 Architecture map:
 - `docs/ARCHITECTURE.md`
 - visual diagnostic checklist/baselines:
-  - `SMOKE_CHECKLIST.md`
+  - `docs/plans+setups/SMOKE_CHECKLIST.md`
   - `docs/visual-baselines/README.md`
 
 ## Notes

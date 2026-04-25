@@ -5,6 +5,8 @@ import { createShadowPass } from "./passes/shadowPass.js";
 import { createBlurPass } from "./passes/blurPass.js";
 import { createMainTerrainPass } from "./passes/mainTerrainPass.js";
 
+const DEFAULT_BG = [0, 0, 0];
+
 export function createRenderPipelineRuntime(deps) {
   const renderResources = createRenderResources({ gl: deps.gl, canvas: deps.canvas });
   const renderer = createRenderer({ resources: renderResources });
@@ -53,7 +55,7 @@ export function createRenderPipelineRuntime(deps) {
 
   renderer.registerPass("backgroundClear", {
     execute(frame) {
-      const bg = frame.backgroundColorRgb || [0, 0, 0];
+      const bg = frame.backgroundColorRgb || DEFAULT_BG;
       renderResources.clearColor(bg[0], bg[1], bg[2], 1);
     },
   });

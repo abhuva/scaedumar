@@ -1,6 +1,8 @@
 export function createStatusRuntime(deps) {
   function setStatus(text) {
-    deps.statusEl.textContent = text;
+    if (deps && deps.statusEl) {
+      deps.statusEl.textContent = text;
+    }
   }
 
   return {

@@ -12,7 +12,6 @@ export function createMapLightingAssemblyRuntime(deps) {
 
   return {
     pointLightRuntime,
-    pointLightApi: pointLightRuntime,
     mapLifecycleRuntime,
   };
 }

@@ -3,20 +3,21 @@ export function createMapSidecarLoader(deps) {
     return Boolean(err && err.code === "MISSING_OPTIONAL_JSON");
   }
 
-  async function tryApplyOptionalUrlJson(path, applyFn, onMissing, onErrorLabel) {
+  async function tryApplyOptionalUrlJson(path, applyFn, onAbsentOrFailed, onErrorLabel) {
     try {
       const json = await deps.tryLoadJsonFromUrl(path);
       applyFn(json);
       return true;
     } catch (err) {
+      // Preserve the existing defaulting behavior by invoking the fallback for all failure modes.
       if (isMissingOptionalJsonError(err)) {
-        if (typeof onMissing === "function") {
-          onMissing();
+        if (typeof onAbsentOrFailed === "function") {
+          onAbsentOrFailed();
         }
         return false;
       }
-      if (typeof onMissing === "function") {
-        onMissing();
+      if (typeof onAbsentOrFailed === "function") {
+        onAbsentOrFailed();
       }
       console.warn(onErrorLabel, err);
       return false;

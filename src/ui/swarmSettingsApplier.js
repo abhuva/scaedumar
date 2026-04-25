@@ -1,5 +1,5 @@
 export function createSwarmSettingsApplier(deps) {
-  return function applySwarmSettingsCompat(rawData) {
+  return function applySwarmSettingsCompat() {
     const settings = deps.getSwarmSettings();
     deps.swarmEnabledToggle.checked = Boolean(settings.useAgentSwarm);
     deps.swarmLitModeToggle.checked = Boolean(settings.useLitSwarm);

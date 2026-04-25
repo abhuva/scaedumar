@@ -86,69 +86,23 @@ export function registerInteractionCommands(commandBus, deps) {
     deps.patchPathfindingStateToStore(patch);
   }
 
-  commandBus.register("core/pathfinding/setRange", (command) => {
-    updatePathfindingStoreField({
-      range: Math.round(deps.clamp(Number(command.value), 30, 300)),
+  function registerPathfindingSetter(commandType, field, min, max, round = false) {
+    commandBus.register(commandType, (command) => {
+      const rawValue = deps.clamp(Number(command.value), min, max);
+      const value = round ? Math.round(rawValue) : rawValue;
+      updatePathfindingStoreField({ [field]: value });
+      deps.syncPathfindingSettingsUi();
+      if (deps.getInteractionMode() === "pathfinding") {
+        deps.rebuildMovementField();
+      }
+      syncPathfindingStateToStore();
     });
-    deps.syncPathfindingSettingsUi();
-    if (deps.getInteractionMode() === "pathfinding") {
-      deps.rebuildMovementField();
-    }
-    syncPathfindingStateToStore();
-  });
+  }
 
-  commandBus.register("core/pathfinding/setWeightSlope", (command) => {
-    updatePathfindingStoreField({
-      weightSlope: deps.clamp(Number(command.value), 0, 10),
-    });
-    deps.syncPathfindingSettingsUi();
-    if (deps.getInteractionMode() === "pathfinding") {
-      deps.rebuildMovementField();
-    }
-    syncPathfindingStateToStore();
-  });
-
-  commandBus.register("core/pathfinding/setWeightHeight", (command) => {
-    updatePathfindingStoreField({
-      weightHeight: deps.clamp(Number(command.value), 0, 10),
-    });
-    deps.syncPathfindingSettingsUi();
-    if (deps.getInteractionMode() === "pathfinding") {
-      deps.rebuildMovementField();
-    }
-    syncPathfindingStateToStore();
-  });
-
-  commandBus.register("core/pathfinding/setWeightWater", (command) => {
-    updatePathfindingStoreField({
-      weightWater: deps.clamp(Number(command.value), 0, 100),
-    });
-    deps.syncPathfindingSettingsUi();
-    if (deps.getInteractionMode() === "pathfinding") {
-      deps.rebuildMovementField();
-    }
-    syncPathfindingStateToStore();
-  });
-
-  commandBus.register("core/pathfinding/setSlopeCutoff", (command) => {
-    updatePathfindingStoreField({
-      slopeCutoff: Math.round(deps.clamp(Number(command.value), 0, 90)),
-    });
-    deps.syncPathfindingSettingsUi();
-    if (deps.getInteractionMode() === "pathfinding") {
-      deps.rebuildMovementField();
-    }
-    syncPathfindingStateToStore();
-  });
-
-  commandBus.register("core/pathfinding/setBaseCost", (command) => {
-    updatePathfindingStoreField({
-      baseCost: deps.clamp(Number(command.value), 0, 2),
-    });
-    deps.syncPathfindingSettingsUi();
-    if (deps.getInteractionMode() === "pathfinding") {
-      deps.rebuildMovementField();
-    }
-    syncPathfindingStateToStore();
-  });
+  registerPathfindingSetter("core/pathfinding/setRange", "range", 30, 300, true);
+  registerPathfindingSetter("core/pathfinding/setWeightSlope", "weightSlope", 0, 10);
+  registerPathfindingSetter("core/pathfinding/setWeightHeight", "weightHeight", 0, 10);
+  registerPathfindingSetter("core/pathfinding/setWeightWater", "weightWater", 0, 100);
+  registerPathfindingSetter("core/pathfinding/setSlopeCutoff", "slopeCutoff", 0, 90, true);
+  registerPathfindingSetter("core/pathfinding/setBaseCost", "baseCost", 0, 2);
 }

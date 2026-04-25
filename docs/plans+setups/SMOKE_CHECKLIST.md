@@ -7,7 +7,7 @@ Policy: architecture-first; visual drift is acceptable unless it breaks usabilit
 ## How To Use
 
 - Run this checklist after meaningful refactor slices (state/scheduler/render/UI extraction).
-- Before manual smoke testing, run `node --test tests/*.test.js` and fix any failing architecture checks first.
+- Before manual smoke testing, run `node --test` and fix any failing architecture checks first.
 - Mark each item `pass`, `fail`, or `n/a` with short notes.
 - If an item fails, fix or log explicitly before continuing large extraction work.
 
@@ -63,7 +63,7 @@ Policy: architecture-first; visual drift is acceptable unless it breaks usabilit
 
 - JS architecture suite is expected to pass before UI smoke testing.
 - Current expected command:
-  - `node --test tests/*.test.js`
+  - `node --test`
 - Current expected result:
   - all tests pass
   - only known noise is Node `MODULE_TYPELESS_PACKAGE_JSON` warnings

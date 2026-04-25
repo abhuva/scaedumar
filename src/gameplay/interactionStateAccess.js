@@ -2,7 +2,9 @@ export function getCursorLightSnapshot(deps) {
   const cursorLightState = typeof deps.getCursorLightState === "function"
     ? deps.getCursorLightState()
     : deps.cursorLightState;
-  const fallbackCursorLightState = cursorLightState || {
+  // These UI-side fallback defaults are intentionally brighter than core boot defaults
+  // so cursor-light editing remains readable before any map settings are loaded.
+  const effectiveCursorLightState = cursorLightState || {
     enabled: false,
     useTerrainHeight: true,
     strength: 40,
@@ -17,17 +19,17 @@ export function getCursorLightSnapshot(deps) {
       useTerrainHeight: Boolean(coreCursorLight.useTerrainHeight),
       strength: Math.round(deps.clamp(Number(coreCursorLight.strength), 1, 200)),
       heightOffset: Math.round(deps.clamp(Number(coreCursorLight.heightOffset), 0, 120)),
-      colorHex: typeof coreCursorLight.color === "string" ? coreCursorLight.color : fallbackCursorLightState.colorHex,
+      colorHex: typeof coreCursorLight.color === "string" ? coreCursorLight.color : effectiveCursorLightState.colorHex,
       showGizmo: Boolean(coreCursorLight.showGizmo),
     };
   }
   return {
-    enabled: Boolean(fallbackCursorLightState.enabled),
-    useTerrainHeight: Boolean(fallbackCursorLightState.useTerrainHeight),
-    strength: Math.round(deps.clamp(Number(fallbackCursorLightState.strength), 1, 200)),
-    heightOffset: Math.round(deps.clamp(Number(fallbackCursorLightState.heightOffset), 0, 120)),
-    colorHex: typeof fallbackCursorLightState.colorHex === "string" ? fallbackCursorLightState.colorHex : "#ff9b2f",
-    showGizmo: Boolean(fallbackCursorLightState.showGizmo),
+    enabled: Boolean(effectiveCursorLightState.enabled),
+    useTerrainHeight: Boolean(effectiveCursorLightState.useTerrainHeight),
+    strength: Math.round(deps.clamp(Number(effectiveCursorLightState.strength), 1, 200)),
+    heightOffset: Math.round(deps.clamp(Number(effectiveCursorLightState.heightOffset), 0, 120)),
+    colorHex: typeof effectiveCursorLightState.colorHex === "string" ? effectiveCursorLightState.colorHex : "#ff9b2f",
+    showGizmo: Boolean(effectiveCursorLightState.showGizmo),
   };
 }
 

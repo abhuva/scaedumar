@@ -125,12 +125,14 @@ export function createAppliedSettingsStoreSync(deps) {
               baseCost: deps.clamp(Number(normalized.pathBaseCost), 0, 2),
             },
             cursorLight: {
-              ...prev.gameplay.cursorLight,
+              ...(prev.gameplay && prev.gameplay.cursorLight ? prev.gameplay.cursorLight : {}),
               enabled: Boolean(normalized.cursorLightEnabled),
               useTerrainHeight: Boolean(normalized.cursorLightFollowHeight),
               strength: Math.round(deps.clamp(Number(normalized.cursorLightStrength), 1, 200)),
               heightOffset: Math.round(deps.clamp(Number(normalized.cursorLightHeightOffset), 0, 120)),
-              color: typeof normalized.cursorLightColor === "string" ? normalized.cursorLightColor : prev.gameplay.cursorLight.color,
+              color: typeof normalized.cursorLightColor === "string"
+                ? normalized.cursorLightColor
+                : (prev.gameplay && prev.gameplay.cursorLight ? prev.gameplay.cursorLight.color : "#ff9b2f"),
               showGizmo: Boolean(normalized.cursorLightGizmo),
             },
             pointLights: {
