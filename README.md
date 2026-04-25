@@ -21,6 +21,9 @@ Prototype goals:
 - `.tauri-dist/`: packaged frontend assets used by Tauri build
 - `AI_CONTEXT.md`: implementation map and workflow notes for AI agents
 
+Current architecture baseline:
+- modular, core-state-driven runtime with `src/main.js` used primarily for composition/orchestration
+
 ## Expected auto-load names
 
 Auto-load checks these folders in order:

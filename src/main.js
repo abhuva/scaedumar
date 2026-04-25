@@ -1216,12 +1216,12 @@ const {
   getCurrentTimeRoutingFromStoreOrDefaults,
   getConfiguredSimTickHoursFromStoreOrDefaults,
   getInterpolatedRoutedTimeSec,
-} = settingsCoreSetupRuntime.timeStateFacadeRuntime;
+} = settingsCoreSetupRuntime.timeStateRuntime;
 let settingsRuntimeBinding = null;
 let settingsLegacyBindings = null;
 const simulationKnobAccess = settingsCoreSetupRuntime.simulationKnobAccess;
-const settingsApplyBindingRuntime = settingsCoreSetupRuntime.settingsApplyBindingRuntime;
-const settingsFacadeRuntime = settingsCoreSetupRuntime.settingsFacadeRuntime;
+const settingsApplyRuntime = settingsCoreSetupRuntime.settingsApplyRuntime;
+const settingsBridgeRuntime = settingsCoreSetupRuntime.settingsBridgeRuntime;
 
 let frameUiRuntime = null;
 function getFrameUiRuntime() {
@@ -1268,7 +1268,7 @@ const {
   applyInteractionSettings,
   serializeSwarmData,
   applySwarmSettings,
-} = settingsFacadeRuntime;
+} = settingsBridgeRuntime;
 let cursorLightState = null;
 let stopSwarmFollow = () => {};
 const mainRuntimeStateBinding = createMainRuntimeStateBinding({
@@ -1288,15 +1288,15 @@ const mainRuntimeStateBinding = createMainRuntimeStateBinding({
   getSplatSize: () => splatSize,
   getCursorLightState: () => cursorLightState,
   updateStoreFromAppliedSettings: (key, normalized) =>
-    settingsApplyBindingRuntime.updateStoreFromAppliedSettings(key, normalized),
+    settingsApplyRuntime.updateStoreFromAppliedSettings(key, normalized),
   normalizeAppliedSettings: (key, rawData, fallbackDefaults) =>
-    settingsApplyBindingRuntime.normalizeAppliedSettings(key, rawData, fallbackDefaults),
+    settingsApplyRuntime.normalizeAppliedSettings(key, rawData, fallbackDefaults),
   applySwarmSettingsLegacy,
   getStopSwarmFollow: () => stopSwarmFollow,
   getSwarmState: () => swarmState,
 });
 function getSettingsDefaults(key, fallback) {
-  return settingsFacadeRuntime.getSettingsDefaults(key, fallback);
+  return settingsBridgeRuntime.getSettingsDefaults(key, fallback);
 }
 
 let mapLifecycleRuntime = null;
@@ -1682,8 +1682,8 @@ const pointLightBakeRuntimeBinding = createPointLightBakeRuntimeBinding({
 let pointLightRuntime = null;
 let pointLightApi = null;
 let pathfindingRuntimeBinding = null;
-let pathfindingLabelBindingRuntime = null;
-let renderFxUiBindingRuntime = null;
+let pathfindingLabelRuntime = null;
+let renderFxUiRuntime = null;
 let renderFxSettingsSyncRuntime = null;
 
 initializeDefaultMapImagesRuntime({
@@ -1776,28 +1776,28 @@ const refreshPathPreview = (...args) => pathfindingRuntimeBinding.refreshPathPre
 const updatePathPreviewFromPointer = (...args) => pathfindingRuntimeBinding.updatePathPreviewFromPointer(...args);
 const getCurrentPathMetrics = (...args) => pathfindingRuntimeBinding.getCurrentPathMetrics(...args);
 
-const updatePathfindingRangeLabel = (...args) => pathfindingLabelBindingRuntime.updatePathfindingRangeLabel(...args);
-const updatePathWeightLabels = (...args) => pathfindingLabelBindingRuntime.updatePathWeightLabels(...args);
-const updatePathSlopeCutoffLabel = (...args) => pathfindingLabelBindingRuntime.updatePathSlopeCutoffLabel(...args);
-const updatePathBaseCostLabel = (...args) => pathfindingLabelBindingRuntime.updatePathBaseCostLabel(...args);
+const updatePathfindingRangeLabel = (...args) => pathfindingLabelRuntime.updatePathfindingRangeLabel(...args);
+const updatePathWeightLabels = (...args) => pathfindingLabelRuntime.updatePathWeightLabels(...args);
+const updatePathSlopeCutoffLabel = (...args) => pathfindingLabelRuntime.updatePathSlopeCutoffLabel(...args);
+const updatePathBaseCostLabel = (...args) => pathfindingLabelRuntime.updatePathBaseCostLabel(...args);
 
-const updateParallaxStrengthLabel = (...args) => renderFxUiBindingRuntime.updateParallaxStrengthLabel(...args);
-const updateParallaxBandsLabel = (...args) => renderFxUiBindingRuntime.updateParallaxBandsLabel(...args);
-const updateShadowBlurLabel = (...args) => renderFxUiBindingRuntime.updateShadowBlurLabel(...args);
-const updateSimTickLabel = (...args) => renderFxUiBindingRuntime.updateSimTickLabel(...args);
-const updateFogAlphaLabels = (...args) => renderFxUiBindingRuntime.updateFogAlphaLabels(...args);
-const updateFogFalloffLabel = (...args) => renderFxUiBindingRuntime.updateFogFalloffLabel(...args);
-const updateFogStartOffsetLabel = (...args) => renderFxUiBindingRuntime.updateFogStartOffsetLabel(...args);
-const updatePointFlickerLabels = (...args) => renderFxUiBindingRuntime.updatePointFlickerLabels(...args);
-const updatePointFlickerUi = (...args) => renderFxUiBindingRuntime.updatePointFlickerUi(...args);
-const updateVolumetricLabels = (...args) => renderFxUiBindingRuntime.updateVolumetricLabels(...args);
-const updateVolumetricUi = (...args) => renderFxUiBindingRuntime.updateVolumetricUi(...args);
-const updateCloudLabels = (...args) => renderFxUiBindingRuntime.updateCloudLabels(...args);
-const updateWaterLabels = (...args) => renderFxUiBindingRuntime.updateWaterLabels(...args);
-const updateParallaxUi = (...args) => renderFxUiBindingRuntime.updateParallaxUi(...args);
-const updateFogUi = (...args) => renderFxUiBindingRuntime.updateFogUi(...args);
-const updateCloudUi = (...args) => renderFxUiBindingRuntime.updateCloudUi(...args);
-const updateWaterUi = (...args) => renderFxUiBindingRuntime.updateWaterUi(...args);
+const updateParallaxStrengthLabel = (...args) => renderFxUiRuntime.updateParallaxStrengthLabel(...args);
+const updateParallaxBandsLabel = (...args) => renderFxUiRuntime.updateParallaxBandsLabel(...args);
+const updateShadowBlurLabel = (...args) => renderFxUiRuntime.updateShadowBlurLabel(...args);
+const updateSimTickLabel = (...args) => renderFxUiRuntime.updateSimTickLabel(...args);
+const updateFogAlphaLabels = (...args) => renderFxUiRuntime.updateFogAlphaLabels(...args);
+const updateFogFalloffLabel = (...args) => renderFxUiRuntime.updateFogFalloffLabel(...args);
+const updateFogStartOffsetLabel = (...args) => renderFxUiRuntime.updateFogStartOffsetLabel(...args);
+const updatePointFlickerLabels = (...args) => renderFxUiRuntime.updatePointFlickerLabels(...args);
+const updatePointFlickerUi = (...args) => renderFxUiRuntime.updatePointFlickerUi(...args);
+const updateVolumetricLabels = (...args) => renderFxUiRuntime.updateVolumetricLabels(...args);
+const updateVolumetricUi = (...args) => renderFxUiRuntime.updateVolumetricUi(...args);
+const updateCloudLabels = (...args) => renderFxUiRuntime.updateCloudLabels(...args);
+const updateWaterLabels = (...args) => renderFxUiRuntime.updateWaterLabels(...args);
+const updateParallaxUi = (...args) => renderFxUiRuntime.updateParallaxUi(...args);
+const updateFogUi = (...args) => renderFxUiRuntime.updateFogUi(...args);
+const updateCloudUi = (...args) => renderFxUiRuntime.updateCloudUi(...args);
+const updateWaterUi = (...args) => renderFxUiRuntime.updateWaterUi(...args);
 
 const syncRenderFxParallaxUi = (...args) => renderFxSettingsSyncRuntime.syncRenderFxParallaxUi(...args);
 const syncRenderFxLightingUi = (...args) => renderFxSettingsSyncRuntime.syncRenderFxLightingUi(...args);
@@ -1805,13 +1805,13 @@ const syncRenderFxFogUi = (...args) => renderFxSettingsSyncRuntime.syncRenderFxF
 const syncRenderFxCloudUi = (...args) => renderFxSettingsSyncRuntime.syncRenderFxCloudUi(...args);
 const syncRenderFxWaterUi = (...args) => renderFxSettingsSyncRuntime.syncRenderFxWaterUi(...args);
 
-const updatePointLightStrengthLabel = (...args) => lightLabelBindingRuntime.updatePointLightStrengthLabel(...args);
-const updatePointLightIntensityLabel = (...args) => lightLabelBindingRuntime.updatePointLightIntensityLabel(...args);
-const updatePointLightHeightOffsetLabel = (...args) => lightLabelBindingRuntime.updatePointLightHeightOffsetLabel(...args);
-const updatePointLightFlickerLabel = (...args) => lightLabelBindingRuntime.updatePointLightFlickerLabel(...args);
-const updatePointLightFlickerSpeedLabel = (...args) => lightLabelBindingRuntime.updatePointLightFlickerSpeedLabel(...args);
-const updateCursorLightStrengthLabel = (...args) => lightLabelBindingRuntime.updateCursorLightStrengthLabel(...args);
-const updateCursorLightHeightOffsetLabel = (...args) => lightLabelBindingRuntime.updateCursorLightHeightOffsetLabel(...args);
+const updatePointLightStrengthLabel = (...args) => lightLabelRuntime.updatePointLightStrengthLabel(...args);
+const updatePointLightIntensityLabel = (...args) => lightLabelRuntime.updatePointLightIntensityLabel(...args);
+const updatePointLightHeightOffsetLabel = (...args) => lightLabelRuntime.updatePointLightHeightOffsetLabel(...args);
+const updatePointLightFlickerLabel = (...args) => lightLabelRuntime.updatePointLightFlickerLabel(...args);
+const updatePointLightFlickerSpeedLabel = (...args) => lightLabelRuntime.updatePointLightFlickerSpeedLabel(...args);
+const updateCursorLightStrengthLabel = (...args) => lightLabelRuntime.updateCursorLightStrengthLabel(...args);
+const updateCursorLightHeightOffsetLabel = (...args) => lightLabelRuntime.updateCursorLightHeightOffsetLabel(...args);
 
 ({
   pointLightRuntime,
@@ -1931,7 +1931,7 @@ const {
   bakePointLightsTextureSync,
 } = pointLightBakeRuntimeBinding;
 
-const lightLabelBindingRuntime = createLightLabelRuntime({
+const lightLabelRuntime = createLightLabelRuntime({
   clamp,
   pointLightStrengthInput,
   pointLightStrengthValue,
@@ -2003,8 +2003,8 @@ const timeLightingSetupRuntime = createTimeLightingSetupRuntime(createTimeLighti
 }));
 const cycleState = timeLightingSetupRuntime.cycleState;
 const {
-  getLightingParamsBindingRuntime,
-  getTimeUiBindingRuntime,
+  getLightingParamsRuntime,
+  getTimeUiRuntime,
   computeLightingParams,
   setCycleHourSliderFromState,
   updateCycleHourLabel,
@@ -2309,9 +2309,9 @@ const {
   splatSize,
   cursorLightState,
   updateStoreFromAppliedSettings: (key, normalized) =>
-    settingsApplyBindingRuntime.updateStoreFromAppliedSettings(key, normalized),
+    settingsApplyRuntime.updateStoreFromAppliedSettings(key, normalized),
   normalizeAppliedSettings: (key, rawData, fallbackDefaults) =>
-    settingsApplyBindingRuntime.normalizeAppliedSettings(key, rawData, fallbackDefaults),
+    settingsApplyRuntime.normalizeAppliedSettings(key, rawData, fallbackDefaults),
   applySwarmSettingsLegacy,
   stopSwarmFollow,
   swarmState,
@@ -2413,8 +2413,8 @@ const swarmIntegrationSetupRuntime = createSwarmIntegrationSetupRuntime(
     applySwarmSettings,
     applySwarmFollowState,
     syncSwarmRuntimeStateToStore: (...args) => swarmRuntime.syncSwarmRuntimeStateToStore(...args),
-    settingsApplyBindingRuntime,
-    settingsFacadeRuntime,
+    settingsApplyRuntime,
+    settingsBridgeRuntime,
     syncSwarmStateToStore: (...args) => swarmRuntime.syncSwarmStateToStore(...args),
     defaultLightingSettings: DEFAULT_LIGHTING_SETTINGS,
     defaultFogSettings: DEFAULT_FOG_SETTINGS,
@@ -2840,8 +2840,8 @@ const interactionUiSetupRuntime = createInteractionUiSetupRuntime(createInteract
 }));
 const updateSwarmCursorFromPointer = interactionUiSetupRuntime.updateSwarmCursorFromPointer;
 pathfindingRuntimeBinding = interactionUiSetupRuntime.pathfindingRuntimeBinding;
-pathfindingLabelBindingRuntime = interactionUiSetupRuntime.pathfindingLabelBindingRuntime;
-renderFxUiBindingRuntime = interactionUiSetupRuntime.renderFxUiBindingRuntime;
+pathfindingLabelRuntime = interactionUiSetupRuntime.pathfindingLabelRuntime;
+renderFxUiRuntime = interactionUiSetupRuntime.renderFxUiRuntime;
 renderFxSettingsSyncRuntime = interactionUiSetupRuntime.renderFxSettingsSyncRuntime;
 
 const renderShellSetupRuntime = createRenderShellSetupRuntime(createRenderShellAssemblyRuntime({

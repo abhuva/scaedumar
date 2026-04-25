@@ -20,8 +20,8 @@ export function createSwarmIntegrationAssemblyRuntime(deps) {
       syncSwarmRuntimeStateToStore: deps.syncSwarmRuntimeStateToStore,
     },
     settingsAssembly: {
-      settingsApplyBindingRuntime: deps.settingsApplyBindingRuntime,
-      settingsFacadeRuntime: deps.settingsFacadeRuntime,
+      settingsApplyRuntime: deps.settingsApplyRuntime,
+      settingsBridgeRuntime: deps.settingsBridgeRuntime,
       syncSwarmStateToStore: deps.syncSwarmStateToStore,
       defaultLightingSettings: deps.defaultLightingSettings,
       defaultFogSettings: deps.defaultFogSettings,

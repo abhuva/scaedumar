@@ -87,7 +87,6 @@ No game engine is used.
 - Map-image apply/runtime-size/point-light-worker sync helpers are now extracted to `src/gameplay/mapImageRuntime.js`.
 - Point-light/cursor-light label update helpers are now extracted to `src/ui/lightLabelRuntime.js`.
 - Point-light editor UI orchestration (`updateLightEditorUi`) is now extracted to `src/ui/pointLightEditorRuntime.js`.
-- Point-light editor binding orchestration (`bindPointLightEditorControls` deps composition) is now extracted to `src/ui/pointLightEditorBindingRuntime.js`.
 - Cursor-light mode UI reflection helper (`updateCursorLightModeUi`) is now extracted to `src/ui/cursorLightModeUiRuntime.js`.
 - Sun keyframe interpolation model (`sampleSunAtHour`) is now extracted to `src/sim/sunModel.js`.
 - Map normal/height sampling helpers (`normalize3`, `sampleNormalAtMapPixel`, `sampleHeightAtMapPixel`, `sampleHeightAtMapCoord`) are now extracted to `src/gameplay/mapSampling.js`.
@@ -103,7 +102,7 @@ No game engine is used.
 - Lighting parameter assembly logic (`computeLightingParams`) is now extracted to `src/sim/lightingParamsRuntime.js`.
 - Startup UI synchronization sequence is now extracted to `src/ui/startupUiSync.js`.
 - Map bootstrap/default-folder auto-load flow is now extracted to `src/gameplay/mapBootstrap.js`.
-- Map bootstrap runtime binding (default-folder candidate wiring + `tryAutoLoadDefaultMap`) is now extracted to `src/gameplay/mapBootstrapRuntime.js`.
+- Map bootstrap/default-folder auto-load ownership is now handled by `src/gameplay/mapBootstrap.js` through `src/gameplay/mapLifecycleRuntime.js`.
 - Swarm unlit-overlay and gizmo drawing helpers are now extracted to `src/ui/swarmOverlayRuntime.js`.
 - Render-frame UI synchronization helpers (fog auto-color input + cycle info text) are now extracted to `src/render/frameUiRuntime.js`.
 - Weather-field render metadata update helper is now extracted to `src/render/weatherFieldRuntime.js`.
@@ -131,13 +130,12 @@ No game engine is used.
 - Overlay-drawer composition (`createOverlayDrawer` deps composition) is now extracted to `src/ui/overlays/overlayDrawerRuntime.js`.
 - Map-data save runtime composition (`createMapDataSaveController` deps composition) is now extracted to `src/gameplay/mapDataSaveRuntime.js`.
 - Map-loading runtime composition (`createMapSidecarLoader` + `createMapLoader` deps composition) is now extracted to `src/gameplay/mapLoadingRuntime.js`.
-- Map-runtime-state binding composition (`createMapRuntimeState` deps composition) is now extracted to `src/gameplay/mapRuntimeStateBinding.js`.
-- Map-bootstrap binding composition (`createMapBootstrapRuntime` deps composition) is now extracted to `src/gameplay/mapBootstrapBindingRuntime.js`.
+- Map runtime state ownership now binds directly to `src/gameplay/mapRuntimeState.js` inside `src/gameplay/mapLifecycleRuntime.js`.
 - Time-state access is now composed directly inside `src/core/settingsCoreSetupRuntime.js` via `src/core/timeStateAccess.js`.
 - Frame UI synchronization now uses `src/render/frameUiRuntime.js` directly.
-- Tauri runtime binding composition (`resolveTauriInvoke` + `createTauriRuntimeHelpers`) is now extracted to `src/gameplay/tauriRuntimeBinding.js`.
+- Tauri runtime invoke/folder-picker/folder-validation helpers are now extracted to `src/gameplay/tauriRuntime.js`.
 - Map-IO helper composition now uses `src/gameplay/mapIoHelpers.js` directly inside `src/gameplay/mapSupportRuntime.js`.
-- Map-path binding runtime composition (map path/url utility wrappers) is now extracted to `src/gameplay/mapPathBindingRuntime.js`.
+- Map path/url helpers are now extracted to `src/gameplay/mapPathUtils.js`.
 - Settings-apply composition now lives directly inside `src/core/settingsCoreSetupRuntime.js`.
 - Settings runtime facade (canonical serialize/apply/default access for lighting/fog/parallax/cloud/water/interaction/swarm settings) is now extracted to `src/core/settingsRuntimeBinding.js`.
 - Lazy settings facade wiring that bridges legacy serializers/appliers with canonical settings access now lives directly inside `src/core/settingsCoreSetupRuntime.js`, so `main.js` no longer owns the long serialize/apply/get-defaults shim block inline.
@@ -197,8 +195,8 @@ No game engine is used.
   - `src/gameplay/mapSampling.js`
   - `src/gameplay/shadowOcclusion.js`
   via `src/gameplay/mapSupportRuntime.js`.
-- Light-label binding runtime composition (`createLightLabelRuntime` deps composition + wrapper methods) is now extracted to `src/ui/lightLabelBindingRuntime.js`.
-- Cursor-light-mode UI binding runtime composition (`createCursorLightModeUiRuntime` deps composition + wrapper) is now extracted to `src/ui/cursorLightModeUiBindingRuntime.js`.
+- Light-label runtime composition is now handled directly by `src/ui/lightLabelRuntime.js`.
+- Cursor-light-mode UI reflection is now handled directly by `src/ui/cursorLightModeUiRuntime.js`.
 - Mode/topic runtime binding composition (`createModeStateRuntimeBinding` + `createModeCapabilitiesUi` + `createTopicPanelRuntime`) is now extracted to `src/ui/modeTopicRuntimeBinding.js`.
 - Mode/interaction runtime composition (mode-topic binding plus interaction-mode snapshot wrapper methods) is now extracted to `src/ui/modeInteractionRuntimeBinding.js`.
 - Light interaction runtime composition (cursor-light state/pointer/ui plus point-light editor UI/action wrapper methods) is now extracted to `src/gameplay/lightInteractionRuntimeBinding.js`.
@@ -478,13 +476,19 @@ Targeted architecture tests:
 - `node --test tests/*.test.js`
 - current suite covers mode capabilities, weather normalization contract, and settings-registry wiring.
 
+Latest manual validation:
+- 2026-04-25: browser smoke test passed after migration cleanup
+- 2026-04-25: Tauri full build passed
+- 2026-04-25: installed desktop build launched successfully and basic gameplay smoke testing passed
+
 ## Known Non-Goals (Current Prototype)
 
 - No physically accurate astronomy.
 - No georeferenced sun position.
 - No animated movement yet (currently instant click-to-move).
-- Full modularization is still in progress; `src/main.js` remains the largest integration surface, but core/render/sim/ui/gameplay modules are now established and wired.
-- After the latest cleanup pass, `src/main.js` is around 3066 lines in the current worktree, still the largest integration surface, but much more of its dependency shaping now lives in `src/app/` assembly modules.
+- The modular architecture migration is complete; `src/main.js` remains the largest integration surface, but it now acts primarily as composition/orchestration over established `src/app/`, `src/core/`, `src/render/`, `src/gameplay/`, `src/ui/`, and `src/sim/` owner modules.
+- After the final cleanup pass, `src/main.js` is around 3054 lines in the current worktree. It is still the largest integration surface, but most dependency shaping now lives in `src/app/` assembly modules.
+- Manual smoke testing is now green in both browser and installed Tauri runtime, so the next migration work should be driven by ownership clarity or targeted performance issues, not speculative stability fixes.
 
 ## Render Module Breakdown
 

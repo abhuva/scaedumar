@@ -47,8 +47,8 @@ export function createTimeLightingSetupRuntime(deps) {
 
   return {
     cycleState,
-    getLightingParamsBindingRuntime: getLightingParamsRuntime,
-    getTimeUiBindingRuntime: getTimeUiRuntime,
+    getLightingParamsRuntime,
+    getTimeUiRuntime,
     computeLightingParams: (coreState = null) => getLightingParamsRuntime().computeLightingParams(coreState),
     setCycleHourSliderFromState: () => getTimeUiRuntime().setCycleHourSliderFromState(),
     updateCycleHourLabel: () => getTimeUiRuntime().updateCycleHourLabel(),

@@ -67,6 +67,10 @@ Policy: architecture-first; visual drift is acceptable unless it breaks usabilit
 - Current expected result:
   - all tests pass
   - only known noise is Node `MODULE_TYPELESS_PACKAGE_JSON` warnings
+- Latest verified manual result (`2026-04-25`):
+  - browser smoke test passed
+  - Tauri full build passed
+  - installed desktop build launched and basic play testing passed
 
 ## Acceptable Drift
 

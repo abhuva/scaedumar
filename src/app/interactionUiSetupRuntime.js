@@ -12,20 +12,20 @@ import { createRenderFxSettingsSyncRuntime } from "../ui/renderFxSettingsSyncRun
 export function createInteractionUiSetupRuntime(deps) {
   let swarmCursorPointerRuntime = null;
 
-  function getSwarmCursorPointerBindingRuntime() {
+  function getSwarmCursorPointerRuntime() {
     if (swarmCursorPointerRuntime) return swarmCursorPointerRuntime;
     swarmCursorPointerRuntime = createSwarmCursorPointerRuntime(deps.swarmCursorPointer);
     return swarmCursorPointerRuntime;
   }
 
   const pathfindingRuntimeBinding = createPathfindingRuntimeBinding(deps.pathfindingRuntime);
-  const pathfindingLabelBindingRuntime = {
+  const pathfindingLabelRuntime = {
     updatePathfindingRangeLabel: () => updatePathfindingRangeLabel(deps.pathfindingLabels),
     updatePathWeightLabels: () => updatePathWeightLabels(deps.pathfindingLabels),
     updatePathSlopeCutoffLabel: () => updatePathSlopeCutoffLabel(deps.pathfindingLabels),
     updatePathBaseCostLabel: () => updatePathBaseCostLabel(deps.pathfindingLabels),
   };
-  const renderFxUiBindingRuntime = createRenderFxUiBindingRuntime(deps.renderFxUi);
+  const renderFxUiRuntime = createRenderFxUiBindingRuntime(deps.renderFxUi);
   const renderFxSettingsSyncRuntime = createRenderFxSettingsSyncRuntime({
     updateParallaxStrengthLabel: deps.renderFxUi.updateParallaxStrengthLabel,
     updateParallaxBandsLabel: deps.renderFxUi.updateParallaxBandsLabel,
@@ -47,11 +47,11 @@ export function createInteractionUiSetupRuntime(deps) {
 
   return {
     updateSwarmCursorFromPointer: (clientX, clientY) =>
-      getSwarmCursorPointerBindingRuntime().updateSwarmCursorFromPointer(clientX, clientY),
-    getSwarmCursorPointerBindingRuntime,
+      getSwarmCursorPointerRuntime().updateSwarmCursorFromPointer(clientX, clientY),
+    getSwarmCursorPointerRuntime,
     pathfindingRuntimeBinding,
-    pathfindingLabelBindingRuntime,
-    renderFxUiBindingRuntime,
+    pathfindingLabelRuntime,
+    renderFxUiRuntime,
     renderFxSettingsSyncRuntime,
   };
 }

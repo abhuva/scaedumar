@@ -1,82 +1,82 @@
 export function createSettingsRuntimeBinding(deps) {
   return {
     serializeLightingSettings: () =>
-      deps.settingsApplyBindingRuntime.serializeSettingsByKey("lighting", deps.serializeLightingSettingsLegacy),
+      deps.settingsApplyRuntime.serializeSettingsByKey("lighting", deps.serializeLightingSettingsLegacy),
     applyLightingSettings: (rawData) => {
-      deps.settingsApplyBindingRuntime.updateStoreFromAppliedSettings(
+      deps.settingsApplyRuntime.updateStoreFromAppliedSettings(
         "lighting",
-        deps.settingsApplyBindingRuntime.normalizeAppliedSettings(
+        deps.settingsApplyRuntime.normalizeAppliedSettings(
           "lighting",
           rawData,
           deps.defaultLightingSettings,
         ),
       );
-      deps.settingsApplyBindingRuntime.applySettingsByKey("lighting", rawData, deps.applyLightingSettingsLegacy);
+      deps.settingsApplyRuntime.applySettingsByKey("lighting", rawData, deps.applyLightingSettingsLegacy);
     },
     serializeFogSettings: () =>
-      deps.settingsApplyBindingRuntime.serializeSettingsByKey("fog", deps.serializeFogSettingsLegacy),
+      deps.settingsApplyRuntime.serializeSettingsByKey("fog", deps.serializeFogSettingsLegacy),
     applyFogSettings: (rawData) => {
-      deps.settingsApplyBindingRuntime.updateStoreFromAppliedSettings(
+      deps.settingsApplyRuntime.updateStoreFromAppliedSettings(
         "fog",
-        deps.settingsApplyBindingRuntime.normalizeAppliedSettings("fog", rawData, deps.defaultFogSettings),
+        deps.settingsApplyRuntime.normalizeAppliedSettings("fog", rawData, deps.defaultFogSettings),
       );
-      deps.settingsApplyBindingRuntime.applySettingsByKey("fog", rawData, deps.applyFogSettingsLegacy);
+      deps.settingsApplyRuntime.applySettingsByKey("fog", rawData, deps.applyFogSettingsLegacy);
     },
     serializeParallaxSettings: () =>
-      deps.settingsApplyBindingRuntime.serializeSettingsByKey("parallax", deps.serializeParallaxSettingsLegacy),
+      deps.settingsApplyRuntime.serializeSettingsByKey("parallax", deps.serializeParallaxSettingsLegacy),
     applyParallaxSettings: (rawData) => {
-      deps.settingsApplyBindingRuntime.updateStoreFromAppliedSettings(
+      deps.settingsApplyRuntime.updateStoreFromAppliedSettings(
         "parallax",
-        deps.settingsApplyBindingRuntime.normalizeAppliedSettings(
+        deps.settingsApplyRuntime.normalizeAppliedSettings(
           "parallax",
           rawData,
           deps.defaultParallaxSettings,
         ),
       );
-      deps.settingsApplyBindingRuntime.applySettingsByKey("parallax", rawData, deps.applyParallaxSettingsLegacy);
+      deps.settingsApplyRuntime.applySettingsByKey("parallax", rawData, deps.applyParallaxSettingsLegacy);
     },
     serializeCloudSettings: () =>
-      deps.settingsApplyBindingRuntime.serializeSettingsByKey("clouds", deps.serializeCloudSettingsLegacy),
+      deps.settingsApplyRuntime.serializeSettingsByKey("clouds", deps.serializeCloudSettingsLegacy),
     applyCloudSettings: (rawData) => {
-      deps.settingsApplyBindingRuntime.updateStoreFromAppliedSettings(
+      deps.settingsApplyRuntime.updateStoreFromAppliedSettings(
         "clouds",
-        deps.settingsApplyBindingRuntime.normalizeAppliedSettings("clouds", rawData, deps.defaultCloudSettings),
+        deps.settingsApplyRuntime.normalizeAppliedSettings("clouds", rawData, deps.defaultCloudSettings),
       );
-      deps.settingsApplyBindingRuntime.applySettingsByKey("clouds", rawData, deps.applyCloudSettingsLegacy);
+      deps.settingsApplyRuntime.applySettingsByKey("clouds", rawData, deps.applyCloudSettingsLegacy);
     },
     serializeWaterSettings: () =>
-      deps.settingsApplyBindingRuntime.serializeSettingsByKey("waterfx", deps.serializeWaterSettingsLegacy),
+      deps.settingsApplyRuntime.serializeSettingsByKey("waterfx", deps.serializeWaterSettingsLegacy),
     applyWaterSettings: (rawData) => {
-      deps.settingsApplyBindingRuntime.updateStoreFromAppliedSettings(
+      deps.settingsApplyRuntime.updateStoreFromAppliedSettings(
         "waterfx",
-        deps.settingsApplyBindingRuntime.normalizeAppliedSettings("waterfx", rawData, deps.defaultWaterSettings),
+        deps.settingsApplyRuntime.normalizeAppliedSettings("waterfx", rawData, deps.defaultWaterSettings),
       );
-      deps.settingsApplyBindingRuntime.applySettingsByKey("waterfx", rawData, deps.applyWaterSettingsLegacy);
+      deps.settingsApplyRuntime.applySettingsByKey("waterfx", rawData, deps.applyWaterSettingsLegacy);
     },
     serializeInteractionSettings: () =>
-      deps.settingsApplyBindingRuntime.serializeSettingsByKey("interaction", deps.serializeInteractionSettingsLegacy),
+      deps.settingsApplyRuntime.serializeSettingsByKey("interaction", deps.serializeInteractionSettingsLegacy),
     applyInteractionSettings: (rawData) => {
-      deps.settingsApplyBindingRuntime.updateStoreFromAppliedSettings(
+      deps.settingsApplyRuntime.updateStoreFromAppliedSettings(
         "interaction",
-        deps.settingsApplyBindingRuntime.normalizeAppliedSettings(
+        deps.settingsApplyRuntime.normalizeAppliedSettings(
           "interaction",
           rawData,
           deps.defaultInteractionSettings,
         ),
       );
-      deps.settingsApplyBindingRuntime.applySettingsByKey("interaction", rawData, deps.applyInteractionSettingsLegacy);
+      deps.settingsApplyRuntime.applySettingsByKey("interaction", rawData, deps.applyInteractionSettingsLegacy);
     },
     serializeSwarmData: () =>
-      deps.settingsApplyBindingRuntime.serializeSettingsByKey("swarm", deps.serializeSwarmDataLegacy),
+      deps.settingsApplyRuntime.serializeSettingsByKey("swarm", deps.serializeSwarmDataLegacy),
     applySwarmSettings: (rawData) => {
-      deps.settingsApplyBindingRuntime.updateStoreFromAppliedSettings(
+      deps.settingsApplyRuntime.updateStoreFromAppliedSettings(
         "swarm",
-        deps.settingsApplyBindingRuntime.normalizeAppliedSettings("swarm", rawData, deps.defaultSwarmSettings),
+        deps.settingsApplyRuntime.normalizeAppliedSettings("swarm", rawData, deps.defaultSwarmSettings),
       );
       deps.applySwarmSettingsLegacy(rawData);
       deps.syncSwarmStateToStore();
     },
     getSettingsDefaults: (key, fallback) =>
-      deps.settingsApplyBindingRuntime.getSettingsDefaults(key, fallback),
+      deps.settingsApplyRuntime.getSettingsDefaults(key, fallback),
   };
 }

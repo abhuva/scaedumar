@@ -5,7 +5,7 @@ import { createSettingsRegistryBridge } from "./settingsRegistryBridge.js";
 import { createSettingsDefaultsAccess } from "./settingsDefaultsAccess.js";
 
 export function createSettingsCoreSetupRuntime(deps) {
-  const timeStateBindingRuntime = createTimeStateAccess({
+  const timeStateRuntime = createTimeStateAccess({
     getSettingsDefaults: deps.getSettingsDefaults,
     defaultLightingSettings: deps.defaultLightingSettings,
     defaultCloudSettings: deps.defaultCloudSettings,
@@ -33,7 +33,7 @@ export function createSettingsCoreSetupRuntime(deps) {
   const settingsDefaultsAccess = createSettingsDefaultsAccess({
     settingsRegistry: deps.settingsRegistry,
   });
-  const settingsApplyBindingRuntime = {
+  const settingsApplyRuntime = {
     serializeSettingsByKey: (key, fallbackSerialize) =>
       settingsRegistryBridge.serializeSettingsByKey(key, fallbackSerialize),
     applySettingsByKey: (key, rawData, fallbackApply) =>
@@ -56,7 +56,7 @@ export function createSettingsCoreSetupRuntime(deps) {
   function callLegacy(name, ...args) {
     const bindings = getLegacyBindings();
     if (typeof bindings[name] !== "function") {
-      throw new Error(`settingsFacadeRuntime missing legacy binding: ${name}`);
+      throw new Error(`settingsBridgeRuntime missing legacy binding: ${name}`);
     }
     return bindings[name](...args);
   }
@@ -64,12 +64,12 @@ export function createSettingsCoreSetupRuntime(deps) {
   function callCanonical(name, ...args) {
     const binding = getSettingsRuntimeBinding();
     if (!binding || typeof binding[name] !== "function") {
-      throw new Error(`settingsFacadeRuntime missing canonical binding: ${name}`);
+      throw new Error(`settingsBridgeRuntime missing canonical binding: ${name}`);
     }
     return binding[name](...args);
   }
 
-  const settingsFacadeRuntime = {
+  const settingsBridgeRuntime = {
     serializeLightingSettingsLegacy: (...args) => callLegacy("serializeLightingSettingsLegacy", ...args),
     applyLightingSettingsLegacy: (...args) => callLegacy("applyLightingSettingsLegacy", ...args),
     serializeFogSettingsLegacy: (...args) => callLegacy("serializeFogSettingsLegacy", ...args),
@@ -105,14 +105,14 @@ export function createSettingsCoreSetupRuntime(deps) {
       if (binding && typeof binding.getSettingsDefaults === "function") {
         return binding.getSettingsDefaults(key, fallback);
       }
-      return settingsApplyBindingRuntime.getSettingsDefaults(key, fallback);
+      return settingsApplyRuntime.getSettingsDefaults(key, fallback);
     },
   };
 
   return {
-    timeStateFacadeRuntime: timeStateBindingRuntime,
+    timeStateRuntime,
     simulationKnobAccess,
-    settingsApplyBindingRuntime,
-    settingsFacadeRuntime,
+    settingsApplyRuntime,
+    settingsBridgeRuntime,
   };
 }

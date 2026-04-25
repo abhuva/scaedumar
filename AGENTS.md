@@ -16,6 +16,7 @@ Build a self-contained prototype for top-down terrain rendering from Gaea-export
 - Keep runtime lightweight and understandable
 - Prefer browser-native stack first: HTML + JavaScript + WebGL2
 - Desktop distribution path (current): Tauri wrapper around existing frontend
+- Runtime architecture status: modular, core-state-driven runtime is now the baseline; new work should preserve that ownership model instead of rebuilding `main.js`-centric state paths
 
 
 ## Working Agreement
