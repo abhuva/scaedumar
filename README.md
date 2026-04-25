@@ -15,6 +15,8 @@ Prototype goals:
 - `src/core/`: command bus, scheduler, state store, settings contracts
 - `src/render/`: render resources, frame state assembly, render passes, and uniform upload orchestration
 - `src/gameplay/`: interaction commands, movement/swarm helpers, point-light editor state/controller
+- `src/ui/`: UI runtime components, panels, bindings, label helpers, and settings appliers
+- `src/sim/`: simulation helpers and models such as `sunModel.js`, `timeSystem.js`, and `lightingParamsRuntime.js`
 - `styles.css`: UI styling
 - `assets/`: map bundle root (`assets/<mapName>/...`)
 - `src-tauri/`: Tauri desktop wrapper (Rust commands + app packaging)

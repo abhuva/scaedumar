@@ -5,24 +5,27 @@ export function serializePointLightsPayload(pointLights, mapSize, deps) {
       width: mapSize.width,
       height: mapSize.height,
     },
-    lights: pointLights.map((light) => ({
-      x: light.pixelX,
-      y: light.pixelY,
-      range: light.strength,
-      intensity: light.intensity,
-      heightOffset: light.heightOffset,
-      flicker: deps.clamp(
-        Number.isFinite(Number(light.flicker)) ? Number(light.flicker) : deps.defaultFlicker,
-        0,
-        1,
-      ),
-      flickerSpeed: deps.clamp(
-        Number.isFinite(Number(light.flickerSpeed)) ? Number(light.flickerSpeed) : deps.defaultFlickerSpeed,
-        0,
-        1,
-      ),
-      color: [light.color[0], light.color[1], light.color[2]],
-    })),
+    lights: pointLights.map((light) => {
+      const color = normalizeImportedPointLightColor(light && light.color, deps.clamp) || [1, 1, 1];
+      return {
+        x: light.pixelX,
+        y: light.pixelY,
+        range: light.strength,
+        intensity: light.intensity,
+        heightOffset: light.heightOffset,
+        flicker: deps.clamp(
+          Number.isFinite(Number(light.flicker)) ? Number(light.flicker) : deps.defaultFlicker,
+          0,
+          1,
+        ),
+        flickerSpeed: deps.clamp(
+          Number.isFinite(Number(light.flickerSpeed)) ? Number(light.flickerSpeed) : deps.defaultFlickerSpeed,
+          0,
+          1,
+        ),
+        color: [color[0], color[1], color[2]],
+      };
+    }),
   };
 }
 

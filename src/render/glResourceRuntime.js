@@ -22,6 +22,8 @@ export function createGlResourceRuntime(deps) {
     gl.linkProgram(program);
     if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
       const info = gl.getProgramInfoLog(program);
+      gl.deleteShader(vs);
+      gl.deleteShader(fs);
       gl.deleteProgram(program);
       throw new Error(info || "Program linking failed.");
     }
@@ -30,24 +32,22 @@ export function createGlResourceRuntime(deps) {
     return program;
   }
 
-  function createTexture() {
+  function createTextureWithFilters(minFilter, magFilter) {
     const tex = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, tex);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, minFilter);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, magFilter);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     return tex;
   }
 
+  function createTexture() {
+    return createTextureWithFilters(gl.NEAREST, gl.NEAREST);
+  }
+
   function createLinearTexture() {
-    const tex = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, tex);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    return tex;
+    return createTextureWithFilters(gl.LINEAR, gl.LINEAR);
   }
 
   function uploadImageToTexture(tex, image) {
@@ -58,6 +58,7 @@ export function createGlResourceRuntime(deps) {
   return {
     createShader,
     createProgram,
+    createTextureWithFilters,
     createTexture,
     createLinearTexture,
     uploadImageToTexture,

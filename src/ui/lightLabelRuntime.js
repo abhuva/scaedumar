@@ -35,13 +35,13 @@ export function createLightLabelRuntime(deps) {
   }
 
   function updateCursorLightStrengthLabel() {
-    const value = deps.getCursorLightSnapshot().strength;
+    const value = Math.round(deps.clamp(Number(deps.getCursorLightSnapshot().strength), 1, 200));
     deps.cursorLightStrengthValue.textContent = `${value} px`;
   }
 
   function updateCursorLightHeightOffsetLabel() {
-    const value = deps.getCursorLightSnapshot().heightOffset;
-    deps.cursorLightHeightOffsetValue.textContent = `${value}`;
+    const value = Math.round(deps.clamp(Number(deps.getCursorLightSnapshot().heightOffset), 0, 120));
+    deps.cursorLightHeightOffsetValue.textContent = `${value} px`;
   }
 
   return {

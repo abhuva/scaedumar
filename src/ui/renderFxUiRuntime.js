@@ -77,7 +77,11 @@ export function updateCloudLabels(deps) {
 
 export function updateWaterLabels(deps) {
   const water = deps.serializeWaterSettings();
-  deps.waterFlowDirectionValue.textContent = `${Math.round(deps.clamp(Number(water.waterFlowDirectionDeg), 0, 360))} deg`;
+  const waterFlowDirectionDeg = Number(water.waterFlowDirectionDeg);
+  const normalizedDirection = Number.isFinite(waterFlowDirectionDeg)
+    ? ((waterFlowDirectionDeg % 360) + 360) % 360
+    : 0;
+  deps.waterFlowDirectionValue.textContent = `${Math.round(normalizedDirection)} deg`;
   deps.waterLocalFlowMixValue.textContent = deps.clamp(Number(water.waterLocalFlowMix), 0, 1).toFixed(2);
   deps.waterDownhillBoostValue.textContent = deps.clamp(Number(water.waterDownhillBoost), 0, 4).toFixed(2);
   deps.waterFlowRadius1Value.textContent = String(Math.round(deps.clamp(Number(water.waterFlowRadius1), 1, 12)));
@@ -123,8 +127,6 @@ export function updateCloudUi(deps) {
 }
 
 export function updateWaterUi(deps) {
-  const water = deps.serializeWaterSettings();
-  void water;
   deps.waterFlowDownhillToggle.disabled = false;
   deps.waterFlowInvertDownhillToggle.disabled = false;
   deps.waterFlowDebugToggle.disabled = false;

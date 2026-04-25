@@ -11,6 +11,9 @@ export function createMapSampling(deps) {
       return [0, 0, 1];
     }
     const splatSize = deps.getSplatSize();
+    if (!splatSize.width || !splatSize.height) {
+      return [0, 0, 1];
+    }
     const normalsSize = deps.getNormalsSize();
     const nx = deps.clamp(Math.round((pixelX + 0.5) / splatSize.width * normalsSize.width - 0.5), 0, normalsSize.width - 1);
     const ny = deps.clamp(Math.round((pixelY + 0.5) / splatSize.height * normalsSize.height - 0.5), 0, normalsSize.height - 1);
@@ -28,6 +31,9 @@ export function createMapSampling(deps) {
       return 0;
     }
     const splatSize = deps.getSplatSize();
+    if (!splatSize.width || !splatSize.height) {
+      return 0;
+    }
     const heightSize = deps.getHeightSize();
     const hx = deps.clamp(Math.round((pixelX + 0.5) / splatSize.width * heightSize.width - 0.5), 0, heightSize.width - 1);
     const hy = deps.clamp(Math.round((pixelY + 0.5) / splatSize.height * heightSize.height - 0.5), 0, heightSize.height - 1);
@@ -41,6 +47,9 @@ export function createMapSampling(deps) {
       return 0;
     }
     const splatSize = deps.getSplatSize();
+    if (!splatSize.width || !splatSize.height) {
+      return 0;
+    }
     const heightSize = deps.getHeightSize();
     const hx = deps.clamp(Math.round((mapX + 0.5) / splatSize.width * heightSize.width - 0.5), 0, heightSize.width - 1);
     const hy = deps.clamp(Math.round((mapY + 0.5) / splatSize.height * heightSize.height - 0.5), 0, heightSize.height - 1);

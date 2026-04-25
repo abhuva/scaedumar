@@ -94,6 +94,7 @@ export function createPathfindingPreviewRuntime(deps) {
 
     const heap = new MinHeap();
     heap.push({ x: deps.playerState.pixelX, y: deps.playerState.pixelY, dist: 0 });
+    const moveCostContext = typeof deps.getMoveCostContext === "function" ? deps.getMoveCostContext() : null;
     const dirs = [
       { dx: 1, dy: 0 },
       { dx: -1, dy: 0 },
@@ -115,7 +116,7 @@ export function createPathfindingPreviewRuntime(deps) {
         const ny = current.y + dir.dy;
         if (nx < bounds.minX || nx > bounds.maxX || ny < bounds.minY || ny > bounds.maxY) continue;
         const nIdx = indexOf(nx, ny);
-        const stepCost = deps.computeMoveStepCost(current.x, current.y, nx, ny);
+        const stepCost = deps.computeMoveStepCost(current.x, current.y, nx, ny, moveCostContext);
         if (!Number.isFinite(stepCost)) continue;
         const nextDist = dist[idx] + stepCost;
         if (nextDist < dist[nIdx]) {

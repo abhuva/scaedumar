@@ -1,4 +1,9 @@
 export function buildFrameRenderState(input) {
+  function finiteOr(value, fallback) {
+    const num = Number(value);
+    return Number.isFinite(num) ? num : fallback;
+  }
+
   const coreState = input.coreState || {};
   const coreCamera = coreState.camera || {};
   const coreMap = coreState.map || {};
@@ -15,12 +20,10 @@ export function buildFrameRenderState(input) {
       dtSec: Number(input.dtSec) || 0,
       cycleHour: Number(input.cycleHour) || 0,
       cycleSpeedHoursPerSec: Number(input.cycleSpeedHoursPerSec) || 0,
-      cloudTimeSec: Number.isFinite(Number(input.cloudTimeSec))
-        ? Number(input.cloudTimeSec)
-        : (Number.isFinite(Number(coreTime.cloudTimeSec)) ? Number(coreTime.cloudTimeSec) : nowSec),
-      waterTimeSec: Number.isFinite(Number(coreTime.waterTimeSec)) ? Number(coreTime.waterTimeSec) : nowSec,
-      detachedTimeSec: Number.isFinite(Number(coreTime.detachedTimeSec)) ? Number(coreTime.detachedTimeSec) : nowSec,
-      globalTimeHours: Number.isFinite(Number(coreTime.globalTimeHours)) ? Number(coreTime.globalTimeHours) : 0,
+      cloudTimeSec: finiteOr(input.cloudTimeSec, finiteOr(coreTime.cloudTimeSec, nowSec)),
+      waterTimeSec: finiteOr(coreTime.waterTimeSec, nowSec),
+      detachedTimeSec: finiteOr(coreTime.detachedTimeSec, nowSec),
+      globalTimeHours: finiteOr(coreTime.globalTimeHours, 0),
     },
     camera: {
       panX: Number.isFinite(coreCamera.panX) ? coreCamera.panX : 0,

@@ -8,7 +8,10 @@ export function computeFrameTiming(deps) {
   const prevTimeState = preUpdateState.systems && preUpdateState.systems.time
     ? preUpdateState.systems.time
     : null;
-  const cycleSpeedHoursPerSec = deps.clamp(Number(preUpdateState.clock && preUpdateState.clock.timeScale), 0, 1);
+  const rawCycleSpeed = preUpdateState.clock && preUpdateState.clock.timeScale != null
+    ? Number(preUpdateState.clock.timeScale)
+    : 0;
+  const cycleSpeedHoursPerSec = deps.clamp(Number.isFinite(rawCycleSpeed) ? rawCycleSpeed : 0, 0, 1);
   const frameTimeState = deps.buildFrameTimeState({
     prevTimeState,
     dtSec,

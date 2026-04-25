@@ -3,10 +3,10 @@ export function syncMapState(deps) {
     ...prev,
     map: {
       ...prev.map,
-      folderPath: deps.currentMapFolderPath ?? "",
+      folderPath: deps.currentMapFolderPath || "",
       width: deps.splatSize.width,
       height: deps.splatSize.height,
-      loaded: Boolean(deps.currentMapFolderPath ?? ""),
+      loaded: Boolean(deps.currentMapFolderPath),
     },
   }));
 }

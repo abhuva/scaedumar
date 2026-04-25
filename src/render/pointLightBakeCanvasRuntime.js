@@ -26,6 +26,10 @@ export function createPointLightBakeCanvasRuntime(deps) {
         deps.pointLightBakeCanvas.height,
       );
     } else {
+      deps.pointLightBakeCtx.clearRect(0, 0, deps.pointLightBakeCanvas.width, deps.pointLightBakeCanvas.height);
+      console.warn(
+        "Point-light bake RGBA source size does not match destination canvas and no temp scaling canvas is available; putImageData may crop or pad the result.",
+      );
       deps.pointLightBakeCtx.putImageData(new ImageData(rgba, sourceWidth, sourceHeight), 0, 0);
     }
     deps.uploadImageToTexture(deps.pointLightTex, deps.pointLightBakeCanvas);

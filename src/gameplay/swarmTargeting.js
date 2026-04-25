@@ -37,7 +37,7 @@ export function createSwarmTargeting(deps) {
     const height = Math.max(1, deps.splatSize.height);
     const x = Math.random() * Math.max(1, width - 1);
     const y = Math.random() * Math.max(1, height - 1);
-    const z = deps.clamp(Math.max(minFlight, deps.terrainFloorAtSwarmCoord(x, y) + 4), minFlight, maxFlight);
+    const z = deps.clamp(deps.terrainFloorAtSwarmCoord(x, y) + 4, minFlight, maxFlight);
     return {
       x,
       y,

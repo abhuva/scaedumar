@@ -34,11 +34,12 @@ export function registerMainCommands(commandBus, deps) {
   }
 
   function applyCameraPose(ctx, pose, options = {}) {
-    const nextPanX = Number.isFinite(Number(pose && pose.panX)) ? Number(pose.panX) : getCameraPose(ctx).panX;
-    const nextPanY = Number.isFinite(Number(pose && pose.panY)) ? Number(pose.panY) : getCameraPose(ctx).panY;
+    const current = getCameraPose(ctx);
+    const nextPanX = Number.isFinite(Number(pose && pose.panX)) ? Number(pose.panX) : current.panX;
+    const nextPanY = Number.isFinite(Number(pose && pose.panY)) ? Number(pose.panY) : current.panY;
     const nextZoom = Number.isFinite(Number(pose && pose.zoom))
       ? deps.clamp(Number(pose.zoom), deps.zoomMin, deps.zoomMax)
-      : getCameraPose(ctx).zoom;
+      : current.zoom;
     deps.setCameraPoseToStore(nextPanX, nextPanY, nextZoom);
     if (typeof deps.applyCameraPose === "function") {
       deps.applyCameraPose({
@@ -229,6 +230,22 @@ export function registerMainCommands(commandBus, deps) {
     }
 
     const action = String(command.action || "");
+    function handleHeightChange() {
+      let minHeight = Math.round(deps.clamp(Number(command.minHeight), 0, 256));
+      let maxHeight = Math.round(deps.clamp(Number(command.maxHeight), 0, 256));
+      if (minHeight > maxHeight) {
+        if (action === "minHeightChanged") {
+          maxHeight = minHeight;
+        } else {
+          minHeight = maxHeight;
+        }
+      }
+      deps.swarmMinHeightInput.value = String(minHeight);
+      deps.swarmMaxHeightInput.value = String(maxHeight);
+      updateSwarmSettings({ minHeight, maxHeight });
+      deps.updateSwarmLabels();
+      deps.reseedSwarmAgents(deps.swarmState.count);
+    }
     switch (action) {
       case "showTerrainChanged":
         updateSwarmSettings({ showTerrainInSwarm: Boolean(command.value) });
@@ -431,28 +448,9 @@ export function registerMainCommands(commandBus, deps) {
         deps.reseedSwarmAgents(deps.swarmState.count || deps.getSwarmSettings().agentCount);
         break;
       }
-      case "minHeightChanged": {
-        const settings = deps.getSwarmSettings();
-        let minHeight = Math.round(deps.clamp(Number(command.minHeight), 0, 256));
-        let maxHeight = Math.round(deps.clamp(Number(command.maxHeight ?? settings.maxHeight), 0, 256));
-        if (minHeight > maxHeight) {
-          maxHeight = minHeight;
-        }
-        updateSwarmSettings({ minHeight, maxHeight });
-        deps.syncSwarmPanelUi();
-        deps.reseedSwarmAgents(deps.swarmState.count);
-        break;
-      }
+      case "minHeightChanged":
       case "maxHeightChanged": {
-        const settings = deps.getSwarmSettings();
-        let minHeight = Math.round(deps.clamp(Number(command.minHeight ?? settings.minHeight), 0, 256));
-        let maxHeight = Math.round(deps.clamp(Number(command.maxHeight), 0, 256));
-        if (minHeight > maxHeight) {
-          minHeight = maxHeight;
-        }
-        updateSwarmSettings({ minHeight, maxHeight });
-        deps.syncSwarmPanelUi();
-        deps.reseedSwarmAgents(deps.swarmState.count);
+        handleHeightChange();
         break;
       }
       case "hawkEnabledChanged": {
@@ -574,7 +572,7 @@ export function registerMainCommands(commandBus, deps) {
   commandBus.register("core/time/setRouting", (command) => {
     const target = String(command.target || "");
     const mode = command.mode === "detached" ? "detached" : "global";
-    const allowedTargets = new Set(["movement", "swarm", "clouds", "water", "weather"]);
+    const allowedTargets = new Set(["swarm", "clouds", "water"]);
     if (!allowedTargets.has(target)) return;
     deps.syncRoutingInput(target, mode);
     deps.setTimeRoutingModeToStore(target, mode);
@@ -619,9 +617,10 @@ export function registerMainCommands(commandBus, deps) {
   });
 
   commandBus.register("core/cursorLight/setColor", (command) => {
+    const colorHex = normalizeHexColor(command.colorHex, "#ff9b2f");
     deps.applyCursorLightConfigSnapshot({
       ...deps.getCursorLightSnapshot(),
-      colorHex: typeof command.colorHex === "string" ? command.colorHex : "#ff9b2f",
+      colorHex,
     });
     syncCursorLightToStore();
     deps.requestOverlayDraw();

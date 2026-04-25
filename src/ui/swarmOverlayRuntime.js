@@ -21,22 +21,19 @@ export function createSwarmOverlayRuntime(deps) {
     }
 
     if (settings.useHawk && deps.swarmState.hawks.length > 0) {
-      const hawk0 = deps.writeInterpolatedSwarmHawkPos(0, deps.swarmOverlayHawkScratch);
-      const hawkCenterWorld = deps.mapCoordToWorld(hawk0.x, hawk0.y);
-      const hawkRightWorld = deps.mapCoordToWorld(hawk0.x + 1, hawk0.y);
-      const hawkDownWorld = deps.mapCoordToWorld(hawk0.x, hawk0.y + 1);
-      const hawkCenter = deps.worldToScreen(hawkCenterWorld);
-      const hawkRight = deps.worldToScreen(hawkRightWorld);
-      const hawkDown = deps.worldToScreen(hawkDownWorld);
-      const w = Math.max(0.25, Math.abs(hawkRight.x - hawkCenter.x));
-      const h = Math.max(0.25, Math.abs(hawkDown.y - hawkCenter.y));
       const hawkRgb = deps.hexToRgb01(settings.hawkColor).map((v) => Math.round(deps.clamp(v, 0, 1) * 255));
       const hawkAlpha = settings.showTerrainInSwarm ? 0.85 : 1.0;
       deps.overlayCtx.fillStyle = `rgba(${hawkRgb[0]}, ${hawkRgb[1]}, ${hawkRgb[2]}, ${hawkAlpha})`;
       for (let i = 0; i < deps.swarmState.hawks.length; i++) {
         const hawk = deps.writeInterpolatedSwarmHawkPos(i, deps.swarmOverlayHawkScratch);
         const centerWorld = deps.mapCoordToWorld(hawk.x, hawk.y);
+        const rightWorld = deps.mapCoordToWorld(hawk.x + 1, hawk.y);
+        const downWorld = deps.mapCoordToWorld(hawk.x, hawk.y + 1);
         const center = deps.worldToScreen(centerWorld);
+        const right = deps.worldToScreen(rightWorld);
+        const down = deps.worldToScreen(downWorld);
+        const w = Math.max(0.25, Math.abs(right.x - center.x));
+        const h = Math.max(0.25, Math.abs(down.y - center.y));
         deps.overlayCtx.fillRect(center.x - w * 0.5, center.y - h * 0.5, w, h);
       }
     }

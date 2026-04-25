@@ -66,9 +66,11 @@ export function bindInteractionAndCycleControls(deps) {
 
   if (deps.simTickHoursInput) {
     const dispatchTickChange = () => {
+      const simTickHours = Number(deps.simTickHoursInput.value);
+      if (Number.isNaN(simTickHours)) return;
       deps.dispatchCoreCommand({
         type: "core/time/setSimTickHours",
-        simTickHours: Number(deps.simTickHoursInput.value),
+        simTickHours,
       });
     };
     deps.simTickHoursInput.addEventListener("input", dispatchTickChange);
@@ -77,9 +79,11 @@ export function bindInteractionAndCycleControls(deps) {
 
   if (deps.cycleSpeedInput) {
     const dispatchCycleSpeedChange = () => {
+      const cycleSpeed = Number(deps.cycleSpeedInput.value);
+      if (Number.isNaN(cycleSpeed)) return;
       deps.dispatchCoreCommand({
         type: "core/time/setCycleSpeed",
-        cycleSpeed: Number(deps.cycleSpeedInput.value),
+        cycleSpeed,
       });
     };
     deps.cycleSpeedInput.addEventListener("input", dispatchCycleSpeedChange);

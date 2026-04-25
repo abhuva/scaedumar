@@ -1,4 +1,5 @@
 export function runStartupUiSync(deps) {
+  const baseStatus = deps.baseStatus || deps.statusTextEl.textContent || "Ready.";
   deps.setSwarmDefaults();
   const swarmSettings = deps.getSwarmSettings();
   deps.normalizeSwarmHeightRangeInputs("min", {
@@ -47,6 +48,6 @@ export function runStartupUiSync(deps) {
   deps.updateModeCapabilitiesUi();
   deps.reseedSwarmAgents(swarmSettings.agentCount);
   deps.setStatus(
-    `${deps.statusTextEl.textContent} | Load maps by folder/path, use left dock mode toggles (LM/PF), wheel zoom + middle-drag pan for terrain, and Agent Swarm panel toggle for boid testing.`,
+    `${baseStatus} | Load maps by folder/path, use left dock mode toggles (LM/PF), wheel zoom + middle-drag pan for terrain, and Agent Swarm panel toggle for boid testing.`,
   );
 }

@@ -94,9 +94,9 @@ export function createPointLightEditorState(deps) {
   function applyDraftToLight(light) {
     if (!light || !lightEditDraft) return null;
     light.color = [...lightEditDraft.color];
-    light.strength = Math.round(deps.clamp(lightEditDraft.strength, 1, 200));
+    light.strength = Math.round(deps.clamp(Number(lightEditDraft.strength), 1, 200));
     light.intensity = deps.clamp(Number(lightEditDraft.intensity), 0, 4);
-    light.heightOffset = Math.round(deps.clamp(lightEditDraft.heightOffset, -120, 240));
+    light.heightOffset = Math.round(deps.clamp(Number(lightEditDraft.heightOffset), -120, 240));
     light.flicker = deps.clamp(Number(lightEditDraft.flicker), 0, 1);
     light.flickerSpeed = deps.clamp(Number(lightEditDraft.flickerSpeed), 0, 1);
     return light;

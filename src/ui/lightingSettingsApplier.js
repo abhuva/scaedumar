@@ -4,6 +4,7 @@ export function createLightingSettingsApplier(deps) {
     const lighting = deps.getLightingSettings();
     const timeState = state.systems && state.systems.time ? state.systems.time : {};
     const uiState = state.ui || {};
+    const cycleHour = Number(uiState.cycleHour);
     deps.shadowsToggle.checked = Boolean(lighting.useShadows);
     deps.heightScaleInput.value = String(Math.round(deps.clamp(Number(lighting.heightScale), 1, 300)));
     deps.shadowStrengthInput.value = String(deps.clamp(Number(lighting.shadowStrength), 0, 1));
@@ -16,7 +17,7 @@ export function createLightingSettingsApplier(deps) {
     deps.volumetricAnisotropyInput.value = String(deps.clamp(Number(lighting.volumetricAnisotropy), 0, 0.95));
     deps.volumetricLengthInput.value = String(Math.round(deps.clamp(Number(lighting.volumetricLength), 8, 160)));
     deps.volumetricSamplesInput.value = String(Math.round(deps.clamp(Number(lighting.volumetricSamples), 4, 24)));
-    deps.cycleState.hour = deps.clamp(Number(uiState.cycleHour), 0, 24);
+    deps.cycleState.hour = Number.isFinite(cycleHour) ? deps.clamp(cycleHour, 0, 24) : deps.cycleState.hour;
     deps.cycleSpeedInput.value = String(deps.clamp(Number(timeState.cycleSpeedHoursPerSec), 0, 1));
     deps.simTickHoursInput.value = String(deps.normalizeSimTickHours(timeState.simTickHours));
     deps.pointFlickerToggle.checked = Boolean(lighting.pointFlickerEnabled);

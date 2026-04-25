@@ -1,5 +1,8 @@
 export function bindRenderFxControls(deps) {
   function dispatchRenderFxChange(section, patch, options = {}) {
+    if (!patch || typeof patch !== "object") {
+      throw new Error(`Unknown render FX section: ${section}`);
+    }
     deps.dispatchCoreCommand({
       type: "core/renderFx/changed",
       section,

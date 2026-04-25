@@ -46,11 +46,14 @@ export function createMapIoHelpers(deps) {
           if (response.status === 404 && missingInTauri) {
             throw createMissingJsonError(path);
           }
+          throw new Error(
+            `Fetch fallback failed for ${fileUrl}: HTTP ${response.status} ${response.statusText}. Original error: ${error}`,
+          );
         }
         if (missingInTauri) {
           throw createMissingJsonError(path);
         }
-        throw error;
+        throw new Error(`Fetch fallback unavailable for ${path}. Original error: ${error}`);
       }
     }
     const response = await fetch(path, { cache: "no-store" });

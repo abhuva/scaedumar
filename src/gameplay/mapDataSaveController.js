@@ -58,15 +58,24 @@ export function createMapDataSaveController(deps) {
     }
 
     if (typeof deps.showDirectoryPicker === "function") {
-      const dir = await deps.showDirectoryPicker();
-      for (const [name, text] of Object.entries(files)) {
-        const handle = await dir.getFileHandle(name, { create: true });
-        const writable = await handle.createWritable();
-        await writable.write(text);
-        await writable.close();
+      try {
+        const dir = await deps.showDirectoryPicker();
+        for (const [name, text] of Object.entries(files)) {
+          const handle = await dir.getFileHandle(name, { create: true });
+          const writable = await handle.createWritable();
+          await writable.write(text);
+          await writable.close();
+        }
+        deps.setStatus(`Saved map data (${names}) to selected folder. Recommended map path: ${folder}`);
+        return;
+      } catch (error) {
+        if (error && error.name === "AbortError") {
+          deps.setStatus("Save canceled by user.");
+          return;
+        }
+        console.warn("Native Save All failed, falling back to downloads.", error);
+        deps.setStatus("Native Save All failed. Trying browser fallback...");
       }
-      deps.setStatus(`Saved map data (${names}) to selected folder. Recommended map path: ${folder}`);
-      return;
     }
 
     for (const [name, text] of Object.entries(files)) {

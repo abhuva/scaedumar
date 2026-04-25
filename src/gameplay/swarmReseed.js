@@ -6,7 +6,7 @@ export function createSwarmReseeder(deps) {
     const maxSpeed = settings.maxSpeed;
     const minFlight = settings.minHeight;
     const maxFlight = settings.maxHeight;
-    const minSpeed = Math.max(10, maxSpeed * 0.45);
+    const minSpeed = Math.min(Math.max(10, maxSpeed * 0.45), maxSpeed);
     const variation = settings.variationStrengthPct * 0.01;
     const width = Math.max(1, deps.splatSize.width);
     const height = Math.max(1, deps.splatSize.height);

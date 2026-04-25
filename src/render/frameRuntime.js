@@ -20,10 +20,11 @@ export function createFrameRuntime(deps) {
     const simulationState = coreState.simulation || {};
     const simulationKnobs = simulationState.knobs || {};
     const simulationWeather = simulationState.weather || null;
+    const frameUi = deps.getFrameUiRuntime();
     const lightingParams = systemState.lighting && systemState.lighting.lightingParams
       ? systemState.lighting.lightingParams
       : deps.computeLightingParams(coreState);
-    deps.getFrameUiRuntime().syncFogAutoColorInput(lightingParams);
+    frameUi.syncFogAutoColorInput(lightingParams);
     const uniformInput = deps.buildUniformInputState({
       clamp: deps.clamp,
       getMapAspect: deps.getMapAspect,
@@ -43,7 +44,7 @@ export function createFrameRuntime(deps) {
       cloudTimeSec: smoothCloudTimeSec,
       waterTimeSec: routedTime.water.timeSec,
     });
-    const { cycleSpeed } = deps.getFrameUiRuntime().syncCycleInfoText(systemState);
+    const { cycleSpeed } = frameUi.syncCycleInfoText(systemState);
     deps.updateInfoPanel();
     deps.updateSwarmStatsPanel();
     deps.updateCycleHourLabel();

@@ -12,7 +12,7 @@ export function getBaseViewHalfExtents(deps) {
 export function getActiveCameraState(deps) {
   const camera = deps.getCameraState() || {};
   const rawZoom = Number(camera.zoom);
-  const zoomValue = Number.isFinite(rawZoom) && rawZoom > 0.000001 ? rawZoom : 1;
+  const zoomValue = Number.isFinite(rawZoom) && rawZoom > 0 ? rawZoom : 1;
   const panX = Number.isFinite(Number(camera.panX)) ? Number(camera.panX) : 0;
   const panY = Number.isFinite(Number(camera.panY)) ? Number(camera.panY) : 0;
   return { zoom: zoomValue, panX, panY };
@@ -22,7 +22,7 @@ export function getViewHalfExtents(deps) {
   const activeCamera = deps.getActiveCameraState();
   const hasExplicitZoom = deps.zoomValue != null && Number.isFinite(Number(deps.zoomValue));
   const rawZoom = hasExplicitZoom ? Number(deps.zoomValue) : activeCamera.zoom;
-  const resolvedZoom = rawZoom > 0.000001 ? rawZoom : 1;
+  const resolvedZoom = rawZoom > 0 ? rawZoom : 1;
   const base = deps.getBaseViewHalfExtents();
   return {
     x: base.x / resolvedZoom,
@@ -41,7 +41,7 @@ export function worldFromNdc(deps) {
   const activeCamera = deps.getActiveCameraState();
   const hasExplicitZoom = deps.zoomValue != null && Number.isFinite(Number(deps.zoomValue));
   const rawZoom = hasExplicitZoom ? Number(deps.zoomValue) : activeCamera.zoom;
-  const resolvedZoom = rawZoom > 0.000001 ? rawZoom : 1;
+  const resolvedZoom = rawZoom > 0 ? rawZoom : 1;
   const resolvedPan = deps.pan && Number.isFinite(Number(deps.pan.x)) && Number.isFinite(Number(deps.pan.y))
     ? deps.pan
     : { x: activeCamera.panX, y: activeCamera.panY };
@@ -80,13 +80,7 @@ export function mapPixelIndexToUv(deps) {
 }
 
 export function mapPixelToWorld(deps) {
-  const uv = deps.mapPixelIndexToUv(deps.pixelX, deps.pixelY);
-  const mapAspect = deps.getMapAspect();
-  const safeMapAspect = Number.isFinite(Number(mapAspect)) && Number(mapAspect) > 0 ? Number(mapAspect) : 1;
-  return {
-    x: (uv.x - 0.5) * safeMapAspect,
-    y: uv.y - 0.5,
-  };
+  return deps.mapCoordToWorld(deps.pixelX, deps.pixelY);
 }
 
 export function mapCoordToWorld(deps) {
