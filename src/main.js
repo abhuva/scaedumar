@@ -1447,8 +1447,8 @@ function serializeLightingSettingsLegacy() {
   return serializeLightingSettingsLegacyImpl();
 }
 
-function applyLightingSettingsLegacy(rawData) {
-  applyLightingSettingsLegacyImpl(rawData);
+function applyLightingSettingsLegacy() {
+  applyLightingSettingsLegacyImpl();
 }
 
 function serializeFogSettingsLegacy() {
@@ -1479,32 +1479,32 @@ function serializeSwarmDataLegacy() {
   return serializeSwarmDataImpl();
 }
 
-function applySwarmSettingsLegacy(rawData) {
-  applySwarmSettingsLegacyImpl(rawData);
+function applySwarmSettingsLegacy() {
+  applySwarmSettingsLegacyImpl();
 }
 
 function applySwarmData(rawData) {
   applySwarmDataImpl(rawData);
 }
 
-function applyFogSettingsLegacy(rawData) {
-  applyFogSettingsLegacyImpl(rawData);
+function applyFogSettingsLegacy() {
+  applyFogSettingsLegacyImpl();
 }
 
-function applyParallaxSettingsLegacy(rawData) {
-  applyParallaxSettingsLegacyImpl(rawData);
+function applyParallaxSettingsLegacy() {
+  applyParallaxSettingsLegacyImpl();
 }
 
-function applyCloudSettingsLegacy(rawData) {
-  applyCloudSettingsLegacyImpl(rawData);
+function applyCloudSettingsLegacy() {
+  applyCloudSettingsLegacyImpl();
 }
 
-function applyWaterSettingsLegacy(rawData) {
-  applyWaterSettingsLegacyImpl(rawData);
+function applyWaterSettingsLegacy() {
+  applyWaterSettingsLegacyImpl();
 }
 
-function applyInteractionSettingsLegacy(rawData) {
-  applyInteractionSettingsLegacyImpl(rawData);
+function applyInteractionSettingsLegacy() {
+  applyInteractionSettingsLegacyImpl();
 }
 
 function serializeSettingsByKey(key, fallbackSerialize) {
@@ -2770,6 +2770,7 @@ const movementSystem = createMovementSystem({
   getMapWidth: () => splatSize.width,
   getMapHeight: () => splatSize.height,
   computeMoveStepCost,
+  getMoveCostContext: () => pathfindingCostModel.createMoveCostContext(),
   rebuildMovementField,
   requestOverlayDraw,
   setStatus,
@@ -3945,6 +3946,7 @@ function computeMoveStepCost(fromX, fromY, toX, toY) {
 const pathfindingPreviewRuntime = createPathfindingPreviewRuntime({
   movementWindowBounds,
   computeMoveStepCost,
+  getMoveCostContext: () => pathfindingCostModel.createMoveCostContext(),
   playerState,
   getMovementField: () => movementField,
   setMovementField: (value) => {
@@ -4213,7 +4215,7 @@ const overlayHooks = createOverlayHooks({
 });
 
 function rgbToHex(rgb) {
-  return rgbToHexUtil(rgb, clamp);
+  return rgbToHexUtil(rgb);
 }
 
 function hexToRgb01(hex) {

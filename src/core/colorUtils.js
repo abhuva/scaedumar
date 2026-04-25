@@ -1,4 +1,6 @@
-export function rgbToHex(rgb, clamp) {
+import { clamp } from "./mathUtils.js";
+
+export function rgbToHex(rgb) {
   const r = Math.round(clamp(rgb[0], 0, 1) * 255);
   const g = Math.round(clamp(rgb[1], 0, 1) * 255);
   const b = Math.round(clamp(rgb[2], 0, 1) * 255);
@@ -8,7 +10,7 @@ export function rgbToHex(rgb, clamp) {
 export function hexToRgb01(hex, fallback = [0.5, 0.5, 0.5]) {
   const text = String(hex || "").trim();
   const match = /^#?([0-9a-fA-F]{6})$/.exec(text);
-  if (!match) return fallback;
+  if (!match) return [...fallback];
   const value = match[1];
   return [
     parseInt(value.slice(0, 2), 16) / 255,

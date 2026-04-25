@@ -35,6 +35,7 @@ export function createPointLightEditorController(deps) {
   }
 
   function findPointLightAtPixel(pixelX, pixelY, radiusPx = deps.selectRadiusPx) {
+    if (!Number.isFinite(radiusPx)) return null;
     const maxDistSq = radiusPx * radiusPx;
     let best = null;
     let bestDistSq = Infinity;
@@ -70,7 +71,22 @@ export function createPointLightEditorController(deps) {
   function deletePointLightById(id) {
     const idx = deps.pointLights.findIndex((light) => light.id === id);
     if (idx < 0) return false;
+    const removedWasSelected = deps.editorState.isSelectedLight(deps.pointLights[idx]);
     deps.pointLights.splice(idx, 1);
+    deps.bakePointLightsTexture();
+    const nextSelected = removedWasSelected
+      ? (deps.pointLights[Math.min(idx, Math.max(0, deps.pointLights.length - 1))] || null)
+      : getSelectedPointLight();
+    if (removedWasSelected) {
+      if (nextSelected) {
+        deps.editorState.setSelection(nextSelected);
+      } else {
+        deps.editorState.clearSelection();
+      }
+    }
+    applyDraftToSelectedPointLight();
+    notifySelectionChanged();
+    deps.setStatus("Point light deleted");
     return true;
   }
 

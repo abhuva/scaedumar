@@ -43,17 +43,20 @@ export function createMovementSystem(deps) {
     if (!Array.isArray(pathPixels) || pathPixels.length < 2) {
       return [];
     }
-    const tickHours = Math.max(0.0001, finite(simTickHours, 0.01));
+    void simTickHours;
+    const moveCostContext = typeof deps.getMoveCostContext === "function" ? deps.getMoveCostContext() : null;
     const queue = [];
     for (let i = 1; i < pathPixels.length; i++) {
       const from = pathPixels[i - 1];
       const to = pathPixels[i];
-      const cost = finite(deps.computeMoveStepCost(from.x, from.y, to.x, to.y), Number.POSITIVE_INFINITY);
+      const cost = finite(
+        deps.computeMoveStepCost(from.x, from.y, to.x, to.y, moveCostContext),
+        Number.POSITIVE_INFINITY,
+      );
       if (!Number.isFinite(cost) || cost <= 0) {
         return [];
       }
-      const hoursRequired = cost * tickHours;
-      const ticksRequired = Math.max(1, Math.ceil(hoursRequired / tickHours));
+      const ticksRequired = Math.max(1, Math.ceil(cost));
       queue.push({
         fromX: from.x,
         fromY: from.y,
@@ -61,7 +64,6 @@ export function createMovementSystem(deps) {
         toY: to.y,
         cost,
         ticksRequired,
-        hoursRequired,
       });
     }
     return queue;

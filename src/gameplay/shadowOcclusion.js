@@ -16,11 +16,11 @@ export function createShadowOcclusion(deps) {
     let rayX = mapX;
     let rayY = mapY;
     let traveledPixels = 0;
+    const splatSize = deps.getSplatSize();
     for (let i = 0; i < maxSteps; i++) {
       rayX += stepX;
       rayY += stepY;
       traveledPixels += stepPixels;
-      const splatSize = deps.getSplatSize();
       if (rayX <= 0 || rayY <= 0 || rayX >= splatSize.width - 1 || rayY >= splatSize.height - 1) {
         break;
       }

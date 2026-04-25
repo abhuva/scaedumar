@@ -1,6 +1,13 @@
 import { normalizeRuntimeMode } from "./modeCapabilities.js";
 import { registerInteractionCommands } from "../gameplay/interactionCommands.js";
 
+function normalizeHexColor(value, fallback = null) {
+  if (typeof value === "string" && /^#?[0-9a-fA-F]{6}$/.test(value)) {
+    return value.startsWith("#") ? value : `#${value}`;
+  }
+  return fallback;
+}
+
 export function registerMainCommands(commandBus, deps) {
   function getFallbackCameraPose() {
     return {
@@ -23,11 +30,12 @@ export function registerMainCommands(commandBus, deps) {
   }
 
   function applyCameraPose(ctx, pose, options = {}) {
-    const nextPanX = Number.isFinite(Number(pose && pose.panX)) ? Number(pose.panX) : getCameraPose(ctx).panX;
-    const nextPanY = Number.isFinite(Number(pose && pose.panY)) ? Number(pose.panY) : getCameraPose(ctx).panY;
+    const current = getCameraPose(ctx);
+    const nextPanX = Number.isFinite(Number(pose && pose.panX)) ? Number(pose.panX) : current.panX;
+    const nextPanY = Number.isFinite(Number(pose && pose.panY)) ? Number(pose.panY) : current.panY;
     const nextZoom = Number.isFinite(Number(pose && pose.zoom))
       ? deps.clamp(Number(pose.zoom), deps.zoomMin, deps.zoomMax)
-      : getCameraPose(ctx).zoom;
+      : current.zoom;
     ctx.store.update((prev) => ({
       ...prev,
       camera: {
@@ -217,14 +225,23 @@ export function registerMainCommands(commandBus, deps) {
       }));
     }
 
-    function normalizeHexColor(value, fallback) {
-      if (typeof value === "string" && /^#?[0-9a-fA-F]{6}$/.test(value)) {
-        return value.startsWith("#") ? value : `#${value}`;
-      }
-      return fallback;
-    }
-
     const action = String(command.action || "");
+    function handleHeightChange() {
+      let minHeight = Math.round(deps.clamp(Number(command.minHeight), 0, 256));
+      let maxHeight = Math.round(deps.clamp(Number(command.maxHeight), 0, 256));
+      if (minHeight > maxHeight) {
+        if (action === "minHeightChanged") {
+          maxHeight = minHeight;
+        } else {
+          minHeight = maxHeight;
+        }
+      }
+      deps.swarmMinHeightInput.value = String(minHeight);
+      deps.swarmMaxHeightInput.value = String(maxHeight);
+      updateSwarmSettings({ minHeight, maxHeight });
+      deps.updateSwarmLabels();
+      deps.reseedSwarmAgents(deps.swarmState.count);
+    }
     switch (action) {
       case "showTerrainChanged":
         updateSwarmSettings({ showTerrainInSwarm: Boolean(command.value) });
@@ -444,30 +461,9 @@ export function registerMainCommands(commandBus, deps) {
         deps.reseedSwarmAgents(deps.swarmState.count || deps.getSwarmSettings().agentCount);
         break;
       }
-      case "minHeightChanged": {
-        let minHeight = Math.round(deps.clamp(Number(command.minHeight), 0, 256));
-        let maxHeight = Math.round(deps.clamp(Number(command.maxHeight), 0, 256));
-        if (minHeight > maxHeight) {
-          maxHeight = minHeight;
-        }
-        deps.swarmMinHeightInput.value = String(minHeight);
-        deps.swarmMaxHeightInput.value = String(maxHeight);
-        updateSwarmSettings({ minHeight, maxHeight });
-        deps.updateSwarmLabels();
-        deps.reseedSwarmAgents(deps.swarmState.count);
-        break;
-      }
+      case "minHeightChanged":
       case "maxHeightChanged": {
-        let minHeight = Math.round(deps.clamp(Number(command.minHeight), 0, 256));
-        let maxHeight = Math.round(deps.clamp(Number(command.maxHeight), 0, 256));
-        if (minHeight > maxHeight) {
-          minHeight = maxHeight;
-        }
-        deps.swarmMinHeightInput.value = String(minHeight);
-        deps.swarmMaxHeightInput.value = String(maxHeight);
-        updateSwarmSettings({ minHeight, maxHeight });
-        deps.updateSwarmLabels();
-        deps.reseedSwarmAgents(deps.swarmState.count);
+        handleHeightChange();
         break;
       }
       case "hawkEnabledChanged": {
@@ -624,7 +620,7 @@ export function registerMainCommands(commandBus, deps) {
   commandBus.register("core/time/setRouting", (command, ctx) => {
     const target = String(command.target || "");
     const mode = command.mode === "detached" ? "detached" : "global";
-    const allowedTargets = new Set(["movement", "swarm", "clouds", "water", "weather"]);
+    const allowedTargets = new Set(["swarm", "clouds", "water"]);
     if (!allowedTargets.has(target)) return;
     if (target === "swarm" && deps.swarmTimeRoutingInput) {
       deps.swarmTimeRoutingInput.value = mode;
@@ -698,9 +694,10 @@ export function registerMainCommands(commandBus, deps) {
   });
 
   commandBus.register("core/cursorLight/setColor", (command, ctx) => {
+    const colorHex = normalizeHexColor(command.colorHex, "#ff9b2f");
     deps.applyCursorLightConfigSnapshot({
       ...deps.getCursorLightSnapshot(),
-      colorHex: typeof command.colorHex === "string" ? command.colorHex : "#ff9b2f",
+      colorHex,
     });
     syncCursorLightToStore(ctx);
     deps.requestOverlayDraw();

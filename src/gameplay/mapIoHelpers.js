@@ -22,8 +22,11 @@ export function createMapIoHelpers(deps) {
           if (response.ok) {
             return response.json();
           }
+          throw new Error(
+            `Fetch fallback failed for ${fileUrl}: HTTP ${response.status} ${response.statusText}. Original error: ${error}`,
+          );
         }
-        throw error;
+        throw new Error(`Fetch fallback unavailable for ${path}. Original error: ${error}`);
       }
     }
     const response = await fetch(path, { cache: "no-store" });

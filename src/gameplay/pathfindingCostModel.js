@@ -26,16 +26,26 @@ export function createPathfindingCostModel(deps) {
     };
   }
 
-  function computeMoveStepCost(fromX, fromY, toX, toY) {
-    const pathfinding = deps.getPathfindingStateSnapshot();
+  function createMoveCostContext() {
+    return {
+      pathfindingSnapshot: deps.getPathfindingStateSnapshot(),
+      slopeImage: deps.getSlopeImageData(),
+      heightImage: deps.getHeightImageData(),
+      waterImage: deps.getWaterImageData(),
+    };
+  }
+
+  function computeMoveStepCost(fromX, fromY, toX, toY, moveCostContext = null) {
+    const context = moveCostContext || createMoveCostContext();
+    const pathfinding = context.pathfindingSnapshot;
     const isDiag = fromX !== toX && fromY !== toY;
     const dist = isDiag ? Math.SQRT2 : 1;
-    const slope = getGrayAt(deps.getSlopeImageData(), toX, toY);
-    const sourceHeight = getGrayAt(deps.getHeightImageData(), fromX, fromY);
-    const destHeight = getGrayAt(deps.getHeightImageData(), toX, toY);
+    const slope = getGrayAt(context.slopeImage, toX, toY);
+    const sourceHeight = getGrayAt(context.heightImage, fromX, fromY);
+    const destHeight = getGrayAt(context.heightImage, toX, toY);
     const heightDelta = destHeight - sourceHeight;
     const uphill = Math.max(heightDelta, 0);
-    const water = getGrayAt(deps.getWaterImageData(), toX, toY);
+    const water = getGrayAt(context.waterImage, toX, toY);
     const slopeDeg = slope * 90;
     const slopeCutoffDeg = pathfinding.slopeCutoff;
     if (slopeDeg > slopeCutoffDeg) {
@@ -52,6 +62,7 @@ export function createPathfindingCostModel(deps) {
   return {
     getGrayAt,
     movementWindowBounds,
+    createMoveCostContext,
     computeMoveStepCost,
   };
 }

@@ -17,6 +17,10 @@ export function createMapRuntimeState(deps) {
 
   function applyMapSizeChangeIfNeeded(changed) {
     if (!changed) return;
+    rebuildLightsAndReseed();
+  }
+
+  function rebuildLightsAndReseed() {
     deps.clearPointLights();
     deps.bakePointLightsTexture();
     deps.updateLightEditorUi();
@@ -24,11 +28,8 @@ export function createMapRuntimeState(deps) {
   }
 
   function resetMapRuntimeStateAfterImages() {
-    deps.clearPointLights();
-    deps.bakePointLightsTexture();
-    deps.updateLightEditorUi();
+    rebuildLightsAndReseed();
     applyDefaultMapSettings();
-    deps.reseedSwarmAgents(deps.getSwarmSettings().agentCount);
     deps.requestOverlayDraw();
   }
 

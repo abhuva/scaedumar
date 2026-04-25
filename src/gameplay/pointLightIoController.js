@@ -98,22 +98,29 @@ export function createPointLightIoController(deps) {
     }
 
     if (typeof deps.showSaveFilePicker === "function") {
-      const handle = await deps.showSaveFilePicker({
-        suggestedName: "pointlights.json",
-        types: [
-          {
-            description: "JSON",
-            accept: { "application/json": [".json"] },
-          },
-        ],
-      });
-      const writable = await handle.createWritable();
-      await writable.write(text);
-      await writable.close();
-      deps.setStatus(
-        `Saved ${payload.lights.length} point lights. Place pointlights.json in ${deps.normalizeMapFolderPath(currentMapFolderPath)} for map reloads.`,
-      );
-      return;
+      try {
+        const handle = await deps.showSaveFilePicker({
+          suggestedName: "pointlights.json",
+          types: [
+            {
+              description: "JSON",
+              accept: { "application/json": [".json"] },
+            },
+          ],
+        });
+        const writable = await handle.createWritable();
+        await writable.write(text);
+        await writable.close();
+        deps.setStatus(
+          `Saved ${payload.lights.length} point lights. Place pointlights.json in ${deps.normalizeMapFolderPath(currentMapFolderPath)} for map reloads.`,
+        );
+        return;
+      } catch (error) {
+        if (error && (error.name === "AbortError" || (typeof DOMException !== "undefined" && error instanceof DOMException && error.name === "AbortError"))) {
+          return;
+        }
+        console.error("Browser pointlights save failed, falling back to download.", error);
+      }
     }
 
     deps.downloadTextFile("pointlights.json", text);

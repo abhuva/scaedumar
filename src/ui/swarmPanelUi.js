@@ -110,7 +110,6 @@ export function createSwarmPanelUi(deps) {
     const showStatsPanel = Boolean(getSwarmSettings().showStatsPanel);
     swarmStatsPanelEl.hidden = !showStatsPanel;
     swarmStatsPanelEl.classList.toggle("hidden", !showStatsPanel);
-    swarmStatsPanelEl.style.display = showStatsPanel ? "block" : "none";
   }
 
   function updateSwarmUi() {

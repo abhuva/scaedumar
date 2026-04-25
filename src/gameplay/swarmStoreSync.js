@@ -9,17 +9,27 @@ export function getSwarmRuntimeStateSnapshot(deps) {
 
 export function syncSwarmFollowToStore(deps) {
   const runtimeSwarm = deps.getSwarmRuntimeStateSnapshot();
-  deps.store.update((prev) => ({
-    ...prev,
-    gameplay: {
-      ...prev.gameplay,
-      swarm: {
-        ...prev.gameplay.swarm,
-        followEnabled: runtimeSwarm.followEnabled,
-        followTargetType: runtimeSwarm.followTargetType,
+  deps.store.update((prev) => {
+    const prevGameplay = prev.gameplay || {};
+    const prevSwarm = prevGameplay.swarm || {};
+    if (
+      Boolean(prevSwarm.followEnabled) === runtimeSwarm.followEnabled
+      && String(prevSwarm.followTargetType || "agent") === runtimeSwarm.followTargetType
+    ) {
+      return prev;
+    }
+    return {
+      ...prev,
+      gameplay: {
+        ...prevGameplay,
+        swarm: {
+          ...prevSwarm,
+          followEnabled: runtimeSwarm.followEnabled,
+          followTargetType: runtimeSwarm.followTargetType,
+        },
       },
-    },
-  }));
+    };
+  });
 }
 
 export function syncSwarmRuntimeStateToStore(deps) {

@@ -1,5 +1,11 @@
 export function createRenderFxSettingsApplier(deps) {
-  function applyFogSettingsLegacy(rawData) {
+  function normalizeDegrees(value) {
+    const deg = Number(value);
+    if (!Number.isFinite(deg)) return 0;
+    return ((deg % 360) + 360) % 360;
+  }
+
+  function applyFogSettingsLegacy() {
     const fog = deps.getFogSettings();
     deps.fogToggle.checked = Boolean(fog.useFog);
     deps.fogColorInput.value = typeof fog.fogColor === "string"
@@ -16,7 +22,7 @@ export function createRenderFxSettingsApplier(deps) {
     deps.updateFogUi();
   }
 
-  function applyParallaxSettingsLegacy(rawData) {
+  function applyParallaxSettingsLegacy() {
     const parallax = deps.getParallaxSettings();
     deps.parallaxToggle.checked = Boolean(parallax.useParallax);
     deps.parallaxStrengthInput.value = String(deps.clamp(Number(parallax.parallaxStrength), 0, 1));
@@ -26,7 +32,7 @@ export function createRenderFxSettingsApplier(deps) {
     deps.updateParallaxUi();
   }
 
-  function applyCloudSettingsLegacy(rawData) {
+  function applyCloudSettingsLegacy() {
     const clouds = deps.getCloudSettings();
     const timeState = deps.getTimeState();
     deps.cloudToggle.checked = Boolean(clouds.useClouds);
@@ -43,14 +49,14 @@ export function createRenderFxSettingsApplier(deps) {
     deps.updateCloudUi();
   }
 
-  function applyWaterSettingsLegacy(rawData) {
+  function applyWaterSettingsLegacy() {
     const water = deps.getWaterSettings();
     const timeState = deps.getTimeState();
     deps.waterFxToggle.checked = Boolean(water.useWaterFx);
     deps.waterFlowDownhillToggle.checked = Boolean(water.waterFlowDownhill);
     deps.waterFlowInvertDownhillToggle.checked = Boolean(water.waterFlowInvertDownhill);
     deps.waterFlowDebugToggle.checked = Boolean(water.waterFlowDebug);
-    deps.waterFlowDirectionInput.value = String(Math.round(deps.clamp(Number(water.waterFlowDirectionDeg), 0, 360)));
+    deps.waterFlowDirectionInput.value = String(Math.round(normalizeDegrees(water.waterFlowDirectionDeg)));
     deps.waterLocalFlowMixInput.value = String(deps.clamp(Number(water.waterLocalFlowMix), 0, 1));
     deps.waterDownhillBoostInput.value = String(deps.clamp(Number(water.waterDownhillBoost), 0, 4));
     deps.waterFlowRadius1Input.value = String(Math.round(deps.clamp(Number(water.waterFlowRadius1), 1, 12)));

@@ -55,7 +55,7 @@ export function extractImageData(source) {
   const c = document.createElement("canvas");
   c.width = width;
   c.height = height;
-  const ctx = c.getContext("2d");
+  const ctx = c.getContext("2d", { willReadFrequently: true });
   ctx.drawImage(source, 0, 0);
   return ctx.getImageData(0, 0, width, height);
 }

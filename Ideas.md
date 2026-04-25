@@ -185,14 +185,14 @@ if a hawk kills a bird for example, there should be a blood-splatter on the grou
 
 #### **use animals to scout** 
 like with a shaman or drugs or similar, you connect your mind with an animal and view the world through them --> particle system follow hawk, follow birds etc...
-  this should be coupled with a sort of "fog of war". Can be saved in a texture. One channel is wether we see the terrain or not, other channel is for wether we get updated info from systems (like predator prey, vegetation etc)
+  this should be coupled with a sort of "fog of war". Can be saved in a texture. One channel is whether we see the terrain or not, other channel is for whether we get updated info from systems (like predator prey, vegetation etc)
   When we use animals, we have a far greater range.
   
-  This can be extended. At the start we can only "posess" like a bird (slow) near us (this range can be extended through progression). First only for a couple seconds.
+  This can be extended. At the start we can only "possess" like a bird (slow) near us (this range can be extended through progression). First only for a couple seconds.
   Later we might be able to use a hawk endlessly or even control it...  
   
   We can utilize lots of similar predator/prey swarm systems: birds+hawks, rabbits+foxes, deer+wolves
-  The idea of those systems would be to add some kind of unique behaviour to each type of creature. So that posessing them feels different.
+  The idea of those systems would be to add some kind of unique behaviour to each type of creature. So that possessing them feels different.
   Gameplay wise there should be a progression (with occasional hints further down the road):
   - rabbits (slow, low range)
   - deer (bit faster, slightly wider range)
@@ -201,9 +201,9 @@ like with a shaman or drugs or similar, you connect your mind with an animal and
   - wolves(faster+, range++)
   - hawks(faster+++, range+++)
   
-  Like, the first encounter with the system could be with birds (wich give the wow effect), but then you have to work your way up.
+  Like, the first encounter with the system could be with birds (which give the wow effect), but then you have to work your way up.
   
-  Also important: wich agent do we actually posess:
+  Also important: which agent do we actually possess:
 -  based on range (here we can increase range through progression)
 - spawn own agent (like a pet)
 	- this could act like a normal pet of this type
@@ -212,13 +212,13 @@ like with a shaman or drugs or similar, you connect your mind with an animal and
 
 #### **resources change and make scouting a constant action** 
 
-to tie the animal posessing thing even more in, beyond just a visual gimmick - resources on a whole scale will vary (wildlife, plants etc.). The variation comes through the player, natural fluctutation etc. 
+to tie the animal possessing thing even more in, beyond just a visual gimmick - resources on a whole scale will vary (wildlife, plants etc.). The variation comes through the player, natural fluctuation etc.
   The trick is: the longer it is away that we visited or watched a place, the more inaccurate this information gets. 
-  Time is stored basically in the fog-of-war map, in a channel. freshly discovered is 255 and then it decreases (or the other way around). once a day this gets recalculated (everything goes doewn).
+  Time is stored basically in the fog-of-war map, in a channel. freshly discovered is 255 and then it decreases (or the other way around). once a day this gets recalculated (everything goes down).
   When we now check on a resource (out of memory so to say) that is not nearby - we get not the true value, but a distorted one - depending on how long away it is (this needs to be finetuned of course)
   Resources might also pop up (large concentrations).
   
-  Overall the goal is that you have to plan where to go, as movement is time and resource intensiv. So you want to be sure that you get good resources - this helps to tie the animal posessing/scouting mechanic in more.
+  Overall the goal is that you have to plan where to go, as movement is time and resource intensive. So you want to be sure that you get good resources - this helps to tie the animal possessing/scouting mechanic in more.
 
 --> when we gather resources, this map should be updated (set to empty at this area, so we enforce change)
 
@@ -485,10 +485,10 @@ so once he is moving, the light moves with
 ## Sound
 
 ### **Sound Design**
-[spektrogram + painting sound](https://www.youtube.com/watch?v=08mmKNLQVHU) The idea with the painting sound could be used to compress sound greatly and "pixelize" it. Its worth exploring. We could use real sounds of animals - run it through this spectrocram thing and only record the "dark areas" as points. Like lets say its 50 points. A 10x10 texture could store 100 points. I need only x,y coords to restore it (r+g channel), but we could also record the brightness for even more info in the b channel.
+[spektrogram + painting sound](https://www.youtube.com/watch?v=08mmKNLQVHU) The idea with the painting sound could be used to compress sound greatly and "pixelize" it. Its worth exploring. We could use real sounds of animals - run it through this spectrogram thing and only record the "dark areas" as points. Like lets say its 50 points. A 10x10 texture could store 100 points. I need only x,y coords to restore it (r+g channel), but we could also record the brightness for even more info in the b channel.
   A normal texture (png, no alpha) with 1024x1024 would hold still 100 audio even if we increased up to 100x100 and therefor 10k points resolution (longer time).
   The interesting part is of course not the save-spacing. Its more the "synthetic sound".
-  This could be coupled with an inbuild synth. And some sound systems that drive ambient music. fully synthesized.
+  This could be coupled with a built-in synth. And some sound systems that drive ambient music. fully synthesized.
 
 
 ## Interesting Links

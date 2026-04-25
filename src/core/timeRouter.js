@@ -7,6 +7,15 @@ export const SIM_SECONDS_PER_HOUR = 1 / BASE_GLOBAL_HOURS_PER_SECOND;
 const ROUTE_GLOBAL = "global";
 const ROUTE_DETACHED = "detached";
 
+// Fixed-timestep routing model:
+// BASE_GLOBAL_HOURS_PER_SECOND and SIM_SECONDS_PER_HOUR convert simulation
+// ticks into wall-clock seconds. globalDtSec and globalTimeSec are advanced
+// only by whole ticks, so globalDtSec can be 0 on frames that process no
+// ticks. interpolationAlpha carries the fractional remainder for smoothing
+// between those discrete updates. ROUTE_GLOBAL consumers should use the
+// integer-tick values plus interpolationAlpha, while ROUTE_DETACHED consumers
+// should use the continuous detachedDtSec path from getRoutedSystemTime.
+
 function finite(value, fallback) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;

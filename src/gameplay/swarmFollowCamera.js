@@ -1,4 +1,8 @@
 export function createSwarmFollowCameraUpdater(deps) {
+  function clampSmoothing(value) {
+    return deps.clamp(Number(value), 0, 1);
+  }
+
   return function updateSwarmFollowCamera() {
     if (!deps.swarmFollowState.enabled) return;
     if (!deps.isSwarmEnabled() || deps.swarmState.count <= 0) {
@@ -27,13 +31,15 @@ export function createSwarmFollowCameraUpdater(deps) {
       let nextZoom = deps.getZoom();
       if (settings.followZoomBySpeed) {
         const speedNormRaw = deps.clamp(Math.hypot(hawk.vx, hawk.vy) / Math.max(1, settings.hawkSpeed), 0, 1);
+        const speedSmoothing = clampSmoothing(settings.followAgentSpeedSmoothing);
+        const zoomSmoothing = clampSmoothing(settings.followAgentZoomSmoothing);
         if (!Number.isFinite(deps.swarmFollowState.speedNormFiltered)) {
           deps.swarmFollowState.speedNormFiltered = speedNormRaw;
         } else {
-          deps.swarmFollowState.speedNormFiltered += (speedNormRaw - deps.swarmFollowState.speedNormFiltered) * 0.18;
+          deps.swarmFollowState.speedNormFiltered += (speedNormRaw - deps.swarmFollowState.speedNormFiltered) * speedSmoothing;
         }
         const targetZoom = settings.followZoomIn + (settings.followZoomOut - settings.followZoomIn) * deps.swarmFollowState.speedNormFiltered;
-        nextZoom = deps.clamp(deps.getZoom() + (targetZoom - deps.getZoom()) * 0.14, deps.zoomMin, deps.zoomMax);
+        nextZoom = deps.clamp(deps.getZoom() + (targetZoom - deps.getZoom()) * zoomSmoothing, deps.zoomMin, deps.zoomMax);
       }
       deps.dispatchCoreCommand({
         type: "core/camera/setPose",
@@ -67,11 +73,11 @@ export function createSwarmFollowCameraUpdater(deps) {
       if (!Number.isFinite(deps.swarmFollowState.speedNormFiltered)) {
         deps.swarmFollowState.speedNormFiltered = speedNormRaw;
       } else {
-        deps.swarmFollowState.speedNormFiltered += (speedNormRaw - deps.swarmFollowState.speedNormFiltered) * settings.followAgentSpeedSmoothing;
+        deps.swarmFollowState.speedNormFiltered += (speedNormRaw - deps.swarmFollowState.speedNormFiltered) * clampSmoothing(settings.followAgentSpeedSmoothing);
       }
       const targetZoom = settings.followZoomIn + (settings.followZoomOut - settings.followZoomIn) * deps.swarmFollowState.speedNormFiltered;
       nextZoom = deps.clamp(
-        deps.getZoom() + (targetZoom - deps.getZoom()) * settings.followAgentZoomSmoothing,
+        deps.getZoom() + (targetZoom - deps.getZoom()) * clampSmoothing(settings.followAgentZoomSmoothing),
         deps.zoomMin,
         deps.zoomMax,
       );

@@ -36,53 +36,23 @@ export function createSwarmAgentStateMutator(deps) {
       return true;
     }
 
-    const nextX = new Float32Array(newCount);
-    const nextY = new Float32Array(newCount);
-    const nextZ = new Float32Array(newCount);
-    const nextVx = new Float32Array(newCount);
-    const nextVy = new Float32Array(newCount);
-    const nextVz = new Float32Array(newCount);
-    const nextSpeedScale = new Float32Array(newCount);
-    const nextSteerScale = new Float32Array(newCount);
-    const nextIsResting = new Uint8Array(newCount);
-    const nextRestTicksLeft = new Uint16Array(newCount);
-    const nextAx = new Float32Array(newCount);
-    const nextAy = new Float32Array(newCount);
-    const nextAz = new Float32Array(newCount);
-
-    let w = 0;
-    for (let i = 0; i < oldCount; i++) {
-      if (i === removeIndex) continue;
-      nextX[w] = deps.swarmState.x[i];
-      nextY[w] = deps.swarmState.y[i];
-      nextZ[w] = deps.swarmState.z[i];
-      nextVx[w] = deps.swarmState.vx[i];
-      nextVy[w] = deps.swarmState.vy[i];
-      nextVz[w] = deps.swarmState.vz[i];
-      nextSpeedScale[w] = deps.swarmState.speedScale[i];
-      nextSteerScale[w] = deps.swarmState.steerScale[i];
-      nextIsResting[w] = deps.swarmState.isResting[i];
-      nextRestTicksLeft[w] = deps.swarmState.restTicksLeft[i];
-      nextAx[w] = deps.swarmState.ax[i];
-      nextAy[w] = deps.swarmState.ay[i];
-      nextAz[w] = deps.swarmState.az[i];
-      w++;
+    const lastIndex = oldCount - 1;
+    if (removeIndex !== lastIndex) {
+      deps.swarmState.x[removeIndex] = deps.swarmState.x[lastIndex];
+      deps.swarmState.y[removeIndex] = deps.swarmState.y[lastIndex];
+      deps.swarmState.z[removeIndex] = deps.swarmState.z[lastIndex];
+      deps.swarmState.vx[removeIndex] = deps.swarmState.vx[lastIndex];
+      deps.swarmState.vy[removeIndex] = deps.swarmState.vy[lastIndex];
+      deps.swarmState.vz[removeIndex] = deps.swarmState.vz[lastIndex];
+      deps.swarmState.speedScale[removeIndex] = deps.swarmState.speedScale[lastIndex];
+      deps.swarmState.steerScale[removeIndex] = deps.swarmState.steerScale[lastIndex];
+      deps.swarmState.isResting[removeIndex] = deps.swarmState.isResting[lastIndex];
+      deps.swarmState.restTicksLeft[removeIndex] = deps.swarmState.restTicksLeft[lastIndex];
+      deps.swarmState.ax[removeIndex] = deps.swarmState.ax[lastIndex];
+      deps.swarmState.ay[removeIndex] = deps.swarmState.ay[lastIndex];
+      deps.swarmState.az[removeIndex] = deps.swarmState.az[lastIndex];
     }
-
     deps.swarmState.count = newCount;
-    deps.swarmState.x = nextX;
-    deps.swarmState.y = nextY;
-    deps.swarmState.z = nextZ;
-    deps.swarmState.vx = nextVx;
-    deps.swarmState.vy = nextVy;
-    deps.swarmState.vz = nextVz;
-    deps.swarmState.speedScale = nextSpeedScale;
-    deps.swarmState.steerScale = nextSteerScale;
-    deps.swarmState.isResting = nextIsResting;
-    deps.swarmState.restTicksLeft = nextRestTicksLeft;
-    deps.swarmState.ax = nextAx;
-    deps.swarmState.ay = nextAy;
-    deps.swarmState.az = nextAz;
 
     const hawkTargetRange = deps.getSwarmSettings().hawkTargetRange;
     for (const hawk of deps.swarmState.hawks) {
@@ -92,8 +62,8 @@ export function createSwarmAgentStateMutator(deps) {
       }
       if (hawk.targetIndex === removeIndex) {
         hawk.targetIndex = deps.chooseRandomSwarmTargetIndexNear(hawk.x, hawk.y, hawkTargetRange);
-      } else if (hawk.targetIndex > removeIndex) {
-        hawk.targetIndex -= 1;
+      } else if (hawk.targetIndex === lastIndex && removeIndex !== lastIndex) {
+        hawk.targetIndex = removeIndex;
       }
     }
 
@@ -103,8 +73,8 @@ export function createSwarmAgentStateMutator(deps) {
         if (deps.swarmFollowState.agentIndex < 0) {
           deps.stopSwarmFollow({ resetSpeed: true });
         }
-      } else if (deps.swarmFollowState.agentIndex > removeIndex) {
-        deps.swarmFollowState.agentIndex -= 1;
+      } else if (deps.swarmFollowState.agentIndex === lastIndex && removeIndex !== lastIndex) {
+        deps.swarmFollowState.agentIndex = removeIndex;
       }
     }
 

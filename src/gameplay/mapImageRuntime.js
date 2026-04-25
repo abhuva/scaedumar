@@ -38,7 +38,6 @@ export function createMapImageRuntime(deps) {
   async function applyMapImages(splatImage, normalsImage, heightImage, slopeImage, waterImage) {
     deps.uploadImageToTexture(deps.splatTex, splatImage);
     const sizeChanged = setSplatSizeFromImage(splatImage);
-    deps.applyMapSizeChangeIfNeeded(sizeChanged);
     deps.resetCamera();
 
     deps.uploadImageToTexture(deps.normalsTex, normalsImage);
@@ -54,6 +53,7 @@ export function createMapImageRuntime(deps) {
     deps.setWaterImageData(deps.extractImageData(waterImage));
     syncPointLightWorkerMapData();
     deps.syncMapStateToStore();
+    deps.applyMapSizeChangeIfNeeded(sizeChanged);
   }
 
   return {

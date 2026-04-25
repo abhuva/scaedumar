@@ -1,12 +1,6 @@
 export function createTimeSystem(deps) {
   return {
     update(ctx, state) {
-      const clock = state && state.clock ? state.clock : null;
-      const time = state && state.systems && state.systems.time ? state.systems.time : null;
-      const rawCycleSpeed = clock && Number.isFinite(Number(clock.timeScale))
-        ? Number(clock.timeScale)
-        : (time && Number.isFinite(Number(time.cycleSpeedHoursPerSec)) ? Number(time.cycleSpeedHoursPerSec) : 0);
-      const cycleSpeedHoursPerSec = deps.clamp(rawCycleSpeed, 0, 1);
       const frameTime = ctx && ctx.time ? ctx.time : null;
       const globalHoursAdvanced = frameTime && Number.isFinite(Number(frameTime.globalHoursAdvanced))
         ? Number(frameTime.globalHoursAdvanced)

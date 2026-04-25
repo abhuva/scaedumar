@@ -1,7 +1,11 @@
 export function createSwarmInterpolation(deps) {
   function capturePreviousState() {
     const count = Math.max(0, deps.swarmState.count | 0);
-    if (deps.swarmRenderState.prevX.length !== count) {
+    if (
+      deps.swarmRenderState.prevX.length !== count
+      || deps.swarmRenderState.prevY.length !== count
+      || deps.swarmRenderState.prevZ.length !== count
+    ) {
       deps.swarmRenderState.prevX = new Float32Array(count);
       deps.swarmRenderState.prevY = new Float32Array(count);
       deps.swarmRenderState.prevZ = new Float32Array(count);
@@ -12,7 +16,11 @@ export function createSwarmInterpolation(deps) {
       deps.swarmRenderState.prevZ.set(deps.swarmState.z);
     }
     const hawkCount = deps.swarmState.hawks.length;
-    if (deps.swarmRenderState.prevHawkX.length !== hawkCount) {
+    if (
+      deps.swarmRenderState.prevHawkX.length !== hawkCount
+      || deps.swarmRenderState.prevHawkY.length !== hawkCount
+      || deps.swarmRenderState.prevHawkZ.length !== hawkCount
+    ) {
       deps.swarmRenderState.prevHawkX = new Float32Array(hawkCount);
       deps.swarmRenderState.prevHawkY = new Float32Array(hawkCount);
       deps.swarmRenderState.prevHawkZ = new Float32Array(hawkCount);

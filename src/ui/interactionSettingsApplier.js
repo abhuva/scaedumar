@@ -1,5 +1,5 @@
 export function createInteractionSettingsApplier(deps) {
-  return function applyInteractionSettingsLegacy(rawData) {
+  return function applyInteractionSettingsLegacy() {
     const pathfinding = deps.getPathfindingStateSnapshot();
     deps.pathfindingRangeInput.value = String(pathfinding.range);
     deps.pathWeightSlopeInput.value = String(pathfinding.weightSlope);

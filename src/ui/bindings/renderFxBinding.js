@@ -82,7 +82,7 @@ export function bindRenderFxControls(deps) {
       };
     }
 
-    return null;
+    throw new Error(`Unknown render FX section: ${section}`);
   }
 
   function dispatchRenderFxChange(section, options = {}) {
