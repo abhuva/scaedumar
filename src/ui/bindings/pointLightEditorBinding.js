@@ -70,7 +70,16 @@ export function bindPointLightEditorControls(deps) {
   });
 
   deps.pointLightLiveUpdateToggle.addEventListener("change", () => {
-    if (deps.pointLightLiveUpdateToggle.checked) {
+    const liveUpdate = Boolean(deps.pointLightLiveUpdateToggle.checked);
+    if (typeof deps.dispatchCoreCommand === "function") {
+      deps.dispatchCoreCommand({
+        type: "core/pointLights/setLiveUpdate",
+        liveUpdate,
+      });
+    } else if (typeof deps.syncPointLightsStateToStore === "function") {
+      deps.syncPointLightsStateToStore(liveUpdate);
+    }
+    if (liveUpdate) {
       deps.rebakeIfPointLightLiveUpdateEnabled();
       deps.setStatus("Point-light live update enabled.");
       return;

@@ -33,7 +33,7 @@ export function bindCanvasControls(deps) {
     deps.updateCursorLightFromPointer(e.clientX, e.clientY);
     deps.updatePathPreviewFromPointer(e.clientX, e.clientY);
     if (!deps.isMiddleDragging()) {
-      if (deps.cursorLightModeToggle.checked || deps.getInteractionMode() === "pathfinding") {
+      if (deps.isCursorLightEnabled() || deps.getInteractionMode() === "pathfinding") {
         deps.requestOverlayDraw();
       }
       return;

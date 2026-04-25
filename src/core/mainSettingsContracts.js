@@ -13,6 +13,7 @@ export const DEFAULT_LIGHTING_SETTINGS = {
   volumetricSamples: 12,
   cycleHour: 9.5,
   cycleSpeed: 0.08,
+  simTickHours: 0.01,
   pointFlickerEnabled: true,
   pointFlickerStrength: 0.55,
   pointFlickerSpeed: 2.4,
@@ -41,10 +42,11 @@ export const DEFAULT_CLOUD_SETTINGS = {
   cloudSoftness: 0.12,
   cloudOpacity: 0.35,
   cloudScale: 2.2,
-  cloudSpeed1: 0.045,
-  cloudSpeed2: -0.028,
+  cloudSpeed1: 0.018,
+  cloudSpeed2: -0.012,
   cloudSunParallax: 0.45,
   cloudUseSunProjection: true,
+  timeRouting: "global",
 };
 
 export const DEFAULT_WATER_SETTINGS = {
@@ -72,6 +74,7 @@ export const DEFAULT_WATER_SETTINGS = {
   waterReflectivity: 0.33,
   waterTintColor: "#4aa6c8",
   waterTintStrength: 0.2,
+  timeRouting: "detached",
 };
 
 export const DEFAULT_INTERACTION_SETTINGS = {
@@ -128,6 +131,7 @@ export const DEFAULT_SWARM_SETTINGS = {
   hawkSpeed: 180,
   hawkSteering: 240,
   hawkTargetRange: 180,
+  timeRouting: "global",
 };
 
 function createObjectValidator() {

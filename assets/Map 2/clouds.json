@@ -8,5 +8,6 @@
   "cloudSpeed1": 0.01,
   "cloudSpeed2": -0.01,
   "cloudSunParallax": 0.45,
-  "cloudUseSunProjection": true
+  "cloudUseSunProjection": true,
+  "timeRouting": "global"
 }

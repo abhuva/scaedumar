@@ -10,6 +10,9 @@ export function createRenderResources(deps) {
   };
 
   return {
+    hasDrawableSurface() {
+      return deps.canvas.width > 0 && deps.canvas.height > 0;
+    },
     setViewport() {
       deps.gl.viewport(0, 0, deps.canvas.width, deps.canvas.height);
     },

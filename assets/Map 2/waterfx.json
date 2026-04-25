@@ -23,5 +23,6 @@
   "waterShoreWidth": 2.2,
   "waterReflectivity": 0.24,
   "waterTintColor": "#4aa6c8",
-  "waterTintStrength": 0.2
+  "waterTintStrength": 0.2,
+  "timeRouting": "detached"
 }

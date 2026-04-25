@@ -16,6 +16,8 @@ export const DEFAULT_GAMEPLAY_CURSOR_LIGHT = {
   useTerrainHeight: true,
   strength: 30,
   heightOffset: 8,
+  color: "#ff9b2f",
+  showGizmo: false,
 };
 
 export const DEFAULT_GAMEPLAY_PATHFINDING = {
@@ -32,6 +34,26 @@ export const DEFAULT_GAMEPLAY_SWARM = {
   count: 0,
   followEnabled: false,
   followTargetType: "agent",
+};
+
+export const DEFAULT_GAMEPLAY_MOVEMENT = {
+  active: false,
+  queueLength: 0,
+  currentStepIndex: 0,
+  ticksRemaining: 0,
+  currentStepCost: 0,
+};
+
+export const DEFAULT_GAMEPLAY_POINT_LIGHTS = {
+  liveUpdate: false,
+};
+
+export const DEFAULT_TIME_ROUTING = {
+  movement: "global",
+  swarm: "global",
+  clouds: "global",
+  water: "detached",
+  weather: "global",
 };
 
 export function createInitialState() {
@@ -55,6 +77,14 @@ export function createInitialState() {
     systems: {
       time: {
         cycleSpeedHoursPerSec: 0,
+        simTickHours: 0.01,
+        tickRemainder: 0,
+        ticksProcessed: 0,
+        globalHoursAdvanced: 0,
+        globalTimeHours: 0,
+        globalPaused: true,
+        detachedTimeSec: 0,
+        routing: { ...DEFAULT_TIME_ROUTING },
       },
       lighting: {
         hasFrameLighting: false,
@@ -85,7 +115,9 @@ export function createInitialState() {
       interactionMode: "none",
       cursorLight: { ...DEFAULT_GAMEPLAY_CURSOR_LIGHT },
       pathfinding: { ...DEFAULT_GAMEPLAY_PATHFINDING },
+      pointLights: { ...DEFAULT_GAMEPLAY_POINT_LIGHTS },
       swarm: { ...DEFAULT_GAMEPLAY_SWARM },
+      movement: { ...DEFAULT_GAMEPLAY_MOVEMENT },
     },
     ui: {},
   };

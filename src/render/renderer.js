@@ -8,6 +8,9 @@ export function createRenderer(deps) {
   if (typeof deps.resources.setViewport !== "function") {
     throw new Error("createRenderer requires deps.resources.setViewport().");
   }
+  if (typeof deps.resources.hasDrawableSurface !== "function") {
+    throw new Error("createRenderer requires deps.resources.hasDrawableSurface().");
+  }
 
   const passes = new Map();
 
@@ -43,6 +46,9 @@ export function createRenderer(deps) {
     renderTerrainFrame(frame) {
       if (!frame || typeof frame !== "object") {
         throw new TypeError("renderTerrainFrame requires a valid frame object.");
+      }
+      if (!deps.resources.hasDrawableSurface()) {
+        return;
       }
       deps.resources.setViewport();
       if (frame.showTerrain) {

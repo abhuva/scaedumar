@@ -27,6 +27,9 @@ export function createWeatherSystem(deps) {
       const weatherType = typeof input.type === "string" ? input.type : "clear";
 
       const windDirRad = (windDirDeg * Math.PI) / 180;
+      const routedWeatherTimeSec = ctx && ctx.time && ctx.time.systems && ctx.time.systems.weather
+        ? finite(ctx.time.systems.weather.timeSec, NaN)
+        : NaN;
       const nowMs = finite(ctx && ctx.nowMs, 0);
       const weatherState = {
         type: weatherType,
@@ -36,7 +39,7 @@ export function createWeatherSystem(deps) {
         localModulation,
         windDirX: Math.cos(windDirRad),
         windDirY: Math.sin(windDirRad),
-        timeSec: nowMs * 0.001,
+        timeSec: Number.isFinite(routedWeatherTimeSec) ? routedWeatherTimeSec : (nowMs * 0.001),
       };
 
       if (typeof deps.setWeatherState === "function") {

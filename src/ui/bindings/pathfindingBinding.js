@@ -14,7 +14,10 @@ export function bindPathfindingControls(deps) {
       continue;
     }
     const handler = () => {
-      deps.dispatchCoreCommand({ type: binding.type });
+      deps.dispatchCoreCommand({
+        type: binding.type,
+        value: Number(binding.element.value),
+      });
     };
     binding.element.addEventListener("input", handler);
     listeners.push({ element: binding.element, handler });

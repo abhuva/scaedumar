@@ -63,4 +63,30 @@ export function bindInteractionAndCycleControls(deps) {
       hour: Number(deps.cycleHourInput.value),
     });
   });
+
+  if (deps.simTickHoursInput) {
+    const dispatchTickChange = () => {
+      const simTickHours = Number(deps.simTickHoursInput.value);
+      if (Number.isNaN(simTickHours)) return;
+      deps.dispatchCoreCommand({
+        type: "core/time/setSimTickHours",
+        simTickHours,
+      });
+    };
+    deps.simTickHoursInput.addEventListener("input", dispatchTickChange);
+    deps.simTickHoursInput.addEventListener("change", dispatchTickChange);
+  }
+
+  if (deps.cycleSpeedInput) {
+    const dispatchCycleSpeedChange = () => {
+      const cycleSpeed = Number(deps.cycleSpeedInput.value);
+      if (Number.isNaN(cycleSpeed)) return;
+      deps.dispatchCoreCommand({
+        type: "core/time/setCycleSpeed",
+        cycleSpeed,
+      });
+    };
+    deps.cycleSpeedInput.addEventListener("input", dispatchCycleSpeedChange);
+    deps.cycleSpeedInput.addEventListener("change", dispatchCycleSpeedChange);
+  }
 }

@@ -20,10 +20,84 @@ No game engine is used.
 - Main implementation: `src/main.js`
 - Desktop wrapper: `src-tauri/` (Tauri v2)
 - Rendering backend: WebGL2 terrain pass + 2D overlay canvas for interaction markers
-- Gameplay scaffolding modules now exist under `src/gameplay/` (`entityStore`, `pathfindingSystem`, `movementSystem`) and are scheduler-driven adapters around existing runtime behavior.
+- Gameplay scaffolding modules now exist under `src/gameplay/` (`entityStore`, `movementSystem`) and are scheduler-driven adapters around existing runtime behavior.
 - Interaction command routing is now extracted to `src/gameplay/interactionCommands.js` and composed into main command registration.
+- Point-light editor orchestration is now extracted to `src/gameplay/pointLightEditorController.js`, with draft state isolated in `src/gameplay/pointLightEditorState.js`.
+- Point-light save/load/confirmation I/O orchestration is now extracted to `src/gameplay/pointLightIoController.js`.
+- Map-level JSON "Save All" file-generation/save orchestration is now extracted to `src/gameplay/mapDataSaveController.js`.
+- Map-sidecar JSON load/apply orchestration for URL/folder-selection paths is now extracted to `src/gameplay/mapSidecarLoader.js`.
+- Map-load orchestration for path/folder-selection flows is now extracted to `src/gameplay/mapLoader.js` and composed from `main.js`.
+- Swarm integration-step behavior is now extracted to `src/gameplay/swarmStep.js` and composed into the swarm update loop.
+- Swarm render interpolation state handling is now extracted to `src/gameplay/swarmInterpolation.js` and composed into follow/overlay/lit-swarm paths.
+- Swarm reseed/reset behavior is now extracted to `src/gameplay/swarmReseed.js` and composed from `main.js`.
+- Swarm target selection/follow targeting helpers are now extracted to `src/gameplay/swarmTargeting.js`.
+- Swarm terrain/water/flyability environment helpers are now extracted to `src/gameplay/swarmEnvironment.js`.
+- Swarm agent-buffer mutation ownership (`ensure`, `append`, `remove`, resting-bird spawn) is now extracted to `src/gameplay/swarmAgentStateMutator.js`.
+- Swarm-data hydration/apply orchestration (`swarm.json` settings+state+follow apply) is now extracted to `src/gameplay/swarmDataApplier.js`.
+- Swarm-data serialization for map save/load is now extracted to `src/gameplay/swarmDataSerializer.js`.
+- Swarm UI input normalization helpers are now extracted to `src/ui/swarmInputNormalization.js`.
+- Swarm panel UI reflection (labels, enable/disable state, follow button text, stats panel updates) is now extracted to `src/ui/swarmPanelUi.js`.
+- Swarm settings UI-apply reflection path is now extracted to `src/ui/swarmSettingsApplier.js`.
+- Interaction-sidecar serialization (`interaction.json`) is now extracted to `src/gameplay/interactionDataSerializer.js`.
+- Interaction settings UI-apply reflection path is now extracted to `src/ui/interactionSettingsApplier.js`.
+- NPC persistence helpers (`serializeNpcState`, `parseNpcPlayer`, `applyLoadedNpc`) are now extracted to `src/gameplay/npcPersistence.js`.
+- Lighting settings UI-apply reflection path is now extracted to `src/ui/lightingSettingsApplier.js`.
+- Render-FX settings UI-apply reflection paths (fog/parallax/cloud/water) are now extracted to `src/ui/renderFxSettingsApplier.js`.
+- Render-FX sidecar serialization helpers (lighting/fog/parallax/cloud/water) are now extracted to `src/gameplay/renderFxDataSerializer.js`.
+- Core map/player/point-light store sync helpers are now extracted to `src/gameplay/stateSync.js`.
+- Interaction state access helpers for cursor-light snapshot and point-light live-update are now extracted to `src/gameplay/interactionStateAccess.js`.
+- Swarm state access helpers for defaults/reset and enabled-state lookup are now extracted to `src/gameplay/swarmStateAccess.js`.
+- Runtime gameplay/state snapshot helpers for interaction mode, pathfinding settings, swarm cursor mode, and normalized swarm settings are now extracted to `src/gameplay/runtimeStateSnapshots.js`.
+- Swarm runtime/store synchronization helpers are now extracted to `src/gameplay/swarmStoreSync.js`.
+- Swarm follow-state apply/stop controller logic is now extracted to `src/gameplay/swarmFollowStateController.js`.
+- Pathfinding movement-window and step-cost helpers are now extracted to `src/gameplay/pathfindingCostModel.js`.
+- Mode/topic capability UI orchestration is now extracted to `src/ui/modeCapabilitiesUi.js`.
+- Map-path/file-URL helper utilities are now extracted to `src/gameplay/mapPathUtils.js`.
+- Tauri runtime invoke/folder-picker/folder-validation helpers are now extracted to `src/gameplay/tauriRuntime.js`.
+- Map IO helpers for folder-selection file lookup and JSON load (Tauri+fetch fallback) are now extracted to `src/gameplay/mapIoHelpers.js`.
+- Time-routing/time-config state-access helpers are now extracted to `src/core/timeStateAccess.js`.
+- Color conversion helpers are now extracted to `src/core/colorUtils.js`.
+- Shared clamp/interpolation/hour-format helpers are now extracted to `src/core/mathUtils.js`.
+- Fallback map-image generation and image-data extraction helpers are now extracted to `src/render/fallbackMapImages.js`.
+- Map-image apply/runtime-size/point-light-worker sync helpers are now extracted to `src/gameplay/mapImageRuntime.js`.
+- Point-light/cursor-light label update helpers are now extracted to `src/ui/lightLabelRuntime.js`.
+- Sun keyframe interpolation model (`sampleSunAtHour`) is now extracted to `src/sim/sunModel.js`.
+- Map normal/height sampling helpers (`normalize3`, `sampleNormalAtMapPixel`, `sampleHeightAtMapPixel`, `sampleHeightAtMapCoord`) are now extracted to `src/gameplay/mapSampling.js`.
+- Shadow/occlusion helpers (`computeSwarmDirectionalShadow`, `hasLineOfSightToLight`) are now extracted to `src/gameplay/shadowOcclusion.js`.
+- Point-light bake canvas sizing and RGBA apply/upload helpers are now extracted to `src/render/pointLightBakeCanvasRuntime.js`.
+- Point-light bake-sync accumulation/occlusion/packing logic (`bakePointLightsTextureSync`) is now extracted to `src/render/pointLightBakeSync.js`.
+- Point-light worker + bake-orchestrator runtime wiring is now extracted to `src/render/pointLightBakeRuntime.js`.
+- Cycle-hour slider/label UI helpers are now extracted to `src/ui/timeUiRuntime.js`.
+- Runtime mode state-access helpers (`getRuntimeMode`, capability checks) are now extracted to `src/core/modeStateAccess.js`.
+- Map runtime state helpers (`setCurrentMapFolderPath`, default-settings apply, map-reset, map-size-change apply) are now extracted to `src/gameplay/mapRuntimeState.js`.
+- Lighting parameter assembly logic (`computeLightingParams`) is now extracted to `src/sim/lightingParamsRuntime.js`.
+- Startup UI synchronization sequence is now extracted to `src/ui/startupUiSync.js`.
+- Map bootstrap/default-folder auto-load flow is now extracted to `src/gameplay/mapBootstrap.js`.
+- Swarm unlit-overlay and gizmo drawing helpers are now extracted to `src/ui/swarmOverlayRuntime.js`.
+- Render-frame UI synchronization helpers (fog auto-color input + cycle info text) are now extracted to `src/render/frameUiRuntime.js`.
+- Weather-field render metadata update helper is now extracted to `src/render/weatherFieldRuntime.js`.
+- Render-frame swarm layer/state orchestration helper is now extracted to `src/render/frameSwarmRenderRuntime.js`.
+- Render-frame time/tick routing setup helper is now extracted to `src/render/frameTimeRuntime.js`.
+- Render-loop orchestration is now extracted to `src/render/frameRuntime.js` with `main.js` delegating via a thin wrapper.
+- Viewport/canvas resize helper is now extracted to `src/render/viewportRuntime.js`.
+- Cloud-noise generation + texture upload helpers are now extracted to `src/render/cloudNoiseRuntime.js`.
+- Shadow-target sizing/framebuffer attach and shadow-pass draw orchestration are now extracted to `src/render/shadowPipelineRuntime.js`.
+- WebGL shader/program/texture creation and image upload helpers are now extracted to `src/render/glResourceRuntime.js`.
+- Pathfinding preview runtime helpers (movement-field rebuild, preview/path extraction, pointer preview update, path metrics) are now extracted to `src/gameplay/pathfindingPreviewRuntime.js`.
+- Info-panel status composition/update logic is now extracted to `src/ui/infoPanelRuntime.js`.
+- Render-FX label/UI helper updates (`update*Label`/`update*Ui`) are now extracted to `src/ui/renderFxUiRuntime.js`.
+- Camera/coordinate transform helpers (camera state, view extents, world/uv/map/screen conversions) are now extracted to `src/gameplay/cameraTransforms.js`.
+- Pathfinding label helper updates are now extracted to `src/ui/pathfindingLabelUi.js`.
+- Interaction-mode apply/toggle controller logic is now extracted to `src/gameplay/interactionModeController.js`.
 - Overlay/gameplay frame integration now goes through `src/ui/overlays/overlayHooks.js` (gameplay update hook + overlay render hook).
-- Core/runtime migration parity now uses `src/core/runtimeParityAdapter.js` to keep legacy inputs/globals aligned with core state during refactor.
+- The old per-frame `frameSnapshot` / `runtimeParityAdapter` bridge has been removed.
+- Core state is now updated through command handlers, settings apply flows, bootstrap/map-load synchronization, and scheduler-owned system updates.
+- Camera commands (`reset`, `zoomAtClient`, `dragToClient`, `setPose`) now commit canonical camera pose in store first and then apply a runtime camera adapter.
+- Frame render camera inputs now resolve from canonical `coreState.camera` defaults (not local runtime-camera fallbacks) across frame-state assembly and uniform upload.
+- Local runtime camera mirror state (`panWorld`/`zoom`) has been removed; camera ownership is canonical store state.
+- Migration is still in progress:
+  - active time/render FX/pathfinding/swarm settings now prefer core state
+  - some UI/apply helpers still remain DOM-backed for view synchronization and legacy save/apply paths
 - Settings UI: left vertical topic-icon dock + single side panel (one topic open at a time)
   - Mode toggles: `LM` and `PF` (note: `AS` is a topic button that opens the Agent Swarm panel in `index.html`, not a mode toggle)
   - Runtime mode capability gating is now active (`dev`/`gameplay`/`hybrid`) for topic buttons + interaction mode toggles.

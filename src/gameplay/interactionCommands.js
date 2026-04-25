@@ -1,13 +1,30 @@
 export function registerInteractionCommands(commandBus, deps) {
-  commandBus.register("core/interaction/setMode", (command, ctx) => {
-    deps.setInteractionMode(command.mode);
+  function isMovementActive() {
+    if (typeof deps.getMovementStateSnapshot !== "function") return false;
+    const snapshot = deps.getMovementStateSnapshot();
+    return Boolean(snapshot && snapshot.active);
+  }
+
+  function syncPlayerToStore(ctx) {
+    if (typeof deps.syncPlayerStateToStore === "function") {
+      deps.syncPlayerStateToStore();
+      return;
+    }
     ctx.store.update((prev) => ({
       ...prev,
       gameplay: {
         ...prev.gameplay,
-        interactionMode: deps.getInteractionMode(),
+        player: {
+          ...prev.gameplay.player,
+          pixelX: deps.playerState.pixelX,
+          pixelY: deps.playerState.pixelY,
+        },
       },
     }));
+  }
+
+  commandBus.register("core/interaction/setMode", (command, ctx) => {
+    deps.setInteractionMode(command.mode);
   });
 
   commandBus.register("core/interaction/clickMapPixel", (command, ctx) => {
@@ -36,61 +53,61 @@ export function registerInteractionCommands(commandBus, deps) {
         deps.requestOverlayDraw();
         return;
       }
-      deps.setPlayerPosition(pixel.x, pixel.y);
-      deps.rebuildMovementField();
-      deps.movePreviewState.hoverPixel = { x: deps.playerState.pixelX, y: deps.playerState.pixelY };
-      deps.movePreviewState.pathPixels = deps.extractPathTo(deps.playerState.pixelX, deps.playerState.pixelY);
-      deps.setStatus(`Player moved to (${deps.playerState.pixelX}, ${deps.playerState.pixelY})`);
-      ctx.store.update((prev) => ({
-        ...prev,
-        gameplay: {
-          ...prev.gameplay,
-          player: {
-            ...prev.gameplay.player,
-            pixelX: deps.playerState.pixelX,
-            pixelY: deps.playerState.pixelY,
-          },
-        },
-      }));
+      if (typeof deps.replaceMovementQueue === "function") {
+        const replaced = deps.replaceMovementQueue(deps.movePreviewState.pathPixels);
+        if (!replaced) {
+          deps.setStatus("Unable to queue movement for selected path.");
+          deps.requestOverlayDraw();
+          return;
+        }
+      }
+      deps.setInteractionMode("none");
+      deps.movePreviewState.hoverPixel = null;
+      deps.movePreviewState.pathPixels = [];
+      syncPlayerToStore(ctx);
+      deps.requestOverlayDraw();
+      return;
+    }
+
+    if (isMovementActive() && typeof deps.cancelMovementQueue === "function") {
+      deps.cancelMovementQueue();
+      deps.movePreviewState.hoverPixel = null;
+      deps.movePreviewState.pathPixels = [];
+      deps.setStatus(`Movement canceled at (${deps.playerState.pixelX}, ${deps.playerState.pixelY}).`);
+      syncPlayerToStore(ctx);
       deps.requestOverlayDraw();
       return;
     }
 
     deps.setPlayerPosition(pixel.x, pixel.y);
+    if (typeof deps.cancelMovementQueue === "function") {
+      deps.cancelMovementQueue();
+    }
     deps.rebuildMovementField();
     deps.movePreviewState.hoverPixel = null;
     deps.movePreviewState.pathPixels = [];
     deps.setStatus(`Player moved to (${deps.playerState.pixelX}, ${deps.playerState.pixelY})`);
-    ctx.store.update((prev) => ({
-      ...prev,
-      gameplay: {
-        ...prev.gameplay,
-        player: {
-          ...prev.gameplay.player,
-          pixelX: deps.playerState.pixelX,
-          pixelY: deps.playerState.pixelY,
-        },
-      },
-    }));
+    syncPlayerToStore(ctx);
     deps.requestOverlayDraw();
   });
 
   function syncPathfindingStateToStore(ctx) {
-    if (typeof deps.getPathfindingStateSnapshot !== "function") return;
-    const next = deps.getPathfindingStateSnapshot();
     ctx.store.update((prev) => ({
       ...prev,
       gameplay: {
         ...prev.gameplay,
         pathfinding: {
           ...prev.gameplay.pathfinding,
-          ...next,
+          ...(typeof deps.getPathfindingStateSnapshot === "function" ? deps.getPathfindingStateSnapshot() : {}),
         },
       },
     }));
   }
 
   commandBus.register("core/pathfinding/setRange", (command, ctx) => {
+    if (deps.pathfindingRangeInput && Number.isFinite(Number(command.value))) {
+      deps.pathfindingRangeInput.value = String(Math.round(deps.clamp(Number(command.value), 30, 300)));
+    }
     deps.updatePathfindingRangeLabel();
     if (deps.getInteractionMode() === "pathfinding") {
       deps.rebuildMovementField();
@@ -99,6 +116,9 @@ export function registerInteractionCommands(commandBus, deps) {
   });
 
   commandBus.register("core/pathfinding/setWeightSlope", (command, ctx) => {
+    if (deps.pathWeightSlopeInput && Number.isFinite(Number(command.value))) {
+      deps.pathWeightSlopeInput.value = String(deps.clamp(Number(command.value), 0, 10));
+    }
     deps.updatePathWeightLabels();
     if (deps.getInteractionMode() === "pathfinding") {
       deps.rebuildMovementField();
@@ -107,6 +127,9 @@ export function registerInteractionCommands(commandBus, deps) {
   });
 
   commandBus.register("core/pathfinding/setWeightHeight", (command, ctx) => {
+    if (deps.pathWeightHeightInput && Number.isFinite(Number(command.value))) {
+      deps.pathWeightHeightInput.value = String(deps.clamp(Number(command.value), 0, 10));
+    }
     deps.updatePathWeightLabels();
     if (deps.getInteractionMode() === "pathfinding") {
       deps.rebuildMovementField();
@@ -115,6 +138,9 @@ export function registerInteractionCommands(commandBus, deps) {
   });
 
   commandBus.register("core/pathfinding/setWeightWater", (command, ctx) => {
+    if (deps.pathWeightWaterInput && Number.isFinite(Number(command.value))) {
+      deps.pathWeightWaterInput.value = String(deps.clamp(Number(command.value), 0, 100));
+    }
     deps.updatePathWeightLabels();
     if (deps.getInteractionMode() === "pathfinding") {
       deps.rebuildMovementField();
@@ -123,6 +149,9 @@ export function registerInteractionCommands(commandBus, deps) {
   });
 
   commandBus.register("core/pathfinding/setSlopeCutoff", (command, ctx) => {
+    if (deps.pathSlopeCutoffInput && Number.isFinite(Number(command.value))) {
+      deps.pathSlopeCutoffInput.value = String(Math.round(deps.clamp(Number(command.value), 0, 90)));
+    }
     deps.updatePathSlopeCutoffLabel();
     if (deps.getInteractionMode() === "pathfinding") {
       deps.rebuildMovementField();
@@ -131,6 +160,9 @@ export function registerInteractionCommands(commandBus, deps) {
   });
 
   commandBus.register("core/pathfinding/setBaseCost", (command, ctx) => {
+    if (deps.pathBaseCostInput && Number.isFinite(Number(command.value))) {
+      deps.pathBaseCostInput.value = String(deps.clamp(Number(command.value), 0, 2));
+    }
     deps.updatePathBaseCostLabel();
     if (deps.getInteractionMode() === "pathfinding") {
       deps.rebuildMovementField();

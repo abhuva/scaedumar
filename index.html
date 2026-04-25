@@ -205,6 +205,13 @@
             </div>
           </div>
           <div class="row">
+            <label for="swarmTimeRouting">Time Source</label>
+            <select id="swarmTimeRouting">
+              <option value="global" selected>Global</option>
+              <option value="detached">Detached</option>
+            </select>
+          </div>
+          <div class="row">
             <label for="swarmMaxSpeed">Max Speed</label>
             <div class="inline-control">
               <input id="swarmMaxSpeed" type="range" min="30" max="300" step="1" value="120" />
@@ -379,6 +386,13 @@
             <div class="inline-control">
               <input id="cycleHour" type="range" min="0" max="24" step="0.0166667" value="9.5" />
               <span id="cycleHourValue">09:30</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="simTickHours">Sim Tick (h)</label>
+            <div class="inline-control">
+              <input id="simTickHours" type="range" min="0.001" max="0.1" step="0.001" value="0.01" />
+              <span id="simTickHoursValue">0.010</span>
             </div>
           </div>
           <div class="row">
@@ -570,16 +584,23 @@
           <div class="row">
             <label for="cloudSpeed1">Layer A Speed</label>
             <div class="inline-control">
-              <input id="cloudSpeed1" type="range" min="-0.30" max="0.30" step="0.005" value="0.045" />
-              <span id="cloudSpeed1Value">0.045</span>
+              <input id="cloudSpeed1" type="range" min="-0.30" max="0.30" step="0.005" value="0.018" />
+              <span id="cloudSpeed1Value">0.018</span>
             </div>
           </div>
           <div class="row">
             <label for="cloudSpeed2">Layer B Speed</label>
             <div class="inline-control">
-              <input id="cloudSpeed2" type="range" min="-0.30" max="0.30" step="0.005" value="-0.028" />
-              <span id="cloudSpeed2Value">-0.028</span>
+              <input id="cloudSpeed2" type="range" min="-0.30" max="0.30" step="0.005" value="-0.012" />
+              <span id="cloudSpeed2Value">-0.012</span>
             </div>
+          </div>
+          <div class="row">
+            <label for="cloudTimeRouting">Time Source</label>
+            <select id="cloudTimeRouting">
+              <option value="global" selected>Global</option>
+              <option value="detached">Detached</option>
+            </select>
           </div>
           <div class="row">
             <label for="cloudSunParallax">Sun Offset</label>
@@ -610,6 +631,13 @@
           <div class="row">
             <label for="waterFlowDebugToggle">Flow Debug</label>
             <input id="waterFlowDebugToggle" type="checkbox" />
+          </div>
+          <div class="row">
+            <label for="waterTimeRouting">Time Source</label>
+            <select id="waterTimeRouting">
+              <option value="detached" selected>Detached</option>
+              <option value="global">Global</option>
+            </select>
           </div>
           <div class="row">
             <label for="waterFlowDirection">Flow Direction</label>

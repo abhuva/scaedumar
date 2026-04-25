@@ -1,0 +1,49 @@
+export function runStartupUiSync(deps) {
+  const baseStatus = deps.baseStatus || deps.statusTextEl.textContent || "Ready.";
+  deps.setSwarmDefaults();
+  deps.normalizeSwarmHeightRangeInputs("min");
+  deps.updatePathfindingRangeLabel();
+  deps.updatePathWeightLabels();
+  deps.updatePathSlopeCutoffLabel();
+  deps.updatePathBaseCostLabel();
+  deps.updateSwarmLabels();
+  deps.updateSwarmUi();
+  deps.updateSwarmStatsPanel();
+  deps.updateSwarmFollowButtonUi();
+  deps.updateParallaxStrengthLabel();
+  deps.updateParallaxBandsLabel();
+  deps.updateShadowBlurLabel();
+  deps.updateVolumetricLabels();
+  deps.updatePointFlickerLabels();
+  deps.updateSimTickLabel();
+  deps.updateFogAlphaLabels();
+  deps.updateFogFalloffLabel();
+  deps.updateFogStartOffsetLabel();
+  deps.updateCloudLabels();
+  deps.updateWaterLabels();
+  deps.updatePointLightStrengthLabel();
+  deps.updatePointLightIntensityLabel();
+  deps.updatePointLightHeightOffsetLabel();
+  deps.updatePointLightFlickerLabel();
+  deps.updatePointLightFlickerSpeedLabel();
+  deps.updateCursorLightStrengthLabel();
+  deps.updateCursorLightHeightOffsetLabel();
+  deps.setCycleHourSliderFromState();
+  deps.updateCycleHourLabel();
+  deps.mapPathInput.value = deps.currentMapFolderPath;
+  deps.updateLightEditorUi();
+  deps.updateCursorLightModeUi();
+  deps.updateParallaxUi();
+  deps.updateVolumetricUi();
+  deps.updatePointFlickerUi();
+  deps.updateFogUi();
+  deps.updateCloudUi();
+  deps.updateWaterUi();
+  deps.setActiveTopic("");
+  deps.setInteractionMode("none");
+  deps.updateModeCapabilitiesUi();
+  deps.reseedSwarmAgents(deps.getSwarmSettings().agentCount);
+  deps.setStatus(
+    `${baseStatus} | Load maps by folder/path, use left dock mode toggles (LM/PF), wheel zoom + middle-drag pan for terrain, and Agent Swarm panel toggle for boid testing.`,
+  );
+}
