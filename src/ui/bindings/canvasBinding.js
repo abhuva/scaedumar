@@ -117,6 +117,21 @@ export function bindCanvasControls(deps) {
   }, true);
 
   deps.windowEl.addEventListener("pointerdown", (e) => {
+    if (e.button === 1) {
+      if (e.target === deps.canvas) return;
+      if (isUiTarget(e.target)) return;
+      if (!isInsideCanvas(e.clientX, e.clientY)) return;
+      e.preventDefault();
+      if (typeof deps.canvas.setPointerCapture === "function") {
+        deps.canvas.setPointerCapture(e.pointerId);
+      }
+      deps.dispatchCoreCommand({
+        type: "core/camera/beginMiddleDrag",
+        clientX: e.clientX,
+        clientY: e.clientY,
+      });
+      return;
+    }
     if (e.button !== 0) return;
     if (e.target === deps.canvas) return;
     if (isUiTarget(e.target)) return;

@@ -1,3 +1,7 @@
+import { DEFAULT_CURSOR_LIGHT_COLOR_HEX } from "../core/state.js";
+
+const ALLOWED_TIME_ROUTING_TARGETS = new Set(["swarm", "clouds", "water"]);
+
 export function syncMapState(deps) {
   deps.store.update((prev) => ({
     ...prev,
@@ -54,7 +58,9 @@ export function syncCursorLightState(deps) {
         useTerrainHeight: Boolean(deps.cursorLightState.useTerrainHeight),
         strength: Math.round(deps.clamp(Number(deps.cursorLightState.strength), 1, 200)),
         heightOffset: Math.round(deps.clamp(Number(deps.cursorLightState.heightOffset), 0, 120)),
-        color: typeof deps.cursorLightState.colorHex === "string" ? deps.cursorLightState.colorHex : "#ff9b2f",
+        color: typeof deps.cursorLightState.colorHex === "string"
+          ? deps.cursorLightState.colorHex
+          : DEFAULT_CURSOR_LIGHT_COLOR_HEX,
         showGizmo: Boolean(deps.cursorLightState.showGizmo),
       },
     },
@@ -96,19 +102,25 @@ export function setCycleSpeedState(deps) {
 }
 
 export function setSimTickHoursState(deps) {
+  const raw = Number(deps.simTickHours);
+  const simTickHours = Math.max(0.001, Math.min(0.1, Number.isFinite(raw) ? raw : 0));
   deps.store.update((prev) => ({
     ...prev,
     systems: {
       ...prev.systems,
       time: {
         ...(prev.systems && prev.systems.time ? prev.systems.time : {}),
-        simTickHours: deps.simTickHours,
+        simTickHours,
       },
     },
   }));
 }
 
 export function setTimeRoutingModeState(deps) {
+  const target = String(deps.target || "");
+  if (!ALLOWED_TIME_ROUTING_TARGETS.has(target)) {
+    return;
+  }
   deps.store.update((prev) => {
     const prevTime = prev.systems && prev.systems.time ? prev.systems.time : {};
     return {
@@ -119,7 +131,7 @@ export function setTimeRoutingModeState(deps) {
           ...prevTime,
           routing: {
             ...(prevTime && prevTime.routing ? prevTime.routing : {}),
-            [deps.target]: deps.mode,
+            [target]: deps.mode,
           },
         },
       },

@@ -94,6 +94,7 @@ export function createSwarmUiRuntimeBinding(deps) {
   });
 
   const swarmSettingsSyncRuntime = createSwarmSettingsSyncRuntime({
+    normalizeRoutingMode: deps.normalizeRoutingMode,
     getSwarmSettings: () => mainRuntimeStateBinding.getSwarmSettings(),
     swarmEnabledToggle: deps.swarmEnabledToggle,
     swarmLitModeToggle: deps.swarmLitModeToggle,

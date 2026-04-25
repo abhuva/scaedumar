@@ -53,7 +53,10 @@ export function createRenderSupportRuntime(deps) {
     try {
       await image.decode();
     } catch (error) {
-      throw new Error(`Failed to decode image from ${url}: ${error instanceof Error ? error.message : error}`);
+      throw new Error(
+        `Failed to decode image from ${url}: ${error instanceof Error ? error.message : error}`,
+        { cause: error },
+      );
     }
     return image;
   }

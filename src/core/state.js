@@ -13,12 +13,14 @@ export const DEFAULT_GAMEPLAY_PLAYER = {
   pixelY: 0,
 };
 
+export const DEFAULT_CURSOR_LIGHT_COLOR_HEX = "#ff9b2f";
+
 export const DEFAULT_GAMEPLAY_CURSOR_LIGHT = {
   enabled: false,
   useTerrainHeight: true,
   strength: 30,
   heightOffset: 8,
-  color: "#ff9b2f",
+  color: DEFAULT_CURSOR_LIGHT_COLOR_HEX,
   showGizmo: false,
 };
 

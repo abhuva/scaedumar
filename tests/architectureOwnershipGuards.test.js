@@ -37,8 +37,9 @@ test("migrated gameplay helper modules do not directly call store.update", () =>
   ];
   for (const relPath of migratedGameplayHelpers) {
     const src = readRepoFile(relPath);
+    const forbidden = /\bstore\.update\(/;
     assert.equal(
-      src.includes("store.update("),
+      forbidden.test(src),
       false,
       `unexpected direct store mutation found in ${relPath}`,
     );
@@ -107,6 +108,10 @@ test("cycle hour state proxies core store accessors instead of owning local muta
   assert.equal(runtime.cycleState.hour, 9.5);
   runtime.cycleState.hour = 25;
   assert.equal(coreCycleHour, 24);
+  runtime.cycleState.hour = 12.5;
+  assert.equal(coreCycleHour, 12.5);
+  runtime.cycleState.hour = -1;
+  assert.equal(coreCycleHour, 0);
   coreCycleHour = 6.25;
   assert.equal(runtime.cycleState.hour, 6.25);
 });

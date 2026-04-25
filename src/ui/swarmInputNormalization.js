@@ -7,8 +7,12 @@ export function createSwarmInputNormalization(deps) {
     if (minHeight > maxHeight) {
       if (changed === "min") {
         maxHeight = minHeight;
-      } else {
+      } else if (changed === "max") {
         minHeight = maxHeight;
+      } else {
+        const unified = Math.max(minHeight, maxHeight);
+        minHeight = unified;
+        maxHeight = unified;
       }
     }
     deps.swarmMinHeightInput.value = String(minHeight);
@@ -24,8 +28,12 @@ export function createSwarmInputNormalization(deps) {
     if (zoomOut > zoomIn) {
       if (changed === "out") {
         zoomIn = zoomOut;
-      } else {
+      } else if (changed === "in") {
         zoomOut = zoomIn;
+      } else {
+        const unified = Math.max(zoomOut, zoomIn);
+        zoomOut = unified;
+        zoomIn = unified;
       }
     }
     deps.swarmFollowZoomOutInput.value = zoomOut.toFixed(1);

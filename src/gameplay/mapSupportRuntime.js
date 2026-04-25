@@ -25,6 +25,33 @@ export function createMapSupportRuntime(deps) {
   const getNormalsTex = () => (typeof deps.getNormalsTex === "function" ? deps.getNormalsTex() : deps.normalsTex);
   const getHeightTex = () => (typeof deps.getHeightTex === "function" ? deps.getHeightTex() : deps.heightTex);
   const getWaterTex = () => (typeof deps.getWaterTex === "function" ? deps.getWaterTex() : deps.waterTex);
+  const setSplatSize = (width, height) => {
+    if (typeof deps.setSplatSize === "function") {
+      deps.setSplatSize(width, height);
+      return;
+    }
+    const size = getSplatSize();
+    size.width = width;
+    size.height = height;
+  };
+  const setNormalsSize = (width, height) => {
+    if (typeof deps.setNormalsSize === "function") {
+      deps.setNormalsSize(width, height);
+      return;
+    }
+    const size = getNormalsSize();
+    size.width = width;
+    size.height = height;
+  };
+  const setHeightSize = (width, height) => {
+    if (typeof deps.setHeightSize === "function") {
+      deps.setHeightSize(width, height);
+      return;
+    }
+    const size = getHeightSize();
+    size.width = width;
+    size.height = height;
+  };
   const normalizeMapFolderPath = (path) => normalizeMapFolderPathUtil(path, deps.defaultMapFolder);
   const isAbsoluteFsPath = (path) => isAbsoluteFsPathUtil(path);
   const joinFsPath = (folder, fileName) => joinFsPathUtil(folder, fileName);
@@ -48,8 +75,11 @@ export function createMapSupportRuntime(deps) {
     if (mapImageRuntime) return mapImageRuntime;
     mapImageRuntime = createMapImageRuntime({
       getSplatSize,
+      setSplatSize,
       getNormalsSize,
+      setNormalsSize,
       getHeightSize,
+      setHeightSize,
       getSplatTex,
       getNormalsTex,
       getHeightTex,

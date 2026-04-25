@@ -69,6 +69,7 @@ export function registerInteractionCommands(commandBus, deps) {
     if (typeof deps.cancelMovementQueue === "function") {
       deps.cancelMovementQueue();
     }
+    syncPlayerToStore();
     deps.rebuildMovementField();
     deps.movePreviewState.hoverPixel = null;
     deps.movePreviewState.pathPixels = [];

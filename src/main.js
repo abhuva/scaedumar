@@ -436,8 +436,20 @@ const mapSupportRuntime = createMapSupportRuntime(createMapSupportAssemblyRuntim
     waterImageData = value;
   },
   getSplatSize: () => splatSize,
+  setSplatSize: (width, height) => {
+    splatSize.width = width;
+    splatSize.height = height;
+  },
   getHeightSize: () => heightSize,
+  setHeightSize: (width, height) => {
+    heightSize.width = width;
+    heightSize.height = height;
+  },
   getNormalsSize: () => normalsSize,
+  setNormalsSize: (width, height) => {
+    normalsSize.width = width;
+    normalsSize.height = height;
+  },
   getSplatTex: () => splatTex,
   getNormalsTex: () => normalsTex,
   getHeightTex: () => heightTex,
@@ -951,7 +963,7 @@ const pointLightBakeRuntimeBinding = createPointLightBakeRuntimeBinding({
   pointLightBakeCtx,
   pointLightTex,
   uploadImageToTexture,
-  requestOverlayDraw: () => requestOverlayDraw(),
+  requestOverlayDraw: () => overlayDirtyRuntime.requestOverlayDraw(),
   debounceMs: POINT_LIGHT_BAKE_DEBOUNCE_MS,
   pointLightBakeLiveScale: POINT_LIGHT_BAKE_LIVE_SCALE,
   pointLightBlendExposure: POINT_LIGHT_BLEND_EXPOSURE,
@@ -1121,7 +1133,7 @@ const updateCursorLightHeightOffsetLabel = (...args) => lightLabelRuntime.update
   schedulePointLightBake: () => schedulePointLightBake(),
   isPointLightLiveUpdateEnabled: () => isPointLightLiveUpdateEnabled(),
   updateLightEditorUi: () => updateLightEditorUi(),
-  requestOverlayDraw: () => requestOverlayDraw(),
+  requestOverlayDraw: () => overlayDirtyRuntime.requestOverlayDraw(),
   setStatus,
   parsePointLightsPayload,
   serializePointLightsPayload,
@@ -1342,7 +1354,7 @@ const movementSystem = createMovementSystem(createMovementAssemblyRuntime({
   getMapHeight: () => splatSize.height,
   computeMoveStepCost,
   rebuildMovementField,
-  requestOverlayDraw: () => requestOverlayDraw(),
+  requestOverlayDraw: () => overlayDirtyRuntime.requestOverlayDraw(),
   setStatus,
   setPlayerSnapshot: movementStoreSyncRuntime.setPlayerSnapshot,
   setMovementSnapshot: movementStoreSyncRuntime.setMovementSnapshot,
@@ -1422,7 +1434,7 @@ registerMainCommands(runtimeCore.commandBus, createMainCommandAssemblyRuntime({
   applyCursorLightConfigSnapshot: (...args) => applyCursorLightConfigSnapshot(...args),
   clearCursorLightPointerState: (...args) => clearCursorLightPointerState(...args),
   setInteractionMode: (...args) => setInteractionMode(...args),
-  requestOverlayDraw: () => requestOverlayDraw(),
+  requestOverlayDraw: () => overlayDirtyRuntime.requestOverlayDraw(),
   updateCycleHourLabel,
   updateCursorLightModeUi,
   updateCursorLightStrengthLabel,
@@ -1699,7 +1711,7 @@ const swarmIntegrationSetupRuntime = createSwarmIntegrationSetupRuntime(
     setSwarmFollowAgentIndex: swarmFollowRuntimeState.setSwarmFollowAgentIndex,
     stopSwarmFollow,
     invalidateSwarmInterpolation,
-    requestOverlayDraw: () => requestOverlayDraw(),
+    requestOverlayDraw: () => overlayDirtyRuntime.requestOverlayDraw(),
     applySwarmSettings,
     applySwarmFollowState,
     syncSwarmRuntimeStateToStore: (...args) => swarmRuntime.syncSwarmRuntimeStateToStore(...args),
@@ -2008,7 +2020,7 @@ const interactionUiSetupRuntime = createInteractionUiSetupRuntime(createInteract
   getWaterImageData: () => waterImageData,
   movePreviewState,
   getInteractionModeSnapshot,
-  requestOverlayDraw: () => requestOverlayDraw(),
+  requestOverlayDraw: () => overlayDirtyRuntime.requestOverlayDraw(),
   uvToMapPixelIndex,
   pathfindingRangeValue,
   pathWeightSlopeValue,

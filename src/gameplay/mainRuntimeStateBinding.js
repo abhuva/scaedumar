@@ -54,6 +54,10 @@ export function createMainRuntimeStateBinding(deps) {
     };
   }
 
+  function getSwarmSettings() {
+    return resolveSwarmSettings(getResolveSwarmSettingsArgs());
+  }
+
   return {
     getSwarmCursorMode: () =>
       resolveSwarmCursorMode({
@@ -61,8 +65,7 @@ export function createMainRuntimeStateBinding(deps) {
         getSettingsDefaults: deps.getSettingsDefaults,
         defaultSwarmSettings: deps.defaultSwarmSettings,
       }),
-    getSwarmSettings: () =>
-      resolveSwarmSettings(getResolveSwarmSettingsArgs()),
+    getSwarmSettings: () => getSwarmSettings(),
     getPathfindingStateSnapshot: () =>
       resolvePathfindingStateSnapshot({
         getCorePathfinding: deps.getCorePathfinding,
@@ -167,7 +170,7 @@ export function createMainRuntimeStateBinding(deps) {
       }),
     isSwarmEnabled: () =>
       resolveSwarmEnabled({
-        getSwarmSettings: () => resolveSwarmSettings(getResolveSwarmSettingsArgs()),
+        getSwarmSettings,
       }),
   };
 }

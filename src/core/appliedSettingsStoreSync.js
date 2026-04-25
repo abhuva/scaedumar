@@ -1,3 +1,56 @@
+import { DEFAULT_CURSOR_LIGHT_COLOR_HEX } from "./state.js";
+
+const PERSISTED_SWARM_KEYS = [
+  "useAgentSwarm",
+  "useLitSwarm",
+  "followZoomBySpeed",
+  "followZoomIn",
+  "followZoomOut",
+  "followHawkRangeGizmo",
+  "followAgentSpeedSmoothing",
+  "followAgentZoomSmoothing",
+  "showStatsPanel",
+  "showTerrainInSwarm",
+  "backgroundColor",
+  "agentCount",
+  "simulationSpeed",
+  "maxSpeed",
+  "maxSteering",
+  "variationStrengthPct",
+  "neighborRadius",
+  "minHeight",
+  "maxHeight",
+  "separationRadius",
+  "alignmentWeight",
+  "cohesionWeight",
+  "separationWeight",
+  "wanderWeight",
+  "restChancePct",
+  "restTicks",
+  "breedingThreshold",
+  "breedingSpawnChance",
+  "cursorMode",
+  "cursorStrength",
+  "cursorRadius",
+  "useHawk",
+  "hawkCount",
+  "hawkColor",
+  "hawkSpeed",
+  "hawkSteering",
+  "hawkTargetRange",
+];
+
+function pickSwarmPersistedSettings(input) {
+  const source = input && typeof input === "object" ? input : {};
+  const picked = {};
+  for (const key of PERSISTED_SWARM_KEYS) {
+    if (Object.prototype.hasOwnProperty.call(source, key)) {
+      picked[key] = source[key];
+    }
+  }
+  return picked;
+}
+
 export function createAppliedSettingsStoreSync(deps) {
   function normalizeAppliedSettings(key, rawData, fallbackDefaults) {
     const defaults = deps.getSettingsDefaults(key, fallbackDefaults);
@@ -11,7 +64,11 @@ export function createAppliedSettingsStoreSync(deps) {
   function updateStoreFromAppliedSettings(key, normalized) {
     deps.runtimeCore.store.update((prev) => {
       if (key === "lighting") {
-        const cycleSpeed = deps.clamp(Number(normalized.cycleSpeed), 0, 1);
+        let rawCycleSpeed = Number(normalized.cycleSpeed);
+        if (!Number.isFinite(rawCycleSpeed)) {
+          rawCycleSpeed = 0;
+        }
+        const cycleSpeed = deps.clamp(rawCycleSpeed, 0, 1);
         const simTickHours = deps.normalizeSimTickHours(normalized.simTickHours);
         return {
           ...prev,
@@ -132,7 +189,9 @@ export function createAppliedSettingsStoreSync(deps) {
               heightOffset: Math.round(deps.clamp(Number(normalized.cursorLightHeightOffset), 0, 120)),
               color: typeof normalized.cursorLightColor === "string"
                 ? normalized.cursorLightColor
-                : (prev.gameplay && prev.gameplay.cursorLight ? prev.gameplay.cursorLight.color : "#ff9b2f"),
+                : (prev.gameplay && prev.gameplay.cursorLight
+                  ? prev.gameplay.cursorLight.color
+                  : DEFAULT_CURSOR_LIGHT_COLOR_HEX),
               showGizmo: Boolean(normalized.cursorLightGizmo),
             },
             pointLights: {
@@ -143,13 +202,14 @@ export function createAppliedSettingsStoreSync(deps) {
         };
       }
       if (key === "swarm") {
+        const persistedSwarm = pickSwarmPersistedSettings(normalized);
         return {
           ...prev,
           gameplay: {
             ...prev.gameplay,
             swarm: {
               ...prev.gameplay.swarm,
-              ...normalized,
+              ...persistedSwarm,
               timeRouting: deps.normalizeRoutingMode(normalized.timeRouting, "global"),
             },
           },

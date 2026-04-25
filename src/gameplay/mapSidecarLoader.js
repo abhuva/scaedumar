@@ -10,16 +10,12 @@ export function createMapSidecarLoader(deps) {
       return true;
     } catch (err) {
       // Preserve the existing defaulting behavior by invoking the fallback for all failure modes.
-      if (isMissingOptionalJsonError(err)) {
-        if (typeof onAbsentOrFailed === "function") {
-          onAbsentOrFailed();
-        }
-        return false;
+      if (!isMissingOptionalJsonError(err)) {
+        console.warn(onErrorLabel, err);
       }
       if (typeof onAbsentOrFailed === "function") {
         onAbsentOrFailed();
       }
-      console.warn(onErrorLabel, err);
       return false;
     }
   }

@@ -73,8 +73,8 @@ export function worldToUv(deps) {
 }
 
 export function uvToMapPixelIndex(deps) {
-  const safeWidth = Math.max(1, resolvePositiveFinite(deps.splatSize.width, 1));
-  const safeHeight = Math.max(1, resolvePositiveFinite(deps.splatSize.height, 1));
+  const safeWidth = Math.max(1, resolvePositiveFinite(deps.splatSize && deps.splatSize.width, 1));
+  const safeHeight = Math.max(1, resolvePositiveFinite(deps.splatSize && deps.splatSize.height, 1));
   return {
     x: Math.floor(deps.clamp(deps.uv.x, 0, 0.999999) * safeWidth),
     y: Math.floor((1 - deps.clamp(deps.uv.y, 0, 0.999999)) * safeHeight),
@@ -82,8 +82,8 @@ export function uvToMapPixelIndex(deps) {
 }
 
 export function mapPixelIndexToUv(deps) {
-  const safeWidth = Math.max(1, resolvePositiveFinite(deps.splatSize.width, 1));
-  const safeHeight = Math.max(1, resolvePositiveFinite(deps.splatSize.height, 1));
+  const safeWidth = Math.max(1, resolvePositiveFinite(deps.splatSize && deps.splatSize.width, 1));
+  const safeHeight = Math.max(1, resolvePositiveFinite(deps.splatSize && deps.splatSize.height, 1));
   return {
     x: (deps.pixelX + 0.5) / safeWidth,
     y: 1 - (deps.pixelY + 0.5) / safeHeight,

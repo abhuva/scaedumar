@@ -10,6 +10,7 @@ export function createMapLightingAssemblyRuntimeDeps(deps) {
       defaultFlicker: deps.defaultFlicker,
       defaultFlickerSpeed: deps.defaultFlickerSpeed,
       nextPointLightId: deps.nextPointLightId,
+      nextLightId: deps.nextPointLightId,
       hexToRgb01: deps.hexToRgb01,
       bakePointLightsTexture: deps.bakePointLightsTexture,
       schedulePointLightBake: deps.schedulePointLightBake,

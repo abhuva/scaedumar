@@ -372,13 +372,18 @@ export function bindRenderFxControls(deps) {
   ];
 
   for (const binding of bindings) {
-    if (!binding || !binding.element || typeof binding.element.addEventListener !== "function") {
+    if (
+      !binding
+      || !binding.element
+      || typeof binding.element.addEventListener !== "function"
+      || typeof binding.patchFactory !== "function"
+    ) {
       continue;
     }
     binding.element.addEventListener(binding.eventType, () => {
       dispatchRenderFxChange(
         binding.section,
-        typeof binding.patchFactory === "function" ? binding.patchFactory() : null,
+        binding.patchFactory(),
         binding.options || {},
       );
     });

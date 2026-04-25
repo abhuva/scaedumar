@@ -1,3 +1,5 @@
+import { DEFAULT_CURSOR_LIGHT_COLOR_HEX } from "../core/state.js";
+
 export function getCursorLightSnapshot(deps) {
   const cursorLightState = typeof deps.getCursorLightState === "function"
     ? deps.getCursorLightState()
@@ -9,7 +11,7 @@ export function getCursorLightSnapshot(deps) {
     useTerrainHeight: true,
     strength: 40,
     heightOffset: 25,
-    colorHex: "#ff9b2f",
+    colorHex: DEFAULT_CURSOR_LIGHT_COLOR_HEX,
     showGizmo: false,
   };
   const coreCursorLight = deps.getCoreCursorLight();
@@ -19,7 +21,11 @@ export function getCursorLightSnapshot(deps) {
       useTerrainHeight: Boolean(coreCursorLight.useTerrainHeight),
       strength: Math.round(deps.clamp(Number(coreCursorLight.strength), 1, 200)),
       heightOffset: Math.round(deps.clamp(Number(coreCursorLight.heightOffset), 0, 120)),
-      colorHex: typeof coreCursorLight.color === "string" ? coreCursorLight.color : effectiveCursorLightState.colorHex,
+      colorHex: typeof coreCursorLight.color === "string"
+        ? coreCursorLight.color
+        : (typeof effectiveCursorLightState.colorHex === "string"
+          ? effectiveCursorLightState.colorHex
+          : DEFAULT_CURSOR_LIGHT_COLOR_HEX),
       showGizmo: Boolean(coreCursorLight.showGizmo),
     };
   }
@@ -28,7 +34,9 @@ export function getCursorLightSnapshot(deps) {
     useTerrainHeight: Boolean(effectiveCursorLightState.useTerrainHeight),
     strength: Math.round(deps.clamp(Number(effectiveCursorLightState.strength), 1, 200)),
     heightOffset: Math.round(deps.clamp(Number(effectiveCursorLightState.heightOffset), 0, 120)),
-    colorHex: typeof effectiveCursorLightState.colorHex === "string" ? effectiveCursorLightState.colorHex : "#ff9b2f",
+    colorHex: typeof effectiveCursorLightState.colorHex === "string"
+      ? effectiveCursorLightState.colorHex
+      : DEFAULT_CURSOR_LIGHT_COLOR_HEX,
     showGizmo: Boolean(effectiveCursorLightState.showGizmo),
   };
 }

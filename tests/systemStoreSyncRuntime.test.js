@@ -55,9 +55,10 @@ test("systemStoreSyncRuntime updates time state", () => {
     timeScale: 1,
   });
   assert.deepEqual(store.getState().systems.time, {
-    cycleSpeedHoursPerSec: 4,
+    cycleSpeedHoursPerSec: 1,
     nowSec: 12,
     ticksProcessed: 3,
+    globalTimeHours: 0,
   });
   assert.equal(store.getState().ui.cycleHour, 14.25);
 });
@@ -98,8 +99,13 @@ test("systemStoreSyncRuntime updates weather state", () => {
 test("systemStoreSyncRuntime normalizes invalid cycle speed when syncing time", () => {
   const { store, runtime } = createRuntime();
   runtime.updateStoreTime({
-    nowSec: 5,
+    nowSec: Number.NaN,
     cycleSpeedHoursPerSec: Number.NaN,
+    ticksProcessed: Number.NaN,
   });
   assert.equal(store.getState().clock.timeScale, 0);
+  assert.equal(store.getState().clock.nowSec, 0);
+  assert.equal(store.getState().systems.time.cycleSpeedHoursPerSec, 0);
+  assert.equal(store.getState().systems.time.nowSec, 0);
+  assert.equal(store.getState().systems.time.ticksProcessed, 0);
 });

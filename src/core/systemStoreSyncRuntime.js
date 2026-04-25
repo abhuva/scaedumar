@@ -1,19 +1,30 @@
 export function createSystemStoreSyncRuntime(deps) {
   return {
     updateStoreTime: (value) => {
-      const cycleSpeed = Number(value.cycleSpeedHoursPerSec);
+      const cycleSpeed = Number(value && value.cycleSpeedHoursPerSec);
+      const normalizedCycleSpeed = deps.clamp(Number.isFinite(cycleSpeed) ? cycleSpeed : 0, 0, 1);
+      const rawNowSec = Number(value && value.nowSec);
+      const nowSec = Math.max(0, Number.isFinite(rawNowSec) ? rawNowSec : 0);
+      const rawTicksProcessed = Number(value && value.ticksProcessed);
+      const ticksProcessed = Math.max(0, Number.isFinite(rawTicksProcessed) ? rawTicksProcessed : 0);
+      const rawGlobalTimeHours = Number(value && value.globalTimeHours);
+      const globalTimeHours = Number.isFinite(rawGlobalTimeHours) ? rawGlobalTimeHours : 0;
       deps.store.update((prev) => ({
         ...prev,
         clock: {
           ...prev.clock,
-          nowSec: Math.max(0, Number(value.nowSec) || 0),
-          timeScale: deps.clamp(Number.isFinite(cycleSpeed) ? cycleSpeed : 0, 0, 1),
+          nowSec,
+          timeScale: normalizedCycleSpeed,
         },
         systems: {
           ...prev.systems,
           time: {
             ...prev.systems.time,
-            ...value,
+            ...(value && typeof value === "object" ? value : {}),
+            cycleSpeedHoursPerSec: normalizedCycleSpeed,
+            nowSec,
+            ticksProcessed,
+            globalTimeHours,
           },
         },
         ui: {

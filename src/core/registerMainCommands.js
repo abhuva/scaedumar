@@ -1,5 +1,6 @@
 import { normalizeRuntimeMode } from "./modeCapabilities.js";
 import { registerInteractionCommands } from "../gameplay/interactionCommands.js";
+import { DEFAULT_CURSOR_LIGHT_COLOR_HEX } from "./state.js";
 
 export function registerMainCommands(commandBus, deps) {
   function clampRound(value, min, max) {
@@ -127,7 +128,7 @@ export function registerMainCommands(commandBus, deps) {
     if (section === "lighting") {
       const nextLighting = getLightingSettings();
       updateSimulationSection("lighting", {
-        ...deps.serializeLightingSettings(),
+        ...nextLighting,
         useShadows: Boolean(nextLighting.useShadows),
         heightScale: clampRound(nextLighting.heightScale, 1, 300),
         shadowStrength: deps.clamp(Number(nextLighting.shadowStrength), 0, 1),
@@ -177,7 +178,7 @@ export function registerMainCommands(commandBus, deps) {
     if (section === "clouds") {
       const nextClouds = getCloudSettings();
       updateSimulationSection("clouds", {
-        ...deps.serializeCloudSettings(),
+        ...nextClouds,
         useClouds: Boolean(nextClouds.useClouds),
         cloudCoverage: deps.clamp(Number(nextClouds.cloudCoverage), 0, 1),
         cloudSoftness: deps.clamp(Number(nextClouds.cloudSoftness), 0.01, 0.35),
@@ -199,7 +200,7 @@ export function registerMainCommands(commandBus, deps) {
         ...(patch || {}),
       };
       updateSimulationSection("waterFx", {
-        ...deps.serializeWaterSettings(),
+        ...nextWater,
         useWaterFx: Boolean(nextWater.useWaterFx),
         waterFlowDownhill: Boolean(nextWater.waterFlowDownhill),
         waterFlowInvertDownhill: Boolean(nextWater.waterFlowInvertDownhill),
@@ -235,9 +236,16 @@ export function registerMainCommands(commandBus, deps) {
   commandBus.register("core/swarm/settingsChanged", (command) => {
     function updateSwarmSettings(patch) {
       deps.patchSwarmSettingsToStore(patch);
+      settings = deps.getSwarmSettings();
+    }
+
+    function refreshSettings() {
+      settings = deps.getSwarmSettings();
+      return settings;
     }
 
     const action = String(command.action || "");
+    let settings = deps.getSwarmSettings();
     let shouldSyncSwarmPanelUi = false;
     function handleHeightChange() {
       let minHeight = Math.round(deps.clamp(Number(command.minHeight), 0, 256));
@@ -265,13 +273,13 @@ export function registerMainCommands(commandBus, deps) {
         deps.requestOverlayDraw();
         break;
       case "backgroundColorChanged": {
-        const backgroundColor = normalizeHexColor(command.value, deps.getSwarmSettings().backgroundColor);
+        const backgroundColor = normalizeHexColor(command.value, settings.backgroundColor);
         updateSwarmSettings({ backgroundColor });
         deps.requestOverlayDraw();
         break;
       }
       case "hawkColorChanged": {
-        const hawkColor = normalizeHexColor(command.value, deps.getSwarmSettings().hawkColor);
+        const hawkColor = normalizeHexColor(command.value, settings.hawkColor);
         updateSwarmSettings({ hawkColor });
         deps.requestOverlayDraw();
         break;
@@ -288,7 +296,6 @@ export function registerMainCommands(commandBus, deps) {
         shouldSyncSwarmPanelUi = true;
         break;
       case "followZoomInChanged": {
-        const settings = deps.getSwarmSettings();
         const zoomOut = deps.clamp(
           Number(command.zoomOut ?? settings.followZoomOut),
           deps.zoomMin,
@@ -300,7 +307,6 @@ export function registerMainCommands(commandBus, deps) {
         break;
       }
       case "followZoomOutChanged": {
-        const settings = deps.getSwarmSettings();
         const zoomIn = deps.clamp(
           Number(command.zoomIn ?? settings.followZoomIn),
           deps.zoomMin,
@@ -433,28 +439,28 @@ export function registerMainCommands(commandBus, deps) {
         const value = Math.round(deps.clamp(Number(command.value), 100, 1000));
         updateSwarmSettings({ agentCount: value });
         shouldSyncSwarmPanelUi = true;
-        deps.reseedSwarmAgents(deps.getSwarmSettings().agentCount);
+        deps.reseedSwarmAgents(settings.agentCount);
         break;
       }
       case "maxSpeedChanged": {
         const value = deps.clamp(Number(command.value), 30, 300);
         updateSwarmSettings({ maxSpeed: value });
         shouldSyncSwarmPanelUi = true;
-        deps.reseedSwarmAgents(deps.swarmState.count || deps.getSwarmSettings().agentCount);
+        deps.reseedSwarmAgents(deps.swarmState.count || settings.agentCount);
         break;
       }
       case "maxSteeringChanged": {
         const value = deps.clamp(Number(command.value), 10, 500);
         updateSwarmSettings({ maxSteering: value });
         shouldSyncSwarmPanelUi = true;
-        deps.reseedSwarmAgents(deps.swarmState.count || deps.getSwarmSettings().agentCount);
+        deps.reseedSwarmAgents(deps.swarmState.count || settings.agentCount);
         break;
       }
       case "variationChanged": {
         const value = Math.round(deps.clamp(Number(command.value), 0, 50));
         updateSwarmSettings({ variationStrengthPct: value });
         shouldSyncSwarmPanelUi = true;
-        deps.reseedSwarmAgents(deps.swarmState.count || deps.getSwarmSettings().agentCount);
+        deps.reseedSwarmAgents(deps.swarmState.count || settings.agentCount);
         break;
       }
       case "minHeightChanged":
@@ -465,14 +471,14 @@ export function registerMainCommands(commandBus, deps) {
       case "hawkEnabledChanged": {
         updateSwarmSettings({ useHawk: Boolean(command.value) });
         shouldSyncSwarmPanelUi = true;
-        deps.reseedSwarmAgents(deps.swarmState.count || deps.getSwarmSettings().agentCount);
+        deps.reseedSwarmAgents(deps.swarmState.count || settings.agentCount);
         break;
       }
       case "hawkCountChanged": {
         const value = Math.round(deps.clamp(Number(command.value), 0, 20));
         updateSwarmSettings({ hawkCount: value });
         shouldSyncSwarmPanelUi = true;
-        deps.reseedSwarmAgents(deps.swarmState.count || deps.getSwarmSettings().agentCount);
+        deps.reseedSwarmAgents(deps.swarmState.count || settings.agentCount);
         break;
       }
       case "enabledToggleChanged":
@@ -480,8 +486,9 @@ export function registerMainCommands(commandBus, deps) {
         shouldSyncSwarmPanelUi = true;
         deps.swarmState.lastUpdateMs = null;
         deps.swarmCursorState.active = false;
-        if (deps.getSwarmSettings().useAgentSwarm) {
-          deps.reseedSwarmAgents(deps.swarmState.count || deps.getSwarmSettings().agentCount);
+        const nextSettings = refreshSettings();
+        if (nextSettings.useAgentSwarm) {
+          deps.reseedSwarmAgents(deps.swarmState.count || nextSettings.agentCount);
           deps.setStatus("Agent swarm enabled.");
         } else {
           deps.stopSwarmFollow({ syncStore: false });
@@ -629,7 +636,7 @@ export function registerMainCommands(commandBus, deps) {
   });
 
   commandBus.register("core/cursorLight/setColor", (command) => {
-    const colorHex = normalizeHexColor(command.colorHex, "#ff9b2f");
+    const colorHex = normalizeHexColor(command.colorHex, DEFAULT_CURSOR_LIGHT_COLOR_HEX);
     deps.applyCursorLightConfigSnapshot({
       ...deps.getCursorLightSnapshot(),
       colorHex,

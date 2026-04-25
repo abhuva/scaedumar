@@ -11,25 +11,52 @@ export function createMapImageRuntime(deps) {
     return deps.getHeightSize();
   }
 
+  function setSplatSize(width, height) {
+    if (typeof deps.setSplatSize === "function") {
+      deps.setSplatSize(width, height);
+      return;
+    }
+    const splatSize = getSplatSize();
+    splatSize.width = width;
+    splatSize.height = height;
+  }
+
+  function setNormalsSize(width, height) {
+    if (typeof deps.setNormalsSize === "function") {
+      deps.setNormalsSize(width, height);
+      return;
+    }
+    const normalsSize = getNormalsSize();
+    normalsSize.width = width;
+    normalsSize.height = height;
+  }
+
+  function setHeightSize(width, height) {
+    if (typeof deps.setHeightSize === "function") {
+      deps.setHeightSize(width, height);
+      return;
+    }
+    const heightSize = getHeightSize();
+    heightSize.width = width;
+    heightSize.height = height;
+  }
+
   function setSplatSizeFromImage(img) {
     const splatSize = getSplatSize();
     const prevW = splatSize.width;
     const prevH = splatSize.height;
-    splatSize.width = img.width || 1;
-    splatSize.height = img.height || 1;
-    return splatSize.width !== prevW || splatSize.height !== prevH;
+    const width = img.width || 1;
+    const height = img.height || 1;
+    setSplatSize(width, height);
+    return width !== prevW || height !== prevH;
   }
 
   function setHeightSizeFromImage(img) {
-    const heightSize = getHeightSize();
-    heightSize.width = img.width || 1;
-    heightSize.height = img.height || 1;
+    setHeightSize(img.width || 1, img.height || 1);
   }
 
   function setNormalsSizeFromImage(img) {
-    const normalsSize = getNormalsSize();
-    normalsSize.width = img.width || 1;
-    normalsSize.height = img.height || 1;
+    setNormalsSize(img.width || 1, img.height || 1);
   }
 
   function syncPointLightWorkerMapData() {
