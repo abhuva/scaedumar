@@ -1,12 +1,9 @@
-# Terrain Prototype (Self-Contained)
+# Scaedumar
 
-Prototype goals:
-- Load a terrain splat PNG and render it
-- Load normals PNG and apply directional sunlight
-- Load height PNG and compute directional shadows
-- Simulate a full day/night sun cycle with adjustable speed
-- Add editable point lights in a dedicated lighting placement mode
-- Add a player (`npc.json`) with local-cost path preview and click-to-move
+https://abhuva.github.io/scaedumar/
+
+early game prototype, 2d top-down roquelike, survival, low-fantasy, simulation
+
 
 ## Files
 
