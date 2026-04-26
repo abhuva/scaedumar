@@ -1,9 +1,33 @@
 [project]
 site_name = "Scaedumar"
-site_description = "Documentation for the Scaedumar terrain prototype."
+site_description = "World and development portal for Scaedumar."
 site_url = "https://abhuva.github.io/scaedumar/"
 site_author = "abhuva"
-copyright = "Copyright © 2026 Scaedumar contributors"
+copyright = "Copyright &copy; 2026 Scaedumar contributors"
+extra_css = ["stylesheets/game-theme.css"]
+nav = [
+  { "Home" = "index.md" },
+  { "Architecture" = "ARCHITECTURE.md" },
+  { "Visual Baselines" = "visual-baselines/README.md" },
+  { "Setup & Release" = "plans+setups/SMOKE_CHECKLIST.md" },
+  { "Project Ideas" = "notes/Ideas.md" }
+]
 
 [project.theme]
 language = "en"
+features = [
+  "navigation.sections",
+  "navigation.top",
+  "navigation.instant",
+  "search.highlight",
+  "navigation.footer"
+]
+
+[project.theme.font]
+text = "Cormorant Garamond"
+code = "JetBrains Mono"
+
+[[project.theme.palette]]
+scheme = "default"
+primary = "black"
+accent = "green"
