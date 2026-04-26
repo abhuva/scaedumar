@@ -1,0 +1,9 @@
+[project]
+site_name = "Scaedumar"
+site_description = "Documentation for the Scaedumar terrain prototype."
+site_url = "https://abhuva.github.io/scaedumar/"
+site_author = "abhuva"
+copyright = "Copyright © 2026 Scaedumar contributors"
+
+[project.theme]
+language = "en"

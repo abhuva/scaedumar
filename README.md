@@ -69,6 +69,31 @@ Then open:
 - `http://localhost:8000` (Python)
 - or URL printed by `serve`
 
+## Documentation Site (Zensical + GitHub Pages)
+
+Documentation source files live under `docs/`.
+
+Local preview/build:
+
+```powershell
+# live preview
+zensical serve
+
+# production build output in ./site
+zensical build --clean
+```
+
+Automatic GitHub Pages deploy:
+
+- Workflow file: `.github/workflows/docs.yml`
+- Trigger: push to `main`
+- Output: `site/` uploaded and deployed via GitHub Pages Actions
+- Expected URL: `https://abhuva.github.io/scaedumar/`
+
+One-time GitHub repo setting:
+
+- `Settings -> Pages -> Build and deployment -> Source: GitHub Actions`
+
 ## Run (Desktop / Tauri)
 
 From repository root:
