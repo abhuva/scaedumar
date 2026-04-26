@@ -9,12 +9,20 @@ export function bindCanvasControls(deps) {
     return Boolean(target.closest(".topic-dock, .topic-panel, .swarm-stats-panel"));
   }
 
+  function shouldRouteFallbackToCanvas(event, options = {}) {
+    const allowOutsideWhileDragging = Boolean(options.allowOutsideWhileDragging);
+    if (event.target === deps.canvas) return false;
+    if (isUiTarget(event.target)) return false;
+    if (allowOutsideWhileDragging && deps.isMiddleDragging()) return true;
+    return isInsideCanvas(event.clientX, event.clientY);
+  }
+
   function handlePointerMove(clientX, clientY) {
     deps.updateSwarmCursorFromPointer(clientX, clientY);
     deps.updateCursorLightFromPointer(clientX, clientY);
     deps.updatePathPreviewFromPointer(clientX, clientY);
     if (!deps.isMiddleDragging()) {
-      if (deps.isCursorLightEnabled() || deps.getInteractionMode() === "pathfinding") {
+      if (deps.isCursorLightEnabled() || deps.getInteractionMode() === "pathfinding" || deps.isSwarmEnabled?.()) {
         deps.requestOverlayDraw();
       }
       return;
@@ -59,9 +67,7 @@ export function bindCanvasControls(deps) {
 
   // Fallback: wheel events may target non-canvas elements in some layouts.
   deps.windowEl.addEventListener("wheel", (e) => {
-    if (e.target === deps.canvas) return;
-    if (isUiTarget(e.target)) return;
-    if (!isInsideCanvas(e.clientX, e.clientY)) return;
+    if (!shouldRouteFallbackToCanvas(e)) return;
     e.preventDefault();
     deps.dispatchCoreCommand({
       type: "core/camera/zoomAtClient",
@@ -110,17 +116,13 @@ export function bindCanvasControls(deps) {
 
   // Fallback: some layouts/overlays can prevent direct canvas event targeting.
   deps.windowEl.addEventListener("pointermove", (e) => {
-    if (e.target === deps.canvas) return;
-    if (isUiTarget(e.target)) return;
-    if (!deps.isMiddleDragging() && !isInsideCanvas(e.clientX, e.clientY)) return;
+    if (!shouldRouteFallbackToCanvas(e, { allowOutsideWhileDragging: true })) return;
     handlePointerMove(e.clientX, e.clientY);
   }, true);
 
   deps.windowEl.addEventListener("pointerdown", (e) => {
     if (e.button === 1) {
-      if (e.target === deps.canvas) return;
-      if (isUiTarget(e.target)) return;
-      if (!isInsideCanvas(e.clientX, e.clientY)) return;
+      if (!shouldRouteFallbackToCanvas(e)) return;
       e.preventDefault();
       if (typeof deps.canvas.setPointerCapture === "function") {
         deps.canvas.setPointerCapture(e.pointerId);
@@ -133,9 +135,7 @@ export function bindCanvasControls(deps) {
       return;
     }
     if (e.button !== 0) return;
-    if (e.target === deps.canvas) return;
-    if (isUiTarget(e.target)) return;
-    if (!isInsideCanvas(e.clientX, e.clientY)) return;
+    if (!shouldRouteFallbackToCanvas(e)) return;
     handleMapClick(e.clientX, e.clientY, e.button);
   }, true);
 }

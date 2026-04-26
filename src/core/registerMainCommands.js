@@ -481,7 +481,7 @@ export function registerMainCommands(commandBus, deps) {
         deps.reseedSwarmAgents(deps.swarmState.count || settings.agentCount);
         break;
       }
-      case "enabledToggleChanged":
+      case "enabledToggleChanged": {
         updateSwarmSettings({ useAgentSwarm: Boolean(command.value) });
         shouldSyncSwarmPanelUi = true;
         deps.swarmState.lastUpdateMs = null;
@@ -496,6 +496,7 @@ export function registerMainCommands(commandBus, deps) {
           deps.setStatus("Agent swarm disabled.");
         }
         break;
+      }
       default:
         break;
     }

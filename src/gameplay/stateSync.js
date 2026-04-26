@@ -1,6 +1,7 @@
 import { DEFAULT_CURSOR_LIGHT_COLOR_HEX } from "../core/state.js";
 
 const ALLOWED_TIME_ROUTING_TARGETS = new Set(["swarm", "clouds", "water"]);
+const ALLOWED_SIMULATION_KNOBS = new Set(["parallax", "lighting", "fog", "clouds", "waterFx"]);
 
 export function syncMapState(deps) {
   deps.store.update((prev) => ({
@@ -68,13 +69,17 @@ export function syncCursorLightState(deps) {
 }
 
 export function patchSimulationKnobSection(deps) {
+  const key = String(deps.key || "");
+  if (!ALLOWED_SIMULATION_KNOBS.has(key)) {
+    return;
+  }
   deps.store.update((prev) => ({
     ...prev,
     simulation: {
       ...prev.simulation,
       knobs: {
         ...(prev.simulation && prev.simulation.knobs ? prev.simulation.knobs : {}),
-        [deps.key]: deps.value,
+        [key]: deps.value,
       },
     },
   }));

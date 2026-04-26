@@ -95,6 +95,7 @@ export function createSwarmUiRuntimeBinding(deps) {
 
   const swarmSettingsSyncRuntime = createSwarmSettingsSyncRuntime({
     normalizeRoutingMode: deps.normalizeRoutingMode,
+    swarmHeightMax: deps.swarmZMax,
     getSwarmSettings: () => mainRuntimeStateBinding.getSwarmSettings(),
     swarmEnabledToggle: deps.swarmEnabledToggle,
     swarmLitModeToggle: deps.swarmLitModeToggle,

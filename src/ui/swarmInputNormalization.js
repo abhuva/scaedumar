@@ -1,4 +1,9 @@
 export function createSwarmInputNormalization(deps) {
+  /**
+   * Normalizes min/max swarm height inputs.
+   * `changed` accepts "min" or "max" (aliases "out"/"in" are treated as neither here).
+   * Any other value (null/undefined/typos like "both") uses the default branch and unifies by Math.max.
+   */
   function normalizeSwarmHeightRangeInputs(changed = "min", values = null) {
     const sourceMin = values && values.minHeight != null ? values.minHeight : deps.swarmMinHeightInput.value;
     const sourceMax = values && values.maxHeight != null ? values.maxHeight : deps.swarmMaxHeightInput.value;
@@ -20,6 +25,11 @@ export function createSwarmInputNormalization(deps) {
     return { minHeight, maxHeight };
   }
 
+  /**
+   * Normalizes paired follow zoom inputs.
+   * `changed` accepts "out" or "in" (aliases "min"/"max" are treated as neither here).
+   * Any other value (null/undefined/typos like "both") uses the default branch and unifies by Math.max.
+   */
   function normalizeSwarmFollowZoomInputs(changed = "out", values = null) {
     const sourceZoomOut = values && values.zoomOut != null ? values.zoomOut : deps.swarmFollowZoomOutInput.value;
     const sourceZoomIn = values && values.zoomIn != null ? values.zoomIn : deps.swarmFollowZoomInInput.value;
