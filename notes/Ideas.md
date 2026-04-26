@@ -1,5 +1,36 @@
 # Ideas
 
+## Game Name : Scaedumar
+### 1. Etymology and Roots
+
+- **The Roots:** It is derived from Old English (or Germanic/Saxon origins).
+    - **"Scaedu"** (related to _Schatten_ in German) means **shadow, shade, or spirit.**
+    - **"Mar"** can represent several things in Old Germanic/Saxon languages:
+        - _Mære / Mara:_ A spirit, phantom, or nightmare (the root of the word "nightmare").
+        - _Mere:_ A lake or pool of water.
+        - _Mearc / Mark:_ A borderland or boundary.
+- **The Feeling:** When you speak it, it sounds **ancient and eerie.** It sounds like "Shadow-Spirit" or "Shadow-Boundary."
+### 2. The Roots (The "Old Tongue" Logic)
+
+- **Scae- (Scaedu/Sceadu):** As we discussed, this is the ancestor of the German _Schatten_ (shadow). In the Iron Age, "shadow" was often used poetically to mean **the soul, the spirit, or a fleeting reflection.**
+- **-du-:** This is the interesting middle. In many Old Germanic constructions, this acts as a connective particle, or in some cases, it evokes _du_ (you). There is a beautiful, haunting overlap here: **"The Shadow of You"** or **"The Spirit of You."**
+- **-mar:** Beyond the "boundary" (_Mark_) or "nightmare" (_Mara_) meaning, in the context of place-names (like _Weimar_ or _Cuxhaven_ concepts), _-mar_ or _-mer_ often relates to the **"Mere" (the water/the landscape itself).**
+
+### 3. The Nuance of "Scae-du-mar"
+
+When you put them together as **Scae + du + mar**, it reads almost like a fragmented sentence in an ancient, forgotten dialect:
+
+- **"Shadow of the Land"**
+- **"Spirit of the Mere"**
+- **"The Shadow-Boundary"**
+
+Specifically, if you were to translate the _feeling_ of those three syllables into an English/Germanic concept, it evokes: **"The Spirit-Bound Region."**
+### 4. Why it fits your game mechanics
+
+- **The Animism Connection:** Since you possess animals, the "Scaedu" (shadow/spirit) part describes your "projection" into another creature. You are essentially a shadow moving through their eyes.
+- **The Survival/Terrain Aspect:** In Iron Age or archaic naming conventions, names ending in "-mar" often feel like regions or territories. It sounds like a place where the barrier between reality and spirits is thin—which acts as a perfect setting for your wilderness survival game.
+- **Technical Feel:** It has a "hard" sound. It doesn't sound like a modern game; it sounds like a **world.**
+
 ## Visuals / Rendering
 
 ### Particle System Direction (2026-04-21)
