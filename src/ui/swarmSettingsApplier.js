@@ -1,5 +1,5 @@
 export function createSwarmSettingsApplier(deps) {
-  return function applySwarmSettingsLegacy() {
+  return function applySwarmSettingsCompat() {
     const settings = deps.getSwarmSettings();
     deps.swarmEnabledToggle.checked = Boolean(settings.useAgentSwarm);
     deps.swarmLitModeToggle.checked = Boolean(settings.useLitSwarm);
@@ -51,8 +51,14 @@ export function createSwarmSettingsApplier(deps) {
       hawkIndex: -1,
     });
     deps.swarmState.breedingActive = false;
-    deps.normalizeSwarmFollowZoomInputs("out");
-    deps.normalizeSwarmHeightRangeInputs("min");
+    deps.normalizeSwarmFollowZoomInputs(null, {
+      zoomOut: settings.followZoomOut,
+      zoomIn: settings.followZoomIn,
+    });
+    deps.normalizeSwarmHeightRangeInputs(null, {
+      minHeight: settings.minHeight,
+      maxHeight: settings.maxHeight,
+    });
     deps.updateSwarmLabels();
     deps.updateSwarmUi();
     deps.syncSwarmFollowToStore();

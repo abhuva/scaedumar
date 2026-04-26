@@ -5,6 +5,9 @@ export function createPointLightIoController(deps) {
   function resetPointLightsSaveConfirmation() {
     saveConfirmArmed = false;
     deps.setSaveButtonText("Save All");
+    if (typeof deps.syncPointLightsStateToStore === "function") {
+      deps.syncPointLightsStateToStore(null, false);
+    }
     if (saveConfirmTimer !== null) {
       deps.clearTimeout(saveConfirmTimer);
       saveConfirmTimer = null;
@@ -14,6 +17,9 @@ export function createPointLightIoController(deps) {
   function armPointLightsSaveConfirmation() {
     saveConfirmArmed = true;
     deps.setSaveButtonText("Confirm Save");
+    if (typeof deps.syncPointLightsStateToStore === "function") {
+      deps.syncPointLightsStateToStore(null, true);
+    }
     if (saveConfirmTimer !== null) {
       deps.clearTimeout(saveConfirmTimer);
     }

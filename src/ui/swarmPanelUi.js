@@ -2,7 +2,7 @@ export function createSwarmPanelUi(deps) {
   const {
     getSwarmSettings,
     swarmState,
-    swarmFollowState,
+    getSwarmFollowSnapshot,
     swarmFollowToggleBtn,
     swarmStatsPanelEl,
     swarmStatsBirdsValue,
@@ -185,8 +185,9 @@ export function createSwarmPanelUi(deps) {
   }
 
   function updateSwarmFollowButtonUi() {
-    const noun = swarmFollowState.targetType === "hawk" ? "Hawk" : "Agent";
-    swarmFollowToggleBtn.textContent = swarmFollowState.enabled ? "Stop Follow" : `Follow ${noun} Mode`;
+    const follow = getSwarmFollowSnapshot();
+    const noun = follow.targetType === "hawk" ? "Hawk" : "Agent";
+    swarmFollowToggleBtn.textContent = follow.enabled ? "Stop Follow" : `Follow ${noun} Mode`;
   }
 
   return {

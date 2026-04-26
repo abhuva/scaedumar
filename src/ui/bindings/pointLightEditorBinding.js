@@ -31,40 +31,45 @@ export function bindPointLightEditorControls(deps) {
 
   deps.pointLightStrengthInput.addEventListener("input", () => {
     if (!deps.hasLightEditDraft()) return;
-    deps.setLightEditDraftStrength(Math.round(deps.clamp(Number(deps.pointLightStrengthInput.value), 1, 200)));
-    deps.updatePointLightStrengthLabel();
+    const value = Math.round(deps.clamp(Number(deps.pointLightStrengthInput.value), 1, 200));
+    deps.setLightEditDraftStrength(value);
+    deps.updatePointLightStrengthLabel(value);
     deps.rebakeIfPointLightLiveUpdateEnabled();
     deps.requestOverlayDraw();
   });
 
   deps.pointLightIntensityInput.addEventListener("input", () => {
     if (!deps.hasLightEditDraft()) return;
-    deps.setLightEditDraftIntensity(deps.clamp(Number(deps.pointLightIntensityInput.value), 0, 4));
-    deps.updatePointLightIntensityLabel();
+    const value = deps.clamp(Number(deps.pointLightIntensityInput.value), 0, 4);
+    deps.setLightEditDraftIntensity(value);
+    deps.updatePointLightIntensityLabel(value);
     deps.rebakeIfPointLightLiveUpdateEnabled();
     deps.requestOverlayDraw();
   });
 
   deps.pointLightHeightOffsetInput.addEventListener("input", () => {
     if (!deps.hasLightEditDraft()) return;
-    deps.setLightEditDraftHeightOffset(Math.round(deps.clamp(Number(deps.pointLightHeightOffsetInput.value), -120, 240)));
-    deps.updatePointLightHeightOffsetLabel();
+    const value = Math.round(deps.clamp(Number(deps.pointLightHeightOffsetInput.value), -120, 240));
+    deps.setLightEditDraftHeightOffset(value);
+    deps.updatePointLightHeightOffsetLabel(value);
     deps.rebakeIfPointLightLiveUpdateEnabled();
     deps.requestOverlayDraw();
   });
 
   deps.pointLightFlickerInput.addEventListener("input", () => {
     if (!deps.hasLightEditDraft()) return;
-    deps.setLightEditDraftFlicker(deps.clamp(Number(deps.pointLightFlickerInput.value), 0, 1));
-    deps.updatePointLightFlickerLabel();
+    const value = deps.clamp(Number(deps.pointLightFlickerInput.value), 0, 1);
+    deps.setLightEditDraftFlicker(value);
+    deps.updatePointLightFlickerLabel(value);
     deps.rebakeIfPointLightLiveUpdateEnabled();
     deps.requestOverlayDraw();
   });
 
   deps.pointLightFlickerSpeedInput.addEventListener("input", () => {
     if (!deps.hasLightEditDraft()) return;
-    deps.setLightEditDraftFlickerSpeed(deps.clamp(Number(deps.pointLightFlickerSpeedInput.value), 0, 1));
-    deps.updatePointLightFlickerSpeedLabel();
+    const value = deps.clamp(Number(deps.pointLightFlickerSpeedInput.value), 0, 1);
+    deps.setLightEditDraftFlickerSpeed(value);
+    deps.updatePointLightFlickerSpeedLabel(value);
     deps.rebakeIfPointLightLiveUpdateEnabled();
     deps.requestOverlayDraw();
   });

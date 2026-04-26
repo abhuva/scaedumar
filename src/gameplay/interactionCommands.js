@@ -5,29 +5,15 @@ export function registerInteractionCommands(commandBus, deps) {
     return Boolean(snapshot && snapshot.active);
   }
 
-  function syncPlayerToStore(ctx) {
-    if (typeof deps.syncPlayerStateToStore === "function") {
-      deps.syncPlayerStateToStore();
-      return;
-    }
-    ctx.store.update((prev) => ({
-      ...prev,
-      gameplay: {
-        ...prev.gameplay,
-        player: {
-          ...prev.gameplay.player,
-          pixelX: deps.playerState.pixelX,
-          pixelY: deps.playerState.pixelY,
-        },
-      },
-    }));
+  function syncPlayerToStore() {
+    deps.syncPlayerStateToStore();
   }
 
-  commandBus.register("core/interaction/setMode", (command, ctx) => {
+  commandBus.register("core/interaction/setMode", (command) => {
     deps.setInteractionMode(command.mode);
   });
 
-  commandBus.register("core/interaction/clickMapPixel", (command, ctx) => {
+  commandBus.register("core/interaction/clickMapPixel", (command) => {
     const pixel = {
       x: Number(command.x),
       y: Number(command.y),
@@ -64,7 +50,7 @@ export function registerInteractionCommands(commandBus, deps) {
       deps.setInteractionMode("none");
       deps.movePreviewState.hoverPixel = null;
       deps.movePreviewState.pathPixels = [];
-      syncPlayerToStore(ctx);
+      syncPlayerToStore();
       deps.requestOverlayDraw();
       return;
     }
@@ -74,7 +60,7 @@ export function registerInteractionCommands(commandBus, deps) {
       deps.movePreviewState.hoverPixel = null;
       deps.movePreviewState.pathPixels = [];
       deps.setStatus(`Movement canceled at (${deps.playerState.pixelX}, ${deps.playerState.pixelY}).`);
-      syncPlayerToStore(ctx);
+      syncPlayerToStore();
       deps.requestOverlayDraw();
       return;
     }
@@ -83,90 +69,41 @@ export function registerInteractionCommands(commandBus, deps) {
     if (typeof deps.cancelMovementQueue === "function") {
       deps.cancelMovementQueue();
     }
+    syncPlayerToStore();
     deps.rebuildMovementField();
     deps.movePreviewState.hoverPixel = null;
     deps.movePreviewState.pathPixels = [];
     deps.setStatus(`Player moved to (${deps.playerState.pixelX}, ${deps.playerState.pixelY})`);
-    syncPlayerToStore(ctx);
     deps.requestOverlayDraw();
   });
 
-  function syncPathfindingStateToStore(ctx) {
-    ctx.store.update((prev) => ({
-      ...prev,
-      gameplay: {
-        ...prev.gameplay,
-        pathfinding: {
-          ...prev.gameplay.pathfinding,
-          ...(typeof deps.getPathfindingStateSnapshot === "function" ? deps.getPathfindingStateSnapshot() : {}),
-        },
-      },
-    }));
+  function syncPathfindingStateToStore() {
+    deps.syncPathfindingStateToStore(
+      typeof deps.getPathfindingStateSnapshot === "function" ? deps.getPathfindingStateSnapshot() : {},
+    );
   }
 
-  commandBus.register("core/pathfinding/setRange", (command, ctx) => {
-    if (deps.pathfindingRangeInput && Number.isFinite(Number(command.value))) {
-      deps.pathfindingRangeInput.value = String(Math.round(deps.clamp(Number(command.value), 30, 300)));
-    }
-    deps.updatePathfindingRangeLabel();
-    if (deps.getInteractionMode() === "pathfinding") {
-      deps.rebuildMovementField();
-    }
-    syncPathfindingStateToStore(ctx);
-  });
+  function updatePathfindingStoreField(patch) {
+    deps.patchPathfindingStateToStore(patch);
+  }
 
-  commandBus.register("core/pathfinding/setWeightSlope", (command, ctx) => {
-    if (deps.pathWeightSlopeInput && Number.isFinite(Number(command.value))) {
-      deps.pathWeightSlopeInput.value = String(deps.clamp(Number(command.value), 0, 10));
-    }
-    deps.updatePathWeightLabels();
-    if (deps.getInteractionMode() === "pathfinding") {
-      deps.rebuildMovementField();
-    }
-    syncPathfindingStateToStore(ctx);
-  });
+  function registerPathfindingSetter(commandType, field, min, max, round = false) {
+    commandBus.register(commandType, (command) => {
+      const rawValue = deps.clamp(Number(command.value), min, max);
+      const value = round ? Math.round(rawValue) : rawValue;
+      updatePathfindingStoreField({ [field]: value });
+      deps.syncPathfindingSettingsUi();
+      if (deps.getInteractionMode() === "pathfinding") {
+        deps.rebuildMovementField();
+      }
+      syncPathfindingStateToStore();
+    });
+  }
 
-  commandBus.register("core/pathfinding/setWeightHeight", (command, ctx) => {
-    if (deps.pathWeightHeightInput && Number.isFinite(Number(command.value))) {
-      deps.pathWeightHeightInput.value = String(deps.clamp(Number(command.value), 0, 10));
-    }
-    deps.updatePathWeightLabels();
-    if (deps.getInteractionMode() === "pathfinding") {
-      deps.rebuildMovementField();
-    }
-    syncPathfindingStateToStore(ctx);
-  });
-
-  commandBus.register("core/pathfinding/setWeightWater", (command, ctx) => {
-    if (deps.pathWeightWaterInput && Number.isFinite(Number(command.value))) {
-      deps.pathWeightWaterInput.value = String(deps.clamp(Number(command.value), 0, 100));
-    }
-    deps.updatePathWeightLabels();
-    if (deps.getInteractionMode() === "pathfinding") {
-      deps.rebuildMovementField();
-    }
-    syncPathfindingStateToStore(ctx);
-  });
-
-  commandBus.register("core/pathfinding/setSlopeCutoff", (command, ctx) => {
-    if (deps.pathSlopeCutoffInput && Number.isFinite(Number(command.value))) {
-      deps.pathSlopeCutoffInput.value = String(Math.round(deps.clamp(Number(command.value), 0, 90)));
-    }
-    deps.updatePathSlopeCutoffLabel();
-    if (deps.getInteractionMode() === "pathfinding") {
-      deps.rebuildMovementField();
-    }
-    syncPathfindingStateToStore(ctx);
-  });
-
-  commandBus.register("core/pathfinding/setBaseCost", (command, ctx) => {
-    if (deps.pathBaseCostInput && Number.isFinite(Number(command.value))) {
-      deps.pathBaseCostInput.value = String(deps.clamp(Number(command.value), 0, 2));
-    }
-    deps.updatePathBaseCostLabel();
-    if (deps.getInteractionMode() === "pathfinding") {
-      deps.rebuildMovementField();
-    }
-    syncPathfindingStateToStore(ctx);
-  });
+  registerPathfindingSetter("core/pathfinding/setRange", "range", 30, 300, true);
+  registerPathfindingSetter("core/pathfinding/setWeightSlope", "weightSlope", 0, 10);
+  registerPathfindingSetter("core/pathfinding/setWeightHeight", "weightHeight", 0, 10);
+  registerPathfindingSetter("core/pathfinding/setWeightWater", "weightWater", 0, 100);
+  registerPathfindingSetter("core/pathfinding/setSlopeCutoff", "slopeCutoff", 0, 90, true);
+  registerPathfindingSetter("core/pathfinding/setBaseCost", "baseCost", 0, 2);
 }

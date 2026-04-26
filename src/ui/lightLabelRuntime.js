@@ -1,27 +1,32 @@
 export function createLightLabelRuntime(deps) {
-  function updatePointLightStrengthLabel() {
-    const value = Math.round(deps.clamp(Number(deps.pointLightStrengthInput.value), 1, 200));
-    deps.pointLightStrengthValue.textContent = `${value} px`;
+  function updatePointLightStrengthLabel(value = null) {
+    const rawValue = value == null ? deps.pointLightStrengthInput.value : value;
+    const nextValue = Math.round(deps.clamp(Number(rawValue), 1, 200));
+    deps.pointLightStrengthValue.textContent = `${nextValue} px`;
   }
 
-  function updatePointLightIntensityLabel() {
-    const value = deps.clamp(Number(deps.pointLightIntensityInput.value), 0, 4);
-    deps.pointLightIntensityValue.textContent = `${value.toFixed(2)}x`;
+  function updatePointLightIntensityLabel(value = null) {
+    const rawValue = value == null ? deps.pointLightIntensityInput.value : value;
+    const nextValue = deps.clamp(Number(rawValue), 0, 4);
+    deps.pointLightIntensityValue.textContent = `${nextValue.toFixed(2)}x`;
   }
 
-  function updatePointLightHeightOffsetLabel() {
-    const value = Math.round(deps.clamp(Number(deps.pointLightHeightOffsetInput.value), -120, 240));
-    deps.pointLightHeightOffsetValue.textContent = `${value} px`;
+  function updatePointLightHeightOffsetLabel(value = null) {
+    const rawValue = value == null ? deps.pointLightHeightOffsetInput.value : value;
+    const nextValue = Math.round(deps.clamp(Number(rawValue), -120, 240));
+    deps.pointLightHeightOffsetValue.textContent = `${nextValue} px`;
   }
 
-  function updatePointLightFlickerLabel() {
-    const value = deps.clamp(Number(deps.pointLightFlickerInput.value), 0, 1);
-    deps.pointLightFlickerValue.textContent = value.toFixed(2);
+  function updatePointLightFlickerLabel(value = null) {
+    const rawValue = value == null ? deps.pointLightFlickerInput.value : value;
+    const nextValue = deps.clamp(Number(rawValue), 0, 1);
+    deps.pointLightFlickerValue.textContent = nextValue.toFixed(2);
   }
 
-  function updatePointLightFlickerSpeedLabel() {
-    const value = deps.clamp(Number(deps.pointLightFlickerSpeedInput.value), 0, 1);
-    deps.pointLightFlickerSpeedValue.textContent = value.toFixed(2);
+  function updatePointLightFlickerSpeedLabel(value = null) {
+    const rawValue = value == null ? deps.pointLightFlickerSpeedInput.value : value;
+    const nextValue = deps.clamp(Number(rawValue), 0, 1);
+    deps.pointLightFlickerSpeedValue.textContent = nextValue.toFixed(2);
   }
 
   function updateCursorLightStrengthLabel() {

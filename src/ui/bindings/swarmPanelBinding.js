@@ -28,13 +28,11 @@ export function bindSwarmPanelControls(deps) {
   deps.swarmFollowZoomInInput.addEventListener("input", () => {
     dispatchSwarmSettingChange("followZoomInChanged", {
       zoomIn: Number(deps.swarmFollowZoomInInput.value),
-      zoomOut: Number(deps.swarmFollowZoomOutInput.value),
     });
   });
 
   deps.swarmFollowZoomOutInput.addEventListener("input", () => {
     dispatchSwarmSettingChange("followZoomOutChanged", {
-      zoomIn: Number(deps.swarmFollowZoomInInput.value),
       zoomOut: Number(deps.swarmFollowZoomOutInput.value),
     });
   });
@@ -107,13 +105,11 @@ export function bindSwarmPanelControls(deps) {
   deps.swarmMinHeightInput.addEventListener("input", () => {
     dispatchSwarmSettingChange("minHeightChanged", {
       minHeight: Number(deps.swarmMinHeightInput.value),
-      maxHeight: Number(deps.swarmMaxHeightInput.value),
     });
   });
 
   deps.swarmMaxHeightInput.addEventListener("input", () => {
     dispatchSwarmSettingChange("maxHeightChanged", {
-      minHeight: Number(deps.swarmMinHeightInput.value),
       maxHeight: Number(deps.swarmMaxHeightInput.value),
     });
   });

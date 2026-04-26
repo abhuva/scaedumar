@@ -1,5 +1,5 @@
 export function createRenderFxDataSerializer(deps) {
-  function serializeLightingSettingsLegacy() {
+  function serializeLightingSettingsCompat() {
     const state = deps.getCoreState();
     const lighting = deps.getLightingSettings();
     const timeState = state.systems && state.systems.time ? state.systems.time : {};
@@ -27,7 +27,7 @@ export function createRenderFxDataSerializer(deps) {
     };
   }
 
-  function serializeFogSettingsLegacy() {
+  function serializeFogSettingsCompat() {
     const fog = deps.getFogSettings();
     return {
       version: 1,
@@ -41,7 +41,7 @@ export function createRenderFxDataSerializer(deps) {
     };
   }
 
-  function serializeParallaxSettingsLegacy() {
+  function serializeParallaxSettingsCompat() {
     const parallax = deps.getParallaxSettings();
     return {
       version: 1,
@@ -51,7 +51,7 @@ export function createRenderFxDataSerializer(deps) {
     };
   }
 
-  function serializeCloudSettingsLegacy() {
+  function serializeCloudSettingsCompat() {
     const clouds = deps.getCloudSettings();
     const timeState = deps.getTimeState();
     return {
@@ -69,7 +69,7 @@ export function createRenderFxDataSerializer(deps) {
     };
   }
 
-  function serializeWaterSettingsLegacy() {
+  function serializeWaterSettingsCompat() {
     const water = deps.getWaterSettings();
     const timeState = deps.getTimeState();
     return {
@@ -103,10 +103,10 @@ export function createRenderFxDataSerializer(deps) {
   }
 
   return {
-    serializeLightingSettingsLegacy,
-    serializeFogSettingsLegacy,
-    serializeParallaxSettingsLegacy,
-    serializeCloudSettingsLegacy,
-    serializeWaterSettingsLegacy,
+    serializeLightingSettingsCompat,
+    serializeFogSettingsCompat,
+    serializeParallaxSettingsCompat,
+    serializeCloudSettingsCompat,
+    serializeWaterSettingsCompat,
   };
 }

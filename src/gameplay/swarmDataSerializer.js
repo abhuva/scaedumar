@@ -1,14 +1,15 @@
 export function createSwarmDataSerializer(deps) {
   return function serializeSwarmData() {
     const settings = deps.getSwarmSettings();
+    const follow = deps.getSwarmFollowSnapshot();
     return {
       version: 1,
       settings,
       follow: {
-        enabled: deps.swarmFollowState.enabled,
-        targetType: deps.swarmFollowState.targetType,
-        agentIndex: deps.swarmFollowState.agentIndex,
-        hawkIndex: deps.swarmFollowState.hawkIndex,
+        enabled: follow.enabled,
+        targetType: follow.targetType,
+        agentIndex: follow.agentIndex,
+        hawkIndex: follow.hawkIndex,
       },
       state: {
         count: deps.swarmState.count,

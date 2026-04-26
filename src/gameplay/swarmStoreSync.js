@@ -1,58 +1,45 @@
 export function getSwarmRuntimeStateSnapshot(deps) {
+  const followState = deps.swarmFollowState || {};
+  const swarmState = deps.swarmState || {};
+  const follow = typeof deps.getSwarmFollowSnapshot === "function"
+    ? deps.getSwarmFollowSnapshot()
+    : {
+        enabled: Boolean(followState.enabled),
+        targetType: followState.targetType === "hawk" ? "hawk" : "agent",
+        agentIndex: followState.agentIndex,
+        hawkIndex: followState.hawkIndex,
+      };
+  const enabled = typeof deps.isSwarmEnabled === "function"
+    ? deps.isSwarmEnabled()
+    : Boolean(swarmState.enabled);
   return {
-    enabled: deps.isSwarmEnabled(),
-    count: Math.max(0, Math.round(Number(deps.swarmState.count) || 0)),
-    followEnabled: Boolean(deps.swarmFollowState.enabled),
-    followTargetType: deps.swarmFollowState.targetType === "hawk" ? "hawk" : "agent",
+    enabled,
+    count: Math.max(0, Math.round(Number(swarmState.count) || 0)),
+    followEnabled: Boolean(follow.enabled),
+    followTargetType: follow.targetType === "hawk" ? "hawk" : "agent",
+    followAgentIndex: normalizeStoredFollowIndex(follow.agentIndex),
+    followHawkIndex: normalizeStoredFollowIndex(follow.hawkIndex),
   };
 }
 
-export function syncSwarmFollowToStore(deps) {
-  const runtimeSwarm = deps.getSwarmRuntimeStateSnapshot();
-  deps.store.update((prev) => {
-    const prevGameplay = prev.gameplay || {};
-    const prevSwarm = prevGameplay.swarm || {};
-    if (
-      Boolean(prevSwarm.followEnabled) === runtimeSwarm.followEnabled
-      && String(prevSwarm.followTargetType || "agent") === runtimeSwarm.followTargetType
-    ) {
-      return prev;
-    }
-    return {
-      ...prev,
-      gameplay: {
-        ...prevGameplay,
-        swarm: {
-          ...prevSwarm,
-          followEnabled: runtimeSwarm.followEnabled,
-          followTargetType: runtimeSwarm.followTargetType,
-        },
-      },
-    };
-  });
+export function getSwarmStoreSnapshot(deps) {
+  const settings = typeof deps.getSwarmSettings === "function" ? (deps.getSwarmSettings() || {}) : {};
+  return {
+    ...settings,
+    ...getSwarmRuntimeStateSnapshot(deps),
+  };
 }
 
-export function syncSwarmRuntimeStateToStore(deps) {
-  const runtimeSwarm = deps.getSwarmRuntimeStateSnapshot();
-  deps.store.update((prev) => {
-    const prevSwarm = prev.gameplay && prev.gameplay.swarm ? prev.gameplay.swarm : {};
-    if (
-      Boolean(prevSwarm.enabled) === runtimeSwarm.enabled
-      && Math.max(0, Math.round(Number(prevSwarm.count) || 0)) === runtimeSwarm.count
-      && Boolean(prevSwarm.followEnabled) === runtimeSwarm.followEnabled
-      && String(prevSwarm.followTargetType || "agent") === runtimeSwarm.followTargetType
-    ) {
-      return prev;
+export function hasSwarmSnapshotChanged(prevSwarm, nextSwarm) {
+  const keys = new Set([...Object.keys(prevSwarm), ...Object.keys(nextSwarm)]);
+  for (const key of keys) {
+    if (prevSwarm[key] !== nextSwarm[key]) {
+      return true;
     }
-    return {
-      ...prev,
-      gameplay: {
-        ...prev.gameplay,
-        swarm: {
-          ...prevSwarm,
-          ...runtimeSwarm,
-        },
-      },
-    };
-  });
+  }
+  return false;
+}
+
+export function normalizeStoredFollowIndex(value) {
+  return Number.isFinite(Number(value)) ? Math.round(Number(value)) : -1;
 }

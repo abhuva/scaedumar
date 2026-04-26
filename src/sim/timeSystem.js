@@ -11,9 +11,12 @@ export function createTimeSystem(deps) {
       const waterTimeSec = frameTime && frameTime.systems && frameTime.systems.water
         ? Number(frameTime.systems.water.timeSec)
         : 0;
+      const cycleSpeedHoursPerSec = frameTime && Number.isFinite(Number(frameTime.cycleSpeedHoursPerSec))
+        ? Number(frameTime.cycleSpeedHoursPerSec)
+        : 0;
       const timeState = {
-        cycleSpeedHoursPerSec,
         ...(frameTime || {}),
+        cycleSpeedHoursPerSec,
         cloudTimeSec: Number.isFinite(cloudTimeSec) ? cloudTimeSec : 0,
         waterTimeSec: Number.isFinite(waterTimeSec) ? waterTimeSec : 0,
       };
@@ -32,3 +35,4 @@ export function createTimeSystem(deps) {
     },
   };
 }
+

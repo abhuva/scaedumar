@@ -23,6 +23,9 @@ Prototype goals:
 - `.tauri-dist/`: packaged frontend assets used by Tauri build
 - `AI_CONTEXT.md`: implementation map and workflow notes for AI agents
 
+Current architecture baseline:
+- modular, core-state-driven runtime with `src/main.js` used primarily for composition/orchestration
+
 ## Expected auto-load names
 
 Auto-load checks these folders in order:
@@ -100,23 +103,38 @@ One-command helper:
 .\build-tauri.ps1 -Mode build
 ```
 
+
+## Copy Tauri Folders
+
+```
+if (Test-Path .tauri-dist) { Remove-Item .tauri-dist -Recurse -Force }
+New-Item -ItemType Directory -Force .tauri-dist | Out-Null
+Copy-Item index.html .tauri-dist\ -Force
+Copy-Item styles.css .tauri-dist\ -Force
+Copy-Item src .tauri-dist\src -Recurse -Force
+Copy-Item assets .tauri-dist\assets -Recurse -Force
+```
 ## Tests
 
 Run targeted architecture migration tests with Node's built-in test runner:
 
 ```powershell
-node --test tests/*.test.js
+node --test
 ```
 
 Current tests cover:
 - mode capability gating contracts
 - weather-system deterministic normalization output
 - settings-registry contract wiring/roundtrip behavior
+- main runtime-state binding ownership
+- swarm runtime sync/follow ownership
+- movement system and movement store sync
+- architecture ownership guard checks
 
 Architecture map:
 - `docs/ARCHITECTURE.md`
 - visual diagnostic checklist/baselines:
-  - `SMOKE_CHECKLIST.md`
+  - `docs/plans+setups/SMOKE_CHECKLIST.md`
   - `docs/visual-baselines/README.md`
 
 ## Notes

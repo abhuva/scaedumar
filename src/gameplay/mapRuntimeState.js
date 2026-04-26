@@ -1,7 +1,7 @@
 export function createMapRuntimeState(deps) {
   function setCurrentMapFolderPath(nextPath) {
     deps.setCurrentMapFolderPathValue(deps.normalizeMapFolderPath(nextPath));
-    deps.mapPathInput.value = deps.getCurrentMapFolderPath();
+    deps.syncMapPathInput(deps.getCurrentMapFolderPath());
     deps.syncMapStateToStore();
   }
 

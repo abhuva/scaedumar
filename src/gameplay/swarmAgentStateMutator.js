@@ -28,10 +28,11 @@ export function createSwarmAgentStateMutator(deps) {
       for (const hawk of deps.swarmState.hawks) {
         hawk.targetIndex = -1;
       }
-      if (deps.swarmFollowState.targetType === "agent") {
+      const follow = deps.getSwarmFollowSnapshot();
+      if (follow.targetType === "agent") {
         deps.stopSwarmFollow();
       } else {
-        deps.swarmFollowState.agentIndex = -1;
+        deps.setSwarmFollowAgentIndex(-1);
       }
       return true;
     }
@@ -67,14 +68,15 @@ export function createSwarmAgentStateMutator(deps) {
       }
     }
 
-    if (deps.swarmFollowState.targetType === "agent") {
-      if (deps.swarmFollowState.agentIndex === removeIndex) {
-        deps.swarmFollowState.agentIndex = deps.chooseRandomFollowAgentIndex();
-        if (deps.swarmFollowState.agentIndex < 0) {
+    const follow = deps.getSwarmFollowSnapshot();
+    if (follow.targetType === "agent") {
+      if (follow.agentIndex === removeIndex) {
+        deps.setSwarmFollowAgentIndex(deps.chooseRandomFollowAgentIndex());
+        if (deps.getSwarmFollowSnapshot().agentIndex < 0) {
           deps.stopSwarmFollow({ resetSpeed: true });
         }
-      } else if (deps.swarmFollowState.agentIndex === lastIndex && removeIndex !== lastIndex) {
-        deps.swarmFollowState.agentIndex = removeIndex;
+      } else if (follow.agentIndex === lastIndex && removeIndex !== lastIndex) {
+        deps.setSwarmFollowAgentIndex(removeIndex);
       }
     }
 

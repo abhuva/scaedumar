@@ -4,41 +4,46 @@ export function createSwarmFollowCameraUpdater(deps) {
   }
 
   return function updateSwarmFollowCamera() {
-    if (!deps.swarmFollowState.enabled) return;
+    const follow = deps.getSwarmFollowSnapshot();
+    if (!follow.enabled) return;
     if (!deps.isSwarmEnabled() || deps.swarmState.count <= 0) {
       deps.stopSwarmFollow({ syncStore: true });
       return;
     }
 
     const settings = deps.getSwarmSettings();
-    if (deps.swarmFollowState.targetType === "hawk") {
+    if (follow.targetType === "hawk") {
       if (!settings.useHawk || deps.swarmState.hawks.length <= 0) {
         deps.stopSwarmFollow({ targetType: "hawk", syncStore: true });
         return;
       }
+      let hawkIndex = follow.hawkIndex;
       if (
-        !Number.isInteger(deps.swarmFollowState.hawkIndex)
-        || deps.swarmFollowState.hawkIndex < 0
-        || deps.swarmFollowState.hawkIndex >= deps.swarmState.hawks.length
+        !Number.isInteger(hawkIndex)
+        || hawkIndex < 0
+        || hawkIndex >= deps.swarmState.hawks.length
       ) {
-        deps.swarmFollowState.hawkIndex = deps.chooseRandomFollowHawkIndex();
+        hawkIndex = deps.chooseRandomFollowHawkIndex();
+        deps.setSwarmFollowHawkIndex(hawkIndex);
       }
-      if (deps.swarmFollowState.hawkIndex < 0) return;
+      if (hawkIndex < 0) return;
 
-      const hawk = deps.swarmState.hawks[deps.swarmFollowState.hawkIndex];
-      const hawkPos = deps.writeInterpolatedSwarmHawkPos(deps.swarmFollowState.hawkIndex, deps.swarmFollowHawkScratch);
+      const hawk = deps.swarmState.hawks[hawkIndex];
+      const hawkPos = deps.writeInterpolatedSwarmHawkPos(hawkIndex, deps.swarmFollowHawkScratch);
       const hawkWorld = deps.mapCoordToWorld(hawkPos.x, hawkPos.y);
       let nextZoom = deps.getZoom();
       if (settings.followZoomBySpeed) {
         const speedNormRaw = deps.clamp(Math.hypot(hawk.vx, hawk.vy) / Math.max(1, settings.hawkSpeed), 0, 1);
         const speedSmoothing = clampSmoothing(settings.followAgentSpeedSmoothing);
         const zoomSmoothing = clampSmoothing(settings.followAgentZoomSmoothing);
-        if (!Number.isFinite(deps.swarmFollowState.speedNormFiltered)) {
-          deps.swarmFollowState.speedNormFiltered = speedNormRaw;
+        const speedNormFiltered = deps.getSwarmFollowSpeedNormFiltered();
+        if (!Number.isFinite(speedNormFiltered)) {
+          deps.setSwarmFollowSpeedNormFiltered(speedNormRaw);
         } else {
-          deps.swarmFollowState.speedNormFiltered += (speedNormRaw - deps.swarmFollowState.speedNormFiltered) * speedSmoothing;
+          deps.setSwarmFollowSpeedNormFiltered(speedNormFiltered + (speedNormRaw - speedNormFiltered) * speedSmoothing);
         }
-        const targetZoom = settings.followZoomIn + (settings.followZoomOut - settings.followZoomIn) * deps.swarmFollowState.speedNormFiltered;
+        const targetZoom = settings.followZoomIn
+          + (settings.followZoomOut - settings.followZoomIn) * deps.getSwarmFollowSpeedNormFiltered();
         nextZoom = deps.clamp(deps.getZoom() + (targetZoom - deps.getZoom()) * zoomSmoothing, deps.zoomMin, deps.zoomMax);
       }
       deps.dispatchCoreCommand({
@@ -51,31 +56,36 @@ export function createSwarmFollowCameraUpdater(deps) {
       return;
     }
 
+    let agentIndex = follow.agentIndex;
     if (
-      !Number.isInteger(deps.swarmFollowState.agentIndex)
-      || deps.swarmFollowState.agentIndex < 0
-      || deps.swarmFollowState.agentIndex >= deps.swarmState.count
+      !Number.isInteger(agentIndex)
+      || agentIndex < 0
+      || agentIndex >= deps.swarmState.count
     ) {
-      deps.swarmFollowState.agentIndex = deps.chooseRandomFollowAgentIndex();
+      agentIndex = deps.chooseRandomFollowAgentIndex();
+      deps.setSwarmFollowAgentIndex(agentIndex);
     }
-    if (deps.swarmFollowState.agentIndex < 0) return;
+    if (agentIndex < 0) return;
 
-    const followIndex = deps.swarmFollowState.agentIndex;
-    const agentPos = deps.writeInterpolatedSwarmAgentPos(followIndex, deps.swarmFollowAgentScratch);
+    const agentPos = deps.writeInterpolatedSwarmAgentPos(agentIndex, deps.swarmFollowAgentScratch);
     const world = deps.mapCoordToWorld(agentPos.x, agentPos.y);
     let nextZoom = deps.getZoom();
     if (settings.followZoomBySpeed) {
       const speedNormRaw = deps.clamp(
-        Math.hypot(deps.swarmState.vx[followIndex], deps.swarmState.vy[followIndex]) / Math.max(1, settings.maxSpeed),
+        Math.hypot(deps.swarmState.vx[agentIndex], deps.swarmState.vy[agentIndex]) / Math.max(1, settings.maxSpeed),
         0,
         1,
       );
-      if (!Number.isFinite(deps.swarmFollowState.speedNormFiltered)) {
-        deps.swarmFollowState.speedNormFiltered = speedNormRaw;
+      const speedNormFiltered = deps.getSwarmFollowSpeedNormFiltered();
+      if (!Number.isFinite(speedNormFiltered)) {
+        deps.setSwarmFollowSpeedNormFiltered(speedNormRaw);
       } else {
-        deps.swarmFollowState.speedNormFiltered += (speedNormRaw - deps.swarmFollowState.speedNormFiltered) * clampSmoothing(settings.followAgentSpeedSmoothing);
+        deps.setSwarmFollowSpeedNormFiltered(
+          speedNormFiltered + (speedNormRaw - speedNormFiltered) * clampSmoothing(settings.followAgentSpeedSmoothing),
+        );
       }
-      const targetZoom = settings.followZoomIn + (settings.followZoomOut - settings.followZoomIn) * deps.swarmFollowState.speedNormFiltered;
+      const targetZoom = settings.followZoomIn
+        + (settings.followZoomOut - settings.followZoomIn) * deps.getSwarmFollowSpeedNormFiltered();
       nextZoom = deps.clamp(
         deps.getZoom() + (targetZoom - deps.getZoom()) * clampSmoothing(settings.followAgentZoomSmoothing),
         deps.zoomMin,

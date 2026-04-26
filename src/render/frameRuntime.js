@@ -1,4 +1,8 @@
 export function createFrameRuntime(deps) {
+  const getCurrentMapFolderPath = typeof deps.getCurrentMapFolderPath === "function"
+    ? deps.getCurrentMapFolderPath
+    : () => "";
+
   function render(nowMs) {
     const { dtSec, preUpdateState, frameTimeState, routedTime, smoothCloudTimeSec } = deps.computeFrameTiming({
       nowMs,
@@ -64,7 +68,7 @@ export function createFrameRuntime(deps) {
       cycleState: deps.cycleState,
       cycleSpeed,
       smoothCloudTimeSec,
-      currentMapFolderPath: deps.currentMapFolderPath,
+      currentMapFolderPath: getCurrentMapFolderPath(),
       splatSize: deps.splatSize,
       lightingParams,
       uniformInput,

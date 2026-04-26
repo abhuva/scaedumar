@@ -3,7 +3,7 @@ export function setSwarmDefaults(deps) {
     "swarm",
     deps.normalizeAppliedSettings("swarm", deps.defaultSwarmSettings, deps.defaultSwarmSettings),
   );
-  deps.applySwarmSettingsLegacy(deps.defaultSwarmSettings);
+  deps.applySwarmSettingsCompat(deps.defaultSwarmSettings);
   deps.stopSwarmFollow({ targetType: "agent" });
   deps.swarmState.breedingActive = false;
 }

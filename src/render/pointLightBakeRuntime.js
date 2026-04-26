@@ -34,6 +34,7 @@ export function createPointLightBakeRuntime(deps) {
   }
 
   return {
+    getWorker: () => pointLightBakeWorker,
     scheduleBake: () => orchestrator.scheduleBake(),
     bakeNow: () => orchestrator.bakeNow(),
   };

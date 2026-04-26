@@ -52,10 +52,11 @@ export function createSwarmReseeder(deps) {
         deps.swarmState.hawks.push(deps.createSpawnedHawk(minFlight, maxFlight, settings.hawkTargetRange));
       }
     }
-    if (deps.swarmFollowState.enabled && deps.swarmFollowState.targetType === "agent") {
-      deps.swarmFollowState.agentIndex = deps.chooseRandomFollowAgentIndex();
-    } else if (!deps.swarmFollowState.enabled) {
-      deps.swarmFollowState.agentIndex = -1;
+    const follow = deps.getSwarmFollowSnapshot();
+    if (follow.enabled && follow.targetType === "agent") {
+      deps.setSwarmFollowAgentIndex(deps.chooseRandomFollowAgentIndex());
+    } else if (!follow.enabled) {
+      deps.setSwarmFollowAgentIndex(-1);
     }
     deps.requestOverlayDraw();
   };

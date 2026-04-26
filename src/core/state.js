@@ -1,3 +1,5 @@
+const DEFAULT_CYCLE_HOUR = 9.5;
+
 const DEFAULT_WEATHER_STATE = {
   type: "clear",
   intensity: 0,
@@ -11,12 +13,14 @@ export const DEFAULT_GAMEPLAY_PLAYER = {
   pixelY: 0,
 };
 
+export const DEFAULT_CURSOR_LIGHT_COLOR_HEX = "#ff9b2f";
+
 export const DEFAULT_GAMEPLAY_CURSOR_LIGHT = {
   enabled: false,
   useTerrainHeight: true,
   strength: 30,
   heightOffset: 8,
-  color: "#ff9b2f",
+  color: DEFAULT_CURSOR_LIGHT_COLOR_HEX,
   showGizmo: false,
 };
 
@@ -34,6 +38,8 @@ export const DEFAULT_GAMEPLAY_SWARM = {
   count: 0,
   followEnabled: false,
   followTargetType: "agent",
+  followAgentIndex: -1,
+  followHawkIndex: -1,
 };
 
 export const DEFAULT_GAMEPLAY_MOVEMENT = {
@@ -46,6 +52,7 @@ export const DEFAULT_GAMEPLAY_MOVEMENT = {
 
 export const DEFAULT_GAMEPLAY_POINT_LIGHTS = {
   liveUpdate: false,
+  saveConfirmArmed: false,
 };
 
 export const DEFAULT_TIME_ROUTING = {
@@ -119,7 +126,9 @@ export function createInitialState() {
       swarm: { ...DEFAULT_GAMEPLAY_SWARM },
       movement: { ...DEFAULT_GAMEPLAY_MOVEMENT },
     },
-    ui: {},
+    ui: {
+      cycleHour: DEFAULT_CYCLE_HOUR,
+    },
   };
 }
 

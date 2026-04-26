@@ -16,6 +16,7 @@ Build a self-contained prototype for top-down terrain rendering from Gaea-export
 - Keep runtime lightweight and understandable
 - Prefer browser-native stack first: HTML + JavaScript + WebGL2
 - Desktop distribution path (current): Tauri wrapper around existing frontend
+- Runtime architecture status: modular, core-state-driven runtime is now the baseline; new work should preserve that ownership model instead of rebuilding `main.js`-centric state paths
 
 
 ## Working Agreement
@@ -58,6 +59,9 @@ Build a self-contained prototype for top-down terrain rendering from Gaea-export
 - If a command appears stalled:
   - Stop chaining additional commands.
   - Retry with a simpler equivalent command and report the exact failure mode.
+- Timeout rule for JS/Node checks:
+  - Always run `node --check ...` and similar quick validation commands with an explicit timeout.
+  - Do not run these checks without `timeout_ms`.
 - Lint rule (docs):
   - Do not rely on point-in-time global tool installs; follow project migration/checklist for required linters.
   - If a markdown linter is available, run it on changed `.md` files before commit.

@@ -1,32 +1,96 @@
 # Architecture Map
 
-This project is mid-migration from a monolithic `src/main.js` runtime
-toward modular systems.
+This project now uses a modular runtime with `src/main.js` acting as the
+top-level composition entry point instead of the dominant state owner.
 
-## Runtime Core
+## Top-Level Layout
 
-- `src/core/state.js`: single runtime state store.
-- `src/core/scheduler.js`: ordered system update pipeline.
-- `src/core/commands.js`: typed command bus.
-- `src/core/registerMainCommands.js`: composition root for command handlers.
-- `src/core/modeCapabilities.js`: `dev` / `gameplay` / `hybrid`
-  capability contract.
-- `src/core/settingsRegistry.js`: subsystem settings contract registry.
-- `src/core/mainSettingsContracts.js`: project settings contracts and defaults.
-- `src/core/frameSnapshot.js`: per-frame store snapshot updates
-  from runtime values.
+- `src/main.js`: composition/orchestration entry point
+- `src/app/`: app-layer dependency shaping and bootstrap assembly
+- `src/core/`: store, scheduler, commands, settings contracts
+- `src/render/`: render resources, precompute, passes, frame assembly
+- `src/gameplay/`: gameplay/runtime ownership modules
+- `src/ui/`: DOM bindings, panel reflection, overlay/UI helpers
+- `src/sim/`: time/lighting/fog/cloud/water/weather systems and helpers
+- `src/pointLightBakeWorker.js`: point-light bake worker entry
+- `src-tauri/`: desktop wrapper and native file I/O commands
+
+## Runtime Authority
+
+- Core store state is the authoritative runtime state model.
+- Scheduler systems consume canonical state directly.
+- UI controls emit commands and reflect state; they are not the runtime
+  source of truth.
+- Renderer consumes resolved frame/runtime state and does not own
+  gameplay/config state.
+- Cycle-hour/time-of-day authority is held in core store `ui.cycleHour`;
+  UI and lighting helpers access it through store-backed proxies.
+- Store mutation ownership is concentrated in sync-focused modules such as:
+  - `src/gameplay/stateSync.js`
+  - `src/core/systemStoreSyncRuntime.js`
+  - `src/core/appliedSettingsStoreSync.js`
+
+## App Layer
+
+`src/app/` owns bootstrap/dependency shaping that would otherwise bloat
+`src/main.js`. This includes:
+
+- command registration payload assembly
+- render-shell assembly
+- app startup/binding lifecycle assembly
+- swarm integration assembly
+- settings-core/runtime-support assembly
+- interaction/runtime-feature/bootstrap assembly
+
+This layer exists to keep composition concerns out of gameplay/render/ui
+owner modules.
+
+## Core
+
+- `src/core/runtimeCore.js`: runtime core composition
+- `src/core/state.js`: central store
+- `src/core/scheduler.js`: ordered system update pipeline
+- `src/core/registerMainCommands.js`: command handler composition root
+- `src/core/mainSettingsContracts.js`: settings contracts/defaults
+- `src/core/systemStoreSyncRuntime.js`: scheduler-driven canonical sync
 
 ## Render
 
-- `src/render/renderer.js`: pass registration + execution facade.
-- `src/render/resources.js`: render resource helpers and metadata hooks.
-- `src/render/passes/*`: shadow/blur/main terrain/point-light usage
-  pass modules.
-- `src/render/precompute/*`: map-space precompute adapters
-  (flow map, point-light bake).
-- `src/render/frameRenderState.js`: render DTO assembly from core
-  state + frame inputs.
-- `src/render/uniformInputState.js`: uniform input object assembly.
+- `src/render/renderBootstrapState.js`: render bootstrap resources
+- `src/render/shaders.js`: terrain, swarm, shadow, and blur shader source
+- `src/render/renderSupportRuntime.js`: GL/flow-map/shadow/cloud support
+- `src/render/renderPipelineRuntime.js`: render resource/pass composition
+- `src/render/frameRenderState.js`: frame DTO assembly
+- `src/render/uniformInputState.js`: uniform input assembly
+- `src/render/frameRuntime.js`: frame loop runtime
+- `src/render/passes/*`: terrain/shadow/blur/point-light usage passes
+- `src/render/precompute/*`: flow-map and point-light bake precompute
+
+## Gameplay
+
+- `src/gameplay/mainRuntimeStateBinding.js`: store-backed runtime-state
+  ownership for map/pathfinding/cursor-light/point-light/swarm sync
+- `src/gameplay/mapLifecycleRuntime.js`: map bootstrap/load/save lifecycle
+- `src/gameplay/mapSupportRuntime.js`: map path/Tauri/image/sampling/shadow
+  support
+- `src/gameplay/swarmRuntime.js`: swarm runtime/store-sync/follow ownership
+- `src/gameplay/swarmGameplayRuntime.js`: swarm environment/targeting/reseed
+- `src/gameplay/swarmRenderSetupRuntime.js`: swarm overlay/lit-render setup
+- `src/gameplay/playerRuntimeBinding.js`: player/NPC runtime ownership
+- `src/gameplay/movementSystem.js`: movement scheduler/runtime owner
+- `src/gameplay/pathfindingRuntimeBinding.js`: pathfinding preview/runtime
+- `src/gameplay/lightInteractionRuntimeBinding.js`: cursor-light/point-light
+  interaction ownership
+
+## UI
+
+- `src/ui/mainBindingsRuntime.js`: binds UI control listeners
+- `src/ui/settingsAssemblyRuntime.js`: compatibility/canonical settings wiring
+- `src/ui/swarmUiRuntimeBinding.js`: swarm UI reflection/input sync
+- `src/ui/renderFxUiRuntime.js`: Render FX label/UI reflection helpers
+- `src/ui/pathfindingLabelUi.js`: pathfinding label updates
+- `src/ui/lightLabelRuntime.js`: point-light/cursor-light label updates
+- `src/ui/infoPanelRuntime.js`: player/path info panel updates
 
 ## Simulation
 
@@ -35,30 +99,24 @@ toward modular systems.
 - `src/sim/fogSystem.js`
 - `src/sim/cloudSystem.js`
 - `src/sim/waterFxSystem.js`
-- `src/sim/weatherSystem.js` (architecture scaffold;
-  no visible weather feature yet)
+- `src/sim/weatherSystem.js`
 
-## Gameplay
+## Verification Baseline
 
-- `src/gameplay/entityStore.js`: lightweight entity storage scaffold.
-- `src/gameplay/pathfindingSystem.js`: scheduler adapter for
-  pathfinding runtime state.
-- `src/gameplay/movementSystem.js`: scheduler adapter for
-  player/entity movement state.
-- `src/gameplay/interactionCommands.js`:
-  interaction/pathfinding command routing.
+Last verified pass: `2026-04-25` - update these entries when the checks are rerun.
 
-## UI
+- Node suite last passed on `2026-04-25`: `node --test`
+- Browser smoke testing last passed on `2026-04-25`
+- Tauri full build last passed on `2026-04-25`
+- Installed desktop build launched and basic gameplay smoke testing last passed
+  on `2026-04-25`
 
-- `src/ui/bindings/*`: panel/input listeners split by topic.
-- `src/ui/overlays/overlayHooks.js`: frame hooks that separate
-  gameplay updates from overlay draw gating.
+## Migration Status
 
-## Current Migration Status
+The architecture migration is complete.
 
-- Render and UI listener extraction: largely complete.
-- Mode capability gating: implemented.
-- Weather/settings architecture groundwork: implemented.
-- Gameplay foundation extraction: scaffold complete, deeper system
-  extraction still pending.
-- Final hardening/testing/docs cleanup: in progress.
+Remaining work is normal maintenance:
+
+- feature work
+- performance tuning if new issues are observed
+- incremental naming cleanup where helpful
