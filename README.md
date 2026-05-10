@@ -14,7 +14,7 @@ early game prototype, 2d top-down roquelike, survival, low-fantasy, simulation
 - `src/gameplay/`: interaction commands, movement/swarm helpers, point-light editor state/controller
 - `src/ui/`: UI runtime components, panels, bindings, label helpers, and settings appliers
 - `src/sim/`: simulation helpers and models such as `sunModel.js`, `timeSystem.js`, and `lightingParamsRuntime.js`
-- `src/audio/`: Audio Studio runtime modules (WebAudio engine, offline STFT/FFT analysis, spectrogram renderer, scribble grid/input, resynthesis)
+- `src/audio/`: Audio Studio runtime modules (WebAudio engine, offline STFT/FFT analysis, spectrogram renderer, scribble grid/input, resynthesis, raw synthesis, soundscape generation)
 - `styles.css`: UI styling
 - `assets/`: map bundle root (`assets/<mapName>/...`)
 - `src-tauri/`: Tauri desktop wrapper (Rust commands + app packaging)
@@ -159,6 +159,9 @@ Current tests cover:
 
 Architecture map:
 - `docs/ARCHITECTURE.md`
+- sound design:
+  - `docs/SOUND_DESIGN.md`
+  - `docs/SOUNDSCAPE_TASKS.md`
 - visual diagnostic checklist/baselines:
   - `docs/plans+setups/SMOKE_CHECKLIST.md`
   - `docs/visual-baselines/README.md`
@@ -226,6 +229,12 @@ Architecture map:
 - `Audio Lab` can auto-paint strong source spectrogram bins into the scribble layer using threshold/contrast/gain controls.
 - `Audio Lab` authoring defaults to log-frequency with editable `Min Hz`/`Max Hz`, so low/mid detail gets more vertical workspace than high-frequency bands.
 - `Audio Lab` can approximate dense scribbles with a bounded number of brush-like ellipse strokes for compact, replayable sound gestures.
+- `Audio Studio` includes a raw `Synthesis` mode for additive oscillator experiments with live waveform playback/editing.
+- `Audio Studio` includes a constrained `Soundscape` mode for modal ambient generation:
+  - root/scale constraints
+  - role preset layers (`Drone`, `Resonance`, `Shimmer`, `Call`, `Wind`, `Rumble`, `Air`)
+  - attack/release, drift, modal motion, glide, and seeded randomization
+  - filtered noise layers mixed through the same WebAudio transport
 - Point lighting is baked into a map-space light texture only when lights or normal/height inputs change.
 - Point-light baking also uses height-map line-of-sight occlusion so steep terrain can block local light spread.
 - Terrain shading samples that baked texture during normal rendering, so frame-time cost stays low.

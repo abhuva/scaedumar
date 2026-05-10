@@ -112,6 +112,7 @@ export function createAudioEngineRuntime(deps) {
     const source = context.createBufferSource();
     source.buffer = audioBuffer;
     source.playbackRate.value = Math.max(0.25, Math.min(2, Number(options.playbackRate) || 1));
+    source.loop = Boolean(options.loop);
     source.connect(deps.runtime.analyserNode);
     source.onended = () => {
       if (deps.runtime.bufferSourceNode === source) {

@@ -866,104 +866,216 @@
     </div>
 
     <div id="audioWorkspace" class="workspace-root audio-workspace">
+      <nav class="audio-mode-dock" aria-label="Audio modes">
+        <button class="audio-mode-btn active" type="button" data-audio-mode="spectrogram" title="Spectrogram">Spec</button>
+        <button class="audio-mode-btn" type="button" data-audio-mode="synthesis" title="Synthesis">Synth</button>
+        <button class="audio-mode-btn" type="button" data-audio-mode="soundscape" title="Soundscape">Sound</button>
+      </nav>
       <main class="audio-studio">
-        <section class="audio-viewport" aria-label="Audio spectrogram">
+        <section class="audio-viewport audio-mode-surface active" data-audio-mode-panel="spectrogram" aria-label="Audio spectrogram">
           <canvas id="audioSpectrogramCanvas" width="1024" height="512"></canvas>
           <div class="audio-viewport-label">Spectrogram / Scribble Surface</div>
         </section>
+        <section class="audio-viewport audio-mode-surface" data-audio-mode-panel="synthesis" aria-label="Synthesis waveform">
+          <canvas id="audioSynthesisCanvas" width="1024" height="512"></canvas>
+          <div class="audio-viewport-label">Additive Synthesis Waveform</div>
+        </section>
+        <section class="audio-viewport audio-mode-surface" data-audio-mode-panel="soundscape" aria-label="Soundscape waveform">
+          <canvas id="audioSoundscapeCanvas" width="1024" height="512"></canvas>
+          <div class="audio-viewport-label">Modal Soundscape Waveform</div>
+        </section>
         <aside class="audio-control-panel" aria-label="Audio controls">
-          <h1>Audio Studio</h1>
-          <div class="row">
-            <label for="audioFileInput">Audio File</label>
-            <input id="audioFileInput" type="file" accept="audio/*" />
-          </div>
-          <div class="row">
-            <label for="audioMinHz">Min Hz</label>
-            <input id="audioMinHz" type="number" min="1" max="22050" step="1" value="40" />
-          </div>
-          <div class="row">
-            <label for="audioMaxHz">Max Hz</label>
-            <input id="audioMaxHz" type="number" min="20" max="22050" step="1" value="12000" />
-          </div>
-          <div class="row">
-            <label for="audioBrushSize">Brush Size</label>
-            <div class="inline-control">
-              <input id="audioBrushSize" type="range" min="1" max="32" step="1" value="6" />
-              <span id="audioBrushSizeValue">6</span>
+          <section class="audio-control-section active" data-audio-control-panel="spectrogram">
+            <h1>Spectrogram</h1>
+            <div class="row">
+              <label for="audioFileInput">Audio File</label>
+              <input id="audioFileInput" type="file" accept="audio/*" />
             </div>
-          </div>
-          <div class="row">
-            <label for="audioBrushStrength">Brush Strength</label>
-            <div class="inline-control">
-              <input id="audioBrushStrength" type="range" min="0" max="1" step="0.01" value="0.8" />
-              <span id="audioBrushStrengthValue">0.80</span>
+            <div class="row">
+              <label for="audioMinHz">Min Hz</label>
+              <input id="audioMinHz" type="number" min="1" max="22050" step="1" value="40" />
             </div>
-          </div>
-          <div class="row">
-            <label for="audioEraseModeToggle">Erase Mode</label>
-            <input id="audioEraseModeToggle" type="checkbox" />
-          </div>
-          <div class="row">
-            <label for="audioAutoThreshold">Auto Threshold</label>
-            <div class="inline-control">
-              <input id="audioAutoThreshold" type="range" min="0" max="1" step="0.01" value="0.62" />
-              <span id="audioAutoThresholdValue">0.62</span>
+            <div class="row">
+              <label for="audioMaxHz">Max Hz</label>
+              <input id="audioMaxHz" type="number" min="20" max="22050" step="1" value="12000" />
             </div>
-          </div>
-          <div class="row">
-            <label for="audioAutoContrast">Auto Contrast</label>
-            <div class="inline-control">
-              <input id="audioAutoContrast" type="range" min="0.25" max="4" step="0.05" value="1.5" />
-              <span id="audioAutoContrastValue">1.50</span>
+            <div class="row">
+              <label for="audioBrushSize">Brush Size</label>
+              <div class="inline-control">
+                <input id="audioBrushSize" type="range" min="1" max="32" step="1" value="6" />
+                <span id="audioBrushSizeValue">6</span>
+              </div>
             </div>
-          </div>
-          <div class="row">
-            <label for="audioAutoGain">Auto Gain</label>
-            <div class="inline-control">
-              <input id="audioAutoGain" type="range" min="0" max="2" step="0.01" value="1" />
-              <span id="audioAutoGainValue">1.00</span>
+            <div class="row">
+              <label for="audioBrushStrength">Brush Strength</label>
+              <div class="inline-control">
+                <input id="audioBrushStrength" type="range" min="0" max="1" step="0.01" value="0.8" />
+                <span id="audioBrushStrengthValue">0.80</span>
+              </div>
             </div>
-          </div>
-          <div class="row">
-            <label for="audioAutoClearToggle">Auto Clears</label>
-            <input id="audioAutoClearToggle" type="checkbox" checked />
-          </div>
-          <div class="row">
-            <label for="audioApproxMaxStrokes">Approx Strokes</label>
-            <input id="audioApproxMaxStrokes" type="number" min="1" max="1000" step="1" value="100" />
-          </div>
-          <div class="row">
-            <label for="audioApproxMinStrength">Approx Min</label>
-            <div class="inline-control">
-              <input id="audioApproxMinStrength" type="range" min="0" max="1" step="0.01" value="0.05" />
-              <span id="audioApproxMinStrengthValue">0.05</span>
+            <div class="row">
+              <label for="audioEraseModeToggle">Erase Mode</label>
+              <input id="audioEraseModeToggle" type="checkbox" />
             </div>
-          </div>
-          <div class="row">
-            <label for="audioMasterGain">Master Gain</label>
-            <div class="inline-control">
-              <input id="audioMasterGain" type="range" min="0" max="1" step="0.01" value="0.7" />
-              <span id="audioMasterGainValue">0.70</span>
+            <div class="row">
+              <label for="audioAutoThreshold">Auto Threshold</label>
+              <div class="inline-control">
+                <input id="audioAutoThreshold" type="range" min="0" max="1" step="0.01" value="0.62" />
+                <span id="audioAutoThresholdValue">0.62</span>
+              </div>
             </div>
-          </div>
-          <div class="row">
-            <label for="audioPlaybackRate">Playback Rate</label>
-            <div class="inline-control">
-              <input id="audioPlaybackRate" type="range" min="0.25" max="2" step="0.01" value="1" />
-              <span id="audioPlaybackRateValue">1.00</span>
+            <div class="row">
+              <label for="audioAutoContrast">Auto Contrast</label>
+              <div class="inline-control">
+                <input id="audioAutoContrast" type="range" min="0.25" max="4" step="0.05" value="1.5" />
+                <span id="audioAutoContrastValue">1.50</span>
+              </div>
             </div>
-          </div>
-          <div class="light-editor-actions audio-actions">
-            <button id="audioPlayBtn" type="button" title="Play Test Tone">Tone</button>
-            <button id="audioPlayOriginalBtn" type="button" title="Play Original">Orig</button>
-            <button id="audioPlayScribbleBtn" type="button" title="Play Scribble">Scrb</button>
-            <button id="audioAutoPaintBtn" type="button" title="Auto Paint Strong">Auto</button>
-            <button id="audioApproximateBtn" type="button" title="Approximate">Appr</button>
-            <button id="audioStopBtn" type="button" title="Stop">Stop</button>
-            <button id="audioClearBtn" type="button" title="Clear Scribble">Clr</button>
-          </div>
+            <div class="row">
+              <label for="audioAutoGain">Auto Gain</label>
+              <div class="inline-control">
+                <input id="audioAutoGain" type="range" min="0" max="2" step="0.01" value="1" />
+                <span id="audioAutoGainValue">1.00</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="audioAutoClearToggle">Auto Clears</label>
+              <input id="audioAutoClearToggle" type="checkbox" checked />
+            </div>
+            <div class="row">
+              <label for="audioApproxMaxStrokes">Approx Strokes</label>
+              <input id="audioApproxMaxStrokes" type="number" min="1" max="1000" step="1" value="100" />
+            </div>
+            <div class="row">
+              <label for="audioApproxMinStrength">Approx Min</label>
+              <div class="inline-control">
+                <input id="audioApproxMinStrength" type="range" min="0" max="1" step="0.01" value="0.05" />
+                <span id="audioApproxMinStrengthValue">0.05</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="audioMasterGain">Master Gain</label>
+              <div class="inline-control">
+                <input id="audioMasterGain" type="range" min="0" max="1" step="0.01" value="0.7" />
+                <span id="audioMasterGainValue">0.70</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="audioPlaybackRate">Playback Rate</label>
+              <div class="inline-control">
+                <input id="audioPlaybackRate" type="range" min="0.25" max="2" step="0.01" value="1" />
+                <span id="audioPlaybackRateValue">1.00</span>
+              </div>
+            </div>
+            <div class="light-editor-actions audio-actions">
+              <button id="audioPlayBtn" type="button" title="Play Test Tone">Tone</button>
+              <button id="audioPlayOriginalBtn" type="button" title="Play Original">Orig</button>
+              <button id="audioPlayScribbleBtn" type="button" title="Play Scribble">Scrb</button>
+              <button id="audioAutoPaintBtn" type="button" title="Auto Paint Strong">Auto</button>
+              <button id="audioApproximateBtn" type="button" title="Approximate">Appr</button>
+              <button id="audioStopBtn" type="button" title="Stop">Stop</button>
+              <button id="audioClearBtn" type="button" title="Clear Scribble">Clr</button>
+            </div>
+            <p>Audio File: <span id="audioFileStatusValue">No file loaded</span></p>
+          </section>
+          <section class="audio-control-section" data-audio-control-panel="synthesis">
+            <h1>Synthesis</h1>
+            <div class="row">
+              <label for="audioSynthesisDuration">Duration</label>
+              <div class="inline-control">
+                <input id="audioSynthesisDuration" type="range" min="0.25" max="20" step="0.25" value="4" />
+                <span id="audioSynthesisDurationValue">4.00s</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="audioSynthesisMasterGain">Synth Gain</label>
+              <div class="inline-control">
+                <input id="audioSynthesisMasterGain" type="range" min="0" max="1" step="0.01" value="0.45" />
+                <span id="audioSynthesisMasterGainValue">0.45</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="audioSynthesisLoopToggle">Loop</label>
+              <input id="audioSynthesisLoopToggle" type="checkbox" checked />
+            </div>
+            <div class="light-editor-actions audio-actions">
+              <button id="audioSynthesisPlayBtn" type="button">Play Synth</button>
+              <button id="audioSynthesisAddOscillatorBtn" type="button">Add Osc</button>
+              <button id="audioSynthesisStopBtn" type="button">Stop</button>
+            </div>
+            <div id="audioSynthesisOscillatorList" class="oscillator-list" aria-label="Synthesis oscillators"></div>
+          </section>
+          <section class="audio-control-section" data-audio-control-panel="soundscape">
+            <h1>Soundscape</h1>
+            <div class="row">
+              <label for="audioSoundscapeRoot">Root</label>
+              <select id="audioSoundscapeRoot">
+                <option value="C">C</option>
+                <option value="C#">C#</option>
+                <option value="D" selected>D</option>
+                <option value="D#">D#</option>
+                <option value="E">E</option>
+                <option value="F">F</option>
+                <option value="F#">F#</option>
+                <option value="G">G</option>
+                <option value="G#">G#</option>
+                <option value="A">A</option>
+                <option value="A#">A#</option>
+                <option value="B">B</option>
+              </select>
+            </div>
+            <div class="row">
+              <label for="audioSoundscapeScale">Scale</label>
+              <select id="audioSoundscapeScale">
+                <option value="minorPentatonic" selected>Minor Pentatonic</option>
+                <option value="majorPentatonic">Major Pentatonic</option>
+                <option value="dorian">Dorian</option>
+                <option value="aeolian">Aeolian</option>
+                <option value="phrygian">Phrygian</option>
+                <option value="suspendedPentatonic">Suspended Pentatonic</option>
+              </select>
+            </div>
+            <div class="row">
+              <label for="audioSoundscapeDuration">Duration</label>
+              <div class="inline-control">
+                <input id="audioSoundscapeDuration" type="range" min="0.25" max="60" step="0.25" value="8" />
+                <span id="audioSoundscapeDurationValue">8.00s</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="audioSoundscapeMasterGain">Sound Gain</label>
+              <div class="inline-control">
+                <input id="audioSoundscapeMasterGain" type="range" min="0" max="1" step="0.01" value="0.45" />
+                <span id="audioSoundscapeMasterGainValue">0.45</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="audioSoundscapeLoopToggle">Loop</label>
+              <input id="audioSoundscapeLoopToggle" type="checkbox" checked />
+            </div>
+            <div class="row">
+              <label for="audioSoundscapeSeed">Seed</label>
+              <input id="audioSoundscapeSeed" type="number" min="1" max="999999" step="1" value="1" />
+            </div>
+            <div class="light-editor-actions audio-actions">
+              <button id="audioSoundscapePlayBtn" type="button">Play Soundscape</button>
+              <button id="audioSoundscapeRandomizeBtn" type="button">Randomize</button>
+              <button id="audioSoundscapeStopBtn" type="button">Stop</button>
+            </div>
+            <div class="light-editor-actions audio-actions">
+              <button id="audioSoundscapeAddDroneBtn" type="button">Add Drone</button>
+              <button id="audioSoundscapeAddResonanceBtn" type="button">Add Resonance</button>
+              <button id="audioSoundscapeAddShimmerBtn" type="button">Add Shimmer</button>
+              <button id="audioSoundscapeAddCallBtn" type="button">Add Call</button>
+            </div>
+            <div class="light-editor-actions audio-actions">
+              <button id="audioSoundscapeAddWindBtn" type="button">Add Wind</button>
+              <button id="audioSoundscapeAddRumbleBtn" type="button">Add Rumble</button>
+              <button id="audioSoundscapeAddAirBtn" type="button">Add Air</button>
+            </div>
+            <div id="audioSoundscapeLayerList" class="oscillator-list" aria-label="Soundscape layers"></div>
+          </section>
           <p>Audio Status: <span id="audioStatusValue">Stopped</span></p>
-          <p>Audio File: <span id="audioFileStatusValue">No file loaded</span></p>
         </aside>
       </main>
     </div>
