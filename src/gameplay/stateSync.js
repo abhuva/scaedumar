@@ -1,7 +1,8 @@
 import { DEFAULT_CURSOR_LIGHT_COLOR_HEX } from "../core/state.js";
 
 const ALLOWED_TIME_ROUTING_TARGETS = new Set(["swarm", "clouds", "water"]);
-const ALLOWED_SIMULATION_KNOBS = new Set(["parallax", "lighting", "fog", "clouds", "waterFx"]);
+const ALLOWED_SIMULATION_KNOBS = new Set(["parallax", "lighting", "fog", "clouds", "waterFx", "audio"]);
+const ALLOWED_WORKSPACES = new Set(["map", "audio"]);
 
 export function syncMapState(deps) {
   deps.store.update((prev) => ({
@@ -26,6 +27,17 @@ export function syncPlayerState(deps) {
         pixelX: deps.playerState.pixelX,
         pixelY: deps.playerState.pixelY,
       },
+    },
+  }));
+}
+
+export function setWorkspaceState(deps) {
+  const workspace = ALLOWED_WORKSPACES.has(deps.workspace) ? deps.workspace : "map";
+  deps.store.update((prev) => ({
+    ...prev,
+    ui: {
+      ...prev.ui,
+      workspace,
     },
   }));
 }

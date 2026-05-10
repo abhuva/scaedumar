@@ -48,6 +48,12 @@ export function createSettingsRuntimeBinding(deps) {
     deps.applyInteractionSettingsCompat,
     deps.defaultInteractionSettings,
   );
+  const audio = make(
+    "audio",
+    deps.serializeAudioSettingsCompat,
+    deps.applyAudioSettingsCompat,
+    deps.defaultAudioSettings,
+  );
 
   return {
     serializeLightingSettings: lighting.serialize,
@@ -62,6 +68,8 @@ export function createSettingsRuntimeBinding(deps) {
     applyWaterSettings: waterfx.apply,
     serializeInteractionSettings: interaction.serialize,
     applyInteractionSettings: interaction.apply,
+    serializeAudioSettings: audio.serialize,
+    applyAudioSettings: audio.apply,
     serializeSwarmData: () =>
       deps.settingsApplyRuntime.serializeSettingsByKey("swarm", deps.serializeSwarmDataCompat),
     applySwarmSettings: (rawData) => {

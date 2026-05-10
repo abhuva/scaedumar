@@ -17,6 +17,7 @@ import {
   patchPathfindingState,
   syncPathfindingState,
   patchSwarmSettingsState,
+  setWorkspaceState,
 } from "./stateSync.js";
 import {
   getCursorLightSnapshot as buildCursorLightSnapshot,
@@ -81,6 +82,11 @@ export function createMainRuntimeStateBinding(deps) {
       setModeState({
         store: deps.store,
         mode,
+      }),
+    setWorkspaceToStore: (workspace) =>
+      setWorkspaceState({
+        store: deps.store,
+        workspace,
       }),
     setCameraPoseToStore: (panX, panY, zoom) =>
       setCameraPoseState({

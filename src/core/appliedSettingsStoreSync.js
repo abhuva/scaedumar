@@ -292,6 +292,39 @@ export function createAppliedSettingsStoreSync(deps) {
           },
         };
       }
+      if (key === "audio") {
+        const prevAudio = prev.simulation?.knobs?.audio || {};
+        const nextAudio = {
+          ...prevAudio,
+          fftSize: clampRound(normalized.fftSize ?? prevAudio.fftSize ?? 1024, 256, 4096),
+          hopSize: clampRound(normalized.hopSize ?? prevAudio.hopSize ?? 256, 64, 2048),
+          windowType: "hann",
+          minHz: clampRound(normalized.minHz ?? prevAudio.minHz ?? 40, 20, 20000),
+          maxHz: clampRound(normalized.maxHz ?? prevAudio.maxHz ?? 12000, 20, 22050),
+          loudnessFloorDb: deps.clamp(finiteOr(normalized.loudnessFloorDb, finiteOr(prevAudio.loudnessFloorDb, -72)), -120, -12),
+          brushSize: clampRound(normalized.brushSize ?? prevAudio.brushSize ?? 6, 1, 32),
+          brushStrength: deps.clamp(finiteOr(normalized.brushStrength, finiteOr(prevAudio.brushStrength, 0.8)), 0, 1),
+          eraseMode: Boolean(normalized.eraseMode),
+          autoThreshold: deps.clamp(finiteOr(normalized.autoThreshold, finiteOr(prevAudio.autoThreshold, 0.62)), 0, 1),
+          autoContrast: deps.clamp(finiteOr(normalized.autoContrast, finiteOr(prevAudio.autoContrast, 1.5)), 0.25, 4),
+          autoGain: deps.clamp(finiteOr(normalized.autoGain, finiteOr(prevAudio.autoGain, 1)), 0, 2),
+          autoClearBeforePaint: Boolean(normalized.autoClearBeforePaint ?? prevAudio.autoClearBeforePaint ?? true),
+          approximationMaxStrokes: clampRound(normalized.approximationMaxStrokes ?? prevAudio.approximationMaxStrokes ?? 100, 1, 1000),
+          approximationMinStrength: deps.clamp(finiteOr(normalized.approximationMinStrength, finiteOr(prevAudio.approximationMinStrength, 0.05)), 0, 1),
+          playbackRate: deps.clamp(finiteOr(normalized.playbackRate, finiteOr(prevAudio.playbackRate, 1)), 0.25, 2),
+          masterGain: deps.clamp(finiteOr(normalized.masterGain, finiteOr(prevAudio.masterGain, 0.7)), 0, 1),
+        };
+        return {
+          ...prev,
+          simulation: {
+            ...prev.simulation,
+            knobs: {
+              ...prev.simulation.knobs,
+              audio: nextAudio,
+            },
+          },
+        };
+      }
       if (key === "swarm") {
         const persistedSwarm = pickSwarmPersistedSettings(normalized);
         return {

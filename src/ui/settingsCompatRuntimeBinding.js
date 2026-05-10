@@ -222,6 +222,8 @@ export function createSettingsCompatRuntimeBinding(deps) {
     syncPathfindingSettingsUi,
     serializeInteractionSettingsCompat: serializeInteractionSettings,
     applyInteractionSettingsCompat,
+    serializeAudioSettingsCompat: deps.serializeAudioSettingsCompat,
+    applyAudioSettingsCompat: deps.applyAudioSettingsCompat,
     applyLightingSettingsCompat,
     applyFogSettingsCompat: renderFxSettingsApplier.applyFogSettingsCompat,
     applyParallaxSettingsCompat: renderFxSettingsApplier.applyParallaxSettingsCompat,

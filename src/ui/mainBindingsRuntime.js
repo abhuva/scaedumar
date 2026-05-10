@@ -9,8 +9,11 @@ import { bindPointLightEditorControls } from "./bindings/pointLightEditorBinding
 import { bindRenderFxControls } from "./bindings/renderFxBinding.js";
 import { bindMapIoControls } from "./bindings/mapIoBinding.js";
 import { bindRuntimeControls } from "./bindings/runtimeBinding.js";
+import { bindAudioControls } from "./audioBindingRuntime.js";
+import { bindWorkspaceControls } from "./workspaceBindingRuntime.js";
 
 export function setupMainBindingsRuntime(deps) {
+  bindWorkspaceControls(deps.workspaceBinding);
   bindCanvasControls(deps.canvasBinding);
   bindPathfindingControls(deps.pathfindingBinding);
   bindSwarmPanelControls(deps.swarmPanelBinding);
@@ -22,4 +25,5 @@ export function setupMainBindingsRuntime(deps) {
   bindRenderFxControls(deps.renderFxBinding);
   bindMapIoControls(deps.mapIoBinding);
   bindRuntimeControls(deps.runtimeBinding);
+  bindAudioControls(deps.audioBinding);
 }

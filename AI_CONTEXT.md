@@ -229,6 +229,7 @@ No game engine is used.
   - UI/apply helpers that touch DOM are compatibility/reflection paths, not runtime truth
 - Settings UI: left vertical topic-icon dock + single side panel (one topic open at a time)
   - Mode toggles: `LM` and `PF` (note: `AS` is a topic button that opens the Agent Swarm panel in `index.html`, not a mode toggle)
+  - Audio is a top-level workspace, not a map topic; the workspace switcher exposes `Map` and `Audio`.
   - Runtime mode capability gating is now active (`dev`/`gameplay`/`hybrid`) for topic buttons + interaction mode toggles.
 - Map bundle auto-load tries these folders in order:
   - `assets/Map 1/`
@@ -247,6 +248,7 @@ No game engine is used.
   - `fog.json`
   - `clouds.json`
   - `waterfx.json`
+  - `audio.json`
   - `swarm.json`
   - `npc.json`
 - `Load Map` topic supports loading by folder path or folder picker (map bundle semantics)
@@ -335,8 +337,20 @@ No game engine is used.
   - water shading is evaluated at map texel centers (pixel-locked) so water influence is per map pixel
   - altitude-aware sun/moon glints, shoreline foam band, and sky-tint reflection
 - Map-level persistence:
-  - `Load Map -> Save All` writes `pointlights.json`, `lighting.json`, `parallax.json`, `interaction.json`, `fog.json`, `clouds.json`, `waterfx.json`, `swarm.json`, and `npc.json`
+  - `Load Map -> Save All` writes `pointlights.json`, `lighting.json`, `parallax.json`, `interaction.json`, `fog.json`, `clouds.json`, `waterfx.json`, `audio.json`, `swarm.json`, and `npc.json`
   - map loading auto-applies these files when present
+- Audio Lab groundwork:
+  - core settings registry now includes `audio` defaults/serialize/apply contract key
+  - command bus now routes `core/audio/settingsChanged` and audio transport/scribble commands
+  - workspace routing uses `ui.workspace` plus `core/workspace/setActive`
+  - runtime ownership is split across `src/audio/audioEngineRuntime.js`, `src/audio/audioAnalysisRuntime.js`, `src/audio/frequencyMappingRuntime.js`, `src/audio/spectrogramRuntime.js`, `src/audio/scribbleCanvasRuntime.js`, `src/audio/audioScribbleInputRuntime.js`, and `src/audio/resynthesisRuntime.js`
+  - UI reflection + input dispatch are owned by `src/ui/audioPanelRuntime.js` and `src/ui/audioBindingRuntime.js`
+  - file flow: browser `AudioBuffer` decode -> mono sample extraction -> offline STFT/FFT amplitude/phase grid -> static spectrogram render
+  - scribble flow: pointer input paints a separate time/frequency amplitude grid over the original spectrogram; scribble playback resynthesizes only painted bins
+  - rendering caches the file spectrogram as a base image; brush strokes only redraw the scribble overlay and are throttled to animation frames
+  - auto-paint flow thresholds/contrasts source STFT amplitudes into the scribble grid for replaying only strong spectrogram regions
+  - frequency authoring is log scale with editable `minHz`/`maxHz`; display, painting, auto-paint, and resynthesis share `src/audio/frequencyMappingRuntime.js`
+  - approximation flow greedily fits a bounded number of ellipse brush blobs to the current scribble grid, then replaces the grid with the replayed blob approximation
 - Weather groundwork (architecture scaffold only):
   - core state now includes weather contract (`type`, `intensity`, `windDirDeg`, `windSpeed`, `localModulation`)
   - scheduler includes `weatherSystem` producing per-frame weather/wind vectors

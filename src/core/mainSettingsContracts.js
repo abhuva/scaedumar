@@ -134,6 +134,26 @@ export const DEFAULT_SWARM_SETTINGS = {
   timeRouting: "global",
 };
 
+export const DEFAULT_AUDIO_SETTINGS = {
+  fftSize: 1024,
+  hopSize: 256,
+  windowType: "hann",
+  minHz: 40,
+  maxHz: 12000,
+  loudnessFloorDb: -72,
+  brushSize: 6,
+  brushStrength: 0.8,
+  eraseMode: false,
+  autoThreshold: 0.62,
+  autoContrast: 1.5,
+  autoGain: 1,
+  autoClearBeforePaint: true,
+  approximationMaxStrokes: 100,
+  approximationMinStrength: 0.05,
+  playbackRate: 1.0,
+  masterGain: 0.7,
+};
+
 function createObjectValidator() {
   return (input) => (
     input === null
@@ -186,6 +206,12 @@ export function registerMainSettingsContracts(settingsRegistry, deps) {
       defaults: DEFAULT_SWARM_SETTINGS,
       serialize: () => deps.serializeSwarm(),
       apply: (input) => deps.applySwarm(input),
+    },
+    {
+      key: "audio",
+      defaults: DEFAULT_AUDIO_SETTINGS,
+      serialize: () => deps.serializeAudio(),
+      apply: (input) => deps.applyAudio(input),
     },
   ];
 

@@ -34,6 +34,7 @@ export function createMapSidecarLoader(deps) {
       fog: false,
       clouds: false,
       waterFx: false,
+      audio: false,
       swarm: false,
       npc: false,
     };
@@ -111,6 +112,12 @@ export function createMapSidecarLoader(deps) {
         onErrorLabel: `Failed to load waterfx.json from ${folder}`,
       },
       {
+        key: "audio",
+        loadJson: loadOptionalUrlJson(jsonPath("audio.json")),
+        applyFn: (rawData) => deps.applyAudioSettings(rawData),
+        onErrorLabel: `Failed to load audio.json from ${folder}`,
+      },
+      {
         key: "swarm",
         loadJson: loadOptionalUrlJson(jsonPath("swarm.json")),
         applyFn: (rawData) => deps.applySwarmData(rawData),
@@ -181,6 +188,12 @@ export function createMapSidecarLoader(deps) {
         loadJson: loadOptionalFileJson("waterfx.json"),
         applyFn: (rawData) => deps.applyWaterSettings(rawData),
         onErrorLabel: "Failed to parse waterfx.json from selected folder",
+      },
+      {
+        key: "audio",
+        loadJson: loadOptionalFileJson("audio.json"),
+        applyFn: (rawData) => deps.applyAudioSettings(rawData),
+        onErrorLabel: "Failed to parse audio.json from selected folder",
       },
       {
         key: "swarm",
