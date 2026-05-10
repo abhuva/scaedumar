@@ -17,7 +17,7 @@ test("normalizeRuntimeMode falls back to dev", () => {
 
 test("gameplay mode gates topics and interaction modes", () => {
   assert.equal(canUseTopic("gameplay", "lighting"), false);
-  assert.equal(canUseTopic("gameplay", "map"), true);
+  assert.equal(canUseTopic("gameplay", "map"), false);
   assert.equal(canUseInteractionMode("gameplay", "lighting"), false);
   assert.equal(canUseInteractionMode("gameplay", "pathfinding"), true);
 });

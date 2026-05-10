@@ -50,5 +50,6 @@ export function createMovementAssemblyRuntime(deps) {
     setStatus: deps.setStatus,
     setPlayerSnapshot: deps.setPlayerSnapshot,
     setMovementSnapshot: deps.setMovementSnapshot,
+    onMovementSnapshot: deps.onMovementSnapshot,
   };
 }

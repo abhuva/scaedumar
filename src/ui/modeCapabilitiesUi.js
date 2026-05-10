@@ -33,6 +33,7 @@ export function createModeCapabilitiesUi(deps) {
       const enabled = deps.canUseModeTopic(mode, topic);
       btn.disabled = !enabled;
       btn.classList.toggle("disabled", !enabled);
+      btn.classList.toggle("mode-capability-hidden", !enabled);
     }
     const activeTopicButton = deps.topicButtons.find((btn) => btn.classList.contains("active"));
     const activeTopic = activeTopicButton ? activeTopicButton.dataset.topic || "" : "";
@@ -43,6 +44,8 @@ export function createModeCapabilitiesUi(deps) {
     const canPathfinding = deps.canUseModeInteraction(mode, "pathfinding");
     deps.dockLightingModeToggle.disabled = !canLighting;
     deps.dockPathfindingModeToggle.disabled = !canPathfinding;
+    deps.dockLightingModeToggle.classList.toggle("mode-capability-hidden", !canLighting);
+    deps.dockPathfindingModeToggle.classList.toggle("mode-capability-hidden", !canPathfinding);
     if (!deps.canUseModeInteraction(mode, deps.getInteractionModeSnapshot())) {
       deps.setInteractionMode("none");
     }

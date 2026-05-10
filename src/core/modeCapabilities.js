@@ -7,7 +7,7 @@ const FULL_CAPABILITIES = {
 const MODE_CAPABILITIES = {
   dev: FULL_CAPABILITIES,
   gameplay: {
-    topics: ["map", "info"],
+    topics: [],
     interactionModes: ["none", "pathfinding"],
     overlays: ["pathPreview"],
   },

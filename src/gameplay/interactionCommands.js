@@ -1,3 +1,6 @@
+export const RUNTIME_MODE_DEV = "dev";
+export const RUNTIME_MODE_GAMEPLAY = "gameplay";
+
 export function registerInteractionCommands(commandBus, deps) {
   function isMovementActive() {
     if (typeof deps.getMovementStateSnapshot !== "function") return false;
@@ -61,6 +64,15 @@ export function registerInteractionCommands(commandBus, deps) {
       deps.movePreviewState.pathPixels = [];
       deps.setStatus(`Movement canceled at (${deps.playerState.pixelX}, ${deps.playerState.pixelY}).`);
       syncPlayerToStore();
+      deps.requestOverlayDraw();
+      return;
+    }
+
+    const runtimeMode = typeof deps.getRuntimeMode === "function" ? deps.getRuntimeMode() : RUNTIME_MODE_DEV;
+    if (runtimeMode === RUNTIME_MODE_GAMEPLAY) {
+      deps.movePreviewState.hoverPixel = null;
+      deps.movePreviewState.pathPixels = [];
+      deps.setStatus("Use PF to choose a destination.");
       deps.requestOverlayDraw();
       return;
     }

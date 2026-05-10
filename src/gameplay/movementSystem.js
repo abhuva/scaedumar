@@ -113,6 +113,9 @@ export function createMovementSystem(deps) {
     if (movementChanged && typeof deps.setMovementSnapshot === "function") {
       deps.setMovementSnapshot(snapshot);
     }
+    if (movementChanged && typeof deps.onMovementSnapshot === "function") {
+      deps.onMovementSnapshot(snapshot);
+    }
     if (playerChanged && deps.entityStore && typeof deps.entityStore.upsert === "function") {
       deps.entityStore.upsert({
         id: "player",
@@ -135,12 +138,23 @@ export function createMovementSystem(deps) {
   }
 
   function getSnapshot() {
+    let totalTicksRemaining = 0;
+    if (runtime.active) {
+      // totalTicksRemaining allows runtime.ticksRemaining to be 0 for the
+      // current finishing step; future runtime.queue steps still reserve at
+      // least one tick, matching syncActiveStepFromIndex().
+      totalTicksRemaining = Math.max(0, runtime.ticksRemaining);
+      for (let i = runtime.currentStepIndex + 1; i < runtime.queue.length; i++) {
+        totalTicksRemaining += Math.max(1, Math.round(finite(runtime.queue[i].ticksRequired, 1)));
+      }
+    }
     return {
       active: runtime.active,
       queueLength: runtime.queue.length,
       currentStepIndex: runtime.currentStepIndex,
       ticksRemaining: runtime.active ? runtime.ticksRemaining : 0,
       currentStepCost: runtime.active ? runtime.currentCost : 0,
+      totalTicksRemaining,
     };
   }
 
