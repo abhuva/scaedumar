@@ -29,7 +29,8 @@ export function createInfoPanelRuntime(deps) {
     const stepIndex = Math.max(0, Math.round(Number(movementSnapshot.currentStepIndex || 0))) + 1;
     const queueLength = Math.max(0, Math.round(Number(movementSnapshot.queueLength || 0)));
     if (deps.movementStatusEtaEl) {
-      deps.movementStatusEtaEl.textContent = `Estimated arrival: ${formatEta(etaSeconds)}`;
+      const etaLabel = etaSeconds == null ? "--" : formatEta(etaSeconds);
+      deps.movementStatusEtaEl.textContent = `Estimated arrival: ${etaLabel}`;
     }
     if (deps.movementStatusDetailEl) {
       deps.movementStatusDetailEl.textContent = `Path: step ${stepIndex}/${queueLength}, ${remainingTicks} ticks remaining`;

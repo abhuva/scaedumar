@@ -87,3 +87,16 @@ test("dev no-mode map clicks keep the existing teleport test behavior", () => {
   assert.equal(deps.calls.setPlayerPosition, 1);
   assert.equal(deps.calls.cancelMovementQueue, 1);
 });
+
+test("missing runtime mode falls back to dev no-mode click behavior", () => {
+  const commandBus = createCommandBus();
+  const deps = createDeps({
+    getRuntimeMode: undefined,
+  });
+  registerInteractionCommands(commandBus, deps);
+
+  commandBus.dispatch({ type: "core/interaction/clickMapPixel", x: 8, y: 9 });
+
+  assert.equal(deps.calls.setPlayerPosition, 1);
+  assert.equal(deps.calls.cancelMovementQueue, 1);
+});

@@ -3,6 +3,29 @@ import { createMainBindingsAssemblyRuntime } from "./mainBindingsAssemblyRuntime
 import { setupMainBindingsRuntime } from "../ui/mainBindingsRuntime.js";
 import { createTitleScreenRuntime } from "./titleScreenRuntime.js";
 
+const REQUIRED_TITLE_SCREEN_KEYS = [
+  "bodyEl",
+  "titleScreenEl",
+  "titleNewGameBtn",
+  "titleDevModeBtn",
+  "titleQuitGameBtn",
+  "dispatchCoreCommand",
+  "setActiveTopic",
+  "updateModeCapabilitiesUi",
+  "setStatus",
+];
+
+function assertTitleScreenDeps(titleScreenDeps) {
+  if (!titleScreenDeps || typeof titleScreenDeps !== "object") {
+    throw new Error("Invalid deps.titleScreen for createTitleScreenRuntime: expected an object.");
+  }
+  for (const key of REQUIRED_TITLE_SCREEN_KEYS) {
+    if (!titleScreenDeps[key]) {
+      throw new Error(`Invalid deps.titleScreen for createTitleScreenRuntime: missing ${key}.`);
+    }
+  }
+}
+
 export function runAppShellLifecycleRuntime(deps) {
   setupMainBindingsRuntime(createMainBindingsAssemblyRuntime(deps.bindings));
 
@@ -25,6 +48,11 @@ export function runAppShellLifecycleRuntime(deps) {
   });
 
   if (deps.titleScreen) {
-    createTitleScreenRuntime(deps.titleScreen).bindTitleScreen();
+    assertTitleScreenDeps(deps.titleScreen);
+    const titleScreenRuntime = createTitleScreenRuntime(deps.titleScreen);
+    if (!titleScreenRuntime || typeof titleScreenRuntime.bindTitleScreen !== "function") {
+      throw new Error("createTitleScreenRuntime(deps.titleScreen) must return bindTitleScreen().");
+    }
+    titleScreenRuntime.bindTitleScreen();
   }
 }

@@ -1,3 +1,6 @@
+export const RUNTIME_MODE_DEV = "dev";
+export const RUNTIME_MODE_GAMEPLAY = "gameplay";
+
 export function registerInteractionCommands(commandBus, deps) {
   function isMovementActive() {
     if (typeof deps.getMovementStateSnapshot !== "function") return false;
@@ -65,8 +68,8 @@ export function registerInteractionCommands(commandBus, deps) {
       return;
     }
 
-    const runtimeMode = typeof deps.getRuntimeMode === "function" ? deps.getRuntimeMode() : "dev";
-    if (runtimeMode === "gameplay") {
+    const runtimeMode = typeof deps.getRuntimeMode === "function" ? deps.getRuntimeMode() : RUNTIME_MODE_DEV;
+    if (runtimeMode === RUNTIME_MODE_GAMEPLAY) {
       deps.movePreviewState.hoverPixel = null;
       deps.movePreviewState.pathPixels = [];
       deps.setStatus("Use PF to choose a destination.");
