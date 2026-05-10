@@ -34,8 +34,19 @@ export function normalizeSynthesisSettings(input = {}, fallback = {}) {
     : (Array.isArray(base.oscillators) ? base.oscillators : []);
   const oscillators = sourceOscillators.slice(0, 16).map((oscillator, index) => {
     const osc = oscillator && typeof oscillator === "object" ? oscillator : {};
+    let id = typeof osc.id === "string" && osc.id ? osc.id : "";
+    if (!id) {
+      id = createOscillatorId();
+      if (oscillator && typeof oscillator === "object") {
+        try {
+          oscillator.id = id;
+        } catch {
+          // Immutable imported objects still receive the generated id in the normalized copy.
+        }
+      }
+    }
     return {
-      id: typeof osc.id === "string" && osc.id ? osc.id : `osc-${index + 1}`,
+      id,
       enabled: Boolean(osc.enabled ?? true),
       source: osc.source === "noise" ? "noise" : "tone",
       noiseType: NOISE_TYPES.has(osc.noiseType) ? osc.noiseType : "wind",
@@ -103,40 +114,118 @@ export function createSynthesisRuntime(deps = {}) {
     return buffer;
   }
 
+  function getTimer(runtime, options = {}) {
+    return options.deps?.setTimeout
+      || runtime?.deps?.setTimeout
+      || deps.setTimeout
+      || globalThis.setTimeout
+      || (typeof setTimeout === "function" ? setTimeout : (() => {}));
+  }
+
+  function disconnectNode(node) {
+    node.source.disconnect();
+    node.gain.disconnect();
+    if (node.filter) node.filter.disconnect();
+  }
+
+  function stopNode(runtime, node, audioContext = null, releaseSec = 0, timer = getTimer(runtime)) {
+    const nodeRelease = Math.max(0, Number(node.releaseSec) || releaseSec);
+    if (audioContext && nodeRelease > 0) {
+      const now = audioContext.currentTime;
+      const stopAt = now + nodeRelease;
+      node.gain.gain.cancelScheduledValues(now);
+      node.gain.gain.setValueAtTime(node.gain.gain.value, now);
+      node.gain.gain.setTargetAtTime(0, now, Math.max(0.01, nodeRelease * 0.35));
+      try {
+        node.source.stop(stopAt + 0.02);
+      } catch {
+        // Already-stopped sources throw in some browsers.
+      }
+      timer(() => disconnectNode(node), Math.ceil((nodeRelease + 0.05) * 1000));
+    } else {
+      try {
+        node.source.stop();
+      } catch {
+        // Already-stopped sources throw in some browsers.
+      }
+      disconnectNode(node);
+    }
+  }
+
   function stopLive(runtime, options = {}) {
     const nodes = Array.isArray(runtime.synthesisNodes) ? runtime.synthesisNodes : [];
     const context = options.audioContext || null;
+    const timer = getTimer(runtime, options);
     const releaseSec = Math.max(0, Number(options.releaseSec) || 0);
     for (const node of nodes) {
-      const nodeRelease = Math.max(0, Number(node.releaseSec) || releaseSec);
-      if (context && nodeRelease > 0) {
-        const now = context.currentTime;
-        const stopAt = now + nodeRelease;
-        node.gain.gain.cancelScheduledValues(now);
-        node.gain.gain.setValueAtTime(node.gain.gain.value, now);
-        node.gain.gain.linearRampToValueAtTime(0, stopAt);
-        try {
-          node.source.stop(stopAt + 0.02);
-        } catch {
-          // Already-stopped sources throw in some browsers.
-        }
-        window.setTimeout(() => {
-          node.source.disconnect();
-          node.gain.disconnect();
-          if (node.filter) node.filter.disconnect();
-        }, Math.ceil((nodeRelease + 0.05) * 1000));
-      } else {
-        try {
-          node.source.stop();
-        } catch {
-          // Already-stopped sources throw in some browsers.
-        }
-        node.source.disconnect();
-        node.gain.disconnect();
-        if (node.filter) node.filter.disconnect();
-      }
+      stopNode(runtime, node, context, releaseSec, timer);
     }
     runtime.synthesisNodes = [];
+  }
+
+  function createNoiseBuffer(audioContext, noiseType) {
+    const durationSec = noiseType === "rumble" ? 4 : 2;
+    const length = Math.max(1, Math.floor(audioContext.sampleRate * durationSec));
+    const buffer = audioContext.createBuffer(1, length, audioContext.sampleRate);
+    const channel = buffer.getChannelData(0);
+    let last = 0;
+    for (let i = 0; i < length; i += 1) {
+      const white = Math.random() * 2 - 1;
+      if (noiseType === "rumble") {
+        last = last * 0.985 + white * 0.015;
+        channel[i] = last;
+      } else {
+        channel[i] = white;
+      }
+    }
+    return buffer;
+  }
+
+  function configureNoiseFilter(filter, oscillator) {
+    filter.type = oscillator.noiseType === "air" ? "highpass" : "lowpass";
+    filter.frequency.value = oscillator.filterFrequency;
+    filter.Q.value = oscillator.noiseType === "air" ? 0.4 : 0.7;
+  }
+
+  function createLiveNode(audioContext, destinationNode, oscillator, masterGain) {
+    const gainNode = audioContext.createGain();
+    const targetGain = oscillator.amplitude * masterGain;
+    const attackSec = Math.max(0, Number(oscillator.attackSec) || 0);
+    let sourceNode = null;
+    let filterNode = null;
+    if (oscillator.source === "noise") {
+      sourceNode = audioContext.createBufferSource();
+      sourceNode.buffer = createNoiseBuffer(audioContext, oscillator.noiseType);
+      sourceNode.loop = true;
+      filterNode = audioContext.createBiquadFilter();
+      configureNoiseFilter(filterNode, oscillator);
+      sourceNode.connect(filterNode);
+      filterNode.connect(gainNode);
+    } else {
+      sourceNode = audioContext.createOscillator();
+      sourceNode.type = oscillator.type;
+      sourceNode.frequency.value = oscillator.frequency;
+      sourceNode.connect(gainNode);
+    }
+    if (attackSec > 0) {
+      const now = audioContext.currentTime;
+      gainNode.gain.setValueAtTime(0, now);
+      gainNode.gain.linearRampToValueAtTime(targetGain, now + attackSec);
+    } else {
+      gainNode.gain.value = targetGain;
+    }
+    gainNode.connect(destinationNode);
+    sourceNode.start();
+    return {
+      id: oscillator.id,
+      sourceType: oscillator.source,
+      noiseType: oscillator.noiseType,
+      source: sourceNode,
+      oscillator: oscillator.source === "noise" ? null : sourceNode,
+      filter: filterNode,
+      gain: gainNode,
+      releaseSec: Math.max(0, Number(oscillator.releaseSec) || 0),
+    };
   }
 
   function startLive(audioContext, destinationNode, runtime, rawSettings) {
@@ -145,91 +234,67 @@ export function createSynthesisRuntime(deps = {}) {
     }
     const settings = normalizeSynthesisSettings(rawSettings);
     stopLive(runtime);
-    function createNoiseBuffer(noiseType) {
-      const durationSec = noiseType === "rumble" ? 4 : 2;
-      const length = Math.max(1, Math.floor(audioContext.sampleRate * durationSec));
-      const buffer = audioContext.createBuffer(1, length, audioContext.sampleRate);
-      const channel = buffer.getChannelData(0);
-      let last = 0;
-      for (let i = 0; i < length; i += 1) {
-        const white = Math.random() * 2 - 1;
-        if (noiseType === "rumble") {
-          last = last * 0.985 + white * 0.015;
-          channel[i] = last;
-        } else {
-          channel[i] = white;
-        }
-      }
-      return buffer;
-    }
-
-    function configureNoiseFilter(filter, oscillator) {
-      filter.type = oscillator.noiseType === "air" ? "highpass" : "lowpass";
-      filter.frequency.value = oscillator.filterFrequency;
-      filter.Q.value = oscillator.noiseType === "air" ? 0.4 : 0.7;
-    }
-
+    runtime.synthesisDestinationNode = destinationNode;
     runtime.synthesisNodes = settings.oscillators
       .filter((oscillator) => oscillator.enabled)
-      .map((oscillator) => {
-        const gainNode = audioContext.createGain();
-        const targetGain = oscillator.amplitude * settings.masterGain;
-        const attackSec = Math.max(0, Number(oscillator.attackSec) || 0);
-        let sourceNode = null;
-        let filterNode = null;
-        if (oscillator.source === "noise") {
-          sourceNode = audioContext.createBufferSource();
-          sourceNode.buffer = createNoiseBuffer(oscillator.noiseType);
-          sourceNode.loop = true;
-          filterNode = audioContext.createBiquadFilter();
-          configureNoiseFilter(filterNode, oscillator);
-          sourceNode.connect(filterNode);
-          filterNode.connect(gainNode);
-        } else {
-          sourceNode = audioContext.createOscillator();
-          sourceNode.type = oscillator.type;
-          sourceNode.frequency.value = oscillator.frequency;
-          sourceNode.connect(gainNode);
-        }
-        if (attackSec > 0) {
-          const now = audioContext.currentTime;
-          gainNode.gain.setValueAtTime(0, now);
-          gainNode.gain.linearRampToValueAtTime(targetGain, now + attackSec);
-        } else {
-          gainNode.gain.value = targetGain;
-        }
-        gainNode.connect(destinationNode);
-        sourceNode.start();
-        return {
-          id: oscillator.id,
-          source: sourceNode,
-          oscillator: oscillator.source === "noise" ? null : sourceNode,
-          filter: filterNode,
-          gain: gainNode,
-          releaseSec: Math.max(0, Number(oscillator.releaseSec) || 0),
-        };
-      });
+      .map((oscillator) => createLiveNode(audioContext, destinationNode, oscillator, settings.masterGain));
     return settings;
   }
 
   function updateLive(audioContext, runtime, rawSettings) {
     if (!audioContext || !runtime) return;
     const settings = normalizeSynthesisSettings(rawSettings);
-    const nodeById = new Map((runtime.synthesisNodes || []).map((node) => [node.id, node]));
+    const destinationNode = runtime.synthesisDestinationNode;
+    const currentNodes = Array.isArray(runtime.synthesisNodes) ? runtime.synthesisNodes : [];
+    const nodeById = new Map(currentNodes.map((node) => [node.id, node]));
+    const nextIds = new Set(settings.oscillators.map((oscillator) => oscillator.id));
     const now = audioContext.currentTime;
     for (const oscillator of settings.oscillators) {
       const node = nodeById.get(oscillator.id);
-      if (!node || !oscillator.enabled) continue;
+      if (!oscillator.enabled) {
+        if (node) {
+          stopNode(runtime, node, audioContext, Math.max(0, Number(node.releaseSec) || 0.05));
+          nodeById.delete(oscillator.id);
+        }
+        continue;
+      }
+      if (!node) {
+        if (destinationNode) {
+          nodeById.set(oscillator.id, createLiveNode(audioContext, destinationNode, oscillator, settings.masterGain));
+        }
+        continue;
+      }
+      if (node.sourceType !== oscillator.source) {
+        stopNode(runtime, node, audioContext, Math.max(0, Number(node.releaseSec) || 0.05));
+        if (destinationNode) {
+          nodeById.set(oscillator.id, createLiveNode(audioContext, destinationNode, oscillator, settings.masterGain));
+        } else {
+          nodeById.delete(oscillator.id);
+        }
+        continue;
+      }
       const targetGain = oscillator.amplitude * settings.masterGain;
       if (node.oscillator) {
+        node.oscillator.type = oscillator.type;
         node.oscillator.frequency.setTargetAtTime(oscillator.frequency, now, 0.08);
       }
       if (node.filter) {
+        if (node.noiseType !== oscillator.noiseType) {
+          configureNoiseFilter(node.filter, oscillator);
+          node.noiseType = oscillator.noiseType;
+        }
         node.filter.frequency.setTargetAtTime(oscillator.filterFrequency, now, 0.2);
       }
       node.gain.gain.setTargetAtTime(targetGain, now, 0.12);
       node.releaseSec = Math.max(0, Number(oscillator.releaseSec) || 0);
     }
+    for (const node of currentNodes) {
+      if (!nextIds.has(node.id)) {
+        stopNode(runtime, node, audioContext, Math.max(0, Number(node.releaseSec) || 0.05));
+        nodeById.delete(node.id);
+      }
+    }
+    runtime.synthesisNodes = Array.from(nodeById.values());
   }
 
   function drawWaveform(canvas, rawSettings) {

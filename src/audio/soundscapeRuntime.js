@@ -62,6 +62,19 @@ function createSeededRandom(seedInput) {
   };
 }
 
+function hashString(value) {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function createLayerRandom(settings, layer, salt = 0) {
+  return createSeededRandom((settings.randomSeed + hashString(`${layer.id}:${salt}`)) >>> 0);
+}
+
 function createLayerId() {
   return `layer-${Date.now().toString(36)}-${Math.floor(Math.random() * 10000).toString(36)}`;
 }
@@ -264,14 +277,28 @@ export function normalizeSoundscapeSettings(input = {}, fallback = {}) {
     : (Array.isArray(base.layers) ? base.layers : []);
   const layers = sourceLayers.slice(0, 16).map((layer, index) => {
     const item = layer && typeof layer === "object" ? layer : {};
+    const activeScaleKey = Object.prototype.hasOwnProperty.call(SCALES, item.scale) ? item.scale : scaleKey;
+    const activeScale = SCALES[activeScaleKey] || SCALES[scaleKey] || SCALES.minorPentatonic;
+    const maxDegree = Math.max(0, activeScale.intervals.length - 1);
+    let id = typeof item.id === "string" && item.id ? item.id : "";
+    if (!id) {
+      id = createLayerId();
+      if (layer && typeof layer === "object") {
+        try {
+          layer.id = id;
+        } catch {
+          // Some imported objects may be immutable; the normalized copy still gets a safe id.
+        }
+      }
+    }
     return {
-      id: typeof item.id === "string" && item.id ? item.id : `layer-${index + 1}`,
+      id,
       enabled: Boolean(item.enabled ?? true),
       role: LAYER_ROLES.has(item.role) ? item.role : "drone",
       source: item.source === "noise" || NOISE_ROLES.has(item.role) ? "noise" : "tone",
       type: WAVE_TYPES.has(item.type) ? item.type : "sine",
       noiseType: ["wind", "rumble", "air"].includes(item.noiseType) ? item.noiseType : (NOISE_ROLES.has(item.role) ? item.role : "wind"),
-      degree: Math.round(clamp(finiteOr(item.degree, 0), 0, 6)),
+      degree: Math.round(clamp(finiteOr(item.degree, 0), 0, maxDegree)),
       octave: Math.round(clamp(finiteOr(item.octave, 0), -3, 3)),
       detuneCents: Math.round(clamp(finiteOr(item.detuneCents, 0), -100, 100)),
       amplitude: clamp(finiteOr(item.amplitude, 0.2), 0, 1),
@@ -302,19 +329,22 @@ export function normalizeSoundscapeSettings(input = {}, fallback = {}) {
   };
 }
 
-export function soundscapeLayerToFrequency(settings, layer, degreeOverride = null) {
-  const normalized = normalizeSoundscapeSettings(settings);
-  const scale = SCALES[normalized.scale] || SCALES.minorPentatonic;
+function resolveFrequency(normalizedSettings, layer, degreeOverride = null) {
+  const scale = SCALES[normalizedSettings.scale] || SCALES.minorPentatonic;
   const degreeSource = degreeOverride === null || degreeOverride === undefined
     ? layer.degree
     : degreeOverride;
   const degree = Math.max(0, Math.min(scale.intervals.length - 1, Math.round(degreeSource)));
   const midi = 48
-    + NOTE_OFFSETS[normalized.rootNote]
+    + NOTE_OFFSETS[normalizedSettings.rootNote]
     + scale.intervals[degree]
     + layer.octave * 12;
   const baseHz = 440 * (2 ** ((midi - 69) / 12));
   return baseHz * (2 ** (layer.detuneCents / 1200));
+}
+
+export function soundscapeLayerToFrequency(settings, layer, degreeOverride = null) {
+  return resolveFrequency(normalizeSoundscapeSettings(settings), layer, degreeOverride);
 }
 
 export function soundscapeToSynthesisSettings(input = {}, fallback = {}) {
@@ -329,7 +359,7 @@ export function soundscapeToSynthesisSettings(input = {}, fallback = {}) {
       source: layer.source,
       noiseType: layer.noiseType,
       type: layer.type,
-      frequency: soundscapeLayerToFrequency(settings, layer),
+      frequency: resolveFrequency(settings, layer),
       filterFrequency: layer.filterFrequency,
       amplitude: layer.amplitude,
       attackSec: layer.attackSec,
@@ -348,12 +378,15 @@ export function createSoundscapeLayerRuntimeState(settings, nowSec = 0) {
   const normalized = normalizeSoundscapeSettings(settings);
   const states = {};
   for (const layer of normalized.layers) {
+    const random = createLayerRandom(normalized, layer);
     states[layer.id] = {
       currentDegree: layer.degree,
       targetDegree: layer.degree,
+      startDegree: layer.degree,
       lastChangeSec: nowSec,
-      driftPhase: Math.random() * Math.PI * 2,
-      motionPhase: Math.random() * Math.PI * 2,
+      driftPhase: random() * Math.PI * 2,
+      motionPhase: random() * Math.PI * 2,
+      random,
     };
   }
   return states;
@@ -365,29 +398,43 @@ export function updateSoundscapeLayerRuntimeStates(settings, states, nowSec) {
   const nextStates = states && typeof states === "object" ? states : {};
   for (const layer of normalized.layers) {
     if (!nextStates[layer.id]) {
+      const random = createLayerRandom(normalized, layer);
       nextStates[layer.id] = {
         currentDegree: layer.degree,
         targetDegree: layer.degree,
+        startDegree: layer.degree,
         lastChangeSec: nowSec,
-        driftPhase: Math.random() * Math.PI * 2,
-        motionPhase: Math.random() * Math.PI * 2,
+        driftPhase: random() * Math.PI * 2,
+        motionPhase: random() * Math.PI * 2,
+        random,
       };
     }
     const state = nextStates[layer.id];
+    if (typeof state.random !== "function") {
+      state.random = createLayerRandom(normalized, layer, Math.round(nowSec * 1000));
+    }
+    if (!Number.isFinite(state.startDegree)) {
+      state.startDegree = state.currentDegree;
+    }
     if (layer.motionMode === "static") {
       state.targetDegree = layer.degree;
-    } else if (nowSec - state.lastChangeSec >= layer.changeIntervalSec) {
+      state.startDegree = layer.degree;
+      state.currentDegree = layer.degree;
       state.lastChangeSec = nowSec;
-      if (Math.random() <= layer.changeChance) {
+    } else if (nowSec - state.lastChangeSec >= layer.changeIntervalSec) {
+      state.startDegree = state.currentDegree;
+      state.lastChangeSec = nowSec;
+      if (state.random() <= layer.changeChance) {
         const offset = layer.motionMode === "call"
           ? Math.ceil(scaleDegreeCount * 0.5)
-          : 1 + Math.floor(Math.random() * Math.max(1, scaleDegreeCount - 1));
+          : 1 + Math.floor(state.random() * Math.max(1, scaleDegreeCount - 1));
         state.targetDegree = (Math.round(state.targetDegree) + offset) % scaleDegreeCount;
       }
     }
-    const glide = Math.max(0.01, layer.glideSec);
-    const alpha = layer.glideSec <= 0 ? 1 : clamp((nowSec - state.lastChangeSec) / glide, 0, 1);
-    state.currentDegree += (state.targetDegree - state.currentDegree) * alpha;
+    const t = layer.glideSec <= 0
+      ? 1
+      : clamp((nowSec - state.lastChangeSec) / Math.max(0.01, layer.glideSec), 0, 1);
+    state.currentDegree = state.startDegree + (state.targetDegree - state.startDegree) * t;
   }
   for (const id of Object.keys(nextStates)) {
     if (!normalized.layers.some((layer) => layer.id === id)) {
@@ -408,7 +455,7 @@ export function soundscapeToLiveSynthesisSettings(input = {}, fallback = {}, sta
       const driftCycle = Math.max(0.001, layer.driftCycleSec);
       const drift = Math.sin((nowSec / driftCycle) * Math.PI * 2 + (state.driftPhase || 0));
       const motionDegree = Number.isFinite(state.currentDegree) ? state.currentDegree : layer.degree;
-      const baseFrequency = soundscapeLayerToFrequency(settings, layer, motionDegree);
+      const baseFrequency = resolveFrequency(settings, layer, motionDegree);
       const pitchRatio = 2 ** ((drift * layer.pitchDriftCents) / 1200);
       const ampMod = 1 + drift * layer.ampDrift;
       return {

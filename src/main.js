@@ -989,6 +989,7 @@ function playSynthesisAudio() {
     stopSoundscapeEvolution();
     const context = audioEngineRuntime.ensureContext();
     const synthesis = getSynthesisSettings();
+    stopSynthesisAudio();
     audioEngineRuntime.stop();
     synthesisRuntime.startLive(context, audioRuntimeState.analyserNode, audioRuntimeState, synthesis);
     audioSimulationState.isPlaying = true;
@@ -1005,11 +1006,13 @@ function playSynthesisAudio() {
 
 function playSoundscapeAudio() {
   try {
+    stopSoundscapeEvolution();
     const context = audioEngineRuntime.ensureContext();
     const soundscape = getSoundscapeSettings();
     audioRuntimeState.soundscapeStartedAtSec = context.currentTime;
     audioRuntimeState.soundscapeLayerStates = createSoundscapeLayerRuntimeState(soundscape, 0);
     const synthesis = getLiveSoundscapeSynthesisSettings(0);
+    stopSynthesisAudio();
     audioEngineRuntime.stop();
     synthesisRuntime.startLive(context, audioRuntimeState.analyserNode, audioRuntimeState, synthesis);
     audioSimulationState.isPlaying = true;
@@ -1060,7 +1063,10 @@ function updateSynthesisSettings(patch) {
     }, DEFAULT_AUDIO_SETTINGS.synthesis),
   });
   if (audioSimulationState.isPlaying && audioSimulationState.playbackKind === "synthesis") {
-    playSynthesisAudio();
+    const context = audioRuntimeState.audioContext;
+    if (context) {
+      synthesisRuntime.updateLive(context, audioRuntimeState, getSynthesisSettings());
+    }
   }
 }
 
@@ -1074,13 +1080,8 @@ function updateSoundscapeSettings(patch) {
   if (audioSimulationState.isPlaying && audioSimulationState.playbackKind === "soundscape") {
     const context = audioRuntimeState.audioContext;
     const nowSec = context ? context.currentTime - audioRuntimeState.soundscapeStartedAtSec : 0;
-    const synthesis = getLiveSoundscapeSynthesisSettings(nowSec);
-    const activeIds = (audioRuntimeState.synthesisNodes || []).map((node) => node.id).join("|");
-    const nextIds = synthesis.oscillators.filter((oscillator) => oscillator.enabled).map((oscillator) => oscillator.id).join("|");
-    if (context && activeIds === nextIds) {
-      synthesisRuntime.updateLive(context, audioRuntimeState, synthesis);
-    } else {
-      playSoundscapeAudio();
+    if (context) {
+      synthesisRuntime.updateLive(context, audioRuntimeState, getLiveSoundscapeSynthesisSettings(nowSec));
     }
   }
 }
@@ -1209,6 +1210,7 @@ function applyAudioSettingsCompatImpl(rawData) {
   if (next.activeMode || next.synthesis || next.soundscape) {
     settingsApplyRuntime.updateStoreFromAppliedSettings("audio", {
       ...current,
+      ...next,
       activeMode: next.activeMode ?? current.activeMode,
       synthesis: normalizeSynthesisSettings(next.synthesis, current.synthesis || DEFAULT_AUDIO_SETTINGS.synthesis),
       soundscape: normalizeSoundscapeSettings(next.soundscape, current.soundscape || DEFAULT_AUDIO_SETTINGS.soundscape),

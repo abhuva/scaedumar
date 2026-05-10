@@ -20,41 +20,111 @@ export function createAudioPanelRuntime(deps) {
     const article = document.createElement("article");
     article.className = "oscillator-card";
     article.dataset.oscillatorId = oscillator.id;
-    article.innerHTML = `
-      <header>
-        <span>Oscillator ${index + 1}</span>
-        <button type="button" data-action="remove">Remove</button>
-      </header>
-      <div class="row">
-        <label>Wave</label>
-        <select data-field="type">
-          <option value="sine" ${oscillator.type === "sine" ? "selected" : ""}>Sine</option>
-          <option value="square" ${oscillator.type === "square" ? "selected" : ""}>Square</option>
-          <option value="sawtooth" ${oscillator.type === "sawtooth" ? "selected" : ""}>Saw</option>
-          <option value="triangle" ${oscillator.type === "triangle" ? "selected" : ""}>Triangle</option>
-        </select>
-      </div>
-      <div class="row">
-        <label>Enabled</label>
-        <input type="checkbox" data-field="enabled" ${oscillator.enabled ? "checked" : ""} />
-      </div>
-      <div class="row">
-        <label>Frequency</label>
-        <div class="inline-control">
-          <input type="range" min="10" max="800" step="1" data-field="frequency" value="${Number(oscillator.frequency).toFixed(0)}" />
-          <span data-value-for="frequency">${Number(oscillator.frequency).toFixed(0)} Hz</span>
-        </div>
-      </div>
-      <div class="row">
-        <label>Amplitude</label>
-        <input type="range" min="0" max="1" step="0.01" data-field="amplitude" value="${Number(oscillator.amplitude).toFixed(2)}" />
-      </div>
-      <div class="row">
-        <label>Phase</label>
-        <input type="range" min="-360" max="360" step="1" data-field="phase" value="${Number(oscillator.phase).toFixed(0)}" />
-      </div>
-    `;
+    appendHeader(article, `Oscillator ${index + 1}`);
+    appendSelectRow(article, "Wave", "type", [
+      ["sine", "Sine"],
+      ["square", "Square"],
+      ["sawtooth", "Saw"],
+      ["triangle", "Triangle"],
+    ], oscillator.type);
+    appendCheckboxRow(article, "Enabled", "enabled", oscillator.enabled);
+    appendRangeRow(article, "Frequency", "frequency", {
+      min: 10,
+      max: 800,
+      step: 1,
+      value: Number(oscillator.frequency).toFixed(0),
+      valueText: `${Number(oscillator.frequency).toFixed(0)} Hz`,
+    });
+    appendRangeRow(article, "Amplitude", "amplitude", {
+      min: 0,
+      max: 1,
+      step: 0.01,
+      value: Number(oscillator.amplitude).toFixed(2),
+    });
+    appendRangeRow(article, "Phase", "phase", {
+      min: -360,
+      max: 360,
+      step: 1,
+      value: Number(oscillator.phase).toFixed(0),
+    });
     return article;
+  }
+
+  function appendHeader(article, title) {
+    const header = document.createElement("header");
+    const label = document.createElement("span");
+    label.textContent = title;
+    const button = document.createElement("button");
+    button.type = "button";
+    button.dataset.action = "remove";
+    button.textContent = "Remove";
+    header.append(label, button);
+    article.append(header);
+  }
+
+  function appendRow(article, labelText, control) {
+    const row = document.createElement("div");
+    row.className = "row";
+    const label = document.createElement("label");
+    label.textContent = labelText;
+    row.append(label, control);
+    article.append(row);
+    return row;
+  }
+
+  function appendSelectRow(article, labelText, field, options, value) {
+    const select = document.createElement("select");
+    select.dataset.field = field;
+    for (const [optionValue, text] of options) {
+      const option = document.createElement("option");
+      option.value = String(optionValue);
+      option.textContent = text;
+      select.append(option);
+    }
+    select.value = String(value);
+    appendRow(article, labelText, select);
+    return select;
+  }
+
+  function appendCheckboxRow(article, labelText, field, checked) {
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.dataset.field = field;
+    input.checked = Boolean(checked);
+    appendRow(article, labelText, input);
+    return input;
+  }
+
+  function appendTextRow(article, labelText, text) {
+    const span = document.createElement("span");
+    span.textContent = text;
+    appendRow(article, labelText, span);
+    return span;
+  }
+
+  function appendRangeRow(article, labelText, field, config) {
+    const input = document.createElement("input");
+    input.type = "range";
+    input.min = String(config.min);
+    input.max = String(config.max);
+    input.step = String(config.step);
+    input.dataset.field = field;
+    input.value = String(config.value);
+    if (config.disabled) {
+      input.disabled = true;
+    }
+    if (!Object.prototype.hasOwnProperty.call(config, "valueText")) {
+      appendRow(article, labelText, input);
+      return input;
+    }
+    const wrapper = document.createElement("div");
+    wrapper.className = "inline-control";
+    const value = document.createElement("span");
+    value.dataset.valueFor = field;
+    value.textContent = config.valueText;
+    wrapper.append(input, value);
+    appendRow(article, labelText, wrapper);
+    return input;
   }
 
   function createSoundscapeLayerRow(settings, layer, index) {
@@ -68,140 +138,128 @@ export function createAudioPanelRuntime(deps) {
     const headerMetric = layer.source === "noise"
       ? `${layer.noiseType || layer.role} noise`
       : `${frequency.toFixed(1)} Hz`;
-    const degreeOptions = Array.from({ length: degreeCount }, (_, degree) => (
-      `<option value="${degree}" ${layer.degree === degree ? "selected" : ""}>${degree + 1}</option>`
-    )).join("");
     article.className = "oscillator-card";
     article.dataset.layerId = layer.id;
-    article.innerHTML = `
-      <header>
-        <span>Layer ${index + 1} - ${headerMetric}</span>
-        <button type="button" data-action="remove">Remove</button>
-      </header>
-      <div class="row">
-        <label>Role</label>
-        <select data-field="role">
-          <option value="drone" ${layer.role === "drone" ? "selected" : ""}>Drone</option>
-          <option value="resonance" ${layer.role === "resonance" ? "selected" : ""}>Resonance</option>
-          <option value="shimmer" ${layer.role === "shimmer" ? "selected" : ""}>Shimmer</option>
-          <option value="pulse" ${layer.role === "pulse" ? "selected" : ""}>Pulse</option>
-          <option value="call" ${layer.role === "call" ? "selected" : ""}>Call</option>
-          <option value="wind" ${layer.role === "wind" ? "selected" : ""}>Wind</option>
-          <option value="rumble" ${layer.role === "rumble" ? "selected" : ""}>Rumble</option>
-          <option value="air" ${layer.role === "air" ? "selected" : ""}>Air</option>
-        </select>
-      </div>
-      <div class="row">
-        <label>Source</label>
-        <span>${layer.source === "noise" ? "Filtered Noise" : "Modal Tone"}</span>
-      </div>
-      <div class="row">
-        <label>Wave</label>
-        <select data-field="type">
-          <option value="sine" ${layer.type === "sine" ? "selected" : ""}>Sine</option>
-          <option value="square" ${layer.type === "square" ? "selected" : ""}>Square</option>
-          <option value="sawtooth" ${layer.type === "sawtooth" ? "selected" : ""}>Saw</option>
-          <option value="triangle" ${layer.type === "triangle" ? "selected" : ""}>Triangle</option>
-        </select>
-      </div>
-      <div class="row">
-        <label>Enabled</label>
-        <input type="checkbox" data-field="enabled" ${layer.enabled ? "checked" : ""} />
-      </div>
-      <div class="row">
-        <label>Degree</label>
-        <select data-field="degree">${degreeOptions}</select>
-      </div>
-      <div class="row">
-        <label>Octave</label>
-        <div class="inline-control">
-          <input type="range" min="-3" max="3" step="1" data-field="octave" value="${Number(layer.octave).toFixed(0)}" />
-          <span data-value-for="octave">${Number(layer.octave).toFixed(0)}</span>
-        </div>
-      </div>
-      <div class="row">
-        <label>Detune</label>
-        <div class="inline-control">
-          <input type="range" min="-100" max="100" step="1" data-field="detuneCents" value="${Number(layer.detuneCents).toFixed(0)}" />
-          <span data-value-for="detuneCents">${Number(layer.detuneCents).toFixed(0)} c</span>
-        </div>
-      </div>
-      <div class="row">
-        <label>Amplitude</label>
-        <input type="range" min="0" max="1" step="0.01" data-field="amplitude" value="${Number(layer.amplitude).toFixed(2)}" />
-      </div>
-      <div class="row">
-        <label>Noise Filter</label>
-        <div class="inline-control">
-          <input type="range" min="40" max="8000" step="10" data-field="filterFrequency" value="${Number(layer.filterFrequency).toFixed(0)}" ${layer.source === "noise" ? "" : "disabled"} />
-          <span data-value-for="filterFrequency">${Number(layer.filterFrequency).toFixed(0)} Hz</span>
-        </div>
-      </div>
-      <div class="row">
-        <label>Attack</label>
-        <div class="inline-control">
-          <input type="range" min="0" max="20" step="0.25" data-field="attackSec" value="${Number(layer.attackSec).toFixed(2)}" />
-          <span data-value-for="attackSec">${Number(layer.attackSec).toFixed(2)}s</span>
-        </div>
-      </div>
-      <div class="row">
-        <label>Release</label>
-        <div class="inline-control">
-          <input type="range" min="0" max="20" step="0.25" data-field="releaseSec" value="${Number(layer.releaseSec).toFixed(2)}" />
-          <span data-value-for="releaseSec">${Number(layer.releaseSec).toFixed(2)}s</span>
-        </div>
-      </div>
-      <div class="row">
-        <label>Amp Drift</label>
-        <div class="inline-control">
-          <input type="range" min="0" max="1" step="0.01" data-field="ampDrift" value="${Number(layer.ampDrift).toFixed(2)}" />
-          <span data-value-for="ampDrift">${Number(layer.ampDrift).toFixed(2)}</span>
-        </div>
-      </div>
-      <div class="row">
-        <label>Pitch Drift</label>
-        <div class="inline-control">
-          <input type="range" min="0" max="50" step="1" data-field="pitchDriftCents" value="${Number(layer.pitchDriftCents).toFixed(0)}" />
-          <span data-value-for="pitchDriftCents">${Number(layer.pitchDriftCents).toFixed(0)} c</span>
-        </div>
-      </div>
-      <div class="row">
-        <label>Drift Cycle</label>
-        <div class="inline-control">
-          <input type="range" min="2" max="120" step="1" data-field="driftCycleSec" value="${Number(layer.driftCycleSec).toFixed(0)}" />
-          <span data-value-for="driftCycleSec">${Number(layer.driftCycleSec).toFixed(0)}s</span>
-        </div>
-      </div>
-      <div class="row">
-        <label>Motion</label>
-        <select data-field="motionMode">
-          <option value="static" ${layer.motionMode === "static" ? "selected" : ""}>Static</option>
-          <option value="wander" ${layer.motionMode === "wander" ? "selected" : ""}>Wander</option>
-          <option value="call" ${layer.motionMode === "call" ? "selected" : ""}>Call</option>
-        </select>
-      </div>
-      <div class="row">
-        <label>Change Every</label>
-        <div class="inline-control">
-          <input type="range" min="2" max="120" step="1" data-field="changeIntervalSec" value="${Number(layer.changeIntervalSec).toFixed(0)}" />
-          <span data-value-for="changeIntervalSec">${Number(layer.changeIntervalSec).toFixed(0)}s</span>
-        </div>
-      </div>
-      <div class="row">
-        <label>Change Chance</label>
-        <div class="inline-control">
-          <input type="range" min="0" max="1" step="0.01" data-field="changeChance" value="${Number(layer.changeChance).toFixed(2)}" />
-          <span data-value-for="changeChance">${Number(layer.changeChance).toFixed(2)}</span>
-        </div>
-      </div>
-      <div class="row">
-        <label>Glide</label>
-        <div class="inline-control">
-          <input type="range" min="0" max="20" step="0.25" data-field="glideSec" value="${Number(layer.glideSec).toFixed(2)}" />
-          <span data-value-for="glideSec">${Number(layer.glideSec).toFixed(2)}s</span>
-        </div>
-      </div>
-    `;
+    article.dataset.layerRole = layer.role;
+    article.dataset.layerType = layer.type;
+    article.dataset.layerSource = layer.source;
+    article.dataset.layerFilter = String(layer.filterFrequency);
+    article.dataset.layerMotion = layer.motionMode;
+    appendHeader(article, `Layer ${index + 1} - ${headerMetric}`);
+    appendSelectRow(article, "Role", "role", [
+      ["drone", "Drone"],
+      ["resonance", "Resonance"],
+      ["shimmer", "Shimmer"],
+      ["pulse", "Pulse"],
+      ["call", "Call"],
+      ["wind", "Wind"],
+      ["rumble", "Rumble"],
+      ["air", "Air"],
+    ], layer.role);
+    appendTextRow(article, "Source", layer.source === "noise" ? "Filtered Noise" : "Modal Tone");
+    appendSelectRow(article, "Wave", "type", [
+      ["sine", "Sine"],
+      ["square", "Square"],
+      ["sawtooth", "Saw"],
+      ["triangle", "Triangle"],
+    ], layer.type);
+    appendCheckboxRow(article, "Enabled", "enabled", layer.enabled);
+    appendSelectRow(
+      article,
+      "Degree",
+      "degree",
+      Array.from({ length: degreeCount }, (_, degree) => [degree, String(degree + 1)]),
+      layer.degree,
+    );
+    appendRangeRow(article, "Octave", "octave", {
+      min: -3,
+      max: 3,
+      step: 1,
+      value: Number(layer.octave).toFixed(0),
+      valueText: Number(layer.octave).toFixed(0),
+    });
+    appendRangeRow(article, "Detune", "detuneCents", {
+      min: -100,
+      max: 100,
+      step: 1,
+      value: Number(layer.detuneCents).toFixed(0),
+      valueText: `${Number(layer.detuneCents).toFixed(0)} c`,
+    });
+    appendRangeRow(article, "Amplitude", "amplitude", {
+      min: 0,
+      max: 1,
+      step: 0.01,
+      value: Number(layer.amplitude).toFixed(2),
+    });
+    appendRangeRow(article, "Noise Filter", "filterFrequency", {
+      min: 40,
+      max: 8000,
+      step: 10,
+      value: Number(layer.filterFrequency).toFixed(0),
+      valueText: `${Number(layer.filterFrequency).toFixed(0)} Hz`,
+      disabled: layer.source !== "noise",
+    });
+    appendRangeRow(article, "Attack", "attackSec", {
+      min: 0,
+      max: 20,
+      step: 0.25,
+      value: Number(layer.attackSec).toFixed(2),
+      valueText: `${Number(layer.attackSec).toFixed(2)}s`,
+    });
+    appendRangeRow(article, "Release", "releaseSec", {
+      min: 0,
+      max: 20,
+      step: 0.25,
+      value: Number(layer.releaseSec).toFixed(2),
+      valueText: `${Number(layer.releaseSec).toFixed(2)}s`,
+    });
+    appendRangeRow(article, "Amp Drift", "ampDrift", {
+      min: 0,
+      max: 1,
+      step: 0.01,
+      value: Number(layer.ampDrift).toFixed(2),
+      valueText: Number(layer.ampDrift).toFixed(2),
+    });
+    appendRangeRow(article, "Pitch Drift", "pitchDriftCents", {
+      min: 0,
+      max: 50,
+      step: 1,
+      value: Number(layer.pitchDriftCents).toFixed(0),
+      valueText: `${Number(layer.pitchDriftCents).toFixed(0)} c`,
+    });
+    appendRangeRow(article, "Drift Cycle", "driftCycleSec", {
+      min: 2,
+      max: 120,
+      step: 1,
+      value: Number(layer.driftCycleSec).toFixed(0),
+      valueText: `${Number(layer.driftCycleSec).toFixed(0)}s`,
+    });
+    appendSelectRow(article, "Motion", "motionMode", [
+      ["static", "Static"],
+      ["wander", "Wander"],
+      ["call", "Call"],
+    ], layer.motionMode);
+    appendRangeRow(article, "Change Every", "changeIntervalSec", {
+      min: 2,
+      max: 120,
+      step: 1,
+      value: Number(layer.changeIntervalSec).toFixed(0),
+      valueText: `${Number(layer.changeIntervalSec).toFixed(0)}s`,
+    });
+    appendRangeRow(article, "Change Chance", "changeChance", {
+      min: 0,
+      max: 1,
+      step: 0.01,
+      value: Number(layer.changeChance).toFixed(2),
+      valueText: Number(layer.changeChance).toFixed(2),
+    });
+    appendRangeRow(article, "Glide", "glideSec", {
+      min: 0,
+      max: 20,
+      step: 0.25,
+      value: Number(layer.glideSec).toFixed(2),
+      valueText: `${Number(layer.glideSec).toFixed(2)}s`,
+    });
     return article;
   }
 
@@ -265,11 +323,28 @@ export function createAudioPanelRuntime(deps) {
     if (deps.audioSoundscapeLayerList) {
       const activeElement = document.activeElement;
       const isEditingLayer = activeElement && deps.audioSoundscapeLayerList.contains(activeElement);
-      const currentIds = Array.from(deps.audioSoundscapeLayerList.querySelectorAll(".oscillator-card"))
-        .map((card) => card.dataset.layerId)
+      const currentCards = Array.from(deps.audioSoundscapeLayerList.querySelectorAll(".oscillator-card"));
+      const currentSignature = currentCards
+        .map((card) => [
+          card.dataset.layerId,
+          card.dataset.layerRole,
+          card.dataset.layerType,
+          card.dataset.layerSource,
+          card.dataset.layerFilter,
+          card.dataset.layerMotion,
+        ].join(":"))
         .join("|");
-      const nextIds = (soundscape.layers || []).map((layer) => layer.id).join("|");
-      if (isEditingLayer && currentIds === nextIds) {
+      const nextSignature = (soundscape.layers || [])
+        .map((layer) => [
+          layer.id,
+          layer.role,
+          layer.type,
+          layer.source,
+          String(layer.filterFrequency),
+          layer.motionMode,
+        ].join(":"))
+        .join("|");
+      if (isEditingLayer && currentSignature === nextSignature) {
         if (deps.drawSoundscapeWaveform) {
           deps.drawSoundscapeWaveform();
         }

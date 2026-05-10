@@ -157,6 +157,11 @@ body {
   color: #f0d37a;
 }
 
+.audio-mode-btn:focus-visible {
+  outline: 2px solid #f0d37a;
+  outline-offset: 3px;
+}
+
 .audio-mode-surface,
 .audio-control-section {
   display: none;
@@ -496,10 +501,11 @@ input[type="file"] {
   }
 
   .audio-mode-dock {
-    position: absolute;
+    position: fixed;
     top: 72px;
     left: 18px;
     right: 18px;
+    z-index: 3;
     flex-direction: row;
   }
 
