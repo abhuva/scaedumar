@@ -246,7 +246,7 @@ export function registerMainCommands(commandBus, deps) {
     deps.patchSimulationKnobSectionToStore("audio", {
       fftSize: clampRound(next.fftSize, 256, 4096),
       hopSize: clampRound(next.hopSize, 64, 2048),
-      windowType: next.windowType === "hann" ? "hann" : "hann",
+      windowType: "hann",
       minHz: clampRound(next.minHz, 20, 20000),
       maxHz: clampRound(next.maxHz, 20, 22050),
       loudnessFloorDb: deps.clamp(Number(next.loudnessFloorDb ?? -72), -120, -12),

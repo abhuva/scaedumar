@@ -786,6 +786,8 @@ async function loadAudioFile(file) {
     audioSimulationState.lastError = error instanceof Error ? error.message : String(error);
     setStatus(`Audio file load failed: ${audioSimulationState.lastError}`);
     syncAudioUi();
+  } finally {
+    audioFileInput.value = "";
   }
 }
 

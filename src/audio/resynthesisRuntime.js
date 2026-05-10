@@ -52,7 +52,8 @@ export function createResynthesisRuntime(deps) {
         const frequency = rowToFrequency(bin, deps.scribble.heightBins, options, stft);
         const amplitude = paint * sourceMaxAmplitude * gain;
         for (let i = 0; i < segmentSampleCount; i += 1) {
-          const time = i / stft.sampleRate;
+          const globalSampleIndex = sampleOffset + i;
+          const time = globalSampleIndex / stft.sampleRate;
           segmentSamples[i] += Math.cos((time * TAU * frequency)) * amplitude;
         }
       }

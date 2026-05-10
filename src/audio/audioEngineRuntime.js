@@ -1,3 +1,32 @@
+const VALID_ANALYSER_FFT_SIZES = [
+  32,
+  64,
+  128,
+  256,
+  512,
+  1024,
+  2048,
+  4096,
+  8192,
+  16384,
+  32768,
+];
+
+function normalizeAnalyserFftSize(input) {
+  const value = Number(input);
+  if (!Number.isFinite(value)) return 2048;
+  let best = VALID_ANALYSER_FFT_SIZES[0];
+  let bestDistance = Math.abs(value - best);
+  for (const candidate of VALID_ANALYSER_FFT_SIZES) {
+    const distance = Math.abs(value - candidate);
+    if (distance < bestDistance) {
+      best = candidate;
+      bestDistance = distance;
+    }
+  }
+  return best;
+}
+
 export function createAudioEngineRuntime(deps) {
   function ensureContext() {
     if (deps.runtime.audioContext) {
@@ -9,7 +38,7 @@ export function createAudioEngineRuntime(deps) {
     }
     const context = new Ctor();
     const analyserNode = context.createAnalyser();
-    analyserNode.fftSize = deps.getSettings().fftSize;
+    analyserNode.fftSize = normalizeAnalyserFftSize(deps.getSettings().fftSize);
     analyserNode.smoothingTimeConstant = 0.72;
     const masterGainNode = context.createGain();
     masterGainNode.gain.value = deps.getSettings().masterGain;
@@ -31,7 +60,7 @@ export function createAudioEngineRuntime(deps) {
   function syncAnalyserSettings() {
     if (!deps.runtime.analyserNode) return;
     const settings = deps.getSettings();
-    const fftSize = Math.max(256, Math.min(4096, Math.round(Number(settings.fftSize) || 1024)));
+    const fftSize = normalizeAnalyserFftSize(settings.fftSize);
     if (deps.runtime.analyserNode.fftSize !== fftSize) {
       deps.runtime.analyserNode.fftSize = fftSize;
       deps.runtime.frequencyData = new Uint8Array(deps.runtime.analyserNode.frequencyBinCount);

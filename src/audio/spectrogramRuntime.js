@@ -18,13 +18,24 @@ function amplitudeToDisplay(amplitude, maxAmplitude, floorDb) {
   return clamp01((db - floorDb) / -floorDb);
 }
 
+function disableImageSmoothing(context) {
+  context.imageSmoothingEnabled = false;
+  context.webkitImageSmoothingEnabled = false;
+  context.mozImageSmoothingEnabled = false;
+  context.msImageSmoothingEnabled = false;
+}
+
 export function createSpectrogramRuntime(deps) {
   const ctx = deps.canvas.getContext("2d", { alpha: false });
   if (!ctx) {
     throw new Error("2D spectrogram context is required.");
   }
+  disableImageSmoothing(ctx);
   const baseCanvas = document.createElement("canvas");
   const baseCtx = baseCanvas.getContext("2d", { alpha: false });
+  if (baseCtx) {
+    disableImageSmoothing(baseCtx);
+  }
   let cachedBaseKey = "";
 
   function resizeBackingStore() {

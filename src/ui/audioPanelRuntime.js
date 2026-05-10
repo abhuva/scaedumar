@@ -27,8 +27,10 @@ export function createAudioPanelRuntime(deps) {
       ? `Playing ${simulation.playbackKind || "audio"}`
       : "Stopped";
     if (deps.audioFileStatusValue) {
+      const durationSec = Number(simulation.durationSec);
+      const durationText = Number.isFinite(durationSec) ? `${durationSec.toFixed(2)}s` : "unknown duration";
       deps.audioFileStatusValue.textContent = simulation.hasInputSignal
-        ? `${simulation.fileName || "Loaded"} (${simulation.durationSec.toFixed(2)}s)`
+        ? `${simulation.fileName || "Loaded"} (${durationText})`
         : "No file loaded";
     }
   }

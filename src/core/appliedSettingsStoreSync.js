@@ -298,7 +298,7 @@ export function createAppliedSettingsStoreSync(deps) {
           ...prevAudio,
           fftSize: clampRound(normalized.fftSize ?? prevAudio.fftSize ?? 1024, 256, 4096),
           hopSize: clampRound(normalized.hopSize ?? prevAudio.hopSize ?? 256, 64, 2048),
-          windowType: normalized.windowType === "hann" ? "hann" : "hann",
+          windowType: "hann",
           minHz: clampRound(normalized.minHz ?? prevAudio.minHz ?? 40, 20, 20000),
           maxHz: clampRound(normalized.maxHz ?? prevAudio.maxHz ?? 12000, 20, 22050),
           loudnessFloorDb: deps.clamp(finiteOr(normalized.loudnessFloorDb, finiteOr(prevAudio.loudnessFloorDb, -72)), -120, -12),

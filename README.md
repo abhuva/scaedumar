@@ -138,6 +138,7 @@ Copy-Item styles.css .tauri-dist\ -Force
 Copy-Item src .tauri-dist\src -Recurse -Force
 Copy-Item assets .tauri-dist\assets -Recurse -Force
 ```
+
 ## Tests
 
 Run targeted architecture migration tests with Node's built-in test runner:
