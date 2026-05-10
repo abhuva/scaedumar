@@ -532,3 +532,4 @@ growth based simulation [Reddit thread](https://www.reddit.com/r/proceduralgener
 Dual Grid System (Sprites / Textures) : https://www.youtube.com/watch?v=jEWFSv3ivTg&t=332s
 Flow Field https://www.youtube.com/watch?v=sZBfLgfsvSk
 Slime simulation https://www.youtube.com/watch?v=X-iSQQgOd1A  (used for trails, deers + wolves?)
+https://www.reddit.com/r/proceduralgeneration/comments/1sw31zi/i_build_a_fluid_simulation_based_on_the_navier/
