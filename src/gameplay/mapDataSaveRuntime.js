@@ -9,6 +9,7 @@ export function createMapDataSaveRuntime(deps) {
     serializeFogSettings: deps.serializeFogSettings,
     serializeCloudSettings: deps.serializeCloudSettings,
     serializeWaterSettings: deps.serializeWaterSettings,
+    serializeAudioSettings: deps.serializeAudioSettings,
     serializeSwarmData: deps.serializeSwarmData,
     serializeNpcState: deps.serializeNpcState,
     normalizeMapFolderPath: deps.normalizeMapFolderPath,

@@ -64,6 +64,12 @@ export function registerMainCommands(commandBus, deps) {
     deps.setInteractionMode(deps.getInteractionMode());
   });
 
+  commandBus.register("core/workspace/setActive", (command) => {
+    const workspace = command.workspace === "audio" ? "audio" : "map";
+    deps.setWorkspaceToStore(workspace);
+    deps.syncWorkspaceUi(workspace);
+  });
+
   registerInteractionCommands(commandBus, deps);
 
   commandBus.register("core/renderFx/changed", (command) => {
@@ -231,6 +237,81 @@ export function registerMainCommands(commandBus, deps) {
         deps.rebuildFlowMapTexture();
       }
     }
+  });
+
+  commandBus.register("core/audio/settingsChanged", (command) => {
+    const patch = command.patch && typeof command.patch === "object" ? command.patch : {};
+    const current = deps.serializeAudioSettingsCompat();
+    const next = { ...current, ...patch };
+    deps.patchSimulationKnobSectionToStore("audio", {
+      fftSize: clampRound(next.fftSize, 256, 4096),
+      hopSize: clampRound(next.hopSize, 64, 2048),
+      windowType: "hann",
+      minHz: clampRound(next.minHz, 20, 20000),
+      maxHz: clampRound(next.maxHz, 20, 22050),
+      loudnessFloorDb: deps.clamp(Number(next.loudnessFloorDb ?? -72), -120, -12),
+      brushSize: clampRound(next.brushSize, 1, 32),
+      brushStrength: deps.clamp(Number(next.brushStrength), 0, 1),
+      eraseMode: Boolean(next.eraseMode),
+      autoThreshold: deps.clamp(Number(next.autoThreshold ?? 0.62), 0, 1),
+      autoContrast: deps.clamp(Number(next.autoContrast ?? 1.5), 0.25, 4),
+      autoGain: deps.clamp(Number(next.autoGain ?? 1), 0, 2),
+      autoClearBeforePaint: Boolean(next.autoClearBeforePaint ?? true),
+      approximationMaxStrokes: clampRound(next.approximationMaxStrokes ?? 100, 1, 1000),
+      approximationMinStrength: deps.clamp(Number(next.approximationMinStrength ?? 0.05), 0, 1),
+      playbackRate: deps.clamp(Number(next.playbackRate), 0.25, 2),
+      masterGain: deps.clamp(Number(next.masterGain), 0, 1),
+    });
+    deps.syncAudioUi();
+    deps.syncAudioEngine();
+  });
+
+  commandBus.register("audio/play", () => {
+    deps.playAudio();
+    deps.syncAudioUi();
+  });
+
+  commandBus.register("audio/loadFile", (command) => {
+    deps.loadAudioFile(command.file);
+  });
+
+  commandBus.register("audio/playOriginal", () => {
+    deps.playOriginalAudio();
+    deps.syncAudioUi();
+  });
+
+  commandBus.register("audio/playScribble", () => {
+    deps.playScribbleAudio();
+    deps.syncAudioUi();
+  });
+
+  commandBus.register("audio/stop", () => {
+    deps.stopAudio();
+    deps.syncAudioUi();
+  });
+
+  commandBus.register("audio/togglePlay", () => {
+    if (deps.getAudioSimulationState().isPlaying) {
+      deps.stopAudio();
+    } else {
+      deps.playAudio();
+    }
+    deps.syncAudioUi();
+  });
+
+  commandBus.register("audio/clearScribble", () => {
+    deps.clearAudioScribble();
+    deps.syncAudioUi();
+  });
+
+  commandBus.register("audio/autoPaintStrong", () => {
+    deps.autoPaintAudioScribble();
+    deps.syncAudioUi();
+  });
+
+  commandBus.register("audio/approximateScribble", () => {
+    deps.approximateAudioScribble();
+    deps.syncAudioUi();
   });
 
   commandBus.register("core/swarm/settingsChanged", (command) => {

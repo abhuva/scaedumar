@@ -114,6 +114,7 @@ export function createInitialState() {
         fog: {},
         clouds: {},
         waterFx: {},
+        audio: {},
       },
       weather: { ...DEFAULT_WEATHER_STATE },
     },
@@ -128,6 +129,7 @@ export function createInitialState() {
     },
     ui: {
       cycleHour: DEFAULT_CYCLE_HOUR,
+      workspace: "map",
     },
   };
 }

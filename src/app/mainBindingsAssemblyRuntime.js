@@ -1,5 +1,9 @@
 export function createMainBindingsAssemblyRuntime(deps) {
   return {
+    workspaceBinding: {
+      workspaceButtons: deps.workspaceButtons,
+      dispatchCoreCommand: deps.dispatchCoreCommand,
+    },
     canvasBinding: {
       canvas: deps.canvas,
       windowEl: deps.windowEl,
@@ -267,6 +271,30 @@ export function createMainBindingsAssemblyRuntime(deps) {
       heightScaleInput: deps.heightScaleInput,
       schedulePointLightBake: deps.schedulePointLightBake,
       resize: deps.resize,
+    },
+    audioBinding: {
+      commandBus: deps.commandBus,
+      audioMinHzInput: deps.audioMinHzInput,
+      audioMaxHzInput: deps.audioMaxHzInput,
+      audioBrushSizeInput: deps.audioBrushSizeInput,
+      audioBrushStrengthInput: deps.audioBrushStrengthInput,
+      audioEraseModeToggle: deps.audioEraseModeToggle,
+      audioAutoThresholdInput: deps.audioAutoThresholdInput,
+      audioAutoContrastInput: deps.audioAutoContrastInput,
+      audioAutoGainInput: deps.audioAutoGainInput,
+      audioAutoClearToggle: deps.audioAutoClearToggle,
+      audioApproxMaxStrokesInput: deps.audioApproxMaxStrokesInput,
+      audioApproxMinStrengthInput: deps.audioApproxMinStrengthInput,
+      audioMasterGainInput: deps.audioMasterGainInput,
+      audioPlaybackRateInput: deps.audioPlaybackRateInput,
+      audioFileInput: deps.audioFileInput,
+      audioPlayBtn: deps.audioPlayBtn,
+      audioPlayOriginalBtn: deps.audioPlayOriginalBtn,
+      audioPlayScribbleBtn: deps.audioPlayScribbleBtn,
+      audioAutoPaintBtn: deps.audioAutoPaintBtn,
+      audioApproximateBtn: deps.audioApproximateBtn,
+      audioStopBtn: deps.audioStopBtn,
+      audioClearBtn: deps.audioClearBtn,
     },
   };
 }

@@ -1,0 +1,19 @@
+{
+  "fftSize": 1024,
+  "hopSize": 256,
+  "windowType": "hann",
+  "minHz": 40,
+  "maxHz": 12000,
+  "loudnessFloorDb": -72,
+  "brushSize": 6,
+  "brushStrength": 0.8,
+  "eraseMode": false,
+  "autoThreshold": 0.62,
+  "autoContrast": 1.5,
+  "autoGain": 1,
+  "autoClearBeforePaint": true,
+  "approximationMaxStrokes": 100,
+  "approximationMinStrength": 0.05,
+  "playbackRate": 1,
+  "masterGain": 0.7
+}

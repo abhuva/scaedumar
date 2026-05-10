@@ -42,6 +42,45 @@ body {
   z-index: 1;
 }
 
+.workspace-root {
+  display: none;
+}
+
+.workspace-root.active {
+  display: block;
+}
+
+.workspace-switcher {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  z-index: 10;
+  display: flex;
+  gap: 6px;
+  transform: translateX(-50%);
+  padding: 5px;
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  background: var(--panel-bg);
+}
+
+.workspace-btn {
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  padding: 6px 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.workspace-btn.active,
+.workspace-btn:hover {
+  border-color: var(--panel-border);
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text);
+}
+
 .topic-dock {
   position: fixed;
   top: 12px;
@@ -50,6 +89,62 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+
+.audio-workspace {
+  min-height: 100vh;
+  padding: 72px 18px 18px;
+  background:
+    linear-gradient(135deg, rgba(11, 17, 24, 0.96), rgba(20, 28, 34, 0.98)),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 32px);
+}
+
+.audio-studio {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) min(380px, 32vw);
+  gap: 16px;
+  height: calc(100vh - 90px);
+}
+
+.audio-viewport {
+  position: relative;
+  min-height: 360px;
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #101820, #071017);
+}
+
+#audioSpectrogramCanvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  background:
+    linear-gradient(180deg, rgba(79, 180, 190, 0.12), transparent),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.06) 0 1px, transparent 1px 32px),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.045) 0 1px, transparent 1px 48px);
+}
+
+.audio-viewport-label {
+  position: absolute;
+  right: 12px;
+  bottom: 10px;
+  color: var(--muted);
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.audio-control-panel {
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  background: var(--panel-bg);
+  padding: 12px;
+  overflow: auto;
+}
+
+.audio-control-panel h1 {
+  margin: 0 0 12px;
+  font-size: 18px;
 }
 
 .topic-btn {
@@ -246,6 +341,20 @@ input[type="file"] {
   background: rgba(255, 255, 255, 0.14);
 }
 
+.audio-actions {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  justify-content: stretch;
+}
+
+.audio-actions button {
+  width: 100%;
+  min-width: 0;
+  padding: 6px 0;
+  text-align: center;
+}
+
 .light-persist-actions {
   display: flex;
   gap: 8px;
@@ -302,6 +411,15 @@ input[type="file"] {
     top: auto;
     bottom: 12px;
     right: 12px;
+  }
+
+  .audio-studio {
+    grid-template-columns: 1fr;
+    height: auto;
+  }
+
+  .audio-viewport {
+    min-height: 44vh;
   }
 
   .row {

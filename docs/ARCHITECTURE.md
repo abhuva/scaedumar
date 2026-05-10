@@ -12,6 +12,8 @@ top-level composition entry point instead of the dominant state owner.
 - `src/gameplay/`: gameplay/runtime ownership modules
 - `src/ui/`: DOM bindings, panel reflection, overlay/UI helpers
 - `src/sim/`: time/lighting/fog/cloud/water/weather systems and helpers
+- `src/audio/`: audio-domain runtime modules (WebAudio engine, offline
+  STFT/FFT analysis, spectrogram display, scribble input/grid, resynthesis)
 - `src/pointLightBakeWorker.js`: point-light bake worker entry
 - `src-tauri/`: desktop wrapper and native file I/O commands
 
@@ -53,6 +55,7 @@ owner modules.
 - `src/core/registerMainCommands.js`: command handler composition root
 - `src/core/mainSettingsContracts.js`: settings contracts/defaults
 - `src/core/systemStoreSyncRuntime.js`: scheduler-driven canonical sync
+- `src/core/modeCapabilities.js`: runtime mode/topic capability gating
 
 ## Render
 
@@ -81,6 +84,9 @@ owner modules.
 - `src/gameplay/pathfindingRuntimeBinding.js`: pathfinding preview/runtime
 - `src/gameplay/lightInteractionRuntimeBinding.js`: cursor-light/point-light
   interaction ownership
+- `src/gameplay/mapDataSaveController.js` +
+  `src/gameplay/mapSidecarLoader.js`: map sidecar persistence and auto-apply
+  for lighting/interaction/render FX/swarm/NPC/audio
 
 ## UI
 
@@ -91,6 +97,45 @@ owner modules.
 - `src/ui/pathfindingLabelUi.js`: pathfinding label updates
 - `src/ui/lightLabelRuntime.js`: point-light/cursor-light label updates
 - `src/ui/infoPanelRuntime.js`: player/path info panel updates
+- `src/ui/audioPanelRuntime.js` + `src/ui/audioBindingRuntime.js`: Audio Lab
+  panel UI reflection and command dispatch wiring
+- `src/ui/workspaceRuntime.js` + `src/ui/workspaceBindingRuntime.js`: top-level
+  workspace switching between Map and Audio
+
+## Audio Domain
+
+- Settings are registered through `audio` key in
+  `src/core/mainSettingsContracts.js`.
+- Canonical audio settings serialize/apply through
+  `src/core/settingsRuntimeBinding.js`.
+- Audio runtime owner `src/audio/audioEngineRuntime.js`: WebAudio context,
+  analyser, master gain, oscillator smoke source, decoded-buffer playback,
+  synthesized-buffer playback.
+- Audio runtime owner `src/audio/audioAnalysisRuntime.js`: browser-decoded
+  `AudioBuffer` to mono samples plus offline STFT/FFT amplitude/phase data.
+- Audio runtime owner `src/audio/frequencyMappingRuntime.js`: shared
+  log-frequency authoring-space mapping from normalized frequency rows to Hz
+  and source STFT bins.
+- Audio runtime owner `src/audio/spectrogramRuntime.js`: static file
+  spectrogram rendering plus live analyser smoke-view rendering. File
+  spectrograms are cached as a base image so brush strokes only redraw the
+  scribble overlay.
+- Audio runtime owner `src/audio/scribbleCanvasRuntime.js`: editable
+  frequency-time grid plus STFT amplitude threshold/contrast/gain auto-paint
+  extraction into that grid. It also owns bounded greedy brush-blob
+  approximation, which replaces dense scribble grids with a fixed number of
+  replayable ellipse strokes.
+- Audio runtime owner `src/audio/audioScribbleInputRuntime.js`: pointer input
+  mapping from canvas coordinates to time/frequency scribble cells.
+- Audio runtime owner `src/audio/resynthesisRuntime.js`: painted-grid
+  resynthesis into a WebAudio `AudioBuffer`; the original spectrogram remains
+  a visual guide and is not mixed into scribble playback.
+- Audio authoring defaults to log-frequency between `minHz` and `maxHz`; the
+  scribble grid is an authoring space and maps back to source STFT bins through
+  the shared frequency mapper.
+- Audio map sidecar is `audio.json` and participates in map `Save All` and
+  sidecar load flows.
+- Audio is exposed as a top-level workspace, not as a terrain topic panel.
 
 ## Simulation
 
