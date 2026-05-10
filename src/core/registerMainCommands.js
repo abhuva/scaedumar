@@ -244,6 +244,7 @@ export function registerMainCommands(commandBus, deps) {
     const current = deps.serializeAudioSettingsCompat();
     const next = { ...current, ...patch };
     deps.patchSimulationKnobSectionToStore("audio", {
+      activeMode: ["spectrogram", "synthesis", "soundscape"].includes(next.activeMode) ? next.activeMode : "spectrogram",
       fftSize: clampRound(next.fftSize, 256, 4096),
       hopSize: clampRound(next.hopSize, 64, 2048),
       windowType: "hann",
@@ -261,9 +262,16 @@ export function registerMainCommands(commandBus, deps) {
       approximationMinStrength: deps.clamp(Number(next.approximationMinStrength ?? 0.05), 0, 1),
       playbackRate: deps.clamp(Number(next.playbackRate), 0.25, 2),
       masterGain: deps.clamp(Number(next.masterGain), 0, 1),
+      synthesis: next.synthesis,
+      soundscape: next.soundscape,
     });
     deps.syncAudioUi();
     deps.syncAudioEngine();
+  });
+
+  commandBus.register("audio/mode/set", (command) => {
+    deps.setAudioMode(["spectrogram", "synthesis", "soundscape"].includes(command.mode) ? command.mode : "spectrogram");
+    deps.syncAudioUi();
   });
 
   commandBus.register("audio/play", () => {
@@ -287,6 +295,66 @@ export function registerMainCommands(commandBus, deps) {
 
   commandBus.register("audio/stop", () => {
     deps.stopAudio();
+    deps.syncAudioUi();
+  });
+
+  commandBus.register("audio/synthesis/play", () => {
+    deps.playSynthesisAudio();
+    deps.syncAudioUi();
+  });
+
+  commandBus.register("audio/synthesis/addOscillator", () => {
+    deps.addSynthesisOscillator();
+    deps.syncAudioUi();
+  });
+
+  commandBus.register("audio/synthesis/removeOscillator", (command) => {
+    deps.removeSynthesisOscillator(command.id);
+    deps.syncAudioUi();
+  });
+
+  commandBus.register("audio/synthesis/update", (command) => {
+    deps.updateSynthesisSettings(command.patch || {});
+    deps.syncAudioUi();
+  });
+
+  commandBus.register("audio/synthesis/updateOscillator", (command) => {
+    deps.updateSynthesisOscillator(command.id, command.patch || {});
+    deps.syncAudioUi();
+  });
+
+  commandBus.register("audio/soundscape/play", () => {
+    deps.playSoundscapeAudio();
+    deps.syncAudioUi();
+  });
+
+  commandBus.register("audio/soundscape/addLayer", () => {
+    deps.addSoundscapeLayerForRole("drone");
+    deps.syncAudioUi();
+  });
+
+  commandBus.register("audio/soundscape/addRoleLayer", (command) => {
+    deps.addSoundscapeLayerForRole(command.role || "drone");
+    deps.syncAudioUi();
+  });
+
+  commandBus.register("audio/soundscape/removeLayer", (command) => {
+    deps.removeSoundscapeLayer(command.id);
+    deps.syncAudioUi();
+  });
+
+  commandBus.register("audio/soundscape/update", (command) => {
+    deps.updateSoundscapeSettings(command.patch || {});
+    deps.syncAudioUi();
+  });
+
+  commandBus.register("audio/soundscape/randomize", () => {
+    deps.randomizeSoundscape();
+    deps.syncAudioUi();
+  });
+
+  commandBus.register("audio/soundscape/updateLayer", (command) => {
+    deps.updateSoundscapeLayer(command.id, command.patch || {});
     deps.syncAudioUi();
   });
 

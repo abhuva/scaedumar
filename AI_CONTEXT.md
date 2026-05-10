@@ -351,6 +351,30 @@ No game engine is used.
   - auto-paint flow thresholds/contrasts source STFT amplitudes into the scribble grid for replaying only strong spectrogram regions
   - frequency authoring is log scale with editable `minHz`/`maxHz`; display, painting, auto-paint, and resynthesis share `src/audio/frequencyMappingRuntime.js`
   - approximation flow greedily fits a bounded number of ellipse brush blobs to the current scribble grid, then replaces the grid with the replayed blob approximation
+  - Audio workspace now has its own left mode dock with `Spectrogram`
+    and `Synthesis` modes; each mode owns a center surface and right
+    settings section.
+  - Synthesis mode is an additive-synthesis prototype backed by
+    `src/audio/synthesisRuntime.js`: it renders a waveform canvas,
+    plays live WebAudio oscillator nodes, and supports duration, loop,
+    synth gain, oscillator waveform types, and add/remove/update oscillator
+    controls (`frequency`, `amplitude`, `phase`, `enabled`).
+  - Soundscape planning lives in `docs/SOUND_DESIGN.md`.
+  - Audio workspace now includes a `Soundscape` mode backed by
+    `src/audio/soundscapeRuntime.js`; it converts root note, scale, degree,
+    octave, and detune layer settings into oscillator frequencies for the
+    existing synthesis engine while preserving raw `Synthesis` mode.
+  - Soundscape evolution tasks are tracked in `docs/SOUNDSCAPE_TASKS.md`.
+  - Soundscape layers now support attack/release envelopes, amplitude drift,
+    pitch drift, drift cycle length, and modal motion (`static`, `wander`,
+    `call`) with change interval/chance and glide controls.
+  - Soundscape role presets now create tuned `Drone`, `Resonance`, `Shimmer`,
+    `Call`, `Wind`, `Rumble`, and `Air` layers. `Wind`/`Rumble`/`Air` are
+    filtered noise sources mixed through the same soundscape transport.
+  - Soundscape randomization is role-aware and constrained to the active
+    root/scale with a repeatable numeric seed; targeted tests cover modal
+    frequency, noise normalization, role presets, and constrained
+    randomization.
 - Weather groundwork (architecture scaffold only):
   - core state now includes weather contract (`type`, `intensity`, `windDirDeg`, `windSpeed`, `localModulation`)
   - scheduler includes `weatherSystem` producing per-frame weather/wind vectors

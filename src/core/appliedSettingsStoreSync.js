@@ -294,8 +294,104 @@ export function createAppliedSettingsStoreSync(deps) {
       }
       if (key === "audio") {
         const prevAudio = prev.simulation?.knobs?.audio || {};
+        const prevSynthesis = prevAudio.synthesis && typeof prevAudio.synthesis === "object"
+          ? prevAudio.synthesis
+          : {};
+        const normalizedSynthesis = normalized.synthesis && typeof normalized.synthesis === "object"
+          ? normalized.synthesis
+          : {};
+        const sourceOscillators = Array.isArray(normalizedSynthesis.oscillators)
+          ? normalizedSynthesis.oscillators
+          : (Array.isArray(prevSynthesis.oscillators) ? prevSynthesis.oscillators : []);
+        const oscillators = sourceOscillators.slice(0, 16).map((oscillator, index) => {
+          const osc = oscillator && typeof oscillator === "object" ? oscillator : {};
+          return {
+            id: typeof osc.id === "string" && osc.id ? osc.id : `osc-${index + 1}`,
+            enabled: Boolean(osc.enabled ?? true),
+            type: ["sine", "square", "sawtooth", "triangle"].includes(osc.type) ? osc.type : "sine",
+            frequency: deps.clamp(finiteOr(osc.frequency, 220), 10, 800),
+            amplitude: deps.clamp(finiteOr(osc.amplitude, 0.25), 0, 1),
+            phase: deps.clamp(finiteOr(osc.phase, 0), -360, 360),
+          };
+        });
+        if (oscillators.length === 0) {
+          oscillators.push({
+            id: "osc-1",
+            enabled: true,
+            type: "sine",
+            frequency: 220,
+            amplitude: 0.35,
+            phase: 0,
+          });
+        }
+        const prevSoundscape = prevAudio.soundscape && typeof prevAudio.soundscape === "object"
+          ? prevAudio.soundscape
+          : {};
+        const normalizedSoundscape = normalized.soundscape && typeof normalized.soundscape === "object"
+          ? normalized.soundscape
+          : {};
+        const soundscapeLayersSource = Array.isArray(normalizedSoundscape.layers)
+          ? normalizedSoundscape.layers
+          : (Array.isArray(prevSoundscape.layers) ? prevSoundscape.layers : []);
+        const validScales = ["minorPentatonic", "majorPentatonic", "dorian", "aeolian", "phrygian", "suspendedPentatonic"];
+        const validRoots = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+        const noiseRoles = ["wind", "rumble", "air"];
+        const soundscapeLayers = soundscapeLayersSource.slice(0, 16).map((layer, index) => {
+          const item = layer && typeof layer === "object" ? layer : {};
+          const role = ["drone", "resonance", "shimmer", "pulse", "call", "wind", "rumble", "air"].includes(item.role) ? item.role : "drone";
+          return {
+            id: typeof item.id === "string" && item.id ? item.id : `layer-${index + 1}`,
+            enabled: Boolean(item.enabled ?? true),
+            role,
+            source: item.source === "noise" || noiseRoles.includes(role) ? "noise" : "tone",
+            type: ["sine", "square", "sawtooth", "triangle"].includes(item.type) ? item.type : "sine",
+            noiseType: ["wind", "rumble", "air"].includes(item.noiseType) ? item.noiseType : (noiseRoles.includes(role) ? role : "wind"),
+            degree: clampRound(item.degree ?? 0, 0, 6),
+            octave: clampRound(item.octave ?? 0, -3, 3),
+            detuneCents: clampRound(item.detuneCents ?? 0, -100, 100),
+            amplitude: deps.clamp(finiteOr(item.amplitude, 0.2), 0, 1),
+            attackSec: deps.clamp(finiteOr(item.attackSec, 2), 0, 20),
+            releaseSec: deps.clamp(finiteOr(item.releaseSec, 3), 0, 20),
+            ampDrift: deps.clamp(finiteOr(item.ampDrift, 0), 0, 1),
+            pitchDriftCents: deps.clamp(finiteOr(item.pitchDriftCents, 0), 0, 50),
+            driftCycleSec: deps.clamp(finiteOr(item.driftCycleSec, 20), 2, 120),
+            motionMode: ["static", "wander", "call"].includes(item.motionMode) ? item.motionMode : "static",
+            changeIntervalSec: deps.clamp(finiteOr(item.changeIntervalSec, 12), 2, 120),
+            changeChance: deps.clamp(finiteOr(item.changeChance, 0.35), 0, 1),
+            glideSec: deps.clamp(finiteOr(item.glideSec, 2), 0, 20),
+            filterFrequency: deps.clamp(finiteOr(item.filterFrequency, 850), 40, 8000),
+          };
+        });
+        if (soundscapeLayers.length === 0) {
+          soundscapeLayers.push({
+            id: "layer-1",
+            enabled: true,
+            role: "drone",
+            source: "tone",
+            type: "triangle",
+            noiseType: "wind",
+            degree: 0,
+            octave: -1,
+            detuneCents: 0,
+            amplitude: 0.35,
+            attackSec: 3,
+            releaseSec: 4,
+            ampDrift: 0.18,
+            pitchDriftCents: 3,
+            driftCycleSec: 18,
+            motionMode: "static",
+            changeIntervalSec: 16,
+            changeChance: 0,
+            glideSec: 2,
+            filterFrequency: 900,
+          });
+        }
+        const activeMode = ["spectrogram", "synthesis", "soundscape"].includes(normalized.activeMode)
+          ? normalized.activeMode
+          : (prevAudio.activeMode || "spectrogram");
         const nextAudio = {
           ...prevAudio,
+          activeMode,
           fftSize: clampRound(normalized.fftSize ?? prevAudio.fftSize ?? 1024, 256, 4096),
           hopSize: clampRound(normalized.hopSize ?? prevAudio.hopSize ?? 256, 64, 2048),
           windowType: "hann",
@@ -313,6 +409,25 @@ export function createAppliedSettingsStoreSync(deps) {
           approximationMinStrength: deps.clamp(finiteOr(normalized.approximationMinStrength, finiteOr(prevAudio.approximationMinStrength, 0.05)), 0, 1),
           playbackRate: deps.clamp(finiteOr(normalized.playbackRate, finiteOr(prevAudio.playbackRate, 1)), 0.25, 2),
           masterGain: deps.clamp(finiteOr(normalized.masterGain, finiteOr(prevAudio.masterGain, 0.7)), 0, 1),
+          synthesis: {
+            durationSec: deps.clamp(finiteOr(normalizedSynthesis.durationSec, finiteOr(prevSynthesis.durationSec, 4)), 0.25, 60),
+            loop: Boolean(normalizedSynthesis.loop ?? prevSynthesis.loop ?? true),
+            masterGain: deps.clamp(finiteOr(normalizedSynthesis.masterGain, finiteOr(prevSynthesis.masterGain, 0.45)), 0, 1),
+            oscillators,
+          },
+          soundscape: {
+            rootNote: validRoots.includes(normalizedSoundscape.rootNote)
+              ? normalizedSoundscape.rootNote
+              : (validRoots.includes(prevSoundscape.rootNote) ? prevSoundscape.rootNote : "D"),
+            scale: validScales.includes(normalizedSoundscape.scale)
+              ? normalizedSoundscape.scale
+              : (validScales.includes(prevSoundscape.scale) ? prevSoundscape.scale : "minorPentatonic"),
+            durationSec: deps.clamp(finiteOr(normalizedSoundscape.durationSec, finiteOr(prevSoundscape.durationSec, 8)), 0.25, 60),
+            loop: Boolean(normalizedSoundscape.loop ?? prevSoundscape.loop ?? true),
+            masterGain: deps.clamp(finiteOr(normalizedSoundscape.masterGain, finiteOr(prevSoundscape.masterGain, 0.45)), 0, 1),
+            randomSeed: clampRound(normalizedSoundscape.randomSeed ?? prevSoundscape.randomSeed ?? 1, 1, 999999),
+            layers: soundscapeLayers,
+          },
         };
         return {
           ...prev,

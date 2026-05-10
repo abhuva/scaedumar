@@ -125,6 +125,19 @@ import { createAudioAnalysisRuntime } from "./audio/audioAnalysisRuntime.js";
 import { createSpectrogramRuntime } from "./audio/spectrogramRuntime.js";
 import { createScribbleCanvasRuntime } from "./audio/scribbleCanvasRuntime.js";
 import { createResynthesisRuntime } from "./audio/resynthesisRuntime.js";
+import { createSynthesisRuntime, createDefaultSynthesisOscillator, normalizeSynthesisSettings } from "./audio/synthesisRuntime.js";
+import {
+  createSoundscapeLayerForRole,
+  applySoundscapeRolePreset,
+  normalizeSoundscapeSettings,
+  soundscapeToSynthesisSettings,
+  soundscapeToLiveSynthesisSettings,
+  soundscapeLayerToFrequency,
+  getSoundscapeScaleDegreeCount,
+  createSoundscapeLayerRuntimeState,
+  updateSoundscapeLayerRuntimeStates,
+  randomizeSoundscapeSettings,
+} from "./audio/soundscapeRuntime.js";
 import { createAudioScribbleInputRuntime } from "./audio/audioScribbleInputRuntime.js";
 import { createAudioPanelRuntime } from "./ui/audioPanelRuntime.js";
 import { createInteractionModeUiRuntime } from "./ui/interactionModeUiRuntime.js";
@@ -140,6 +153,9 @@ const overlayCanvas = getRequiredElementById("overlayCanvas");
 const workspaceButtons = getRequiredElements(".workspace-btn");
 const mapWorkspaceEl = getRequiredElementById("mapWorkspace");
 const audioWorkspaceEl = getRequiredElementById("audioWorkspace");
+const audioModeButtons = getRequiredElements(".audio-mode-btn");
+const audioModeSurfaces = getRequiredElements(".audio-mode-surface");
+const audioControlPanels = getRequiredElements(".audio-control-section");
 const topicButtons = getRequiredElements(".topic-btn");
 const topicPanelEl = getRequiredElementById("topicPanel");
 const topicPanelTitleEl = getRequiredElementById("topicPanelTitle");
@@ -407,6 +423,36 @@ const audioClearBtn = getRequiredElementById("audioClearBtn");
 const audioStatusValue = getRequiredElementById("audioStatusValue");
 const audioFileStatusValue = getRequiredElementById("audioFileStatusValue");
 const audioSpectrogramCanvas = getRequiredElementById("audioSpectrogramCanvas");
+const audioSynthesisCanvas = getRequiredElementById("audioSynthesisCanvas");
+const audioSoundscapeCanvas = getRequiredElementById("audioSoundscapeCanvas");
+const audioSynthesisDurationInput = getRequiredElementById("audioSynthesisDuration");
+const audioSynthesisDurationValue = getRequiredElementById("audioSynthesisDurationValue");
+const audioSynthesisMasterGainInput = getRequiredElementById("audioSynthesisMasterGain");
+const audioSynthesisMasterGainValue = getRequiredElementById("audioSynthesisMasterGainValue");
+const audioSynthesisLoopToggle = getRequiredElementById("audioSynthesisLoopToggle");
+const audioSynthesisPlayBtn = getRequiredElementById("audioSynthesisPlayBtn");
+const audioSynthesisAddOscillatorBtn = getRequiredElementById("audioSynthesisAddOscillatorBtn");
+const audioSynthesisStopBtn = getRequiredElementById("audioSynthesisStopBtn");
+const audioSynthesisOscillatorList = getRequiredElementById("audioSynthesisOscillatorList");
+const audioSoundscapeRootInput = getRequiredElementById("audioSoundscapeRoot");
+const audioSoundscapeScaleInput = getRequiredElementById("audioSoundscapeScale");
+const audioSoundscapeDurationInput = getRequiredElementById("audioSoundscapeDuration");
+const audioSoundscapeDurationValue = getRequiredElementById("audioSoundscapeDurationValue");
+const audioSoundscapeMasterGainInput = getRequiredElementById("audioSoundscapeMasterGain");
+const audioSoundscapeMasterGainValue = getRequiredElementById("audioSoundscapeMasterGainValue");
+const audioSoundscapeLoopToggle = getRequiredElementById("audioSoundscapeLoopToggle");
+const audioSoundscapeSeedInput = getRequiredElementById("audioSoundscapeSeed");
+const audioSoundscapePlayBtn = getRequiredElementById("audioSoundscapePlayBtn");
+const audioSoundscapeRandomizeBtn = getRequiredElementById("audioSoundscapeRandomizeBtn");
+const audioSoundscapeAddDroneBtn = getRequiredElementById("audioSoundscapeAddDroneBtn");
+const audioSoundscapeAddResonanceBtn = getRequiredElementById("audioSoundscapeAddResonanceBtn");
+const audioSoundscapeAddShimmerBtn = getRequiredElementById("audioSoundscapeAddShimmerBtn");
+const audioSoundscapeAddCallBtn = getRequiredElementById("audioSoundscapeAddCallBtn");
+const audioSoundscapeAddWindBtn = getRequiredElementById("audioSoundscapeAddWindBtn");
+const audioSoundscapeAddRumbleBtn = getRequiredElementById("audioSoundscapeAddRumbleBtn");
+const audioSoundscapeAddAirBtn = getRequiredElementById("audioSoundscapeAddAirBtn");
+const audioSoundscapeStopBtn = getRequiredElementById("audioSoundscapeStopBtn");
+const audioSoundscapeLayerList = getRequiredElementById("audioSoundscapeLayerList");
 const interactionModeUiRuntime = createInteractionModeUiRuntime({
   dockLightingModeToggle,
   dockPathfindingModeToggle,
@@ -688,9 +734,35 @@ const spectrogramRuntime = createSpectrogramRuntime({
 const resynthesisRuntime = createResynthesisRuntime({
   scribble: audioScribbleRuntime,
 });
+const synthesisRuntime = createSynthesisRuntime();
 
 function redrawAudioSpectrogram() {
   spectrogramRuntime.drawStaticSpectrogram(audioRuntimeState.stft, audioScribbleRuntime);
+}
+
+function redrawSynthesisWaveform() {
+  synthesisRuntime.drawWaveform(audioSynthesisCanvas, getAudioSettings().synthesis);
+}
+
+function getSoundscapeSettings() {
+  return normalizeSoundscapeSettings(getAudioSettings().soundscape, DEFAULT_AUDIO_SETTINGS.soundscape);
+}
+
+function getSoundscapeSynthesisSettings() {
+  return soundscapeToSynthesisSettings(getSoundscapeSettings(), DEFAULT_AUDIO_SETTINGS.soundscape);
+}
+
+function getLiveSoundscapeSynthesisSettings(nowSec = 0) {
+  return soundscapeToLiveSynthesisSettings(
+    getSoundscapeSettings(),
+    DEFAULT_AUDIO_SETTINGS.soundscape,
+    audioRuntimeState.soundscapeLayerStates,
+    nowSec,
+  );
+}
+
+function redrawSoundscapeWaveform() {
+  synthesisRuntime.drawWaveform(audioSoundscapeCanvas, getSoundscapeSynthesisSettings());
 }
 
 const audioScribbleInputRuntime = createAudioScribbleInputRuntime({
@@ -705,6 +777,9 @@ audioScribbleInputRuntime.bind();
 const audioPanelRuntime = createAudioPanelRuntime({
   getAudioSettings: () => getAudioSettings(),
   getAudioSimulationState: () => getAudioSimulationState(),
+  audioModeButtons,
+  audioModeSurfaces,
+  audioControlPanels,
   audioMinHzInput,
   audioMaxHzInput,
   audioBrushSizeInput,
@@ -726,8 +801,27 @@ const audioPanelRuntime = createAudioPanelRuntime({
   audioMasterGainValue,
   audioPlaybackRateInput,
   audioPlaybackRateValue,
+  audioSynthesisDurationInput,
+  audioSynthesisDurationValue,
+  audioSynthesisMasterGainInput,
+  audioSynthesisMasterGainValue,
+  audioSynthesisLoopToggle,
+  audioSynthesisOscillatorList,
+  audioSoundscapeRootInput,
+  audioSoundscapeScaleInput,
+  audioSoundscapeDurationInput,
+  audioSoundscapeDurationValue,
+  audioSoundscapeMasterGainInput,
+  audioSoundscapeMasterGainValue,
+  audioSoundscapeLoopToggle,
+  audioSoundscapeSeedInput,
+  audioSoundscapeLayerList,
+  getSoundscapeLayerFrequency: (settings, layer) => soundscapeLayerToFrequency(settings, layer),
+  getSoundscapeScaleDegreeCount,
   audioStatusValue,
   audioFileStatusValue,
+  drawSynthesisWaveform: () => redrawSynthesisWaveform(),
+  drawSoundscapeWaveform: () => redrawSoundscapeWaveform(),
 });
 
 function syncAudioUi() {
@@ -743,10 +837,62 @@ function syncAudioEngine() {
   if (audioSimulationState.isPlaying && audioSimulationState.playbackKind === "osc") {
     spectrogramRuntime.start();
   }
+  redrawSynthesisWaveform();
+  redrawSoundscapeWaveform();
+}
+
+function stopSynthesisAudio() {
+  synthesisRuntime.stopLive(audioRuntimeState);
+}
+
+function stopSoundscapeEvolution() {
+  if (audioRuntimeState.soundscapeFrameId !== null) {
+    window.cancelAnimationFrame(audioRuntimeState.soundscapeFrameId);
+    audioRuntimeState.soundscapeFrameId = null;
+  }
+}
+
+function startSoundscapeEvolution() {
+  stopSoundscapeEvolution();
+  const tick = () => {
+    if (!audioSimulationState.isPlaying || audioSimulationState.playbackKind !== "soundscape") {
+      audioRuntimeState.soundscapeFrameId = null;
+      return;
+    }
+    const context = audioRuntimeState.audioContext;
+    if (context) {
+      const nowSec = context.currentTime - audioRuntimeState.soundscapeStartedAtSec;
+      const soundscape = getSoundscapeSettings();
+      audioRuntimeState.soundscapeLayerStates = updateSoundscapeLayerRuntimeStates(
+        soundscape,
+        audioRuntimeState.soundscapeLayerStates,
+        nowSec,
+      );
+      synthesisRuntime.updateLive(context, audioRuntimeState, getLiveSoundscapeSynthesisSettings(nowSec));
+    }
+    audioRuntimeState.soundscapeFrameId = window.requestAnimationFrame(tick);
+  };
+  audioRuntimeState.soundscapeFrameId = window.requestAnimationFrame(tick);
+}
+
+function patchAudioSettings(patch) {
+  const current = serializeAudioSettingsCompatImpl();
+  settingsApplyRuntime.updateStoreFromAppliedSettings("audio", {
+    ...current,
+    ...patch,
+  });
+  syncAudioUi();
+  syncAudioEngine();
+}
+
+function getSynthesisSettings() {
+  return normalizeSynthesisSettings(getAudioSettings().synthesis, DEFAULT_AUDIO_SETTINGS.synthesis);
 }
 
 function playAudio() {
   try {
+    stopSoundscapeEvolution();
+    stopSynthesisAudio();
     audioEngineRuntime.play();
     audioSimulationState.playbackKind = "osc";
     spectrogramRuntime.start();
@@ -793,6 +939,8 @@ async function loadAudioFile(file) {
 
 function playOriginalAudio() {
   try {
+    stopSoundscapeEvolution();
+    stopSynthesisAudio();
     if (!audioRuntimeState.decodedAudioBuffer) {
       setStatus("Load an audio file first.");
       return;
@@ -811,6 +959,8 @@ function playOriginalAudio() {
 
 function playScribbleAudio() {
   try {
+    stopSoundscapeEvolution();
+    stopSynthesisAudio();
     if (!audioRuntimeState.stft) {
       setStatus("Load an audio file first.");
       return;
@@ -834,11 +984,168 @@ function playScribbleAudio() {
   }
 }
 
+function playSynthesisAudio() {
+  try {
+    stopSoundscapeEvolution();
+    const context = audioEngineRuntime.ensureContext();
+    const synthesis = getSynthesisSettings();
+    stopSynthesisAudio();
+    audioEngineRuntime.stop();
+    synthesisRuntime.startLive(context, audioRuntimeState.analyserNode, audioRuntimeState, synthesis);
+    audioSimulationState.isPlaying = true;
+    audioSimulationState.playbackKind = "synthesis";
+    audioSimulationState.durationSec = synthesis.durationSec;
+    audioSimulationState.lastError = "";
+    redrawSynthesisWaveform();
+    syncAudioUi();
+  } catch (error) {
+    audioSimulationState.lastError = error instanceof Error ? error.message : String(error);
+    setStatus(`Synthesis playback failed: ${audioSimulationState.lastError}`);
+  }
+}
+
+function playSoundscapeAudio() {
+  try {
+    stopSoundscapeEvolution();
+    const context = audioEngineRuntime.ensureContext();
+    const soundscape = getSoundscapeSettings();
+    audioRuntimeState.soundscapeStartedAtSec = context.currentTime;
+    audioRuntimeState.soundscapeLayerStates = createSoundscapeLayerRuntimeState(soundscape, 0);
+    const synthesis = getLiveSoundscapeSynthesisSettings(0);
+    stopSynthesisAudio();
+    audioEngineRuntime.stop();
+    synthesisRuntime.startLive(context, audioRuntimeState.analyserNode, audioRuntimeState, synthesis);
+    audioSimulationState.isPlaying = true;
+    audioSimulationState.playbackKind = "soundscape";
+    audioSimulationState.durationSec = soundscape.durationSec;
+    audioSimulationState.lastError = "";
+    startSoundscapeEvolution();
+    redrawSoundscapeWaveform();
+    syncAudioUi();
+  } catch (error) {
+    audioSimulationState.lastError = error instanceof Error ? error.message : String(error);
+    setStatus(`Soundscape playback failed: ${audioSimulationState.lastError}`);
+  }
+}
+
 function stopAudio() {
+  const wasSoundscape = audioSimulationState.playbackKind === "soundscape";
+  stopSoundscapeEvolution();
+  if (wasSoundscape && audioRuntimeState.audioContext) {
+    const maxReleaseSec = Math.max(
+      0,
+      ...getSoundscapeSettings().layers.map((layer) => Number(layer.releaseSec) || 0),
+    );
+    synthesisRuntime.stopLive(audioRuntimeState, {
+      audioContext: audioRuntimeState.audioContext,
+      releaseSec: maxReleaseSec,
+    });
+  } else {
+    stopSynthesisAudio();
+  }
   audioEngineRuntime.stop();
   audioSimulationState.playbackKind = "none";
   spectrogramRuntime.stop();
   redrawAudioSpectrogram();
+  redrawSynthesisWaveform();
+  redrawSoundscapeWaveform();
+}
+
+function setAudioMode(mode) {
+  patchAudioSettings({ activeMode: ["spectrogram", "synthesis", "soundscape"].includes(mode) ? mode : "spectrogram" });
+}
+
+function updateSynthesisSettings(patch) {
+  patchAudioSettings({
+    synthesis: normalizeSynthesisSettings({
+      ...getSynthesisSettings(),
+      ...(patch && typeof patch === "object" ? patch : {}),
+    }, DEFAULT_AUDIO_SETTINGS.synthesis),
+  });
+  if (audioSimulationState.isPlaying && audioSimulationState.playbackKind === "synthesis") {
+    const context = audioRuntimeState.audioContext;
+    if (context) {
+      synthesisRuntime.updateLive(context, audioRuntimeState, getSynthesisSettings());
+    }
+  }
+}
+
+function updateSoundscapeSettings(patch) {
+  patchAudioSettings({
+    soundscape: normalizeSoundscapeSettings({
+      ...getSoundscapeSettings(),
+      ...(patch && typeof patch === "object" ? patch : {}),
+    }, DEFAULT_AUDIO_SETTINGS.soundscape),
+  });
+  if (audioSimulationState.isPlaying && audioSimulationState.playbackKind === "soundscape") {
+    const context = audioRuntimeState.audioContext;
+    const nowSec = context ? context.currentTime - audioRuntimeState.soundscapeStartedAtSec : 0;
+    if (context) {
+      synthesisRuntime.updateLive(context, audioRuntimeState, getLiveSoundscapeSynthesisSettings(nowSec));
+    }
+  }
+}
+
+function addSoundscapeLayer() {
+  addSoundscapeLayerForRole("drone");
+}
+
+function addSoundscapeLayerForRole(role) {
+  const soundscape = getSoundscapeSettings();
+  updateSoundscapeSettings({
+    layers: [
+      ...soundscape.layers,
+      createSoundscapeLayerForRole(role || "drone"),
+    ],
+  });
+}
+
+function randomizeSoundscape() {
+  updateSoundscapeSettings(randomizeSoundscapeSettings(getSoundscapeSettings(), DEFAULT_AUDIO_SETTINGS.soundscape));
+}
+
+function removeSoundscapeLayer(id) {
+  const soundscape = getSoundscapeSettings();
+  updateSoundscapeSettings({
+    layers: soundscape.layers.filter((layer) => layer.id !== id),
+  });
+}
+
+function updateSoundscapeLayer(id, patch) {
+  const soundscape = getSoundscapeSettings();
+  updateSoundscapeSettings({
+    layers: soundscape.layers.map((layer) => (
+      layer.id === id
+        ? (patch.role ? applySoundscapeRolePreset({ ...layer, ...patch }, patch.role) : { ...layer, ...patch })
+        : layer
+    )),
+  });
+}
+
+function addSynthesisOscillator() {
+  const synthesis = getSynthesisSettings();
+  updateSynthesisSettings({
+    oscillators: [
+      ...synthesis.oscillators,
+      createDefaultSynthesisOscillator(synthesis.oscillators.length),
+    ],
+  });
+}
+
+function removeSynthesisOscillator(id) {
+  const synthesis = getSynthesisSettings();
+  updateSynthesisSettings({
+    oscillators: synthesis.oscillators.filter((oscillator) => oscillator.id !== id),
+  });
+}
+
+function updateSynthesisOscillator(id, patch) {
+  const synthesis = getSynthesisSettings();
+  updateSynthesisSettings({
+    oscillators: synthesis.oscillators.map((oscillator) => (
+      oscillator.id === id ? { ...oscillator, ...patch } : oscillator
+    )),
+  });
 }
 
 function clearAudioScribble() {
@@ -879,6 +1186,8 @@ function approximateAudioScribble() {
 function serializeAudioSettingsCompatImpl() {
   return {
     ...getAudioSettings(),
+    synthesis: getSynthesisSettings(),
+    soundscape: getSoundscapeSettings(),
   };
 }
 
@@ -898,6 +1207,15 @@ function applyAudioSettingsCompatImpl(rawData) {
   audioApproxMinStrengthInput.value = String(next.approximationMinStrength ?? current.approximationMinStrength);
   audioMasterGainInput.value = String(next.masterGain ?? current.masterGain);
   audioPlaybackRateInput.value = String(next.playbackRate ?? current.playbackRate);
+  if (next.activeMode || next.synthesis || next.soundscape) {
+    settingsApplyRuntime.updateStoreFromAppliedSettings("audio", {
+      ...current,
+      ...next,
+      activeMode: next.activeMode ?? current.activeMode,
+      synthesis: normalizeSynthesisSettings(next.synthesis, current.synthesis || DEFAULT_AUDIO_SETTINGS.synthesis),
+      soundscape: normalizeSoundscapeSettings(next.soundscape, current.soundscape || DEFAULT_AUDIO_SETTINGS.soundscape),
+    });
+  }
   syncAudioUi();
   syncAudioEngine();
 }
@@ -1805,10 +2123,23 @@ registerMainCommands(runtimeCore.commandBus, createMainCommandAssemblyRuntime({
   loadAudioFile,
   playOriginalAudio,
   playScribbleAudio,
+  playSynthesisAudio,
   stopAudio,
   clearAudioScribble,
   autoPaintAudioScribble,
   approximateAudioScribble,
+  setAudioMode,
+  addSynthesisOscillator,
+  removeSynthesisOscillator,
+  updateSynthesisSettings,
+  updateSynthesisOscillator,
+  playSoundscapeAudio,
+  addSoundscapeLayer,
+  addSoundscapeLayerForRole,
+  removeSoundscapeLayer,
+  randomizeSoundscape,
+  updateSoundscapeSettings,
+  updateSoundscapeLayer,
   getAudioSimulationState,
   updateSwarmUi: () => updateSwarmUi(),
   updateSwarmLabels: () => updateSwarmLabels(),
@@ -2769,6 +3100,7 @@ runAppShellLifecycleRuntime(createAppShellLifecycleAssemblyRuntime({
     saveAllMapDataFiles,
     schedulePointLightBake,
     commandBus: runtimeCore.commandBus,
+    audioModeButtons,
     audioMinHzInput,
     audioMaxHzInput,
     audioBrushSizeInput,
@@ -2790,6 +3122,30 @@ runAppShellLifecycleRuntime(createAppShellLifecycleAssemblyRuntime({
     audioApproximateBtn,
     audioStopBtn,
     audioClearBtn,
+    audioSynthesisPlayBtn,
+    audioSynthesisAddOscillatorBtn,
+    audioSynthesisStopBtn,
+    audioSynthesisDurationInput,
+    audioSynthesisMasterGainInput,
+    audioSynthesisLoopToggle,
+    audioSynthesisOscillatorList,
+    audioSoundscapeRootInput,
+    audioSoundscapeScaleInput,
+    audioSoundscapePlayBtn,
+    audioSoundscapeRandomizeBtn,
+    audioSoundscapeAddDroneBtn,
+    audioSoundscapeAddResonanceBtn,
+    audioSoundscapeAddShimmerBtn,
+    audioSoundscapeAddCallBtn,
+    audioSoundscapeAddWindBtn,
+    audioSoundscapeAddRumbleBtn,
+    audioSoundscapeAddAirBtn,
+    audioSoundscapeStopBtn,
+    audioSoundscapeDurationInput,
+    audioSoundscapeMasterGainInput,
+    audioSoundscapeLoopToggle,
+    audioSoundscapeSeedInput,
+    audioSoundscapeLayerList,
   }),
   tryAutoLoadDefaultMap,
   setStatus,
