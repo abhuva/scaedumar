@@ -14,6 +14,7 @@ early game prototype, 2d top-down roquelike, survival, low-fantasy, simulation
 - `src/gameplay/`: interaction commands, movement/swarm helpers, point-light editor state/controller
 - `src/ui/`: UI runtime components, panels, bindings, label helpers, and settings appliers
 - `src/sim/`: simulation helpers and models such as `sunModel.js`, `timeSystem.js`, and `lightingParamsRuntime.js`
+- `src/audio/`: Audio Studio runtime modules (WebAudio engine, offline STFT/FFT analysis, spectrogram renderer, scribble grid/input, resynthesis)
 - `styles.css`: UI styling
 - `assets/`: map bundle root (`assets/<mapName>/...`)
 - `src-tauri/`: Tauri desktop wrapper (Rust commands + app packaging)
@@ -44,6 +45,7 @@ Each candidate folder should contain:
 - optional: `fog.json`
 - optional: `clouds.json`
 - optional: `waterfx.json`
+- optional: `audio.json`
 - optional but recommended: `npc.json`
 
 If no candidate folder contains the required PNGs, the app starts with fallback textures. You can load a map by folder path or folder picker in the `Load Map` panel.
@@ -152,6 +154,7 @@ Current tests cover:
 - swarm runtime sync/follow ownership
 - movement system and movement store sync
 - architecture ownership guard checks
+- audio settings contract registration/gating integration
 
 Architecture map:
 - `docs/ARCHITECTURE.md`
@@ -212,8 +215,16 @@ Architecture map:
   - `fog.json` (`useFog`, color, alpha/falloff/start settings)
   - `clouds.json` (`useClouds`, coverage/softness/opacity/scale, two-layer scroll speeds, sun-projection controls)
   - `waterfx.json` (`useWaterFx`, downhill/fixed flow, `waterFlowInvertDownhill`, `waterDownhillBoost`, local-mix, trend radii/weights, debug overlay, shimmer/specular/shore/reflection controls, `waterTintColor`, `waterTintStrength`)
+  - `audio.json` (spectrogram settings, scribble/playback controls)
   - `npc.json` (`charID`, `pixelX`, `pixelY`, `color`)
 - Map loading automatically applies these JSON files when present in the selected map folder.
+- `Audio Studio` is a top-level workspace beside the map workspace.
+- `Audio Lab` currently provides canonical `audio` settings key with command-routed UI.
+- `Audio Lab` can load browser-decodable audio files, compute an offline STFT spectrogram, and play the original decoded buffer.
+- `Audio Lab` scribble mode paints a separate time/frequency amplitude grid over the original spectrogram; `Play Scribble` resynthesizes only that painted grid.
+- `Audio Lab` can auto-paint strong source spectrogram bins into the scribble layer using threshold/contrast/gain controls.
+- `Audio Lab` authoring defaults to log-frequency with editable `Min Hz`/`Max Hz`, so low/mid detail gets more vertical workspace than high-frequency bands.
+- `Audio Lab` can approximate dense scribbles with a bounded number of brush-like ellipse strokes for compact, replayable sound gestures.
 - Point lighting is baked into a map-space light texture only when lights or normal/height inputs change.
 - Point-light baking also uses height-map line-of-sight occlusion so steep terrain can block local light spread.
 - Terrain shading samples that baked texture during normal rendering, so frame-time cost stays low.

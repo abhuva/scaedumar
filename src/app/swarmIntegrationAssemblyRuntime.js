@@ -30,6 +30,7 @@ export function createSwarmIntegrationAssemblyRuntime(deps) {
       defaultWaterSettings: deps.defaultWaterSettings,
       defaultInteractionSettings: deps.defaultInteractionSettings,
       defaultSwarmSettings: deps.defaultSwarmSettings,
+      defaultAudioSettings: deps.defaultAudioSettings,
       Compat: deps.settingsCompat,
     },
     render: {

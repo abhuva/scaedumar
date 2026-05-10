@@ -60,6 +60,7 @@ import {
   DEFAULT_WATER_SETTINGS,
   DEFAULT_INTERACTION_SETTINGS,
   DEFAULT_SWARM_SETTINGS,
+  DEFAULT_AUDIO_SETTINGS,
   registerMainSettingsContracts,
 } from "./core/mainSettingsContracts.js";
 import { buildFrameRenderState } from "./render/frameRenderState.js";
@@ -118,8 +119,17 @@ import { createInteractionUiSyncRuntime } from "./ui/interactionUiSyncRuntime.js
 import { createMapPathUiSyncRuntime } from "./ui/mapPathUiSyncRuntime.js";
 import { createLightLabelRuntime } from "./ui/lightLabelRuntime.js";
 import { createModeInteractionRuntimeBinding } from "./ui/modeInteractionRuntimeBinding.js";
+import { createAudioRuntimeState, DEFAULT_AUDIO_SIMULATION_STATE } from "./audio/audioState.js";
+import { createAudioEngineRuntime } from "./audio/audioEngineRuntime.js";
+import { createAudioAnalysisRuntime } from "./audio/audioAnalysisRuntime.js";
+import { createSpectrogramRuntime } from "./audio/spectrogramRuntime.js";
+import { createScribbleCanvasRuntime } from "./audio/scribbleCanvasRuntime.js";
+import { createResynthesisRuntime } from "./audio/resynthesisRuntime.js";
+import { createAudioScribbleInputRuntime } from "./audio/audioScribbleInputRuntime.js";
+import { createAudioPanelRuntime } from "./ui/audioPanelRuntime.js";
 import { createInteractionModeUiRuntime } from "./ui/interactionModeUiRuntime.js";
 import { createPointLightIoUiRuntime } from "./ui/pointLightIoUiRuntime.js";
+import { createWorkspaceRuntime } from "./ui/workspaceRuntime.js";
 
 const runtimeCore = createRuntimeCore();
 const dispatchCoreCommand = createCoreCommandDispatch(runtimeCore);
@@ -127,6 +137,9 @@ const entityStore = createEntityStore();
 
 const canvas = getRequiredElementById("glCanvas");
 const overlayCanvas = getRequiredElementById("overlayCanvas");
+const workspaceButtons = getRequiredElements(".workspace-btn");
+const mapWorkspaceEl = getRequiredElementById("mapWorkspace");
+const audioWorkspaceEl = getRequiredElementById("audioWorkspace");
 const topicButtons = getRequiredElements(".topic-btn");
 const topicPanelEl = getRequiredElementById("topicPanel");
 const topicPanelTitleEl = getRequiredElementById("topicPanelTitle");
@@ -362,6 +375,38 @@ const lightDeleteBtn = getRequiredElementById("lightDeleteBtn");
 const pointLightsSaveAllBtn = getRequiredElementById("pointLightsSaveAllBtn");
 const pointLightsLoadAllBtn = getRequiredElementById("pointLightsLoadAllBtn");
 const pointLightsLoadInput = getRequiredElementById("pointLightsLoadInput");
+const audioMinHzInput = getRequiredElementById("audioMinHz");
+const audioMaxHzInput = getRequiredElementById("audioMaxHz");
+const audioBrushSizeInput = getRequiredElementById("audioBrushSize");
+const audioBrushSizeValue = getRequiredElementById("audioBrushSizeValue");
+const audioBrushStrengthInput = getRequiredElementById("audioBrushStrength");
+const audioBrushStrengthValue = getRequiredElementById("audioBrushStrengthValue");
+const audioEraseModeToggle = getRequiredElementById("audioEraseModeToggle");
+const audioAutoThresholdInput = getRequiredElementById("audioAutoThreshold");
+const audioAutoThresholdValue = getRequiredElementById("audioAutoThresholdValue");
+const audioAutoContrastInput = getRequiredElementById("audioAutoContrast");
+const audioAutoContrastValue = getRequiredElementById("audioAutoContrastValue");
+const audioAutoGainInput = getRequiredElementById("audioAutoGain");
+const audioAutoGainValue = getRequiredElementById("audioAutoGainValue");
+const audioAutoClearToggle = getRequiredElementById("audioAutoClearToggle");
+const audioApproxMaxStrokesInput = getRequiredElementById("audioApproxMaxStrokes");
+const audioApproxMinStrengthInput = getRequiredElementById("audioApproxMinStrength");
+const audioApproxMinStrengthValue = getRequiredElementById("audioApproxMinStrengthValue");
+const audioMasterGainInput = getRequiredElementById("audioMasterGain");
+const audioMasterGainValue = getRequiredElementById("audioMasterGainValue");
+const audioPlaybackRateInput = getRequiredElementById("audioPlaybackRate");
+const audioPlaybackRateValue = getRequiredElementById("audioPlaybackRateValue");
+const audioFileInput = getRequiredElementById("audioFileInput");
+const audioPlayBtn = getRequiredElementById("audioPlayBtn");
+const audioPlayOriginalBtn = getRequiredElementById("audioPlayOriginalBtn");
+const audioPlayScribbleBtn = getRequiredElementById("audioPlayScribbleBtn");
+const audioAutoPaintBtn = getRequiredElementById("audioAutoPaintBtn");
+const audioApproximateBtn = getRequiredElementById("audioApproximateBtn");
+const audioStopBtn = getRequiredElementById("audioStopBtn");
+const audioClearBtn = getRequiredElementById("audioClearBtn");
+const audioStatusValue = getRequiredElementById("audioStatusValue");
+const audioFileStatusValue = getRequiredElementById("audioFileStatusValue");
+const audioSpectrogramCanvas = getRequiredElementById("audioSpectrogramCanvas");
 const interactionModeUiRuntime = createInteractionModeUiRuntime({
   dockLightingModeToggle,
   dockPathfindingModeToggle,
@@ -527,6 +572,9 @@ let settingsCompatBindings = null;
 const simulationKnobAccess = settingsCoreSetupRuntime.simulationKnobAccess;
 const settingsApplyRuntime = settingsCoreSetupRuntime.settingsApplyRuntime;
 const settingsCompatRuntime = settingsCoreSetupRuntime.settingsCompatRuntime;
+const audioSimulationState = { ...DEFAULT_AUDIO_SIMULATION_STATE };
+const audioRuntimeState = createAudioRuntimeState();
+const audioScribbleRuntime = createScribbleCanvasRuntime(256, 256);
 
 let frameUiRuntime = null;
 function getFrameUiRuntime() {
@@ -555,6 +603,8 @@ const {
   applyWaterSettingsCompat,
   serializeInteractionSettingsCompat,
   applyInteractionSettingsCompat,
+  serializeAudioSettingsCompat,
+  applyAudioSettingsCompat,
   serializeSwarmDataCompat,
   applySwarmSettingsCompat,
   applySwarmData,
@@ -571,6 +621,8 @@ const {
   applyWaterSettings,
   serializeInteractionSettings,
   applyInteractionSettings,
+  serializeAudioSettings,
+  applyAudioSettings,
   serializeSwarmData,
   applySwarmSettings,
 } = settingsCompatRuntime;
@@ -602,6 +654,250 @@ const mainRuntimeStateBinding = createMainRuntimeStateBinding({
 });
 function getSettingsDefaults(key, fallback) {
   return settingsCompatRuntime.getSettingsDefaults(key, fallback);
+}
+
+function getAudioSettings() {
+  return getSimulationKnobSectionFromStore("audio") || getSettingsDefaults("audio", DEFAULT_AUDIO_SETTINGS);
+}
+
+function getAudioSimulationState() {
+  return audioSimulationState;
+}
+
+const audioEngineRuntime = createAudioEngineRuntime({
+  runtime: audioRuntimeState,
+  getSettings: () => getAudioSettings(),
+  setPlaying: (isPlaying) => {
+    audioSimulationState.isPlaying = Boolean(isPlaying);
+  },
+});
+
+const audioAnalysisRuntime = createAudioAnalysisRuntime();
+
+const spectrogramRuntime = createSpectrogramRuntime({
+  canvas: audioSpectrogramCanvas,
+  runtime: audioRuntimeState,
+  getSettings: () => getAudioSettings(),
+  getAudioContext: () => audioRuntimeState.audioContext,
+  getAnalyserNode: () => audioRuntimeState.analyserNode,
+  getFrequencyData: () => audioRuntimeState.frequencyData,
+  requestAnimationFrame: (callback) => window.requestAnimationFrame(callback),
+  cancelAnimationFrame: (id) => window.cancelAnimationFrame(id),
+});
+
+const resynthesisRuntime = createResynthesisRuntime({
+  scribble: audioScribbleRuntime,
+});
+
+function redrawAudioSpectrogram() {
+  spectrogramRuntime.drawStaticSpectrogram(audioRuntimeState.stft, audioScribbleRuntime);
+}
+
+const audioScribbleInputRuntime = createAudioScribbleInputRuntime({
+  canvas: audioSpectrogramCanvas,
+  scribble: audioScribbleRuntime,
+  getSettings: () => getAudioSettings(),
+  getStft: () => audioRuntimeState.stft,
+  redraw: () => redrawAudioSpectrogram(),
+});
+audioScribbleInputRuntime.bind();
+
+const audioPanelRuntime = createAudioPanelRuntime({
+  getAudioSettings: () => getAudioSettings(),
+  getAudioSimulationState: () => getAudioSimulationState(),
+  audioMinHzInput,
+  audioMaxHzInput,
+  audioBrushSizeInput,
+  audioBrushSizeValue,
+  audioBrushStrengthInput,
+  audioBrushStrengthValue,
+  audioEraseModeToggle,
+  audioAutoThresholdInput,
+  audioAutoThresholdValue,
+  audioAutoContrastInput,
+  audioAutoContrastValue,
+  audioAutoGainInput,
+  audioAutoGainValue,
+  audioAutoClearToggle,
+  audioApproxMaxStrokesInput,
+  audioApproxMinStrengthInput,
+  audioApproxMinStrengthValue,
+  audioMasterGainInput,
+  audioMasterGainValue,
+  audioPlaybackRateInput,
+  audioPlaybackRateValue,
+  audioStatusValue,
+  audioFileStatusValue,
+});
+
+function syncAudioUi() {
+  audioPanelRuntime.syncAudioUi();
+}
+
+function syncAudioEngine() {
+  audioEngineRuntime.syncMasterGain();
+  audioEngineRuntime.syncAnalyserSettings();
+  if (audioRuntimeState.stft && audioSimulationState.playbackKind !== "osc") {
+    redrawAudioSpectrogram();
+  }
+  if (audioSimulationState.isPlaying && audioSimulationState.playbackKind === "osc") {
+    spectrogramRuntime.start();
+  }
+}
+
+function playAudio() {
+  try {
+    audioEngineRuntime.play();
+    audioSimulationState.playbackKind = "osc";
+    spectrogramRuntime.start();
+    audioSimulationState.lastError = "";
+  } catch (error) {
+    audioSimulationState.lastError = error instanceof Error ? error.message : String(error);
+    setStatus(`Audio play failed: ${audioSimulationState.lastError}`);
+  }
+}
+
+async function loadAudioFile(file) {
+  if (!file) return;
+  try {
+    const context = audioEngineRuntime.ensureContext();
+    const bytes = await file.arrayBuffer();
+    const decoded = await context.decodeAudioData(bytes.slice(0));
+    const samples = audioAnalysisRuntime.audioBufferToMonoSamples(decoded);
+    const settings = getAudioSettings();
+    const stft = audioAnalysisRuntime.computeStft(samples, decoded.sampleRate, {
+      windowSize: settings.fftSize,
+      hopSize: settings.hopSize,
+      windowType: settings.windowType,
+    });
+    audioRuntimeState.decodedAudioBuffer = decoded;
+    audioRuntimeState.decodedFileName = file.name;
+    audioRuntimeState.stft = stft;
+    audioScribbleRuntime.resize(stft.segmentCount, stft.frequencyBinCount);
+    audioSimulationState.hasInputSignal = true;
+    audioSimulationState.durationSec = stft.durationSec;
+    audioSimulationState.fileName = file.name;
+    audioSimulationState.lastError = "";
+    spectrogramRuntime.invalidateBase();
+    redrawAudioSpectrogram();
+    syncAudioUi();
+    setStatus(`Loaded audio file: ${file.name}`);
+  } catch (error) {
+    audioSimulationState.lastError = error instanceof Error ? error.message : String(error);
+    setStatus(`Audio file load failed: ${audioSimulationState.lastError}`);
+    syncAudioUi();
+  }
+}
+
+function playOriginalAudio() {
+  try {
+    if (!audioRuntimeState.decodedAudioBuffer) {
+      setStatus("Load an audio file first.");
+      return;
+    }
+    audioEngineRuntime.playBuffer(audioRuntimeState.decodedAudioBuffer, {
+      playbackRate: getAudioSettings().playbackRate,
+    });
+    audioSimulationState.playbackKind = "original";
+    redrawAudioSpectrogram();
+    syncAudioUi();
+  } catch (error) {
+    audioSimulationState.lastError = error instanceof Error ? error.message : String(error);
+    setStatus(`Original playback failed: ${audioSimulationState.lastError}`);
+  }
+}
+
+function playScribbleAudio() {
+  try {
+    if (!audioRuntimeState.stft) {
+      setStatus("Load an audio file first.");
+      return;
+    }
+    const context = audioEngineRuntime.ensureContext();
+    const buffer = resynthesisRuntime.synthesizeScribbleToAudioBuffer(context, audioRuntimeState.stft, {
+      gain: getAudioSettings().masterGain,
+      minHz: getAudioSettings().minHz,
+      maxHz: getAudioSettings().maxHz,
+      frequencyScale: "log",
+    });
+    audioEngineRuntime.playBuffer(buffer, {
+      playbackRate: getAudioSettings().playbackRate,
+    });
+    audioSimulationState.playbackKind = "scribble";
+    redrawAudioSpectrogram();
+    syncAudioUi();
+  } catch (error) {
+    audioSimulationState.lastError = error instanceof Error ? error.message : String(error);
+    setStatus(`Scribble playback failed: ${audioSimulationState.lastError}`);
+  }
+}
+
+function stopAudio() {
+  audioEngineRuntime.stop();
+  audioSimulationState.playbackKind = "none";
+  spectrogramRuntime.stop();
+  redrawAudioSpectrogram();
+}
+
+function clearAudioScribble() {
+  audioScribbleRuntime.clear();
+  redrawAudioSpectrogram();
+}
+
+function autoPaintAudioScribble() {
+  if (!audioRuntimeState.stft) {
+    setStatus("Load an audio file before auto-painting.");
+    return;
+  }
+  const settings = getAudioSettings();
+  const paintedCount = audioScribbleRuntime.autoPaintFromStft(audioRuntimeState.stft, {
+    threshold: settings.autoThreshold,
+    contrast: settings.autoContrast,
+    gain: settings.autoGain,
+    clearBeforePaint: settings.autoClearBeforePaint,
+    loudnessFloorDb: settings.loudnessFloorDb,
+    minHz: settings.minHz,
+    maxHz: settings.maxHz,
+    frequencyScale: "log",
+  });
+  redrawAudioSpectrogram();
+  setStatus(`Auto-painted ${paintedCount} spectrogram bins into the scribble layer.`);
+}
+
+function approximateAudioScribble() {
+  const settings = getAudioSettings();
+  const result = audioScribbleRuntime.approximateWithBrushStrokes({
+    maxStrokes: settings.approximationMaxStrokes,
+    minStrength: settings.approximationMinStrength,
+  });
+  redrawAudioSpectrogram();
+  setStatus(`Approximated ${result.sourceActiveCount} active bins with ${result.strokeCount} brush blobs.`);
+}
+
+function serializeAudioSettingsCompatImpl() {
+  return {
+    ...getAudioSettings(),
+  };
+}
+
+function applyAudioSettingsCompatImpl(rawData) {
+  const current = getAudioSettings();
+  const next = (rawData && typeof rawData === "object") ? rawData : {};
+  audioMinHzInput.value = String(next.minHz ?? current.minHz);
+  audioMaxHzInput.value = String(next.maxHz ?? current.maxHz);
+  audioBrushSizeInput.value = String(next.brushSize ?? current.brushSize);
+  audioBrushStrengthInput.value = String(next.brushStrength ?? current.brushStrength);
+  audioEraseModeToggle.checked = Boolean(next.eraseMode ?? current.eraseMode);
+  audioAutoThresholdInput.value = String(next.autoThreshold ?? current.autoThreshold);
+  audioAutoContrastInput.value = String(next.autoContrast ?? current.autoContrast);
+  audioAutoGainInput.value = String(next.autoGain ?? current.autoGain);
+  audioAutoClearToggle.checked = Boolean(next.autoClearBeforePaint ?? current.autoClearBeforePaint);
+  audioApproxMaxStrokesInput.value = String(next.approximationMaxStrokes ?? current.approximationMaxStrokes);
+  audioApproxMinStrengthInput.value = String(next.approximationMinStrength ?? current.approximationMinStrength);
+  audioMasterGainInput.value = String(next.masterGain ?? current.masterGain);
+  audioPlaybackRateInput.value = String(next.playbackRate ?? current.playbackRate);
+  syncAudioUi();
+  syncAudioEngine();
 }
 
 let mapLifecycleRuntime = null;
@@ -1165,6 +1461,7 @@ const updateCursorLightHeightOffsetLabel = (...args) => lightLabelRuntime.update
   defaultFogSettings: DEFAULT_FOG_SETTINGS,
   defaultCloudSettings: DEFAULT_CLOUD_SETTINGS,
   defaultWaterSettings: DEFAULT_WATER_SETTINGS,
+  defaultAudioSettings: DEFAULT_AUDIO_SETTINGS,
   defaultSwarmSettings: DEFAULT_SWARM_SETTINGS,
   applyLightingSettings: (...args) => applyLightingSettings(...args),
   applyParallaxSettings: (...args) => applyParallaxSettings(...args),
@@ -1172,6 +1469,7 @@ const updateCursorLightHeightOffsetLabel = (...args) => lightLabelRuntime.update
   applyFogSettings: (...args) => applyFogSettings(...args),
   applyCloudSettings: (...args) => applyCloudSettings(...args),
   applyWaterSettings: (...args) => applyWaterSettings(...args),
+  applyAudioSettings: (...args) => applyAudioSettings(...args),
   applySwarmSettings: (...args) => applySwarmSettings(...args),
   reseedSwarmAgents: (...args) => reseedSwarmAgents(...args),
   getSwarmSettings: (...args) => getSwarmSettings(...args),
@@ -1190,6 +1488,7 @@ const updateCursorLightHeightOffsetLabel = (...args) => lightLabelRuntime.update
   serializeFogSettings: (...args) => serializeFogSettings(...args),
   serializeCloudSettings: (...args) => serializeCloudSettings(...args),
   serializeWaterSettings: (...args) => serializeWaterSettings(...args),
+  serializeAudioSettings: (...args) => serializeAudioSettings(...args),
   serializeSwarmData: (...args) => serializeSwarmData(...args),
   serializeNpcState: (...args) => serializeNpcStateFromBinding(...args),
   confirm: (text) => window.confirm(text),
@@ -1267,6 +1566,13 @@ const setTopicPanelVisible = modeInteractionRuntimeBinding.setTopicPanelVisible;
 const setActiveTopic = modeInteractionRuntimeBinding.setActiveTopic;
 const updateModeCapabilitiesUi = modeInteractionRuntimeBinding.updateModeCapabilitiesUi;
 const getInteractionModeSnapshot = modeInteractionRuntimeBinding.getInteractionModeSnapshot;
+const workspaceRuntime = createWorkspaceRuntime({
+  mapWorkspaceEl,
+  audioWorkspaceEl,
+  workspaceButtons,
+  setActiveTopic,
+  setInteractionMode: (mode) => setInteractionMode(mode),
+});
 
 const applyMapSizeChangeIfNeeded = (changed) => mapLifecycleRuntime.applyMapSizeChangeIfNeeded(changed);
 bakePointLightsTexture();
@@ -1372,6 +1678,8 @@ registerMainSettingsContracts(runtimeCore.settingsRegistry, {
   applyWater: applyWaterSettingsCompat,
   serializeInteraction: serializeInteractionSettingsCompat,
   applyInteraction: applyInteractionSettingsCompat,
+  serializeAudio: serializeAudioSettingsCompat,
+  applyAudio: applyAudioSettingsCompat,
   serializeSwarm: serializeSwarmDataCompat,
   applySwarm: applySwarmData,
 });
@@ -1462,6 +1770,8 @@ registerMainCommands(runtimeCore.commandBus, createMainCommandAssemblyRuntime({
   patchSwarmSettingsToStore: (...args) => mainRuntimeStateBinding.patchSwarmSettingsToStore(...args),
   syncCursorLightStateToStore: (...args) => mainRuntimeStateBinding.syncCursorLightStateToStore(...args),
   setModeToStore: (...args) => mainRuntimeStateBinding.setModeToStore(...args),
+  setWorkspaceToStore: (...args) => mainRuntimeStateBinding.setWorkspaceToStore(...args),
+  syncWorkspaceUi: (workspace) => workspaceRuntime.syncWorkspaceUi(workspace),
   setCameraPoseToStore: (...args) => mainRuntimeStateBinding.setCameraPoseToStore(...args),
   setCycleHourUiToStore: (...args) => mainRuntimeStateBinding.setCycleHourUiToStore(...args),
   patchPathfindingStateToStore: (...args) => mainRuntimeStateBinding.patchPathfindingStateToStore(...args),
@@ -1485,6 +1795,19 @@ registerMainCommands(runtimeCore.commandBus, createMainCommandAssemblyRuntime({
   serializeFogSettings,
   serializeCloudSettings,
   serializeWaterSettings,
+  serializeAudioSettingsCompat,
+  serializeAudioSettings,
+  syncAudioUi,
+  syncAudioEngine,
+  playAudio,
+  loadAudioFile,
+  playOriginalAudio,
+  playScribbleAudio,
+  stopAudio,
+  clearAudioScribble,
+  autoPaintAudioScribble,
+  approximateAudioScribble,
+  getAudioSimulationState,
   updateSwarmUi: () => updateSwarmUi(),
   updateSwarmLabels: () => updateSwarmLabels(),
   syncSwarmSettingsInputs: () => syncSwarmSettingsInputs(),
@@ -1725,6 +2048,7 @@ const swarmIntegrationSetupRuntime = createSwarmIntegrationSetupRuntime(
     defaultWaterSettings: DEFAULT_WATER_SETTINGS,
     defaultInteractionSettings: DEFAULT_INTERACTION_SETTINGS,
     defaultSwarmSettings: DEFAULT_SWARM_SETTINGS,
+    defaultAudioSettings: DEFAULT_AUDIO_SETTINGS,
     settingsCompat: {
       getSwarmSettings,
       swarmEnabledToggle,
@@ -1899,6 +2223,8 @@ const swarmIntegrationSetupRuntime = createSwarmIntegrationSetupRuntime(
       updateWaterUi,
       rebuildFlowMapTexture,
       getConfiguredSimTickHours,
+      serializeAudioSettingsCompat: () => serializeAudioSettingsCompatImpl(),
+      applyAudioSettingsCompat: (rawData) => applyAudioSettingsCompatImpl(rawData),
     },
     swarmCursorState,
     swarmZNeighborScale: SWARM_Z_NEIGHBOR_SCALE,
@@ -2208,12 +2534,16 @@ const overlayHooks = renderShellSetupRuntime.overlayHooks;
 const requestOverlayDraw = renderShellSetupRuntime.requestOverlayDraw;
 const resize = renderShellSetupRuntime.resize;
 const render = renderShellSetupRuntime.render;
+workspaceRuntime.syncWorkspaceUi(runtimeCore.store.getState().ui.workspace);
+syncAudioUi();
+spectrogramRuntime.clear();
 
 runAppShellLifecycleRuntime(createAppShellLifecycleAssemblyRuntime({
   windowEl: window,
   bindings: createMainBindingsLifecycleAssemblyRuntime({
     canvas,
     windowEl: window,
+    workspaceButtons,
     dispatchCoreCommand,
     updateSwarmCursorFromPointer,
     updateCursorLightFromPointer,
@@ -2436,6 +2766,28 @@ runAppShellLifecycleRuntime(createAppShellLifecycleAssemblyRuntime({
     loadMapFromFolderSelection,
     saveAllMapDataFiles,
     schedulePointLightBake,
+    commandBus: runtimeCore.commandBus,
+    audioMinHzInput,
+    audioMaxHzInput,
+    audioBrushSizeInput,
+    audioBrushStrengthInput,
+    audioEraseModeToggle,
+    audioAutoThresholdInput,
+    audioAutoContrastInput,
+    audioAutoGainInput,
+    audioAutoClearToggle,
+    audioApproxMaxStrokesInput,
+    audioApproxMinStrengthInput,
+    audioMasterGainInput,
+    audioPlaybackRateInput,
+    audioFileInput,
+    audioPlayBtn,
+    audioPlayOriginalBtn,
+    audioPlayScribbleBtn,
+    audioAutoPaintBtn,
+    audioApproximateBtn,
+    audioStopBtn,
+    audioClearBtn,
   }),
   tryAutoLoadDefaultMap,
   setStatus,

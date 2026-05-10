@@ -20,6 +20,8 @@ test("main settings contracts register and route serialize/apply", () => {
     applyWater: (input) => calls.push(["waterfx", input]),
     serializeInteraction: () => ({ key: "interaction" }),
     applyInteraction: (input) => calls.push(["interaction", input]),
+    serializeAudio: () => ({ key: "audio" }),
+    applyAudio: (input) => calls.push(["audio", input]),
     serializeSwarm: () => ({ key: "swarm" }),
     applySwarm: (input) => calls.push(["swarm", input]),
   });

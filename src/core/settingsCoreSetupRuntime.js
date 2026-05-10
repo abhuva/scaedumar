@@ -82,6 +82,8 @@ export function createSettingsCoreSetupRuntime(deps) {
     applyWaterSettingsCompat: (...args) => callCompat("applyWaterSettingsCompat", ...args),
     serializeInteractionSettingsCompat: (...args) => callCompat("serializeInteractionSettingsCompat", ...args),
     applyInteractionSettingsCompat: (...args) => callCompat("applyInteractionSettingsCompat", ...args),
+    serializeAudioSettingsCompat: (...args) => callCompat("serializeAudioSettingsCompat", ...args),
+    applyAudioSettingsCompat: (...args) => callCompat("applyAudioSettingsCompat", ...args),
     serializeSwarmDataCompat: (...args) => callCompat("serializeSwarmDataCompat", ...args),
     applySwarmSettingsCompat: (...args) => callCompat("applySwarmSettingsCompat", ...args),
     applySwarmData: (...args) => callCompat("applySwarmData", ...args),
@@ -98,6 +100,8 @@ export function createSettingsCoreSetupRuntime(deps) {
     applyWaterSettings: (...args) => callCanonical("applyWaterSettings", ...args),
     serializeInteractionSettings: (...args) => callCanonical("serializeInteractionSettings", ...args),
     applyInteractionSettings: (...args) => callCanonical("applyInteractionSettings", ...args),
+    serializeAudioSettings: (...args) => callCanonical("serializeAudioSettings", ...args),
+    applyAudioSettings: (...args) => callCanonical("applyAudioSettings", ...args),
     serializeSwarmData: (...args) => callCanonical("serializeSwarmData", ...args),
     applySwarmSettings: (...args) => callCanonical("applySwarmSettings", ...args),
     getSettingsDefaults: (key, fallback) => {

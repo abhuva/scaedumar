@@ -84,6 +84,7 @@ Build a self-contained prototype for top-down terrain rendering from Gaea-export
 - `assets/<mapName>/fog.json`: optional saved fog controls
 - `assets/<mapName>/clouds.json`: optional saved cloud-shadow controls
 - `assets/<mapName>/waterfx.json`: optional saved water animation/reflectance controls
+- `assets/<mapName>/audio.json`: optional saved Audio Lab settings (spectrogram/scribble/playback controls)
 - `assets/<mapName>/npc.json`: player state (`charID`, `pixelX`, `pixelY`, `color`)
 
 
