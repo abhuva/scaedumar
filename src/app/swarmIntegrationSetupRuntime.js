@@ -36,8 +36,12 @@ export function createSwarmIntegrationSetupRuntime(deps) {
     playerState: deps.interactionContext.playerState,
     getCurrentPathMetrics: deps.interactionContext.getCurrentPathMetrics,
     getMovementSnapshot: deps.interactionContext.getMovementSnapshot,
+    getMovementEtaSeconds: deps.interactionContext.getMovementEtaSeconds,
     playerInfoEl: deps.interactionContext.playerInfoEl,
     pathInfoEl: deps.interactionContext.pathInfoEl,
+    movementStatusPanelEl: deps.interactionContext.movementStatusPanelEl,
+    movementStatusEtaEl: deps.interactionContext.movementStatusEtaEl,
+    movementStatusDetailEl: deps.interactionContext.movementStatusDetailEl,
   });
 
   const interactionModeBinding = {

@@ -1,5 +1,48 @@
 export function createInfoPanelRuntime(deps) {
+  function formatEta(seconds) {
+    if (seconds === Number.POSITIVE_INFINITY) return "paused";
+    const safeSeconds = Math.max(0, Math.ceil(Number(seconds)));
+    if (!Number.isFinite(safeSeconds)) return "--";
+    const hours = Math.floor(safeSeconds / 3600);
+    const minutes = Math.floor((safeSeconds % 3600) / 60);
+    const remainingSeconds = safeSeconds % 60;
+    if (hours > 0) {
+      return `${hours}h ${minutes.toString().padStart(2, "0")}m ${remainingSeconds.toString().padStart(2, "0")}s`;
+    }
+    return `${minutes}m ${remainingSeconds.toString().padStart(2, "0")}s`;
+  }
+
+  function setMovementPanelVisible(visible) {
+    if (!deps.movementStatusPanelEl) return;
+    deps.movementStatusPanelEl.classList.toggle("hidden", !visible);
+  }
+
+  function updateMovementPanel(movementSnapshot) {
+    if (!movementSnapshot || !movementSnapshot.active) {
+      setMovementPanelVisible(false);
+      return;
+    }
+    const etaSeconds = typeof deps.getMovementEtaSeconds === "function"
+      ? deps.getMovementEtaSeconds(movementSnapshot)
+      : null;
+    const remainingTicks = Math.max(0, Math.round(Number(movementSnapshot.totalTicksRemaining || 0)));
+    const stepIndex = Math.max(0, Math.round(Number(movementSnapshot.currentStepIndex || 0))) + 1;
+    const queueLength = Math.max(0, Math.round(Number(movementSnapshot.queueLength || 0)));
+    if (deps.movementStatusEtaEl) {
+      deps.movementStatusEtaEl.textContent = `Estimated arrival: ${formatEta(etaSeconds)}`;
+    }
+    if (deps.movementStatusDetailEl) {
+      deps.movementStatusDetailEl.textContent = `Path: step ${stepIndex}/${queueLength}, ${remainingTicks} ticks remaining`;
+    }
+    setMovementPanelVisible(true);
+  }
+
   return function updateInfoPanel() {
+    const movementSnapshot = typeof deps.getMovementSnapshot === "function"
+      ? deps.getMovementSnapshot()
+      : null;
+    updateMovementPanel(movementSnapshot);
+
     if (deps.isSwarmEnabled()) {
       const cursorMode = deps.getSwarmCursorMode();
       const nextPlayerInfo = `Swarm: ${deps.swarmState.count} agents`;
@@ -19,9 +62,6 @@ export function createInfoPanelRuntime(deps) {
     }
 
     const metrics = deps.getCurrentPathMetrics();
-    const movementSnapshot = typeof deps.getMovementSnapshot === "function"
-      ? deps.getMovementSnapshot()
-      : null;
     if (movementSnapshot && movementSnapshot.active) {
       const nextPathInfo = `Move: active | q ${movementSnapshot.queueLength} | step ${movementSnapshot.currentStepIndex + 1} | ticks ${movementSnapshot.ticksRemaining} | cost ${movementSnapshot.currentStepCost.toFixed(2)}`;
       if (deps.pathInfoEl.textContent !== nextPathInfo) {

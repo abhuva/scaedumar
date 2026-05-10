@@ -98,6 +98,11 @@ fn pick_map_folder() -> Option<String> {
     .map(|path| path.to_string_lossy().to_string())
 }
 
+#[tauri::command]
+fn quit_app(app: tauri::AppHandle) {
+  app.exit(0);
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   tauri::Builder::default()
@@ -115,7 +120,8 @@ pub fn run() {
       save_json_file,
       load_json_file,
       validate_map_folder,
-      pick_map_folder
+      pick_map_folder,
+      quit_app
     ])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");

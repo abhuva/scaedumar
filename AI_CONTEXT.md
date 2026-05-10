@@ -98,6 +98,12 @@ No game engine is used.
 - Cycle-hour slider/label UI helpers are now extracted to `src/ui/timeUiRuntime.js`.
 - Runtime mode state-access helpers (`getRuntimeMode`, capability checks) are now extracted to `src/core/modeStateAccess.js`.
 - Runtime mode state runtime binding (`getRuntimeMode`, `canUseTopicInCurrentMode`, `canUseInteractionInCurrentMode`) is now extracted to `src/core/modeStateRuntimeBinding.js`.
+- App launch now starts behind a title-screen shell using
+  `assets/title-logo.jpg`.
+- Title actions enter `gameplay` ("new game") or `dev` mode; desktop builds
+  expose a Tauri-backed quit action.
+- A left-dock `Exit` button is available while running and returns to the
+  title screen without restarting the runtime.
 - Map runtime state helpers (`setCurrentMapFolderPath`, default-settings apply, map-reset, map-size-change apply) are now extracted to `src/gameplay/mapRuntimeState.js`.
 - Lighting parameter assembly logic (`computeLightingParams`) is now extracted to `src/sim/lightingParamsRuntime.js`.
 - Startup UI synchronization sequence is now extracted to `src/ui/startupUiSync.js`.
@@ -410,6 +416,9 @@ No game engine is used.
   - simulation time running in integration steps
   - average hawk kill interval (ticks), computed from accumulated hawk kill events
 - Mode behavior:
+  - `gameplay`: hides dev topic menus and workspace switching; only `PF`
+    and `Exit` remain available on the left dock.
+  - `dev`: exposes the full current toolset.
   - `lighting`: left click adds/selects point lights.
   - `pathfinding`: hover shows live path preview from player; left click moves player instantly to clicked cell.
   - swarm is not an interaction mode; it runs in map space while normal camera controls and interaction modes remain available.
@@ -447,6 +456,10 @@ No game engine is used.
   - uses local Dijkstra precompute in a square around the player (`30x30 .. 100x100`)
   - move cost uses `slope.png` grayscale + uphill delta from `height.png`
   - preview path is backtracked from hovered pixel via parent links
+  - gameplay mode does not allow no-mode click teleporting; destinations must
+    be chosen through `PF`
+  - active movement shows a right-side ETA panel and any map click cancels the
+    current movement queue
   - player is loaded from `<mapFolder>/npc.json` and drawn as a 0.5-map-pixel circle
 - Cursor light mode on:
   - mouse movement updates live point-light position on terrain

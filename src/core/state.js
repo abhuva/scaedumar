@@ -48,6 +48,7 @@ export const DEFAULT_GAMEPLAY_MOVEMENT = {
   currentStepIndex: 0,
   ticksRemaining: 0,
   currentStepCost: 0,
+  totalTicksRemaining: 0,
 };
 
 export const DEFAULT_GAMEPLAY_POINT_LIGHTS = {

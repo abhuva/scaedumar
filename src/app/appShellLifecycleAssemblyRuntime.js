@@ -57,5 +57,20 @@ export function createAppShellLifecycleAssemblyRuntime(deps) {
       resize: deps.resize,
       render: deps.render,
     },
+    titleScreen: {
+      bodyEl: deps.bodyEl,
+      titleScreenEl: deps.titleScreenEl,
+      titleNewGameBtn: deps.titleNewGameBtn,
+      titleDevModeBtn: deps.titleDevModeBtn,
+      titleQuitGameBtn: deps.titleQuitGameBtn,
+      dockExitToTitleBtn: deps.dockExitToTitleBtn,
+      initialMode: deps.initialMode,
+      isTauriRuntime: deps.isTauriRuntime,
+      invokeTauri: deps.invokeTauri,
+      dispatchCoreCommand: deps.dispatchCoreCommand,
+      setActiveTopic: deps.setActiveTopic,
+      updateModeCapabilitiesUi: deps.updateModeCapabilitiesUi,
+      setStatus: deps.setStatus,
+    },
   };
 }

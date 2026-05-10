@@ -13,6 +13,7 @@ export function createMainCommandAssemblyRuntime(deps) {
     swarmFollowTargetInput: deps.swarmFollowTargetInput,
     applyCameraPose: deps.applyCameraPose,
     getInteractionMode: deps.getInteractionMode,
+    getRuntimeMode: deps.getRuntimeMode,
     setMiddleDragging: deps.setMiddleDragging,
     setCycleHourScrubbing: deps.setCycleHourScrubbing,
     clamp: deps.clamp,

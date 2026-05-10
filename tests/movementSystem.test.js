@@ -28,16 +28,19 @@ test("movementSystem processes queued movement by ticks", () => {
   );
   assert.equal(queued, true);
   assert.equal(system.getSnapshot().ticksRemaining, 2);
+  assert.equal(system.getSnapshot().totalTicksRemaining, 3);
 
   system.update({ time: { systems: { movement: { ticksProcessed: 1 } } } }, {});
   assert.equal(playerState.pixelX, 0);
   assert.equal(playerState.pixelY, 0);
   assert.equal(system.getSnapshot().ticksRemaining, 1);
+  assert.equal(system.getSnapshot().totalTicksRemaining, 2);
 
   system.update({ time: { systems: { movement: { ticksProcessed: 1 } } } }, {});
   assert.equal(playerState.pixelX, 1);
   assert.equal(playerState.pixelY, 0);
   assert.equal(system.getSnapshot().ticksRemaining, 1);
+  assert.equal(system.getSnapshot().totalTicksRemaining, 1);
 
   system.update({ time: { systems: { movement: { ticksProcessed: 1 } } } }, {});
   assert.equal(playerState.pixelX, 1);
@@ -67,4 +70,3 @@ test("movementSystem keeps existing queue when replacement path is invalid", () 
   assert.equal(after.queueLength, before.queueLength);
   assert.equal(after.active, true);
 });
-

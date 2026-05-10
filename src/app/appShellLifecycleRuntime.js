@@ -1,6 +1,7 @@
 import { tryAutoLoadDefaultMapRuntime, runAppStartupRuntime } from "../core/appStartupRuntime.js";
 import { createMainBindingsAssemblyRuntime } from "./mainBindingsAssemblyRuntime.js";
 import { setupMainBindingsRuntime } from "../ui/mainBindingsRuntime.js";
+import { createTitleScreenRuntime } from "./titleScreenRuntime.js";
 
 export function runAppShellLifecycleRuntime(deps) {
   setupMainBindingsRuntime(createMainBindingsAssemblyRuntime(deps.bindings));
@@ -22,4 +23,8 @@ export function runAppShellLifecycleRuntime(deps) {
     render: deps.startup.render,
     requestAnimationFrame: (cb) => deps.windowEl.requestAnimationFrame(cb),
   });
+
+  if (deps.titleScreen) {
+    createTitleScreenRuntime(deps.titleScreen).bindTitleScreen();
+  }
 }

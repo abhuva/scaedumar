@@ -148,6 +148,12 @@ const runtimeCore = createRuntimeCore();
 const dispatchCoreCommand = createCoreCommandDispatch(runtimeCore);
 const entityStore = createEntityStore();
 
+const bodyEl = document.body;
+const titleScreenEl = getRequiredElementById("titleScreen");
+const titleNewGameBtn = getRequiredElementById("titleNewGameBtn");
+const titleDevModeBtn = getRequiredElementById("titleDevModeBtn");
+const titleQuitGameBtn = getRequiredElementById("titleQuitGameBtn");
+const dockExitToTitleBtn = getRequiredElementById("dockExitToTitleBtn");
 const canvas = getRequiredElementById("glCanvas");
 const overlayCanvas = getRequiredElementById("overlayCanvas");
 const workspaceButtons = getRequiredElements(".workspace-btn");
@@ -166,6 +172,9 @@ const statusRuntime = createStatusRuntime({ statusEl });
 const cycleInfoEl = getRequiredElementById("cycleInfo");
 const playerInfoEl = getRequiredElementById("playerInfo");
 const pathInfoEl = getRequiredElementById("pathInfo");
+const movementStatusPanelEl = getRequiredElementById("movementStatusPanel");
+const movementStatusEtaEl = getRequiredElementById("movementStatusEta");
+const movementStatusDetailEl = getRequiredElementById("movementStatusDetail");
 const mapPathInput = getRequiredElementById("mapPathInput");
 const mapPathLoadBtn = getRequiredElementById("mapPathLoadBtn");
 const mapFolderInput = getRequiredElementById("mapFolderInput");
@@ -1973,6 +1982,42 @@ const movementStoreSyncRuntime = createMovementStoreSyncRuntime({
   store: runtimeCore.store,
 });
 
+function formatMovementEta(seconds) {
+  if (seconds === Number.POSITIVE_INFINITY) return "paused";
+  const safeSeconds = Math.max(0, Math.ceil(Number(seconds)));
+  if (!Number.isFinite(safeSeconds)) return "--";
+  const hours = Math.floor(safeSeconds / 3600);
+  const minutes = Math.floor((safeSeconds % 3600) / 60);
+  const remainingSeconds = safeSeconds % 60;
+  if (hours > 0) {
+    return `${hours}h ${minutes.toString().padStart(2, "0")}m ${remainingSeconds.toString().padStart(2, "0")}s`;
+  }
+  return `${minutes}m ${remainingSeconds.toString().padStart(2, "0")}s`;
+}
+
+function getMovementEtaSeconds(movementSnapshot) {
+  const state = runtimeCore.store.getState();
+  const timeState = state && state.systems ? state.systems.time || {} : {};
+  const cycleSpeed = Number(timeState.cycleSpeedHoursPerSec);
+  if (!Number.isFinite(cycleSpeed) || cycleSpeed <= 0) return Number.POSITIVE_INFINITY;
+  const simTickHours = normalizeSimTickHours(timeState.simTickHours);
+  const totalTicks = Math.max(0, Number(movementSnapshot && movementSnapshot.totalTicksRemaining) || 0);
+  return (totalTicks * simTickHours) / cycleSpeed;
+}
+
+function updateMovementStatusPanel(movementSnapshot) {
+  if (!movementSnapshot || !movementSnapshot.active) {
+    movementStatusPanelEl.classList.add("hidden");
+    return;
+  }
+  const remainingTicks = Math.max(0, Math.round(Number(movementSnapshot.totalTicksRemaining || 0)));
+  const stepIndex = Math.max(0, Math.round(Number(movementSnapshot.currentStepIndex || 0))) + 1;
+  const queueLength = Math.max(0, Math.round(Number(movementSnapshot.queueLength || 0)));
+  movementStatusEtaEl.textContent = `Estimated arrival: ${formatMovementEta(getMovementEtaSeconds(movementSnapshot))}`;
+  movementStatusDetailEl.textContent = `Path: step ${stepIndex}/${queueLength}, ${remainingTicks} ticks remaining`;
+  movementStatusPanelEl.classList.remove("hidden");
+}
+
 const movementSystem = createMovementSystem(createMovementAssemblyRuntime({
   entityStore,
   playerState,
@@ -1984,6 +2029,7 @@ const movementSystem = createMovementSystem(createMovementAssemblyRuntime({
   setStatus,
   setPlayerSnapshot: movementStoreSyncRuntime.setPlayerSnapshot,
   setMovementSnapshot: movementStoreSyncRuntime.setMovementSnapshot,
+  onMovementSnapshot: updateMovementStatusPanel,
 }));
 registerMainSettingsContracts(runtimeCore.settingsRegistry, {
   serializeLighting: serializeLightingSettingsCompat,
@@ -2049,6 +2095,7 @@ registerMainCommands(runtimeCore.commandBus, createMainCommandAssemblyRuntime({
   swarmFollowTargetInput,
   applyCameraPose: applyRuntimeCameraPose,
   getInteractionMode: () => getInteractionModeSnapshot(),
+  getRuntimeMode: () => getRuntimeMode(),
   setMiddleDragging: (value) => {
     isMiddleDragging = value;
   },
@@ -2601,8 +2648,12 @@ const swarmIntegrationSetupRuntime = createSwarmIntegrationSetupRuntime(
     playerState,
     getCurrentPathMetrics,
     getMovementSnapshot: () => movementSystem.getSnapshot(),
+    getMovementEtaSeconds,
     playerInfoEl,
     pathInfoEl,
+    movementStatusPanelEl,
+    movementStatusEtaEl,
+    movementStatusDetailEl,
     applyInteractionMode,
     canUseInteractionInCurrentMode,
     syncInteractionModeUi: interactionModeUiRuntime.syncInteractionModeUi,
@@ -2873,6 +2924,16 @@ spectrogramRuntime.clear();
 
 runAppShellLifecycleRuntime(createAppShellLifecycleAssemblyRuntime({
   windowEl: window,
+  bodyEl,
+  titleScreenEl,
+  titleNewGameBtn,
+  titleDevModeBtn,
+  titleQuitGameBtn,
+  dockExitToTitleBtn,
+  initialMode: normalizeRuntimeMode(runtimeCore.store.getState().mode),
+  isTauriRuntime: Boolean(tauriInvoke),
+  invokeTauri,
+  dispatchCoreCommand,
   bindings: createMainBindingsLifecycleAssemblyRuntime({
     canvas,
     windowEl: window,

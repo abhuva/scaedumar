@@ -65,6 +65,15 @@ export function registerInteractionCommands(commandBus, deps) {
       return;
     }
 
+    const runtimeMode = typeof deps.getRuntimeMode === "function" ? deps.getRuntimeMode() : "dev";
+    if (runtimeMode === "gameplay") {
+      deps.movePreviewState.hoverPixel = null;
+      deps.movePreviewState.pathPixels = [];
+      deps.setStatus("Use PF to choose a destination.");
+      deps.requestOverlayDraw();
+      return;
+    }
+
     deps.setPlayerPosition(pixel.x, pixel.y);
     if (typeof deps.cancelMovementQueue === "function") {
       deps.cancelMovementQueue();

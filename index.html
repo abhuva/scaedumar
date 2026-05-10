@@ -8,6 +8,17 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
+    <section id="titleScreen" class="title-screen" aria-label="Title screen">
+      <div class="title-screen-inner">
+        <img class="title-logo" src="./assets/title-logo.jpg" alt="Terrain" />
+        <div class="title-actions" aria-label="Game menu">
+          <button id="titleNewGameBtn" class="title-action-btn" type="button">new game</button>
+          <button id="titleDevModeBtn" class="title-action-btn" type="button">dev mode</button>
+          <button id="titleQuitGameBtn" class="title-action-btn" type="button">quit game</button>
+        </div>
+      </div>
+    </section>
+
     <nav class="workspace-switcher" aria-label="Workspace">
       <button class="workspace-btn active" type="button" data-workspace="map" aria-pressed="true">Map</button>
       <button class="workspace-btn" type="button" data-workspace="audio" aria-pressed="false">Audio</button>
@@ -17,6 +28,7 @@
     <nav class="topic-dock" aria-label="Map tool topics">
       <button id="dockLightingModeToggle" class="mode-btn" type="button" title="Lighting Mode" aria-label="Lighting mode toggle">LM</button>
       <button id="dockPathfindingModeToggle" class="mode-btn" type="button" title="Pathfinding Mode" aria-label="Pathfinding mode toggle">PF</button>
+      <button id="dockExitToTitleBtn" class="mode-btn shell-exit-btn" type="button" title="Exit to title screen" aria-label="Exit to title screen">Exit</button>
       <button class="topic-btn" type="button" data-topic="map" title="Load Map" aria-label="Load map">M</button>
       <button class="topic-btn" type="button" data-topic="interaction" title="Interaction" aria-label="Interaction settings">I</button>
       <button class="topic-btn" type="button" data-topic="swarm" title="Agent Swarm" aria-label="Agent swarm settings">A</button>
@@ -860,6 +872,11 @@
       <p><span>Hawks Alive</span><strong id="swarmStatsHawksValue">0</strong></p>
       <p><span>Time Running (steps)</span><strong id="swarmStatsStepsValue">0</strong></p>
       <p><span>Avg Hawk Kill Time</span><strong id="swarmStatsAvgHawkKillValue">--</strong></p>
+    </aside>
+    <aside id="movementStatusPanel" class="movement-status-panel hidden" aria-live="polite">
+      <h2>Player Moving</h2>
+      <p id="movementStatusEta">Estimated arrival: --</p>
+      <p id="movementStatusDetail">Path: --</p>
     </aside>
     <canvas id="glCanvas"></canvas>
     <canvas id="overlayCanvas"></canvas>
