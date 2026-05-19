@@ -85,6 +85,8 @@ Build a self-contained prototype for top-down terrain rendering from Gaea-export
 - `assets/<mapName>/fog.json`: optional saved fog controls
 - `assets/<mapName>/clouds.json`: optional saved cloud-shadow controls
 - `assets/<mapName>/waterfx.json`: optional saved water animation/reflectance controls
+- `assets/<mapName>/detail.json`: optional saved zoom-detail material controls; global source sprites default to `assets/detail/default/*`
+- `assets/<mapName>/camera.json`: optional saved camera controls (`zoomMin`, `zoomMax`)
 - `assets/<mapName>/audio.json`: optional saved Audio Lab settings (spectrogram/scribble/playback controls)
 - `assets/<mapName>/npc.json`: player state (`charID`, `pixelX`, `pixelY`, `color`)
 
@@ -123,6 +125,13 @@ Build a self-contained prototype for top-down terrain rendering from Gaea-export
   - Rendered directly in shader (no per-move bake)
   - Uses linear falloff and normal interaction
 - Optional parallax illusion from height map (continuous + banded)
+- Core zoom-detail material layer:
+  - optional `detail.json` tunes dirt/rock micro and macro color detail
+  - default is enabled, but missing detail source sprites disable the visible effect
+  - runtime builds micro/macro color atlases from `assets/detail/default/*`
+  - micro and macro detail sample continuous map coordinates; each layer's Tile px value is the terrain-map-pixel width/height covered by one full source texture tile
+  - detail mixes color before lighting and does not affect normals or cast shadows
+  - dev map mode exposes a `D` panel for live tuning dirt/rock detail parameters
 - Optional height fog illusion based on zoom-derived camera height vs terrain height
 - Optional cloud-shadow illusion from generated seamless noise texture (two scrolling layers + optional sun-direction projection)
 - Optional water FX (masked by `water.png`):

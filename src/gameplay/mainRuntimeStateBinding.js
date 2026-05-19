@@ -49,8 +49,8 @@ export function createMainRuntimeStateBinding(deps) {
       defaultSwarmSettings: deps.defaultSwarmSettings,
       clamp: deps.clamp,
       swarmZMax: deps.swarmZMax,
-      zoomMin: deps.zoomMin,
-      zoomMax: deps.zoomMax,
+      zoomMin: typeof deps.getZoomMin === "function" ? deps.getZoomMin() : deps.zoomMin,
+      zoomMax: typeof deps.getZoomMax === "function" ? deps.getZoomMax() : deps.zoomMax,
       normalizeRoutingMode: deps.normalizeRoutingMode,
     };
   }

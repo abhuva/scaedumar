@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "enabled": true,
+  "atlas": {
+    "microPaddingPx": 2,
+    "macroPaddingPx": 4,
+    "microFilter": "linear",
+    "macroFilter": "linear",
+    "generateMipmaps": false
+  },
+  "zoom": {
+    "startPxPerMeter": 4,
+    "fullPxPerMeter": 16
+  },
+  "materials": {
+    "dirt": {
+      "micro": {
+        "src": "assets/detail/default/dirt_micro.png",
+        "scaleMeters": 2,
+        "colorStrength": 1
+      },
+      "macro": {
+        "src": "assets/detail/default/dirt_macro.png",
+        "scaleMeters": 192,
+        "colorStrength": 1
+      }
+    },
+    "rock": {
+      "micro": {
+        "src": "assets/detail/default/rock_micro.png",
+        "scaleMeters": 2,
+        "colorStrength": 1
+      },
+      "macro": {
+        "src": "assets/detail/default/rock_macro.png",
+        "scaleMeters": 256,
+        "colorStrength": 1
+      }
+    }
+  },
+  "rules": {
+    "defaultMaterial": "dirt",
+    "rock": {
+      "slopeStart": 0.35,
+      "slopeEnd": 0.75,
+      "noiseScale": 0.03,
+      "noiseStrength": 0.12
+    }
+  },
+  "waterSuppression": 1
+}

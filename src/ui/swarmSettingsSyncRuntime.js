@@ -11,11 +11,13 @@ export function createSwarmSettingsSyncRuntime(deps) {
   function syncSwarmSettingsInputs() {
     const settings = deps.getSwarmSettings();
     const swarmHeightMax = Number.isFinite(Number(deps.swarmHeightMax)) ? Number(deps.swarmHeightMax) : 256;
+    const zoomMin = typeof deps.getZoomMin === "function" ? deps.getZoomMin() : deps.zoomMin;
+    const zoomMax = typeof deps.getZoomMax === "function" ? deps.getZoomMax() : deps.zoomMax;
     deps.swarmEnabledToggle.checked = Boolean(settings.useAgentSwarm);
     deps.swarmLitModeToggle.checked = Boolean(settings.useLitSwarm);
     deps.swarmFollowZoomToggle.checked = Boolean(settings.followZoomBySpeed);
-    deps.swarmFollowZoomInInput.value = deps.clamp(finiteOr(settings.followZoomIn, 1), deps.zoomMin, deps.zoomMax).toFixed(1);
-    deps.swarmFollowZoomOutInput.value = deps.clamp(finiteOr(settings.followZoomOut, 1), deps.zoomMin, deps.zoomMax).toFixed(1);
+    deps.swarmFollowZoomInInput.value = deps.clamp(finiteOr(settings.followZoomIn, 1), zoomMin, zoomMax).toFixed(1);
+    deps.swarmFollowZoomOutInput.value = deps.clamp(finiteOr(settings.followZoomOut, 1), zoomMin, zoomMax).toFixed(1);
     deps.swarmFollowHawkRangeGizmoToggle.checked = Boolean(settings.followHawkRangeGizmo);
     deps.swarmFollowAgentSpeedSmoothingInput.value = deps.clamp(finiteOr(settings.followAgentSpeedSmoothing, 0.1), 0.01, 0.25).toFixed(2);
     deps.swarmFollowAgentZoomSmoothingInput.value = deps.clamp(finiteOr(settings.followAgentZoomSmoothing, 0.1), 0.01, 0.25).toFixed(2);

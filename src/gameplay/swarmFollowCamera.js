@@ -3,6 +3,14 @@ export function createSwarmFollowCameraUpdater(deps) {
     return deps.clamp(Number(value), 0, 1);
   }
 
+  function getZoomMin() {
+    return typeof deps.getZoomMin === "function" ? deps.getZoomMin() : deps.zoomMin;
+  }
+
+  function getZoomMax() {
+    return typeof deps.getZoomMax === "function" ? deps.getZoomMax() : deps.zoomMax;
+  }
+
   return function updateSwarmFollowCamera() {
     const follow = deps.getSwarmFollowSnapshot();
     if (!follow.enabled) return;
@@ -44,7 +52,7 @@ export function createSwarmFollowCameraUpdater(deps) {
         }
         const targetZoom = settings.followZoomIn
           + (settings.followZoomOut - settings.followZoomIn) * deps.getSwarmFollowSpeedNormFiltered();
-        nextZoom = deps.clamp(deps.getZoom() + (targetZoom - deps.getZoom()) * zoomSmoothing, deps.zoomMin, deps.zoomMax);
+        nextZoom = deps.clamp(deps.getZoom() + (targetZoom - deps.getZoom()) * zoomSmoothing, getZoomMin(), getZoomMax());
       }
       deps.dispatchCoreCommand({
         type: "core/camera/setPose",
@@ -88,8 +96,8 @@ export function createSwarmFollowCameraUpdater(deps) {
         + (settings.followZoomOut - settings.followZoomIn) * deps.getSwarmFollowSpeedNormFiltered();
       nextZoom = deps.clamp(
         deps.getZoom() + (targetZoom - deps.getZoom()) * clampSmoothing(settings.followAgentZoomSmoothing),
-        deps.zoomMin,
-        deps.zoomMax,
+        getZoomMin(),
+        getZoomMax(),
       );
     }
     deps.dispatchCoreCommand({

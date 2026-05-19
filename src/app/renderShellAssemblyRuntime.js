@@ -49,6 +49,7 @@ export function createRenderShellAssemblyRuntime(deps) {
       getSettingsDefaults: deps.getSettingsDefaults,
       defaultLightingSettings: deps.defaultLightingSettings,
       defaultParallaxSettings: deps.defaultParallaxSettings,
+      defaultDetailSettings: deps.defaultDetailSettings,
       defaultFogSettings: deps.defaultFogSettings,
       defaultCloudSettings: deps.defaultCloudSettings,
       defaultWaterSettings: deps.defaultWaterSettings,

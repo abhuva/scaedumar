@@ -259,6 +259,8 @@ No game engine is used.
   - `fog.json`
   - `clouds.json`
   - `waterfx.json`
+  - `detail.json`
+  - `camera.json`
   - `audio.json`
   - `swarm.json`
   - `npc.json`
@@ -347,8 +349,23 @@ No game engine is used.
   - optional flow debug overlay displays computed water direction on water pixels
   - water shading is evaluated at map texel centers (pixel-locked) so water influence is per map pixel
   - altitude-aware sun/moon glints, shoreline foam band, and sky-tint reflection
+- Core zoom-detail material layer:
+  - settings contract key is `detail`, persisted as optional `detail.json`
+  - default config is enabled, but missing source sprites disable the runtime effect through atlas availability fallback
+  - source sprites default to `assets/detail/default/dirt_micro.png`, `dirt_macro.png`, `rock_micro.png`, and `rock_macro.png`
+  - runtime builds micro/macro color atlases from those sources
+  - missing individual sprites use neutral 50% gray color tiles
+  - terrain shader applies dirt/rock detail before lighting; rock weight is derived from terrain normal slope plus world-space noise
+  - micro and macro detail sample continuous map coordinates; each layer's `scaleMeters`/Tile px value is the terrain-map-pixel width/height covered by one full source texture tile
+  - detail is color-only for performance; it does not modify normals or cast shadows
+  - detail is reduced on water through `waterSuppression`
+  - dev map mode exposes a `D` topic panel for live tuning dirt/rock micro+macro scale, color strength, zoom fade, water suppression, and rock-mask controls
+- Camera settings:
+  - settings contract key is `camera`, persisted as optional `camera.json`
+  - `zoomMin` / `zoomMax` control runtime camera clamp; default `zoomMax` is `128` for close inspection of zoom-detail materials
+  - camera commands, swarm follow zoom normalization, and fog camera-height normalization resolve current bounds lazily from settings
 - Map-level persistence:
-  - `Load Map -> Save All` writes `pointlights.json`, `lighting.json`, `parallax.json`, `interaction.json`, `fog.json`, `clouds.json`, `waterfx.json`, `audio.json`, `swarm.json`, and `npc.json`
+  - `Load Map -> Save All` writes `pointlights.json`, `lighting.json`, `parallax.json`, `interaction.json`, `fog.json`, `clouds.json`, `waterfx.json`, `detail.json`, `camera.json`, `audio.json`, `swarm.json`, and `npc.json`
   - map loading auto-applies these files when present
 - Audio Lab groundwork:
   - core settings registry now includes `audio` defaults/serialize/apply contract key
@@ -512,6 +529,7 @@ Main light uniforms:
 - `uShadowTex`
 - `uWater`
 - `uFlowMap`
+- `uDetailMicroColor`, `uDetailMacroColor`
 - `uUseCursorLight`, `uCursorLightUv`, `uCursorLightColor`, `uCursorLightStrength`, `uCursorLightHeightOffset`, `uUseCursorTerrainHeight`, `uCursorLightMapSize`
 - `uTimeSec`, `uPointFlickerEnabled`, `uPointFlickerStrength`, `uPointFlickerSpeed`, `uPointFlickerSpatial`
 - `uUseClouds`, `uCloudCoverage`, `uCloudSoftness`, `uCloudOpacity`, `uCloudScale`, `uCloudSpeed1`, `uCloudSpeed2`, `uCloudSunParallax`, `uCloudUseSunProjection`
@@ -523,6 +541,7 @@ Map/camera uniforms:
 - `uMapAspect` (must come from splat texture size)
 - `uResolution`, `uViewHalfExtents`, `uPanWorld`
 - `uUseParallax`, `uParallaxStrength`, `uParallaxBands`, `uZoom`
+- `uUseDetail`, detail zoom/material/atlas uniforms for dirt/rock micro+macro color mixing
 - `uUseFog`, `uFogColor`, `uFogMinAlpha`, `uFogMaxAlpha`, `uFogFalloff`, `uFogStartOffset`, `uCameraHeightNorm`
 - `uUseVolumetric`, `uVolumetricStrength`, `uVolumetricDensity`, `uVolumetricAnisotropy`, `uVolumetricLength`, `uVolumetricSamples`
 

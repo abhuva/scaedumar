@@ -34,6 +34,8 @@ export function createMapSidecarLoader(deps) {
       fog: false,
       clouds: false,
       waterFx: false,
+      detail: false,
+      camera: false,
       audio: false,
       swarm: false,
       npc: false,
@@ -112,6 +114,18 @@ export function createMapSidecarLoader(deps) {
         onErrorLabel: `Failed to load waterfx.json from ${folder}`,
       },
       {
+        key: "detail",
+        loadJson: loadOptionalUrlJson(jsonPath("detail.json")),
+        applyFn: (rawData) => deps.applyDetailSettings(rawData),
+        onErrorLabel: `Failed to load detail.json from ${folder}`,
+      },
+      {
+        key: "camera",
+        loadJson: loadOptionalUrlJson(jsonPath("camera.json")),
+        applyFn: (rawData) => deps.applyCameraSettings(rawData),
+        onErrorLabel: `Failed to load camera.json from ${folder}`,
+      },
+      {
         key: "audio",
         loadJson: loadOptionalUrlJson(jsonPath("audio.json")),
         applyFn: (rawData) => deps.applyAudioSettings(rawData),
@@ -188,6 +202,18 @@ export function createMapSidecarLoader(deps) {
         loadJson: loadOptionalFileJson("waterfx.json"),
         applyFn: (rawData) => deps.applyWaterSettings(rawData),
         onErrorLabel: "Failed to parse waterfx.json from selected folder",
+      },
+      {
+        key: "detail",
+        loadJson: loadOptionalFileJson("detail.json"),
+        applyFn: (rawData) => deps.applyDetailSettings(rawData),
+        onErrorLabel: "Failed to parse detail.json from selected folder",
+      },
+      {
+        key: "camera",
+        loadJson: loadOptionalFileJson("camera.json"),
+        applyFn: (rawData) => deps.applyCameraSettings(rawData),
+        onErrorLabel: "Failed to parse camera.json from selected folder",
       },
       {
         key: "audio",

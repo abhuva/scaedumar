@@ -2,10 +2,28 @@ import { normalizeRuntimeMode } from "./modeCapabilities.js";
 import { registerInteractionCommands } from "../gameplay/interactionCommands.js";
 import { DEFAULT_CURSOR_LIGHT_COLOR_HEX } from "./state.js";
 import { normalizeWorkspaceId } from "../ui/workspaceRegistry.js";
+import { normalizeDetailSettings } from "../gameplay/detailDataSerializer.js";
 
 export function registerMainCommands(commandBus, deps) {
   function clampRound(value, min, max) {
     return Math.round(deps.clamp(Number(value), min, max));
+  }
+
+  function mergePlainObject(base, patch) {
+    if (!patch || typeof patch !== "object") return base;
+    const next = { ...base };
+    for (const [key, value] of Object.entries(patch)) {
+      const baseValue = base && typeof base === "object" ? base[key] : undefined;
+      const canMerge =
+        value &&
+        typeof value === "object" &&
+        !Array.isArray(value) &&
+        baseValue &&
+        typeof baseValue === "object" &&
+        !Array.isArray(baseValue);
+      next[key] = canMerge ? mergePlainObject(baseValue, value) : value;
+    }
+    return next;
   }
 
   function normalizeHexColor(value, fallback) {
@@ -97,14 +115,6 @@ export function registerMainCommands(commandBus, deps) {
       };
     }
 
-    function getFogSettings() {
-      const current = deps.serializeFogSettings();
-      return {
-        ...current,
-        ...(patch || {}),
-      };
-    }
-
     function getCloudSettings() {
       const current = deps.serializeCloudSettings();
       return {
@@ -113,12 +123,12 @@ export function registerMainCommands(commandBus, deps) {
       };
     }
 
-    function getWaterSettings() {
-      const current = deps.serializeWaterSettings();
-      return {
-        ...current,
-        ...(patch || {}),
-      };
+    function getDetailSettings() {
+      const current = deps.serializeDetailSettings();
+      return normalizeDetailSettings(
+        mergePlainObject(current, patch || {}),
+        deps.defaultDetailSettings,
+      );
     }
 
     if (section === "parallax") {
@@ -237,6 +247,18 @@ export function registerMainCommands(commandBus, deps) {
       if (command.rebuildFlowMap) {
         deps.rebuildFlowMapTexture();
       }
+      return;
+    }
+
+    if (section === "detail") {
+      updateSimulationSection("detail", getDetailSettings());
+      if (command.source !== "detailPanel" && typeof deps.syncDetailUi === "function") {
+        deps.syncDetailUi();
+      }
+      if (command.rebuildDetailAtlas && typeof deps.rebuildDetailAtlas === "function") {
+        deps.rebuildDetailAtlas();
+      }
+      return;
     }
   });
 

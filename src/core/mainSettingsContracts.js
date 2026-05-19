@@ -1,3 +1,9 @@
+import { DEFAULT_DETAIL_SETTINGS } from "../gameplay/detailDataSerializer.js";
+import { DEFAULT_CAMERA_SETTINGS } from "../gameplay/cameraSettings.js";
+
+export { DEFAULT_DETAIL_SETTINGS };
+export { DEFAULT_CAMERA_SETTINGS };
+
 export const DEFAULT_LIGHTING_SETTINGS = {
   useShadows: true,
   heightScale: 80,
@@ -301,6 +307,18 @@ export function registerMainSettingsContracts(settingsRegistry, deps) {
       defaults: DEFAULT_WATER_SETTINGS,
       serialize: () => deps.serializeWater(),
       apply: (input) => deps.applyWater(input),
+    },
+    {
+      key: "detail",
+      defaults: DEFAULT_DETAIL_SETTINGS,
+      serialize: () => deps.serializeDetail(),
+      apply: (input) => deps.applyDetail(input),
+    },
+    {
+      key: "camera",
+      defaults: DEFAULT_CAMERA_SETTINGS,
+      serialize: () => deps.serializeCamera(),
+      apply: (input) => deps.applyCamera(input),
     },
     {
       key: "interaction",

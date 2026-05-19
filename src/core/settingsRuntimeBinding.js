@@ -42,6 +42,18 @@ export function createSettingsRuntimeBinding(deps) {
     deps.applyWaterSettingsCompat,
     deps.defaultWaterSettings,
   );
+  const detail = make(
+    "detail",
+    deps.serializeDetailSettingsCompat,
+    deps.applyDetailSettingsCompat,
+    deps.defaultDetailSettings,
+  );
+  const camera = make(
+    "camera",
+    deps.serializeCameraSettingsCompat,
+    deps.applyCameraSettingsCompat,
+    deps.defaultCameraSettings,
+  );
   const interaction = make(
     "interaction",
     deps.serializeInteractionSettingsCompat,
@@ -66,6 +78,10 @@ export function createSettingsRuntimeBinding(deps) {
     applyCloudSettings: clouds.apply,
     serializeWaterSettings: waterfx.serialize,
     applyWaterSettings: waterfx.apply,
+    serializeDetailSettings: detail.serialize,
+    applyDetailSettings: detail.apply,
+    serializeCameraSettings: camera.serialize,
+    applyCameraSettings: camera.apply,
     serializeInteractionSettings: interaction.serialize,
     applyInteractionSettings: interaction.apply,
     serializeAudioSettings: audio.serialize,

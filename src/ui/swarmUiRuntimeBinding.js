@@ -5,6 +5,8 @@ import { createTimeRoutingSettingsSyncRuntime } from "./timeRoutingSettingsSyncR
 
 export function createSwarmUiRuntimeBinding(deps) {
   const { mainRuntimeStateBinding } = deps;
+  const getZoomMin = () => (typeof deps.getZoomMin === "function" ? deps.getZoomMin() : deps.zoomMin);
+  const getZoomMax = () => (typeof deps.getZoomMax === "function" ? deps.getZoomMax() : deps.zoomMax);
 
   const swarmInputNormalization = createSwarmInputNormalization({
     clamp: deps.clamp,
@@ -13,8 +15,8 @@ export function createSwarmUiRuntimeBinding(deps) {
     swarmFollowZoomInInput: deps.swarmFollowZoomInInput,
     swarmFollowZoomOutInput: deps.swarmFollowZoomOutInput,
     swarmHeightMax: deps.swarmZMax,
-    zoomMin: deps.zoomMin,
-    zoomMax: deps.zoomMax,
+    getZoomMin,
+    getZoomMax,
   });
 
   const swarmPanelUi = createSwarmPanelUi({
@@ -96,6 +98,8 @@ export function createSwarmUiRuntimeBinding(deps) {
   const swarmSettingsSyncRuntime = createSwarmSettingsSyncRuntime({
     normalizeRoutingMode: deps.normalizeRoutingMode,
     swarmHeightMax: deps.swarmZMax,
+    getZoomMin,
+    getZoomMax,
     getSwarmSettings: () => mainRuntimeStateBinding.getSwarmSettings(),
     swarmEnabledToggle: deps.swarmEnabledToggle,
     swarmLitModeToggle: deps.swarmLitModeToggle,

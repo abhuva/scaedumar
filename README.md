@@ -50,6 +50,8 @@ Each candidate folder should contain:
 - optional: `fog.json`
 - optional: `clouds.json`
 - optional: `waterfx.json`
+- optional: `detail.json`
+- optional: `camera.json`
 - optional: `audio.json`
 - optional but recommended: `npc.json`
 
@@ -254,9 +256,12 @@ Architecture map:
   - `fog.json` (`useFog`, color, alpha/falloff/start settings)
   - `clouds.json` (`useClouds`, coverage/softness/opacity/scale, two-layer scroll speeds, sun-projection controls)
   - `waterfx.json` (`useWaterFx`, downhill/fixed flow, `waterFlowInvertDownhill`, `waterDownhillBoost`, local-mix, trend radii/weights, debug overlay, shimmer/specular/shore/reflection controls, `waterTintColor`, `waterTintStrength`)
+  - `detail.json` (core zoom-detail material tuning for dirt/rock micro and macro color sprites)
+  - `camera.json` (`zoomMin`, `zoomMax`)
   - `audio.json` (spectrogram settings, scribble/playback controls)
   - `npc.json` (`charID`, `pixelX`, `pixelY`, `color`)
 - Map loading automatically applies these JSON files when present in the selected map folder.
+- Dev map mode exposes a `D` panel for live zoom-detail tuning. Detail is color-only for performance; micro and macro detail sample continuous map coordinates, and each layer's Tile px value is the terrain-map-pixel width/height covered by one full source texture tile.
 - `Audio Studio` is a top-level workspace beside the map workspace.
 - `Audio Lab` currently provides canonical `audio` settings key with command-routed UI.
 - `Audio Lab` can load browser-decodable audio files, compute an offline STFT spectrogram, and play the original decoded buffer.

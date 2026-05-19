@@ -31,10 +31,12 @@ export function createSwarmInputNormalization(deps) {
    * Any other value (null/undefined/typos like "both") uses the default branch and unifies by Math.max.
    */
   function normalizeSwarmFollowZoomInputs(changed = "out", values = null) {
+    const zoomMin = typeof deps.getZoomMin === "function" ? deps.getZoomMin() : deps.zoomMin;
+    const zoomMax = typeof deps.getZoomMax === "function" ? deps.getZoomMax() : deps.zoomMax;
     const sourceZoomOut = values && values.zoomOut != null ? values.zoomOut : deps.swarmFollowZoomOutInput.value;
     const sourceZoomIn = values && values.zoomIn != null ? values.zoomIn : deps.swarmFollowZoomInInput.value;
-    let zoomOut = deps.clamp(Number(sourceZoomOut), deps.zoomMin, deps.zoomMax);
-    let zoomIn = deps.clamp(Number(sourceZoomIn), deps.zoomMin, deps.zoomMax);
+    let zoomOut = deps.clamp(Number(sourceZoomOut), zoomMin, zoomMax);
+    let zoomIn = deps.clamp(Number(sourceZoomIn), zoomMin, zoomMax);
     if (zoomOut > zoomIn) {
       if (changed === "out") {
         zoomIn = zoomOut;

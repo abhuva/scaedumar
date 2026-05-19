@@ -1,9 +1,15 @@
+import { DEFAULT_DETAIL_SETTINGS, normalizeDetailSettings } from "../gameplay/detailDataSerializer.js";
+
 export function buildUniformInputState(deps) {
   const lighting = deps.lightingSettings || deps.defaultLightingSettings || {};
   const parallax = deps.parallaxSettings || deps.defaultParallaxSettings || {};
   const fog = deps.fogState || deps.defaultFogSettings || {};
   const cloud = deps.cloudState || deps.defaultCloudSettings || {};
   const water = deps.waterFxState || deps.defaultWaterSettings || {};
+  const detail = normalizeDetailSettings(
+    deps.detailState || deps.defaultDetailSettings || DEFAULT_DETAIL_SETTINGS,
+    deps.defaultDetailSettings || DEFAULT_DETAIL_SETTINGS,
+  );
   const weather = deps.weatherState || null;
   const flowDeg = deps.clamp(Number(water.waterFlowDirectionDeg), 0, 360);
   const flowRad = (flowDeg * Math.PI) / 180;
@@ -63,6 +69,22 @@ export function buildUniformInputState(deps) {
     waterReflectivity: deps.clamp(Number(water.waterReflectivity), 0, 1),
     waterTintColor: Array.isArray(water.waterTintColor) ? water.waterTintColor : deps.hexToRgb01(String(water.waterTintColor || "#5ea6d6")),
     waterTintStrength: deps.clamp(Number(water.waterTintStrength), 0, 1),
+    useDetail: Boolean(detail.enabled),
+    detailStartPxPerMeter: deps.clamp(Number(detail.zoom.startPxPerMeter), 0, 512),
+    detailFullPxPerMeter: deps.clamp(Number(detail.zoom.fullPxPerMeter), 0, 1024),
+    detailWaterSuppression: deps.clamp(Number(detail.waterSuppression), 0, 1),
+    detailRockSlopeStart: deps.clamp(Number(detail.rules.rock.slopeStart), 0, 1),
+    detailRockSlopeEnd: deps.clamp(Number(detail.rules.rock.slopeEnd), 0, 1),
+    detailRockNoiseScale: deps.clamp(Number(detail.rules.rock.noiseScale), 0, 8),
+    detailRockNoiseStrength: deps.clamp(Number(detail.rules.rock.noiseStrength), 0, 1),
+    detailDirtMicroScale: deps.clamp(Number(detail.materials.dirt.micro.scaleMeters), 0.25, 4096),
+    detailDirtMacroScale: deps.clamp(Number(detail.materials.dirt.macro.scaleMeters), 0.25, 4096),
+    detailRockMicroScale: deps.clamp(Number(detail.materials.rock.micro.scaleMeters), 0.25, 4096),
+    detailRockMacroScale: deps.clamp(Number(detail.materials.rock.macro.scaleMeters), 0.25, 4096),
+    detailDirtMicroColor: deps.clamp(Number(detail.materials.dirt.micro.colorStrength), 0, 1),
+    detailDirtMacroColor: deps.clamp(Number(detail.materials.dirt.macro.colorStrength), 0, 1),
+    detailRockMicroColor: deps.clamp(Number(detail.materials.rock.micro.colorStrength), 0, 1),
+    detailRockMacroColor: deps.clamp(Number(detail.materials.rock.macro.colorStrength), 0, 1),
     cloudTimeSec,
     waterTimeSec,
     weatherType: weather ? weather.type : "clear",

@@ -4,9 +4,12 @@ import assert from "node:assert/strict";
 import { createSettingsRegistry } from "../src/core/settingsRegistry.js";
 import {
   DEFAULT_AUDIO_SETTINGS,
+  DEFAULT_DETAIL_SETTINGS,
+  DEFAULT_CAMERA_SETTINGS,
   DEFAULT_SLIME_SETTINGS,
   registerMainSettingsContracts,
 } from "../src/core/mainSettingsContracts.js";
+import { normalizeDetailSettings } from "../src/gameplay/detailDataSerializer.js";
 
 function createRegistryWithMainDeps(calls = []) {
   const registry = createSettingsRegistry();
@@ -21,6 +24,10 @@ function createRegistryWithMainDeps(calls = []) {
     applyClouds: (input) => calls.push(["clouds", input]),
     serializeWater: () => ({ key: "waterfx" }),
     applyWater: (input) => calls.push(["waterfx", input]),
+    serializeDetail: () => ({ key: "detail" }),
+    applyDetail: (input) => calls.push(["detail", input]),
+    serializeCamera: () => ({ key: "camera" }),
+    applyCamera: (input) => calls.push(["camera", input]),
     serializeInteraction: () => ({ key: "interaction" }),
     applyInteraction: (input) => calls.push(["interaction", input]),
     serializeAudio: () => ({ key: "audio" }),
@@ -92,4 +99,37 @@ test("slime settings contract routes and returns isolated defaults", () => {
   assert.deepEqual(defaultsA, DEFAULT_SLIME_SETTINGS);
   defaultsA.agentCount = 999;
   assert.notEqual(defaultsA.agentCount, defaultsB.agentCount);
+});
+
+test("detail settings contract routes and returns enabled defaults", () => {
+  const calls = [];
+  const registry = createRegistryWithMainDeps(calls);
+  assert.deepEqual(registry.serialize("detail", null), { key: "detail" });
+  registry.apply("detail", { enabled: false }, null);
+  assert.deepEqual(calls, [["detail", { enabled: false }]]);
+  const defaults = registry.getDefaults("detail");
+  assert.deepEqual(defaults, DEFAULT_DETAIL_SETTINGS);
+  assert.equal(defaults.enabled, true);
+  assert.equal(defaults.materials.dirt.macro.colorStrength, 1);
+  const normalized = normalizeDetailSettings({
+    materials: {
+      dirt: {
+        macro: {
+          colorStrength: 0.75,
+        },
+      },
+    },
+  });
+  assert.equal(normalized.materials.dirt.macro.colorStrength, 0.75);
+});
+
+test("camera settings contract routes and returns deep zoom defaults", () => {
+  const calls = [];
+  const registry = createRegistryWithMainDeps(calls);
+  assert.deepEqual(registry.serialize("camera", null), { key: "camera" });
+  registry.apply("camera", { zoomMax: 256 }, null);
+  assert.deepEqual(calls, [["camera", { zoomMax: 256 }]]);
+  const defaults = registry.getDefaults("camera");
+  assert.deepEqual(defaults, DEFAULT_CAMERA_SETTINGS);
+  assert.equal(defaults.zoomMax, 128);
 });

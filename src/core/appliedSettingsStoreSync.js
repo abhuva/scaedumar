@@ -1,4 +1,6 @@
 import { DEFAULT_CURSOR_LIGHT_COLOR_HEX } from "./state.js";
+import { normalizeDetailSettings } from "../gameplay/detailDataSerializer.js";
+import { normalizeCameraSettings } from "../gameplay/cameraSettings.js";
 import { normalizeSlimeSettings } from "../slime/slimeState.js";
 
 const PERSISTED_SWARM_KEYS = [
@@ -255,6 +257,48 @@ export function createAppliedSettingsStoreSync(deps) {
                 ...prev.systems.time.routing,
                 water: nextWater.timeRouting,
               },
+            },
+          },
+        };
+      }
+      if (key === "detail") {
+        const nextDetail = normalizeDetailSettings(
+          normalized,
+          deps.getSettingsDefaults("detail", {}),
+        );
+        return {
+          ...prev,
+          simulation: {
+            ...prev.simulation,
+            knobs: {
+              ...prev.simulation.knobs,
+              detail: nextDetail,
+            },
+          },
+        };
+      }
+      if (key === "camera") {
+        const nextCamera = normalizeCameraSettings(
+          normalized,
+          deps.getSettingsDefaults("camera", {}),
+        );
+        const currentZoom = Number(prev.camera?.zoom);
+        const nextZoom = deps.clamp(
+          Number.isFinite(currentZoom) ? currentZoom : 1,
+          nextCamera.zoomMin,
+          nextCamera.zoomMax,
+        );
+        return {
+          ...prev,
+          camera: {
+            ...prev.camera,
+            zoom: nextZoom,
+          },
+          simulation: {
+            ...prev.simulation,
+            knobs: {
+              ...prev.simulation.knobs,
+              camera: nextCamera,
             },
           },
         };

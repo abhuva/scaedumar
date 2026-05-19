@@ -55,6 +55,7 @@
       <button class="topic-btn" type="button" data-topic="swarm" title="Agent Swarm" aria-label="Agent swarm settings">A</button>
       <button class="topic-btn" type="button" data-topic="lighting" title="Main Lighting" aria-label="Main lighting">L</button>
       <button class="topic-btn" type="button" data-topic="parallax" title="Parallax" aria-label="Parallax settings">P</button>
+      <button class="topic-btn" type="button" data-topic="detail" title="Zoom Detail" aria-label="Zoom detail material settings">D</button>
       <button class="topic-btn" type="button" data-topic="fog" title="Height Fog" aria-label="Height fog">F</button>
       <button class="topic-btn" type="button" data-topic="clouds" title="Cloud Shadows" aria-label="Cloud shadow settings">C</button>
       <button class="topic-btn" type="button" data-topic="water" title="Water FX" aria-label="Water effects">W</button>
@@ -549,6 +550,122 @@
           </div>
         </section>
 
+        <section class="topic-card" data-topic="detail" data-title="Zoom Detail">
+          <p class="help">Tile px means terrain-map pixels. A 512x512 source with Tile px 8 spans 8x8 terrain pixels; the source is sampled continuously with linear filtering inside that area.</p>
+          <div class="row">
+            <label for="detailEnabled">Zoom Detail</label>
+            <input id="detailEnabled" type="checkbox" data-detail-path="enabled" checked />
+          </div>
+          <div class="row">
+            <label for="detailStartPxPerMeter">Fade Start px/m</label>
+            <div class="inline-control">
+              <input id="detailStartPxPerMeter" type="range" min="0" max="128" step="0.5" value="4" data-detail-path="zoom.startPxPerMeter" data-detail-value="detailStartPxPerMeterValue" data-detail-format="1" />
+              <span id="detailStartPxPerMeterValue">4.0</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="detailFullPxPerMeter">Fade Full px/m</label>
+            <div class="inline-control">
+              <input id="detailFullPxPerMeter" type="range" min="0" max="256" step="0.5" value="16" data-detail-path="zoom.fullPxPerMeter" data-detail-value="detailFullPxPerMeterValue" data-detail-format="1" />
+              <span id="detailFullPxPerMeterValue">16.0</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="detailWaterSuppression">Water Suppression</label>
+            <div class="inline-control">
+              <input id="detailWaterSuppression" type="range" min="0" max="1" step="0.01" value="1" data-detail-path="waterSuppression" data-detail-value="detailWaterSuppressionValue" />
+              <span id="detailWaterSuppressionValue">1.00</span>
+            </div>
+          </div>
+          <h2>Dirt</h2>
+          <div class="row">
+            <label for="detailDirtMicroScale">Dirt Micro Tile px</label>
+            <div class="inline-control">
+              <input id="detailDirtMicroScale" type="range" min="0.25" max="64" step="0.25" value="2" data-detail-path="materials.dirt.micro.scaleMeters" data-detail-value="detailDirtMicroScaleValue" data-detail-format="2" />
+              <span id="detailDirtMicroScaleValue">2.00</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="detailDirtMicroColor">Dirt Micro Color</label>
+            <div class="inline-control">
+              <input id="detailDirtMicroColor" type="range" min="0" max="1" step="0.01" value="1" data-detail-path="materials.dirt.micro.colorStrength" data-detail-value="detailDirtMicroColorValue" />
+              <span id="detailDirtMicroColorValue">1.00</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="detailDirtMacroScale">Dirt Macro Tile px</label>
+            <div class="inline-control">
+              <input id="detailDirtMacroScale" type="range" min="1" max="1024" step="1" value="192" data-detail-path="materials.dirt.macro.scaleMeters" data-detail-value="detailDirtMacroScaleValue" data-detail-format="int" />
+              <span id="detailDirtMacroScaleValue">192</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="detailDirtMacroColor">Dirt Macro Color</label>
+            <div class="inline-control">
+              <input id="detailDirtMacroColor" type="range" min="0" max="1" step="0.01" value="1" data-detail-path="materials.dirt.macro.colorStrength" data-detail-value="detailDirtMacroColorValue" />
+              <span id="detailDirtMacroColorValue">1.00</span>
+            </div>
+          </div>
+          <h2>Rock</h2>
+          <div class="row">
+            <label for="detailRockMicroScale">Rock Micro Tile px</label>
+            <div class="inline-control">
+              <input id="detailRockMicroScale" type="range" min="0.25" max="64" step="0.25" value="2" data-detail-path="materials.rock.micro.scaleMeters" data-detail-value="detailRockMicroScaleValue" />
+              <span id="detailRockMicroScaleValue">2.00</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="detailRockMicroColor">Rock Micro Color</label>
+            <div class="inline-control">
+              <input id="detailRockMicroColor" type="range" min="0" max="1" step="0.01" value="1" data-detail-path="materials.rock.micro.colorStrength" data-detail-value="detailRockMicroColorValue" />
+              <span id="detailRockMicroColorValue">1.00</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="detailRockMacroScale">Rock Macro Tile px</label>
+            <div class="inline-control">
+              <input id="detailRockMacroScale" type="range" min="1" max="1024" step="1" value="256" data-detail-path="materials.rock.macro.scaleMeters" data-detail-value="detailRockMacroScaleValue" data-detail-format="int" />
+              <span id="detailRockMacroScaleValue">256</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="detailRockMacroColor">Rock Macro Color</label>
+            <div class="inline-control">
+              <input id="detailRockMacroColor" type="range" min="0" max="1" step="0.01" value="1" data-detail-path="materials.rock.macro.colorStrength" data-detail-value="detailRockMacroColorValue" />
+              <span id="detailRockMacroColorValue">1.00</span>
+            </div>
+          </div>
+          <h2>Rock Mask</h2>
+          <div class="row">
+            <label for="detailRockSlopeStart">Slope Start</label>
+            <div class="inline-control">
+              <input id="detailRockSlopeStart" type="range" min="0" max="1" step="0.01" value="0.35" data-detail-path="rules.rock.slopeStart" data-detail-value="detailRockSlopeStartValue" />
+              <span id="detailRockSlopeStartValue">0.35</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="detailRockSlopeEnd">Slope End</label>
+            <div class="inline-control">
+              <input id="detailRockSlopeEnd" type="range" min="0" max="1" step="0.01" value="0.75" data-detail-path="rules.rock.slopeEnd" data-detail-value="detailRockSlopeEndValue" />
+              <span id="detailRockSlopeEndValue">0.75</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="detailRockNoiseScale">Noise Scale</label>
+            <div class="inline-control">
+              <input id="detailRockNoiseScale" type="range" min="0" max="1" step="0.005" value="0.03" data-detail-path="rules.rock.noiseScale" data-detail-value="detailRockNoiseScaleValue" data-detail-format="3" />
+              <span id="detailRockNoiseScaleValue">0.030</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="detailRockNoiseStrength">Noise Strength</label>
+            <div class="inline-control">
+              <input id="detailRockNoiseStrength" type="range" min="0" max="1" step="0.01" value="0.12" data-detail-path="rules.rock.noiseStrength" data-detail-value="detailRockNoiseStrengthValue" />
+              <span id="detailRockNoiseStrengthValue">0.12</span>
+            </div>
+          </div>
+        </section>
+
         <section class="topic-card" data-topic="fog" data-title="Height Fog">
           <div class="row">
             <label for="fogToggle">Height Fog</label>
@@ -880,6 +997,10 @@
 
         <section class="topic-card" data-topic="info" data-title="Info">
           <p id="cycleInfo" class="status">Time: --:-- | Speed: -- h/s</p>
+          <p id="frameInfo" class="status">FPS: -- | Frame: -- ms</p>
+          <p id="frameProfileInfo" class="status">CPU: -- | Update: -- | UI: -- | Render: -- | Overlay: --</p>
+          <p id="gpuProfileInfo" class="status">GPU: -- | Shadow: -- | Blur: -- | Terrain: --</p>
+          <p id="detailInfo" class="status">Zoom: -- | Detail px/m: -- | Fade: --</p>
           <p id="playerInfo" class="status">Player: (-, -)</p>
           <p id="pathInfo" class="status">Path: len -- | cost -- | avg --</p>
           <p id="status" class="status">Initializing...</p>
