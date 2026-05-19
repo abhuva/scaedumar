@@ -22,9 +22,30 @@
     <nav class="workspace-switcher" aria-label="Workspace">
       <button class="workspace-btn active" type="button" data-workspace="map" aria-pressed="true">Map</button>
       <button class="workspace-btn" type="button" data-workspace="audio" aria-pressed="false">Audio</button>
+      <button class="workspace-btn" type="button" data-workspace="slime" aria-pressed="false">Slime</button>
     </nav>
 
-    <div id="mapWorkspace" class="workspace-root active">
+    <div id="mapWorkspace" class="workspace-root active" data-workspace-panel="map">
+    <section id="gameTimeDiorama" class="game-time-diorama" aria-label="Game time">
+      <div class="time-diorama-scene" aria-hidden="true">
+        <div class="time-diorama-sky">
+          <span id="gameTimeSun" class="time-diorama-sun"></span>
+          <span id="gameTimeMoon" class="time-diorama-moon"></span>
+          <span class="time-diorama-star star-a"></span>
+          <span class="time-diorama-star star-b"></span>
+          <span class="time-diorama-star star-c"></span>
+        </div>
+        <div class="time-diorama-ridge ridge-back"></div>
+        <div class="time-diorama-ridge ridge-front"></div>
+      </div>
+      <div class="time-speed-grid" aria-label="Time speed">
+        <button class="time-speed-btn" type="button" data-speed-preset="1x" aria-pressed="false">1x</button>
+        <button class="time-speed-btn" type="button" data-speed-preset="5x" aria-pressed="false">5x</button>
+        <button class="time-speed-btn" type="button" data-speed-preset="20x" aria-pressed="false">20x</button>
+        <button class="time-speed-btn" type="button" data-speed-preset="100x" aria-pressed="false">100x</button>
+      </div>
+    </section>
+
     <nav class="topic-dock" aria-label="Map tool topics">
       <button id="dockLightingModeToggle" class="mode-btn" type="button" title="Lighting Mode" aria-label="Lighting mode toggle">LM</button>
       <button id="dockPathfindingModeToggle" class="mode-btn" type="button" title="Pathfinding Mode" aria-label="Pathfinding mode toggle">PF</button>
@@ -877,12 +898,13 @@
       <h2>Player Moving</h2>
       <p id="movementStatusEta">Estimated arrival: --</p>
       <p id="movementStatusDetail">Path: --</p>
+      <button id="movementCancelBtn" class="movement-cancel-btn" type="button">Cancel Travel</button>
     </aside>
     <canvas id="glCanvas"></canvas>
     <canvas id="overlayCanvas"></canvas>
     </div>
 
-    <div id="audioWorkspace" class="workspace-root audio-workspace">
+    <div id="audioWorkspace" class="workspace-root audio-workspace" data-workspace-panel="audio">
       <nav class="audio-mode-dock" aria-label="Audio modes">
         <button class="audio-mode-btn active" type="button" data-audio-mode="spectrogram" title="Spectrogram">Spec</button>
         <button class="audio-mode-btn" type="button" data-audio-mode="synthesis" title="Synthesis">Synth</button>
@@ -1093,6 +1115,251 @@
             <div id="audioSoundscapeLayerList" class="oscillator-list" aria-label="Soundscape layers"></div>
           </section>
           <p>Audio Status: <span id="audioStatusValue">Stopped</span></p>
+        </aside>
+      </main>
+    </div>
+    <div id="slimeWorkspace" class="workspace-root slime-workspace" data-workspace-panel="slime">
+      <main class="slime-studio">
+        <section class="slime-viewport" aria-label="Slime simulation viewport">
+          <canvas id="slimeCanvas" width="1024" height="1024"></canvas>
+          <div class="audio-viewport-label">GPU Physarum / Trail Surface</div>
+        </section>
+        <aside class="slime-control-panel" aria-label="Slime controls">
+          <h1>Slime Lab</h1>
+          <p class="slime-note">WebGL2 Physarum transport experiment. CPU readback should stay occasional; trail texture is the future terrain/game integration path.</p>
+          <div class="light-editor-actions audio-actions">
+            <button id="slimeStartBtn" type="button">Start</button>
+            <button id="slimeStopBtn" type="button">Stop</button>
+            <button id="slimeResetBtn" type="button">Reset</button>
+            <button id="slimeRandomizeBtn" type="button">Seed</button>
+          </div>
+          <div class="row">
+            <label for="slimeAgentCount">Agents</label>
+            <div class="inline-control">
+              <input id="slimeAgentCount" type="range" min="10000" max="2000000" step="10000" value="250000" />
+              <span id="slimeAgentCountValue">250000</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="slimeSimSize">Texture Size</label>
+            <select id="slimeSimSize">
+              <option value="512">512</option>
+              <option value="1024" selected>1024</option>
+              <option value="2048">2048</option>
+            </select>
+          </div>
+          <div class="row">
+            <label for="slimeStepsPerFrame">Steps / Frame</label>
+            <div class="inline-control">
+              <input id="slimeStepsPerFrame" type="range" min="1" max="8" step="1" value="1" />
+              <span id="slimeStepsPerFrameValue">1</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="slimeSensorDistance">Sensor Distance</label>
+            <div class="inline-control">
+              <input id="slimeSensorDistance" type="range" min="1" max="64" step="0.5" value="14" />
+              <span id="slimeSensorDistanceValue">14.0</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="slimeSensorAngle">Sensor Angle</label>
+            <div class="inline-control">
+              <input id="slimeSensorAngle" type="range" min="0" max="120" step="1" value="45" />
+              <span id="slimeSensorAngleValue">45 deg</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="slimeSensorSize">Sensor Size</label>
+            <div class="inline-control">
+              <input id="slimeSensorSize" type="range" min="1" max="5" step="1" value="1" />
+              <span id="slimeSensorSizeValue">1</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="slimeSensorNoise">Sensor Noise</label>
+            <div class="inline-control">
+              <input id="slimeSensorNoise" type="range" min="0" max="0.25" step="0.005" value="0.02" />
+              <span id="slimeSensorNoiseValue">0.020</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="slimeStepSize">Step Size</label>
+            <div class="inline-control">
+              <input id="slimeStepSize" type="range" min="0.1" max="5" step="0.1" value="1.2" />
+              <span id="slimeStepSizeValue">1.2</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="slimeTurnAngle">Turn Angle</label>
+            <div class="inline-control">
+              <input id="slimeTurnAngle" type="range" min="0" max="120" step="1" value="30" />
+              <span id="slimeTurnAngleValue">30 deg</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="slimeWanderChance">Wander Chance</label>
+            <div class="inline-control">
+              <input id="slimeWanderChance" type="range" min="0" max="0.1" step="0.001" value="0.01" />
+              <span id="slimeWanderChanceValue">1.0%</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="slimeWanderStrength">Wander Strength</label>
+            <div class="inline-control">
+              <input id="slimeWanderStrength" type="range" min="0" max="180" step="1" value="45" />
+              <span id="slimeWanderStrengthValue">45 deg</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="slimeDepositAmount">Deposit</label>
+            <div class="inline-control">
+              <input id="slimeDepositAmount" type="range" min="0" max="3" step="0.05" value="0.8" />
+              <span id="slimeDepositAmountValue">0.80</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="slimeDepositSize">Deposit Size</label>
+            <div class="inline-control">
+              <input id="slimeDepositSize" type="range" min="1" max="8" step="0.5" value="1.5" />
+              <span id="slimeDepositSizeValue">1.5</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="slimeDiffusion">Diffusion</label>
+            <div class="inline-control">
+              <input id="slimeDiffusion" type="range" min="0" max="1" step="0.01" value="0.2" />
+              <span id="slimeDiffusionValue">0.20</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="slimeDecay">Decay</label>
+            <div class="inline-control">
+              <input id="slimeDecay" type="range" min="0.8" max="1" step="0.001" value="0.96" />
+              <span id="slimeDecayValue">0.960</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="slimeTrailGain">Trail Gain</label>
+            <div class="inline-control">
+              <input id="slimeTrailGain" type="range" min="0.1" max="20" step="0.1" value="3" />
+              <span id="slimeTrailGainValue">3.0</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="slimeTrailGamma">Gamma</label>
+            <div class="inline-control">
+              <input id="slimeTrailGamma" type="range" min="0.2" max="4" step="0.05" value="1.2" />
+              <span id="slimeTrailGammaValue">1.20</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="slimePalette">Palette</label>
+            <select id="slimePalette">
+              <option value="fire" selected>Fire</option>
+              <option value="ice">Ice</option>
+              <option value="mono">Mono</option>
+              <option value="toxic">Toxic</option>
+            </select>
+          </div>
+          <div class="row">
+            <label for="slimeWrapEdges">Wrap Edges</label>
+            <input id="slimeWrapEdges" type="checkbox" checked />
+          </div>
+          <div class="row">
+            <label for="slimeSpawnMode">Spawn Mode</label>
+            <select id="slimeSpawnMode">
+              <option value="full" selected>Full Field</option>
+              <option value="disk">Center Disk</option>
+              <option value="ring">Ring</option>
+              <option value="line">Line</option>
+              <option value="edge">Edges</option>
+            </select>
+          </div>
+          <div class="row">
+            <label for="slimeUseTerrain">Use Terrain</label>
+            <input id="slimeUseTerrain" type="checkbox" />
+          </div>
+          <div class="row">
+            <label for="slimeShowTerrainUnderlay">Terrain Underlay</label>
+            <input id="slimeShowTerrainUnderlay" type="checkbox" checked />
+          </div>
+          <div class="row">
+            <label for="slimeTerrainMix">Terrain Mix</label>
+            <div class="inline-control">
+              <input id="slimeTerrainMix" type="range" min="0" max="10" step="0.1" value="1" />
+              <span id="slimeTerrainMixValue">1.0</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="slimeSlopeBias">Slope Bias</label>
+            <div class="inline-control">
+              <input id="slimeSlopeBias" type="range" min="-10" max="10" step="0.1" value="1.5" />
+              <span id="slimeSlopeBiasValue">1.5</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="slimeSlopeCutoff">Slope Cutoff</label>
+            <div class="inline-control">
+              <input id="slimeSlopeCutoff" type="range" min="0" max="1" step="0.01" value="0.85" />
+              <span id="slimeSlopeCutoffValue">0.85</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="slimeHeightBias">Height Bias</label>
+            <div class="inline-control">
+              <input id="slimeHeightBias" type="range" min="-10" max="10" step="0.1" value="0" />
+              <span id="slimeHeightBiasValue">0.0</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="slimeHeightMin">Height Min</label>
+            <div class="inline-control">
+              <input id="slimeHeightMin" type="range" min="0" max="1" step="0.01" value="0" />
+              <span id="slimeHeightMinValue">0.00</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="slimeHeightMax">Height Max</label>
+            <div class="inline-control">
+              <input id="slimeHeightMax" type="range" min="0" max="1" step="0.01" value="1" />
+              <span id="slimeHeightMaxValue">1.00</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="slimeHeightBandWeight">Height Band Weight</label>
+            <div class="inline-control">
+              <input id="slimeHeightBandWeight" type="range" min="0" max="10" step="0.1" value="0" />
+              <span id="slimeHeightBandWeightValue">0.0</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="slimeWaterBias">Water Bias</label>
+            <div class="inline-control">
+              <input id="slimeWaterBias" type="range" min="-10" max="10" step="0.1" value="2" />
+              <span id="slimeWaterBiasValue">2.0</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="slimeBrushRadius">Brush Radius</label>
+            <div class="inline-control">
+              <input id="slimeBrushRadius" type="range" min="1" max="512" step="1" value="60" />
+              <span id="slimeBrushRadiusValue">60 px</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="slimeBrushTrailClear">Trail Clear</label>
+            <div class="inline-control">
+              <input id="slimeBrushTrailClear" type="range" min="0" max="1" step="0.01" value="0.85" />
+              <span id="slimeBrushTrailClearValue">0.85</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="slimeSeed">Seed</label>
+            <input id="slimeSeed" type="number" min="1" max="999999" step="1" value="1" />
+          </div>
+          <p>Slime Status: <span id="slimeStatusValue">Stopped</span></p>
+          <p>Slime Stats: <span id="slimeStatsValue">Not initialized</span></p>
         </aside>
       </main>
     </div>

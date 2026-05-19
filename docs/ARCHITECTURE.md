@@ -14,6 +14,7 @@ top-level composition entry point instead of the dominant state owner.
 - `src/sim/`: time/lighting/fog/cloud/water/weather systems and helpers
 - `src/audio/`: audio-domain runtime modules (WebAudio engine, offline
   STFT/FFT analysis, spectrogram display, scribble input/grid, resynthesis)
+- `src/slime/`: slime-domain GPU simulation modules for Physarum experiments
 - `src/pointLightBakeWorker.js`: point-light bake worker entry
 - `src-tauri/`: desktop wrapper and native file I/O commands
 
@@ -99,8 +100,9 @@ owner modules.
 - `src/ui/infoPanelRuntime.js`: player/path info panel updates
 - `src/ui/audioPanelRuntime.js` + `src/ui/audioBindingRuntime.js`: Audio Lab
   panel UI reflection and command dispatch wiring
-- `src/ui/workspaceRuntime.js` + `src/ui/workspaceBindingRuntime.js`: top-level
-  workspace switching between Map and Audio
+- `src/ui/workspaceRegistry.js`, `src/ui/workspaceRuntime.js`, and
+  `src/ui/workspaceBindingRuntime.js`: top-level workspace switching for
+  Map, Audio, Slime, and future dev workspaces
 
 ## Audio Domain
 
@@ -136,6 +138,34 @@ owner modules.
 - Audio map sidecar is `audio.json` and participates in map `Save All` and
   sidecar load flows.
 - Audio is exposed as a top-level workspace, not as a terrain topic panel.
+
+## Slime Domain
+
+- Settings are registered through the `slime` key in
+  `src/core/mainSettingsContracts.js`.
+- Slime Lab is exposed as a top-level dev workspace.
+- Mechanics are documented in `docs/SLIME_SIM.md`.
+- `src/slime/slimeGpuRuntime.js` owns the first WebGL2 Physarum backend:
+  float texture agent state, trail/deposit textures, ping-pong update passes,
+  diffusion/decay, and display.
+- Stochastic controls (`wanderChance`, `wanderStrengthDeg`, `sensorNoise`)
+  and spawn modes are part of the base experiment because deterministic
+  sensor-only movement can collapse into stable attractors too quickly.
+- Optional terrain coupling samples height, slope, and water textures as sensor
+  score biases. Slope also has a hard cutoff that rejects movement onto
+  over-steep samples.
+- Canvas clicks run a GPU brush operation that respawns agents inside the brush
+  radius using the active spawn mode and weakens nearby trail strength.
+- Slime settings are canonical store-backed settings, but there is no map
+  sidecar persistence yet; current `Save All` does not write `slime.json`.
+- `src/ui/slimePanelRuntime.js` and `src/ui/slimeBindingRuntime.js` own
+  Slime Lab UI reflection and command dispatch.
+- Long-term rendering direction: WebGL2 is the lightweight prototype backend.
+  Keep simulation backends behind domain runtime APIs so WebGPU or native
+  Rust/WGPU can replace the implementation if large agent counts or terrain
+  coupling require compute shaders/storage buffers.
+- GPU readback should remain sparse and targeted. Gameplay/render integration
+  should prefer passing simulation fields such as trail maps as GPU textures.
 
 ## Simulation
 

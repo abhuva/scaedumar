@@ -96,6 +96,11 @@ No game engine is used.
 - Point-light worker + bake-orchestrator runtime wiring is now extracted to `src/render/pointLightBakeRuntime.js`.
 - Point-light bake runtime composition (worker access, sync-bake binding, canvas apply/upload, and public bake operations) is now extracted to `src/render/pointLightBakeRuntimeBinding.js`.
 - Cycle-hour slider/label UI helpers are now extracted to `src/ui/timeUiRuntime.js`.
+- Gameplay mode includes a top-center `gameTimeDiorama` HUD backed by
+  `src/ui/gameTimeDioramaRuntime.js`; it samples the active sun model to derive
+  sunrise/sunset, renders a stylized sun/moon arc, and exposes
+  `1x`/`5x`/`20x`/`100x` time-advance presets through the existing
+  `core/time/setCycleSpeed` command.
 - Runtime mode state-access helpers (`getRuntimeMode`, capability checks) are now extracted to `src/core/modeStateAccess.js`.
 - Runtime mode state runtime binding (`getRuntimeMode`, `canUseTopicInCurrentMode`, `canUseInteractionInCurrentMode`) is now extracted to `src/core/modeStateRuntimeBinding.js`.
 - App launch now starts behind a title-screen shell using
@@ -381,6 +386,35 @@ No game engine is used.
     root/scale with a repeatable numeric seed; targeted tests cover modal
     frequency, noise normalization, role presets, and constrained
     randomization.
+- Slime Lab groundwork:
+  - dev-mode workspace switching is now registry-driven through
+    `src/ui/workspaceRegistry.js` and supports `map`, `audio`, and `slime`.
+  - core settings registry includes a `slime` contract key.
+  - Slime Lab UI is a top-level workspace with a center WebGL canvas and right
+    settings panel, mirroring the Audio Lab workspace pattern.
+  - first backend lives in `src/slime/slimeGpuRuntime.js` and implements a
+    WebGL2 Physarum transport prototype with float texture agent state,
+    trail/deposit textures, ping-pong update passes, additive point deposits,
+    trail diffusion/decay, and display palettes.
+  - Slime Lab exposes stochastic locomotion controls (`wanderChance`,
+    `wanderStrengthDeg`, `sensorNoise`) plus spawn modes (`full`, `disk`,
+    `ring`, `line`, `edge`) because deterministic centered seeding quickly
+    collapses into stable circular attractors.
+  - Slime mechanics are documented in `docs/SLIME_SIM.md`.
+  - Optional terrain coupling samples current height/slope/water textures as
+    movement biases; slope also supports a hard cutoff that rejects movement
+    onto over-steep samples.
+  - Slime Lab canvas clicks run a GPU brush operation: agents inside
+    `brushRadius` are repositioned according to the active spawn mode, and
+    the trail texture is weakened by `brushTrailClear` within the same radius.
+  - Slime settings are registered in the core settings registry, but map-level
+    `Save All` does not yet write a `slime.json` sidecar.
+  - long-term rendering direction is documented in `docs/ARCHITECTURE.md`:
+    WebGL2 is the prototype backend, while WebGPU or native Rust/WGPU are the
+    intended upgrade paths if high-scale simulation or terrain coupling needs
+    compute shaders/storage buffers.
+  - GPU readback should remain sparse/targeted; later gameplay integration
+    should prefer passing slime trails as GPU textures.
 - Weather groundwork (architecture scaffold only):
   - core state now includes weather contract (`type`, `intensity`, `windDirDeg`, `windSpeed`, `localModulation`)
   - scheduler includes `weatherSystem` producing per-frame weather/wind vectors
@@ -458,8 +492,8 @@ No game engine is used.
   - preview path is backtracked from hovered pixel via parent links
   - gameplay mode does not allow no-mode click teleporting; destinations must
     be chosen through `PF`
-  - active movement shows a right-side ETA panel and any map click cancels the
-    current movement queue
+  - active movement shows a right-side ETA panel with an explicit cancel button;
+    ordinary map/UI clicks do not cancel the current movement queue
   - player is loaded from `<mapFolder>/npc.json` and drawn as a 0.5-map-pixel circle
 - Cursor light mode on:
   - mouse movement updates live point-light position on terrain

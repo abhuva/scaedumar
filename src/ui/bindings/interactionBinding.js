@@ -89,4 +89,10 @@ export function bindInteractionAndCycleControls(deps) {
     deps.cycleSpeedInput.addEventListener("input", dispatchCycleSpeedChange);
     deps.cycleSpeedInput.addEventListener("change", dispatchCycleSpeedChange);
   }
+
+  if (deps.movementCancelBtn) {
+    deps.movementCancelBtn.addEventListener("click", () => {
+      deps.dispatchCoreCommand({ type: "core/movement/cancel" });
+    });
+  }
 }

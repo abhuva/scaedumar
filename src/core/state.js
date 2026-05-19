@@ -116,6 +116,7 @@ export function createInitialState() {
         clouds: {},
         waterFx: {},
         audio: {},
+        slime: {},
       },
       weather: { ...DEFAULT_WEATHER_STATE },
     },

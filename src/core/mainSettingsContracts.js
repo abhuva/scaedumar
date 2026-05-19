@@ -224,6 +224,43 @@ export const DEFAULT_AUDIO_SETTINGS = {
   },
 };
 
+export const DEFAULT_SLIME_SETTINGS = {
+  enabled: false,
+  agentCount: 250000,
+  simSize: 1024,
+  stepsPerFrame: 1,
+  sensorDistance: 14,
+  sensorAngleDeg: 45,
+  sensorSize: 1,
+  sensorNoise: 0.02,
+  stepSize: 1.2,
+  turnAngleDeg: 30,
+  wanderChance: 0.01,
+  wanderStrengthDeg: 45,
+  depositAmount: 0.8,
+  depositSize: 1.5,
+  diffusion: 0.2,
+  decay: 0.96,
+  trailGain: 3,
+  trailGamma: 1.2,
+  palette: "fire",
+  wrapEdges: true,
+  spawnMode: "full",
+  useTerrain: false,
+  showTerrainUnderlay: true,
+  terrainMix: 1,
+  slopeBias: 1.5,
+  slopeCutoff: 0.85,
+  heightBias: 0,
+  heightMin: 0,
+  heightMax: 1,
+  heightBandWeight: 0,
+  waterBias: 2,
+  brushRadius: 60,
+  brushTrailClear: 0.85,
+  seed: 1,
+};
+
 function createObjectValidator() {
   return (input) => (
     input === null
@@ -282,6 +319,12 @@ export function registerMainSettingsContracts(settingsRegistry, deps) {
       defaults: DEFAULT_AUDIO_SETTINGS,
       serialize: () => deps.serializeAudio(),
       apply: (input) => deps.applyAudio(input),
+    },
+    {
+      key: "slime",
+      defaults: DEFAULT_SLIME_SETTINGS,
+      serialize: () => deps.serializeSlime(),
+      apply: (input) => deps.applySlime(input),
     },
   ];
 

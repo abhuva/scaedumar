@@ -241,6 +241,10 @@ like with a shaman or drugs or similar, you connect your mind with an animal and
 	- it could go pre-defined routes (splines)
 	- it could be fully steer-able (you can control / drive it)
 
+Another thought on this: when possessing an animal, use shader/render effects or different color-mapping or similar things - like a hawk would maybe see the world more greyscale but nesting grounds/birds/little animals would be like strong red colored
+Or a bird would highlight certain plants (also visually) etc.
+Could add both an interesting effect but also philosophical depth - each animal IS conscious but experiences the world drastically different.
+
 #### **resources change and make scouting a constant action** 
 
 to tie the animal possessing thing even more in, beyond just a visual gimmick - resources on a whole scale will vary (wildlife, plants etc.). The variation comes through the player, natural fluctuation etc.
@@ -249,7 +253,8 @@ to tie the animal possessing thing even more in, beyond just a visual gimmick - 
   When we now check on a resource (out of memory so to say) that is not nearby - we get not the true value, but a distorted one - depending on how long away it is (this needs to be finetuned of course)
   Resources might also pop up (large concentrations).
   
-  Overall the goal is that you have to plan where to go, as movement is time and resource intensive. So you want to be sure that you get good resources - this helps to tie the animal possessing/scouting mechanic in more.
+  >[!important]+
+  >Overall the goal is that you have to plan where to go, as movement is time and resource intensive. So you want to be sure that you get good resources - this helps to tie the animal possessing/scouting mechanic in more.
 
 --> when we gather resources, this map should be updated (set to empty at this area, so we enforce change)
 
@@ -521,6 +526,7 @@ so once he is moving, the light moves with
   The interesting part is of course not the save-spacing. Its more the "synthetic sound".
   This could be coupled with a built-in synth. And some sound systems that drive ambient music. fully synthesized.
 
+https://www.youtube.com/watch?v=WeJ3wz1S01Q has a lot of interesting terms to look up for synthesizing 
 
 ## Interesting Links
 

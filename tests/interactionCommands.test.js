@@ -75,6 +75,53 @@ test("gameplay no-mode map clicks do not teleport the player", () => {
   assert.equal(deps.calls.status, "Use PF to choose a destination.");
 });
 
+test("gameplay no-mode map clicks do not cancel active movement", () => {
+  const commandBus = createCommandBus();
+  const deps = createDeps({
+    getMovementStateSnapshot: () => ({ active: true }),
+  });
+  registerInteractionCommands(commandBus, deps);
+
+  commandBus.dispatch({ type: "core/interaction/clickMapPixel", x: 8, y: 9 });
+
+  assert.equal(deps.calls.setPlayerPosition, 0);
+  assert.equal(deps.calls.cancelMovementQueue, 0);
+  assert.equal(deps.calls.requestOverlayDraw, 1);
+  assert.equal(deps.calls.status, "Use PF to choose a destination.");
+});
+
+test("movement cancel command cancels active travel explicitly", () => {
+  const commandBus = createCommandBus();
+  const deps = createDeps({
+    getMovementStateSnapshot: () => ({ active: true }),
+    movePreviewState: {
+      hoverPixel: { x: 8, y: 9 },
+      pathPixels: [{ x: 2, y: 3 }, { x: 8, y: 9 }],
+    },
+  });
+  registerInteractionCommands(commandBus, deps);
+
+  commandBus.dispatch({ type: "core/movement/cancel" });
+
+  assert.equal(deps.calls.cancelMovementQueue, 1);
+  assert.equal(deps.movePreviewState.hoverPixel, null);
+  assert.deepEqual(deps.movePreviewState.pathPixels, []);
+  assert.equal(deps.calls.requestOverlayDraw, 1);
+  assert.equal(deps.calls.status, "Movement canceled at (2, 3).");
+});
+
+test("movement cancel command is a no-op when travel is inactive", () => {
+  const commandBus = createCommandBus();
+  const deps = createDeps();
+  registerInteractionCommands(commandBus, deps);
+
+  commandBus.dispatch({ type: "core/movement/cancel" });
+
+  assert.equal(deps.calls.cancelMovementQueue, 0);
+  assert.equal(deps.calls.requestOverlayDraw, 0);
+  assert.equal(deps.calls.status, "");
+});
+
 test("dev no-mode map clicks keep the existing teleport test behavior", () => {
   const commandBus = createCommandBus();
   const deps = createDeps({

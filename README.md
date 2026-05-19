@@ -15,6 +15,7 @@ early game prototype, 2d top-down roquelike, survival, low-fantasy, simulation
 - `src/ui/`: UI runtime components, panels, bindings, label helpers, and settings appliers
 - `src/sim/`: simulation helpers and models such as `sunModel.js`, `timeSystem.js`, and `lightingParamsRuntime.js`
 - `src/audio/`: Audio Studio runtime modules (WebAudio engine, offline STFT/FFT analysis, spectrogram renderer, scribble grid/input, resynthesis, raw synthesis, soundscape generation)
+- `src/slime/`: Slime Lab runtime modules for GPU Physarum experiments
 - `styles.css`: UI styling
 - `assets/`: map bundle root (`assets/<mapName>/...`)
 - `src-tauri/`: Tauri desktop wrapper (Rust commands + app packaging)
@@ -22,7 +23,11 @@ early game prototype, 2d top-down roquelike, survival, low-fantasy, simulation
 - `AI_CONTEXT.md`: implementation map and workflow notes for AI agents
 
 Current architecture baseline:
-- modular, core-state-driven runtime with `src/main.js` used primarily for composition/orchestration
+
+- modular, core-state-driven runtime with `src/main.js` used primarily for
+  composition/orchestration
+- top-level dev workspaces are registry-driven (`map`, `audio`, `slime`) and
+  should keep domain logic in owner modules
 
 ## Expected auto-load names
 
@@ -141,10 +146,25 @@ Copy-Item assets .tauri-dist\assets -Recurse -Force
 
 ## Tests
 
+Install local development tooling once:
+
+```powershell
+npm install
+```
+
+Run lint checks through package scripts so local runs, review tools, and CI use
+the same pinned toolchain:
+
+```powershell
+npm run lint
+npm run lint:js
+npm run lint:md
+```
+
 Run targeted architecture migration tests with Node's built-in test runner:
 
 ```powershell
-node --test
+npm test
 ```
 
 Current tests cover:
@@ -157,8 +177,23 @@ Current tests cover:
 - architecture ownership guard checks
 - audio settings contract registration/gating integration
 
+## Rendering Direction
+
+- Current terrain and first Slime Lab prototypes use WebGL2 because it fits
+  the existing browser/Tauri frontend and keeps iteration lightweight.
+- WebGL2 is the prototype backend, not the long-term performance ceiling.
+- Slime simulation is intentionally isolated behind `src/slime/` runtime APIs
+  so a later backend can move to WebGPU or native Rust/WGPU without rewriting
+  the UI/settings/gameplay integration.
+- CPU readback from GPU simulations should be occasional and targeted. For
+  gameplay integration, prefer keeping fields such as slime trails as GPU
+  textures and sampling them in render/game shaders.
+
 Architecture map:
+
 - `docs/ARCHITECTURE.md`
+- slime simulation:
+  - `docs/SLIME_SIM.md`
 - sound design:
   - `docs/SOUND_DESIGN.md`
   - `docs/SOUNDSCAPE_TASKS.md`
@@ -235,6 +270,26 @@ Architecture map:
   - role preset layers (`Drone`, `Resonance`, `Shimmer`, `Call`, `Wind`, `Rumble`, `Air`)
   - attack/release, drift, modal motion, glide, and seeded randomization
   - filtered noise layers mixed through the same WebAudio transport
+- `Slime Lab` is a top-level dev workspace for a WebGL2 Physarum-style
+  simulation. See `docs/SLIME_SIM.md` for mechanics.
+- Slime agents live in GPU float textures, sense trail intensity with
+  left/front/right sensors, steer toward stronger signals, deposit additive
+  trails, and evolve through trail diffusion/decay.
+- Slime controls include agent count, simulation texture size, steps/frame,
+  sensor distance/angle/size/noise, step size, turn angle, stochastic wandering,
+  deposit amount/size, diffusion, decay, display gain/gamma, palette, edge
+  wrapping, seed, and spawn mode.
+- Slime spawn modes are `full`, `disk`, `ring`, `line`, and `edge`; changing
+  spawn mode or seed resets the simulation.
+- Slime terrain coupling can sample current `height.png`, `slope.png`, and
+  `water.png` as optional movement biases: slope can repel and hard-block,
+  height can attract/repel or enforce a preferred band, and water can
+  attract/repel.
+- Clicking the Slime Lab canvas applies a GPU brush: agents inside the radius
+  are respawned with the active spawn mode and local trail strength is cleared.
+- Slime settings are registered under the core `slime` settings key, but there
+  is no `slime.json` map sidecar yet; `Save All` does not persist Slime Lab
+  experiment state.
 - Point lighting is baked into a map-space light texture only when lights or normal/height inputs change.
 - Point-light baking also uses height-map line-of-sight occlusion so steep terrain can block local light spread.
 - Terrain shading samples that baked texture during normal rendering, so frame-time cost stays low.

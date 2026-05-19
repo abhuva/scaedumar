@@ -10,6 +10,7 @@ import { bindRenderFxControls } from "./bindings/renderFxBinding.js";
 import { bindMapIoControls } from "./bindings/mapIoBinding.js";
 import { bindRuntimeControls } from "./bindings/runtimeBinding.js";
 import { bindAudioControls } from "./audioBindingRuntime.js";
+import { bindSlimeControls } from "./slimeBindingRuntime.js";
 import { bindWorkspaceControls } from "./workspaceBindingRuntime.js";
 
 export function setupMainBindingsRuntime(deps) {
@@ -26,4 +27,5 @@ export function setupMainBindingsRuntime(deps) {
   bindMapIoControls(deps.mapIoBinding);
   bindRuntimeControls(deps.runtimeBinding);
   bindAudioControls(deps.audioBinding);
+  bindSlimeControls(deps.slimeBinding);
 }

@@ -1,6 +1,22 @@
 {
-  "globs": [
-    "**/*.md",
-    "!src-tauri/target/**"
-  ]
+  "ignores": [
+    ".cache/**",
+    ".obsidian/**",
+    "docs/notes/Ideas.md",
+    "docs/old/**",
+    "node_modules/**",
+    "site/**",
+    "src-tauri/target/**"
+  ],
+  "config": {
+    "default": true,
+    "MD012": false,
+    "MD013": false,
+    "MD022": false,
+    "MD032": false,
+    "MD033": false,
+    "MD034": false,
+    "MD040": false,
+    "MD041": false
+  }
 }

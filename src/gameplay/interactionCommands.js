@@ -12,8 +12,23 @@ export function registerInteractionCommands(commandBus, deps) {
     deps.syncPlayerStateToStore();
   }
 
+  function cancelMovementFromCommand() {
+    if (!isMovementActive()) return;
+    if (typeof deps.cancelMovementQueue !== "function") return;
+    deps.cancelMovementQueue();
+    deps.movePreviewState.hoverPixel = null;
+    deps.movePreviewState.pathPixels = [];
+    deps.setStatus(`Movement canceled at (${deps.playerState.pixelX}, ${deps.playerState.pixelY}).`);
+    syncPlayerToStore();
+    deps.requestOverlayDraw();
+  }
+
   commandBus.register("core/interaction/setMode", (command) => {
     deps.setInteractionMode(command.mode);
+  });
+
+  commandBus.register("core/movement/cancel", () => {
+    cancelMovementFromCommand();
   });
 
   commandBus.register("core/interaction/clickMapPixel", (command) => {
@@ -53,16 +68,6 @@ export function registerInteractionCommands(commandBus, deps) {
       deps.setInteractionMode("none");
       deps.movePreviewState.hoverPixel = null;
       deps.movePreviewState.pathPixels = [];
-      syncPlayerToStore();
-      deps.requestOverlayDraw();
-      return;
-    }
-
-    if (isMovementActive() && typeof deps.cancelMovementQueue === "function") {
-      deps.cancelMovementQueue();
-      deps.movePreviewState.hoverPixel = null;
-      deps.movePreviewState.pathPixels = [];
-      deps.setStatus(`Movement canceled at (${deps.playerState.pixelX}, ${deps.playerState.pixelY}).`);
       syncPlayerToStore();
       deps.requestOverlayDraw();
       return;
