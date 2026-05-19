@@ -551,7 +551,8 @@ slope.png
 water.png
 ```
 
-should be treated as legacy or authoring inputs once packed masks are supported.
+will be treated as legacy runtime files and authoring inputs only once packed
+masks are supported.
 
 ## Zoom Detail Material Layer
 

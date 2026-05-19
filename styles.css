@@ -168,6 +168,7 @@ body.runtime-gameplay .workspace-switcher {
   --sun-y: 18%;
   --moon-x: 50%;
   --moon-y: 22%;
+
   position: fixed;
   top: 12px;
   left: 50%;

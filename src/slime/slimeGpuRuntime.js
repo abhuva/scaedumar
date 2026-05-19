@@ -340,7 +340,7 @@ export function createSlimeGpuRuntime(deps) {
   function start(rawSettings) {
     state.running = true;
     state.error = "";
-    ensureInitialized(rawSettings);
+    if (!tryEnsureInitialized(rawSettings)) return;
     schedule();
   }
 
@@ -355,12 +355,13 @@ export function createSlimeGpuRuntime(deps) {
   function reset(rawSettings) {
     stop();
     disposeResources();
-    ensureInitialized(rawSettings);
+    if (!tryEnsureInitialized(rawSettings)) return false;
     renderDisplay();
+    return true;
   }
 
   function brushResetAtClient(clientX, clientY, rawSettings) {
-    ensureInitialized(rawSettings || settings);
+    if (!tryEnsureInitialized(rawSettings || settings)) return;
     const rect = canvas.getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0) return;
     const u = (clientX - rect.left) / rect.width;
@@ -385,11 +386,23 @@ export function createSlimeGpuRuntime(deps) {
       || next.seed !== settings.seed;
     settings = next;
     if (requiresReset && state.initialized) {
-      reset(settings);
-      if (settings.enabled || state.running) start(settings);
+      const wasRunning = state.running;
+      if (reset(settings) && (settings.enabled || wasRunning)) start(settings);
       return;
     }
     if (state.initialized) renderDisplay();
+  }
+
+  function tryEnsureInitialized(rawSettings) {
+    try {
+      ensureInitialized(rawSettings);
+      return true;
+    } catch (error) {
+      state.running = false;
+      state.error = error instanceof Error ? error.message : String(error);
+      console.warn("Slime initialization failed.", error);
+      return false;
+    }
   }
 
   function ensureInitialized(rawSettings) {

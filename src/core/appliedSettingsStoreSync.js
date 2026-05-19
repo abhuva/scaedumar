@@ -1,4 +1,5 @@
 import { DEFAULT_CURSOR_LIGHT_COLOR_HEX } from "./state.js";
+import { normalizeSlimeSettings } from "../slime/slimeState.js";
 
 const PERSISTED_SWARM_KEYS = [
   "useAgentSwarm",
@@ -441,13 +442,17 @@ export function createAppliedSettingsStoreSync(deps) {
         };
       }
       if (key === "slime") {
+        const nextSlime = normalizeSlimeSettings(
+          normalized,
+          deps.getSettingsDefaults("slime", {}),
+        );
         return {
           ...prev,
           simulation: {
             ...prev.simulation,
             knobs: {
               ...prev.simulation.knobs,
-              slime: { ...normalized },
+              slime: nextSlime,
             },
           },
         };
