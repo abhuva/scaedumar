@@ -440,6 +440,18 @@ export function createAppliedSettingsStoreSync(deps) {
           },
         };
       }
+      if (key === "slime") {
+        return {
+          ...prev,
+          simulation: {
+            ...prev.simulation,
+            knobs: {
+              ...prev.simulation.knobs,
+              slime: { ...normalized },
+            },
+          },
+        };
+      }
       if (key === "swarm") {
         const persistedSwarm = pickSwarmPersistedSettings(normalized);
         return {

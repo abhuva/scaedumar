@@ -61,6 +61,7 @@ import {
   DEFAULT_INTERACTION_SETTINGS,
   DEFAULT_SWARM_SETTINGS,
   DEFAULT_AUDIO_SETTINGS,
+  DEFAULT_SLIME_SETTINGS,
   registerMainSettingsContracts,
 } from "./core/mainSettingsContracts.js";
 import { buildFrameRenderState } from "./render/frameRenderState.js";
@@ -140,9 +141,13 @@ import {
 } from "./audio/soundscapeRuntime.js";
 import { createAudioScribbleInputRuntime } from "./audio/audioScribbleInputRuntime.js";
 import { createAudioPanelRuntime } from "./ui/audioPanelRuntime.js";
+import { createSlimeGpuRuntime } from "./slime/slimeGpuRuntime.js";
+import { DEFAULT_SLIME_SIMULATION_STATE, normalizeSlimeSettings } from "./slime/slimeState.js";
+import { createSlimePanelRuntime } from "./ui/slimePanelRuntime.js";
 import { createInteractionModeUiRuntime } from "./ui/interactionModeUiRuntime.js";
 import { createPointLightIoUiRuntime } from "./ui/pointLightIoUiRuntime.js";
 import { createWorkspaceRuntime } from "./ui/workspaceRuntime.js";
+import { createGameTimeDioramaRuntime } from "./ui/gameTimeDioramaRuntime.js";
 
 const runtimeCore = createRuntimeCore();
 const dispatchCoreCommand = createCoreCommandDispatch(runtimeCore);
@@ -157,8 +162,7 @@ const dockExitToTitleBtn = getRequiredElementById("dockExitToTitleBtn");
 const canvas = getRequiredElementById("glCanvas");
 const overlayCanvas = getRequiredElementById("overlayCanvas");
 const workspaceButtons = getRequiredElements(".workspace-btn");
-const mapWorkspaceEl = getRequiredElementById("mapWorkspace");
-const audioWorkspaceEl = getRequiredElementById("audioWorkspace");
+const workspacePanels = getRequiredElements(".workspace-root");
 const audioModeButtons = getRequiredElements(".audio-mode-btn");
 const audioModeSurfaces = getRequiredElements(".audio-mode-surface");
 const audioControlPanels = getRequiredElements(".audio-control-section");
@@ -175,6 +179,7 @@ const pathInfoEl = getRequiredElementById("pathInfo");
 const movementStatusPanelEl = getRequiredElementById("movementStatusPanel");
 const movementStatusEtaEl = getRequiredElementById("movementStatusEta");
 const movementStatusDetailEl = getRequiredElementById("movementStatusDetail");
+const movementCancelBtn = getRequiredElementById("movementCancelBtn");
 const mapPathInput = getRequiredElementById("mapPathInput");
 const mapPathLoadBtn = getRequiredElementById("mapPathLoadBtn");
 const mapFolderInput = getRequiredElementById("mapFolderInput");
@@ -278,6 +283,10 @@ const simTickHoursInput = getRequiredElementById("simTickHours");
 const simTickHoursValue = getRequiredElementById("simTickHoursValue");
 const cycleHourInput = getRequiredElementById("cycleHour");
 const cycleHourValue = getRequiredElementById("cycleHourValue");
+const gameTimeDioramaEl = getRequiredElementById("gameTimeDiorama");
+const gameTimeSunEl = getRequiredElementById("gameTimeSun");
+const gameTimeMoonEl = getRequiredElementById("gameTimeMoon");
+const gameTimeSpeedButtons = getRequiredElements(".time-speed-btn");
 const shadowsToggle = getRequiredElementById("shadowsToggle");
 const parallaxToggle = getRequiredElementById("parallaxToggle");
 const parallaxStrengthInput = getRequiredElementById("parallaxStrength");
@@ -462,6 +471,72 @@ const audioSoundscapeAddRumbleBtn = getRequiredElementById("audioSoundscapeAddRu
 const audioSoundscapeAddAirBtn = getRequiredElementById("audioSoundscapeAddAirBtn");
 const audioSoundscapeStopBtn = getRequiredElementById("audioSoundscapeStopBtn");
 const audioSoundscapeLayerList = getRequiredElementById("audioSoundscapeLayerList");
+const slimeCanvas = getRequiredElementById("slimeCanvas");
+const slimeStartBtn = getRequiredElementById("slimeStartBtn");
+const slimeStopBtn = getRequiredElementById("slimeStopBtn");
+const slimeResetBtn = getRequiredElementById("slimeResetBtn");
+const slimeRandomizeBtn = getRequiredElementById("slimeRandomizeBtn");
+const slimeAgentCountInput = getRequiredElementById("slimeAgentCount");
+const slimeAgentCountValue = getRequiredElementById("slimeAgentCountValue");
+const slimeSimSizeInput = getRequiredElementById("slimeSimSize");
+const slimeStepsPerFrameInput = getRequiredElementById("slimeStepsPerFrame");
+const slimeStepsPerFrameValue = getRequiredElementById("slimeStepsPerFrameValue");
+const slimeSensorDistanceInput = getRequiredElementById("slimeSensorDistance");
+const slimeSensorDistanceValue = getRequiredElementById("slimeSensorDistanceValue");
+const slimeSensorAngleInput = getRequiredElementById("slimeSensorAngle");
+const slimeSensorAngleValue = getRequiredElementById("slimeSensorAngleValue");
+const slimeSensorSizeInput = getRequiredElementById("slimeSensorSize");
+const slimeSensorSizeValue = getRequiredElementById("slimeSensorSizeValue");
+const slimeSensorNoiseInput = getRequiredElementById("slimeSensorNoise");
+const slimeSensorNoiseValue = getRequiredElementById("slimeSensorNoiseValue");
+const slimeStepSizeInput = getRequiredElementById("slimeStepSize");
+const slimeStepSizeValue = getRequiredElementById("slimeStepSizeValue");
+const slimeTurnAngleInput = getRequiredElementById("slimeTurnAngle");
+const slimeTurnAngleValue = getRequiredElementById("slimeTurnAngleValue");
+const slimeWanderChanceInput = getRequiredElementById("slimeWanderChance");
+const slimeWanderChanceValue = getRequiredElementById("slimeWanderChanceValue");
+const slimeWanderStrengthInput = getRequiredElementById("slimeWanderStrength");
+const slimeWanderStrengthValue = getRequiredElementById("slimeWanderStrengthValue");
+const slimeDepositAmountInput = getRequiredElementById("slimeDepositAmount");
+const slimeDepositAmountValue = getRequiredElementById("slimeDepositAmountValue");
+const slimeDepositSizeInput = getRequiredElementById("slimeDepositSize");
+const slimeDepositSizeValue = getRequiredElementById("slimeDepositSizeValue");
+const slimeDiffusionInput = getRequiredElementById("slimeDiffusion");
+const slimeDiffusionValue = getRequiredElementById("slimeDiffusionValue");
+const slimeDecayInput = getRequiredElementById("slimeDecay");
+const slimeDecayValue = getRequiredElementById("slimeDecayValue");
+const slimeTrailGainInput = getRequiredElementById("slimeTrailGain");
+const slimeTrailGainValue = getRequiredElementById("slimeTrailGainValue");
+const slimeTrailGammaInput = getRequiredElementById("slimeTrailGamma");
+const slimeTrailGammaValue = getRequiredElementById("slimeTrailGammaValue");
+const slimePaletteInput = getRequiredElementById("slimePalette");
+const slimeWrapEdgesToggle = getRequiredElementById("slimeWrapEdges");
+const slimeSpawnModeInput = getRequiredElementById("slimeSpawnMode");
+const slimeUseTerrainToggle = getRequiredElementById("slimeUseTerrain");
+const slimeShowTerrainUnderlayToggle = getRequiredElementById("slimeShowTerrainUnderlay");
+const slimeTerrainMixInput = getRequiredElementById("slimeTerrainMix");
+const slimeTerrainMixValue = getRequiredElementById("slimeTerrainMixValue");
+const slimeSlopeBiasInput = getRequiredElementById("slimeSlopeBias");
+const slimeSlopeBiasValue = getRequiredElementById("slimeSlopeBiasValue");
+const slimeSlopeCutoffInput = getRequiredElementById("slimeSlopeCutoff");
+const slimeSlopeCutoffValue = getRequiredElementById("slimeSlopeCutoffValue");
+const slimeHeightBiasInput = getRequiredElementById("slimeHeightBias");
+const slimeHeightBiasValue = getRequiredElementById("slimeHeightBiasValue");
+const slimeHeightMinInput = getRequiredElementById("slimeHeightMin");
+const slimeHeightMinValue = getRequiredElementById("slimeHeightMinValue");
+const slimeHeightMaxInput = getRequiredElementById("slimeHeightMax");
+const slimeHeightMaxValue = getRequiredElementById("slimeHeightMaxValue");
+const slimeHeightBandWeightInput = getRequiredElementById("slimeHeightBandWeight");
+const slimeHeightBandWeightValue = getRequiredElementById("slimeHeightBandWeightValue");
+const slimeWaterBiasInput = getRequiredElementById("slimeWaterBias");
+const slimeWaterBiasValue = getRequiredElementById("slimeWaterBiasValue");
+const slimeBrushRadiusInput = getRequiredElementById("slimeBrushRadius");
+const slimeBrushRadiusValue = getRequiredElementById("slimeBrushRadiusValue");
+const slimeBrushTrailClearInput = getRequiredElementById("slimeBrushTrailClear");
+const slimeBrushTrailClearValue = getRequiredElementById("slimeBrushTrailClearValue");
+const slimeSeedInput = getRequiredElementById("slimeSeed");
+const slimeStatusValue = getRequiredElementById("slimeStatusValue");
+const slimeStatsValue = getRequiredElementById("slimeStatsValue");
 const interactionModeUiRuntime = createInteractionModeUiRuntime({
   dockLightingModeToggle,
   dockPathfindingModeToggle,
@@ -630,6 +705,7 @@ const settingsCompatRuntime = settingsCoreSetupRuntime.settingsCompatRuntime;
 const audioSimulationState = { ...DEFAULT_AUDIO_SIMULATION_STATE };
 const audioRuntimeState = createAudioRuntimeState();
 const audioScribbleRuntime = createScribbleCanvasRuntime(256, 256);
+const slimeSimulationState = { ...DEFAULT_SLIME_SIMULATION_STATE };
 
 let frameUiRuntime = null;
 function getFrameUiRuntime() {
@@ -717,6 +793,17 @@ function getAudioSettings() {
 
 function getAudioSimulationState() {
   return audioSimulationState;
+}
+
+function getSlimeSettings() {
+  return normalizeSlimeSettings(
+    getSimulationKnobSectionFromStore("slime") || getSettingsDefaults("slime", DEFAULT_SLIME_SETTINGS),
+    DEFAULT_SLIME_SETTINGS,
+  );
+}
+
+function getSlimeSimulationState() {
+  return slimeSimulationState;
 }
 
 const audioEngineRuntime = createAudioEngineRuntime({
@@ -835,6 +922,146 @@ const audioPanelRuntime = createAudioPanelRuntime({
 
 function syncAudioUi() {
   audioPanelRuntime.syncAudioUi();
+}
+
+const slimePanelRuntime = createSlimePanelRuntime({
+  getSlimeSettings: () => getSlimeSettings(),
+  getSlimeSimulationState: () => getSlimeSimulationState(),
+  slimeStartBtn,
+  slimeStopBtn,
+  slimeAgentCountInput,
+  slimeAgentCountValue,
+  slimeSimSizeInput,
+  slimeStepsPerFrameInput,
+  slimeStepsPerFrameValue,
+  slimeSensorDistanceInput,
+  slimeSensorDistanceValue,
+  slimeSensorAngleInput,
+  slimeSensorAngleValue,
+  slimeSensorSizeInput,
+  slimeSensorSizeValue,
+  slimeSensorNoiseInput,
+  slimeSensorNoiseValue,
+  slimeStepSizeInput,
+  slimeStepSizeValue,
+  slimeTurnAngleInput,
+  slimeTurnAngleValue,
+  slimeWanderChanceInput,
+  slimeWanderChanceValue,
+  slimeWanderStrengthInput,
+  slimeWanderStrengthValue,
+  slimeDepositAmountInput,
+  slimeDepositAmountValue,
+  slimeDepositSizeInput,
+  slimeDepositSizeValue,
+  slimeDiffusionInput,
+  slimeDiffusionValue,
+  slimeDecayInput,
+  slimeDecayValue,
+  slimeTrailGainInput,
+  slimeTrailGainValue,
+  slimeTrailGammaInput,
+  slimeTrailGammaValue,
+  slimePaletteInput,
+  slimeWrapEdgesToggle,
+  slimeSpawnModeInput,
+  slimeUseTerrainToggle,
+  slimeShowTerrainUnderlayToggle,
+  slimeTerrainMixInput,
+  slimeTerrainMixValue,
+  slimeSlopeBiasInput,
+  slimeSlopeBiasValue,
+  slimeSlopeCutoffInput,
+  slimeSlopeCutoffValue,
+  slimeHeightBiasInput,
+  slimeHeightBiasValue,
+  slimeHeightMinInput,
+  slimeHeightMinValue,
+  slimeHeightMaxInput,
+  slimeHeightMaxValue,
+  slimeHeightBandWeightInput,
+  slimeHeightBandWeightValue,
+  slimeWaterBiasInput,
+  slimeWaterBiasValue,
+  slimeBrushRadiusInput,
+  slimeBrushRadiusValue,
+  slimeBrushTrailClearInput,
+  slimeBrushTrailClearValue,
+  slimeSeedInput,
+  slimeStatusValue,
+  slimeStatsValue,
+});
+
+function syncSlimeUi() {
+  slimePanelRuntime.syncSlimeUi();
+}
+
+const slimeGpuRuntime = createSlimeGpuRuntime({
+  canvas: slimeCanvas,
+  state: slimeSimulationState,
+  getTerrainSource: () => ({
+    heightImageData,
+    slopeImageData,
+    waterImageData,
+  }),
+  onFrame: () => syncSlimeUi(),
+});
+
+function serializeSlimeSettingsCompatImpl() {
+  return getSlimeSettings();
+}
+
+function applySlimeSettingsCompatImpl(rawData) {
+  const next = normalizeSlimeSettings(rawData, getSlimeSettings());
+  settingsApplyRuntime.updateStoreFromAppliedSettings("slime", next);
+  slimeGpuRuntime.applySettings(next);
+  if (next.enabled) {
+    slimeGpuRuntime.start(next);
+  } else {
+    slimeGpuRuntime.stop();
+  }
+  syncSlimeUi();
+}
+
+function patchSlimeSettings(patch) {
+  const next = normalizeSlimeSettings({
+    ...getSlimeSettings(),
+    ...(patch && typeof patch === "object" ? patch : {}),
+  }, DEFAULT_SLIME_SETTINGS);
+  settingsApplyRuntime.updateStoreFromAppliedSettings("slime", next);
+  try {
+    slimeGpuRuntime.applySettings(next);
+  } catch (error) {
+    slimeSimulationState.error = error instanceof Error ? error.message : String(error);
+    setStatus(`Slime settings failed: ${slimeSimulationState.error}`);
+  }
+  syncSlimeUi();
+}
+
+function startSlimeExperiment() {
+  try {
+    slimeGpuRuntime.start(getSlimeSettings());
+  } catch (error) {
+    slimeSimulationState.error = error instanceof Error ? error.message : String(error);
+    setStatus(`Slime start failed: ${slimeSimulationState.error}`);
+  }
+}
+
+function stopSlimeExperiment() {
+  slimeGpuRuntime.stop();
+}
+
+function resetSlimeExperiment() {
+  try {
+    const settings = getSlimeSettings();
+    slimeGpuRuntime.reset(settings);
+    if (settings.enabled) {
+      slimeGpuRuntime.start(settings);
+    }
+  } catch (error) {
+    slimeSimulationState.error = error instanceof Error ? error.message : String(error);
+    setStatus(`Slime reset failed: ${slimeSimulationState.error}`);
+  }
 }
 
 function syncAudioEngine() {
@@ -1896,8 +2123,7 @@ const setActiveTopic = modeInteractionRuntimeBinding.setActiveTopic;
 const updateModeCapabilitiesUi = modeInteractionRuntimeBinding.updateModeCapabilitiesUi;
 const getInteractionModeSnapshot = modeInteractionRuntimeBinding.getInteractionModeSnapshot;
 const workspaceRuntime = createWorkspaceRuntime({
-  mapWorkspaceEl,
-  audioWorkspaceEl,
+  workspacePanels,
   workspaceButtons,
   setActiveTopic,
   setInteractionMode: (mode) => setInteractionMode(mode),
@@ -1946,6 +2172,15 @@ const {
   setCycleHourSliderFromState,
   updateCycleHourLabel,
 } = timeLightingSetupRuntime;
+const gameTimeDioramaRuntime = createGameTimeDioramaRuntime({
+  rootEl: gameTimeDioramaEl,
+  sunEl: gameTimeSunEl,
+  moonEl: gameTimeMoonEl,
+  speedButtons: gameTimeSpeedButtons,
+  sampleSunAtHour,
+  dispatchCoreCommand,
+});
+gameTimeDioramaRuntime.bind();
 let isCycleHourScrubbing = false;
 const systemStoreSyncRuntime = createSystemStoreSyncRuntime(createSystemStoreSyncAssemblyRuntime({
   store: runtimeCore.store,
@@ -2046,6 +2281,8 @@ registerMainSettingsContracts(runtimeCore.settingsRegistry, {
   applyInteraction: applyInteractionSettingsCompat,
   serializeAudio: serializeAudioSettingsCompat,
   applyAudio: applyAudioSettingsCompat,
+  serializeSlime: () => serializeSlimeSettingsCompatImpl(),
+  applySlime: (input) => applySlimeSettingsCompatImpl(input),
   serializeSwarm: serializeSwarmDataCompat,
   applySwarm: applySwarmData,
 });
@@ -2188,6 +2425,19 @@ registerMainCommands(runtimeCore.commandBus, createMainCommandAssemblyRuntime({
   updateSoundscapeSettings,
   updateSoundscapeLayer,
   getAudioSimulationState,
+  patchSlimeSettings,
+  startSlime: () => startSlimeExperiment(),
+  stopSlime: () => stopSlimeExperiment(),
+  resetSlime: () => resetSlimeExperiment(),
+  brushResetSlimeAtClient: (clientX, clientY) => {
+    try {
+      slimeGpuRuntime.brushResetAtClient(clientX, clientY, getSlimeSettings());
+    } catch (error) {
+      slimeSimulationState.error = error instanceof Error ? error.message : String(error);
+      setStatus(`Slime brush failed: ${slimeSimulationState.error}`);
+    }
+  },
+  syncSlimeUi,
   updateSwarmUi: () => updateSwarmUi(),
   updateSwarmLabels: () => updateSwarmLabels(),
   syncSwarmSettingsInputs: () => syncSwarmSettingsInputs(),
@@ -2905,6 +3155,7 @@ const renderShellSetupRuntime = createRenderShellSetupRuntime(createRenderShellA
   updateInfoPanel,
   updateSwarmStatsPanel,
   updateCycleHourLabel,
+  updateGameTimeDiorama: (hour, cycleSpeed) => gameTimeDioramaRuntime.update(hour, cycleSpeed),
   updateWeatherFieldMeta,
   renderResources,
   renderFrameSwarmLayers,
@@ -2920,6 +3171,7 @@ const resize = renderShellSetupRuntime.resize;
 const render = renderShellSetupRuntime.render;
 workspaceRuntime.syncWorkspaceUi(runtimeCore.store.getState().ui.workspace);
 syncAudioUi();
+syncSlimeUi();
 spectrogramRuntime.clear();
 
 runAppShellLifecycleRuntime(createAppShellLifecycleAssemblyRuntime({
@@ -3017,6 +3269,7 @@ runAppShellLifecycleRuntime(createAppShellLifecycleAssemblyRuntime({
     canUseTopic: canUseTopicInCurrentMode,
     dockLightingModeToggle,
     dockPathfindingModeToggle,
+    movementCancelBtn,
     cycleSpeedInput,
     cycleHourInput,
     simTickHoursInput,
@@ -3207,6 +3460,44 @@ runAppShellLifecycleRuntime(createAppShellLifecycleAssemblyRuntime({
     audioSoundscapeLoopToggle,
     audioSoundscapeSeedInput,
     audioSoundscapeLayerList,
+    slimeStartBtn,
+    slimeStopBtn,
+    slimeResetBtn,
+    slimeRandomizeBtn,
+    slimeAgentCountInput,
+    slimeSimSizeInput,
+    slimeStepsPerFrameInput,
+    slimeSensorDistanceInput,
+    slimeSensorAngleInput,
+    slimeSensorSizeInput,
+    slimeSensorNoiseInput,
+    slimeStepSizeInput,
+    slimeTurnAngleInput,
+    slimeWanderChanceInput,
+    slimeWanderStrengthInput,
+    slimeDepositAmountInput,
+    slimeDepositSizeInput,
+    slimeDiffusionInput,
+    slimeDecayInput,
+    slimeTrailGainInput,
+    slimeTrailGammaInput,
+  slimePaletteInput,
+  slimeWrapEdgesToggle,
+  slimeSpawnModeInput,
+  slimeUseTerrainToggle,
+  slimeShowTerrainUnderlayToggle,
+  slimeTerrainMixInput,
+  slimeSlopeBiasInput,
+  slimeSlopeCutoffInput,
+  slimeHeightBiasInput,
+  slimeHeightMinInput,
+  slimeHeightMaxInput,
+  slimeHeightBandWeightInput,
+  slimeWaterBiasInput,
+    slimeBrushRadiusInput,
+    slimeBrushTrailClearInput,
+    slimeSeedInput,
+    slimeCanvas,
   }),
   tryAutoLoadDefaultMap,
   setStatus,

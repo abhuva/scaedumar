@@ -52,6 +52,9 @@ export function createFrameRuntime(deps) {
     deps.updateInfoPanel();
     deps.updateSwarmStatsPanel();
     deps.updateCycleHourLabel();
+    if (typeof deps.updateGameTimeDiorama === "function") {
+      deps.updateGameTimeDiorama(deps.cycleState.hour, cycleSpeed);
+    }
 
     deps.updateWeatherFieldMeta({
       renderResources: deps.renderResources,

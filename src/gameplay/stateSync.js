@@ -1,8 +1,8 @@
 import { DEFAULT_CURSOR_LIGHT_COLOR_HEX } from "../core/state.js";
+import { normalizeWorkspaceId } from "../ui/workspaceRegistry.js";
 
 const ALLOWED_TIME_ROUTING_TARGETS = new Set(["swarm", "clouds", "water"]);
-const ALLOWED_SIMULATION_KNOBS = new Set(["parallax", "lighting", "fog", "clouds", "waterFx", "audio"]);
-const ALLOWED_WORKSPACES = new Set(["map", "audio"]);
+const ALLOWED_SIMULATION_KNOBS = new Set(["parallax", "lighting", "fog", "clouds", "waterFx", "audio", "slime"]);
 
 export function syncMapState(deps) {
   deps.store.update((prev) => ({
@@ -32,7 +32,7 @@ export function syncPlayerState(deps) {
 }
 
 export function setWorkspaceState(deps) {
-  const workspace = ALLOWED_WORKSPACES.has(deps.workspace) ? deps.workspace : "map";
+  const workspace = normalizeWorkspaceId(deps.workspace);
   deps.store.update((prev) => ({
     ...prev,
     ui: {

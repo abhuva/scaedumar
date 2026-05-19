@@ -1,18 +1,21 @@
+import { normalizeWorkspaceId } from "./workspaceRegistry.js";
+
 export function createWorkspaceRuntime(deps) {
   function normalizeWorkspace(workspace) {
-    return workspace === "audio" ? "audio" : "map";
+    return normalizeWorkspaceId(workspace);
   }
 
   function syncWorkspaceUi(workspace) {
     const activeWorkspace = normalizeWorkspace(workspace);
-    deps.mapWorkspaceEl.classList.toggle("active", activeWorkspace === "map");
-    deps.audioWorkspaceEl.classList.toggle("active", activeWorkspace === "audio");
+    for (const panel of deps.workspacePanels || []) {
+      panel.classList.toggle("active", normalizeWorkspace(panel.dataset.workspacePanel) === activeWorkspace);
+    }
     for (const btn of deps.workspaceButtons) {
       const active = normalizeWorkspace(btn.dataset.workspace) === activeWorkspace;
       btn.classList.toggle("active", active);
       btn.setAttribute("aria-pressed", active ? "true" : "false");
     }
-    if (activeWorkspace === "audio") {
+    if (activeWorkspace !== "map") {
       deps.setActiveTopic("");
       deps.setInteractionMode("none");
     }
@@ -23,4 +26,3 @@ export function createWorkspaceRuntime(deps) {
     syncWorkspaceUi,
   };
 }
-

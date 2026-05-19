@@ -56,6 +56,7 @@ export function createRenderShellAssemblyRuntime(deps) {
       updateInfoPanel: deps.updateInfoPanel,
       updateSwarmStatsPanel: deps.updateSwarmStatsPanel,
       updateCycleHourLabel: deps.updateCycleHourLabel,
+      updateGameTimeDiorama: deps.updateGameTimeDiorama,
       updateWeatherFieldMeta: deps.updateWeatherFieldMeta,
       renderResources: deps.renderResources,
       splatSize: deps.splatSize,

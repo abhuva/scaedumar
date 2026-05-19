@@ -1,6 +1,7 @@
 import { normalizeRuntimeMode } from "./modeCapabilities.js";
 import { registerInteractionCommands } from "../gameplay/interactionCommands.js";
 import { DEFAULT_CURSOR_LIGHT_COLOR_HEX } from "./state.js";
+import { normalizeWorkspaceId } from "../ui/workspaceRegistry.js";
 
 export function registerMainCommands(commandBus, deps) {
   function clampRound(value, min, max) {
@@ -65,7 +66,7 @@ export function registerMainCommands(commandBus, deps) {
   });
 
   commandBus.register("core/workspace/setActive", (command) => {
-    const workspace = command.workspace === "audio" ? "audio" : "map";
+    const workspace = normalizeWorkspaceId(command.workspace);
     deps.setWorkspaceToStore(workspace);
     deps.syncWorkspaceUi(workspace);
   });
@@ -380,6 +381,39 @@ export function registerMainCommands(commandBus, deps) {
   commandBus.register("audio/approximateScribble", () => {
     deps.approximateAudioScribble();
     deps.syncAudioUi();
+  });
+
+  commandBus.register("core/slime/settingsChanged", (command) => {
+    deps.patchSlimeSettings(command.patch || {});
+    deps.syncSlimeUi();
+  });
+
+  commandBus.register("slime/start", () => {
+    deps.patchSlimeSettings({ enabled: true });
+    deps.startSlime();
+    deps.syncSlimeUi();
+  });
+
+  commandBus.register("slime/stop", () => {
+    deps.patchSlimeSettings({ enabled: false });
+    deps.stopSlime();
+    deps.syncSlimeUi();
+  });
+
+  commandBus.register("slime/reset", () => {
+    deps.resetSlime();
+    deps.syncSlimeUi();
+  });
+
+  commandBus.register("slime/randomizeSeed", () => {
+    deps.patchSlimeSettings({ seed: Math.floor(Math.random() * 999999) + 1 });
+    deps.resetSlime();
+    deps.syncSlimeUi();
+  });
+
+  commandBus.register("slime/brush/resetAt", (command) => {
+    deps.brushResetSlimeAtClient(command.clientX, command.clientY);
+    deps.syncSlimeUi();
   });
 
   commandBus.register("core/swarm/settingsChanged", (command) => {
