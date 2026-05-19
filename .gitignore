@@ -5,3 +5,5 @@ src-tauri/gen/
 src-tauri/target/
 .obsidian/
 site/
+.cache/
+node_modules/

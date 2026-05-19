@@ -146,10 +146,25 @@ Copy-Item assets .tauri-dist\assets -Recurse -Force
 
 ## Tests
 
+Install local development tooling once:
+
+```powershell
+npm install
+```
+
+Run lint checks through package scripts so local runs, review tools, and CI use
+the same pinned toolchain:
+
+```powershell
+npm run lint
+npm run lint:js
+npm run lint:md
+```
+
 Run targeted architecture migration tests with Node's built-in test runner:
 
 ```powershell
-node --test
+npm test
 ```
 
 Current tests cover:

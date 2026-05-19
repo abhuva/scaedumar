@@ -63,9 +63,10 @@ Build a self-contained prototype for top-down terrain rendering from Gaea-export
   - Always run `node --check ...` and similar quick validation commands with an explicit timeout.
   - Do not run these checks without `timeout_ms`.
 - Lint rule (docs):
-  - Do not rely on point-in-time global tool installs; follow project migration/checklist for required linters.
+  - Do not rely on point-in-time global tool installs; use package scripts.
   - If a markdown linter is available, run it on changed `.md` files before commit.
-  - Preferred command when available: `npx markdownlint-cli2 "**/*.md"`.
+  - Preferred command: `npm run lint:md`.
+  - Full lint command: `npm run lint`.
   - If unavailable, explicitly state in the commit/PR notes that markdown lint was not run due to missing tool.
 
 
