@@ -20,6 +20,10 @@ function getContext2d(canvas) {
 function createResizedSourceImageData(image, width, height) {
   const canvas = createCanvas(width, height);
   const ctx = getContext2d(canvas);
+  ctx.imageSmoothingEnabled = false;
+  if ("imageSmoothingQuality" in ctx) {
+    ctx.imageSmoothingQuality = "low";
+  }
   ctx.drawImage(image, 0, 0, width, height);
   return ctx.getImageData(0, 0, width, height);
 }
@@ -90,15 +94,17 @@ export function createDetailAtlasRuntime(deps) {
   }
 
   async function loadSources(settings) {
-    const entries = [];
-    let loadedCount = 0;
-    for (const material of settings.materials) {
+    const materialImagePromises = settings.materials.map((material) => {
       const config = material.micro || {};
-      const image = config.src ? await tryLoadImage(config.src) : null;
-      if (image) loadedCount += 1;
-      entries.push({ material, image });
-    }
-    const splatImage = settings.splat.src ? await tryLoadImage(settings.splat.src) : null;
+      return config.src ? tryLoadImage(config.src) : Promise.resolve(null);
+    });
+    const splatImagePromise = settings.splat.src ? tryLoadImage(settings.splat.src) : Promise.resolve(null);
+    const [materialImages, splatImage] = await Promise.all([
+      Promise.all(materialImagePromises),
+      splatImagePromise,
+    ]);
+    const entries = settings.materials.map((material, index) => ({ material, image: materialImages[index] || null }));
+    const loadedCount = materialImages.filter(Boolean).length;
     return { entries, loadedCount, splatImage };
   }
 

@@ -116,9 +116,16 @@ export function createInfoPanelRuntime(deps) {
   function updateDetailInfo() {
     if (!deps.detailInfoEl || typeof deps.getDetailDebugInfo !== "function") return;
     const info = deps.getDetailDebugInfo();
-    const nextDetailInfo = info
-      ? `Zoom: ${info.zoom.toFixed(2)} | Detail px/m: ${info.pxPerMeter.toFixed(2)} | Fade: ${info.fade.toFixed(2)} (${info.startPxPerMeter.toFixed(1)}-${info.fullPxPerMeter.toFixed(1)}) | Detail: ${info.atlasAvailable ? "on" : "off"} ${info.loadedSourceCount}/4 | Splat: ${info.materialSplatAvailable ? "yes" : "fallback"}`
-      : "Zoom: -- | Detail px/m: -- | Fade: --";
+    let nextDetailInfo = "Zoom: -- | Detail px/m: -- | Fade: --";
+    if (info) {
+      const safeZoom = Number(info.zoom);
+      const safePxPerMeter = Number(info.pxPerMeter);
+      const safeFade = Number(info.fade);
+      const safeStartPxPerMeter = Number(info.startPxPerMeter);
+      const safeFullPxPerMeter = Number(info.fullPxPerMeter);
+      const loadedSourceCount = Number.isFinite(Number(info.loadedSourceCount)) ? Number(info.loadedSourceCount) : 0;
+      nextDetailInfo = `Zoom: ${Number.isFinite(safeZoom) ? safeZoom.toFixed(2) : "--"} | Detail px/m: ${Number.isFinite(safePxPerMeter) ? safePxPerMeter.toFixed(2) : "--"} | Fade: ${Number.isFinite(safeFade) ? safeFade.toFixed(2) : "--"} (${Number.isFinite(safeStartPxPerMeter) ? safeStartPxPerMeter.toFixed(1) : "--"}-${Number.isFinite(safeFullPxPerMeter) ? safeFullPxPerMeter.toFixed(1) : "--"}) | Detail: ${info.atlasAvailable ? "on" : "off"} ${loadedSourceCount}/4 | Splat: ${info.materialSplatAvailable ? "yes" : "fallback"}`;
+    }
     if (deps.detailInfoEl.textContent !== nextDetailInfo) {
       deps.detailInfoEl.textContent = nextDetailInfo;
     }

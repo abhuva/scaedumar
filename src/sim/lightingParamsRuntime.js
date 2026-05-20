@@ -52,8 +52,12 @@ export function createLightingParamsRuntime(deps) {
     ambientColor = deps.lerpVec3(ambientColor, nightAmbientColor, 0.45 * nightFactor);
     const ambientFinal = deps.clamp(ambientBase * (sunAmbientWeight + moonAmbientWeight) + 0.05 * nightFactor, 0, 1);
     const moonColor = [0.34, 0.40, 0.54];
-    const zoomMin = typeof deps.getZoomMin === "function" ? deps.getZoomMin() : deps.zoomMin;
-    const zoomMax = typeof deps.getZoomMax === "function" ? deps.getZoomMax() : deps.zoomMax;
+    const rawZoomMin = typeof deps.getZoomMin === "function" ? deps.getZoomMin() : deps.zoomMin;
+    const rawZoomMax = typeof deps.getZoomMax === "function" ? deps.getZoomMax() : deps.zoomMax;
+    const fallbackZoomMin = Number.isFinite(Number(deps.zoomMin)) ? Number(deps.zoomMin) : 0;
+    const fallbackZoomMax = Number.isFinite(Number(deps.zoomMax)) ? Number(deps.zoomMax) : Math.max(1, fallbackZoomMin + 1);
+    const zoomMin = Number.isFinite(Number(rawZoomMin)) ? Number(rawZoomMin) : fallbackZoomMin;
+    const zoomMax = Number.isFinite(Number(rawZoomMax)) ? Number(rawZoomMax) : fallbackZoomMax;
     const zoomNorm = deps.clamp((cameraZoom - zoomMin) / Math.max(0.0001, zoomMax - zoomMin), 0, 1);
     const cameraHeightNorm = 1 - zoomNorm;
 

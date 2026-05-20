@@ -34,8 +34,11 @@ export function createRenderer(deps) {
       throw new Error(`Render pass '${id}' is not registered.`);
     }
     gpuProfiler.begin(id);
-    pass.execute(frame);
-    gpuProfiler.end();
+    try {
+      pass.execute(frame);
+    } finally {
+      gpuProfiler.end();
+    }
   }
 
   return {

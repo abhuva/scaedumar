@@ -31,12 +31,27 @@ export function createSwarmInputNormalization(deps) {
    * Any other value (null/undefined/typos like "both") uses the default branch and unifies by Math.max.
    */
   function normalizeSwarmFollowZoomInputs(changed = "out", values = null) {
-    const zoomMin = typeof deps.getZoomMin === "function" ? deps.getZoomMin() : deps.zoomMin;
-    const zoomMax = typeof deps.getZoomMax === "function" ? deps.getZoomMax() : deps.zoomMax;
+    const rawZoomMin = typeof deps.getZoomMin === "function" ? deps.getZoomMin() : deps.zoomMin;
+    const rawZoomMax = typeof deps.getZoomMax === "function" ? deps.getZoomMax() : deps.zoomMax;
+    let zoomMin = Number(rawZoomMin);
+    let zoomMax = Number(rawZoomMax);
+    if (!Number.isFinite(zoomMin)) {
+      zoomMin = 0;
+    }
+    if (!Number.isFinite(zoomMax)) {
+      zoomMax = Math.max(1, zoomMin);
+    }
+    if (zoomMin > zoomMax) {
+      const nextMin = zoomMax;
+      zoomMax = zoomMin;
+      zoomMin = nextMin;
+    }
     const sourceZoomOut = values && values.zoomOut != null ? values.zoomOut : deps.swarmFollowZoomOutInput.value;
     const sourceZoomIn = values && values.zoomIn != null ? values.zoomIn : deps.swarmFollowZoomInInput.value;
-    let zoomOut = deps.clamp(Number(sourceZoomOut), zoomMin, zoomMax);
-    let zoomIn = deps.clamp(Number(sourceZoomIn), zoomMin, zoomMax);
+    const parsedZoomOut = Number(sourceZoomOut);
+    const parsedZoomIn = Number(sourceZoomIn);
+    let zoomOut = deps.clamp(Number.isFinite(parsedZoomOut) ? parsedZoomOut : zoomMin, zoomMin, zoomMax);
+    let zoomIn = deps.clamp(Number.isFinite(parsedZoomIn) ? parsedZoomIn : zoomMax, zoomMin, zoomMax);
     if (zoomOut > zoomIn) {
       if (changed === "out") {
         zoomIn = zoomOut;

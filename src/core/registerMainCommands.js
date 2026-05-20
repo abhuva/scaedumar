@@ -256,7 +256,9 @@ export function registerMainCommands(commandBus, deps) {
         deps.syncDetailUi();
       }
       if (command.rebuildDetailAtlas && typeof deps.rebuildDetailAtlas === "function") {
-        deps.rebuildDetailAtlas();
+        Promise.resolve(deps.rebuildDetailAtlas()).catch((error) => {
+          console.warn("Failed to rebuild zoom-detail atlas.", error);
+        });
       }
       return;
     }
