@@ -1,8 +1,18 @@
 export function createTerrainUniformUploader(deps) {
-  function getRect(state, layer, index) {
-    const rects = layer === "macro" ? state.macroRects : state.microRects;
+  function getRect(state, index) {
+    const rects = state.microRects;
     const rect = Array.isArray(rects) ? rects[index] : null;
     return Array.isArray(rect) && rect.length >= 4 ? rect : [0, 0, 1, 1];
+  }
+
+  function uploadRect(uniform, rect) {
+    deps.gl.uniform4f(uniform, rect[0], rect[1], rect[2], rect[3]);
+  }
+
+  function smoothstepValue(edge0, edge1, value) {
+    const span = Math.max(0.0001, Number(edge1) - Number(edge0));
+    const t = Math.min(1, Math.max(0, (Number(value) - Number(edge0)) / span));
+    return t * t * (3 - 2 * t);
   }
 
   return function uploadUniforms(params, frameTime, input, frameCamera = null) {
@@ -56,12 +66,12 @@ export function createTerrainUniformUploader(deps) {
     deps.gl.uniform1i(deps.uniforms.uFlowMap, 7);
 
     deps.gl.activeTexture(deps.gl.TEXTURE8);
-    deps.gl.bindTexture(deps.gl.TEXTURE_2D, deps.detailMicroColorTex);
-    deps.gl.uniform1i(deps.uniforms.uDetailMicroColor, 8);
+    deps.gl.bindTexture(deps.gl.TEXTURE_2D, deps.materialSplatTex);
+    deps.gl.uniform1i(deps.uniforms.uMaterialSplat, 8);
 
     deps.gl.activeTexture(deps.gl.TEXTURE9);
-    deps.gl.bindTexture(deps.gl.TEXTURE_2D, deps.detailMacroColorTex);
-    deps.gl.uniform1i(deps.uniforms.uDetailMacroColor, 9);
+    deps.gl.bindTexture(deps.gl.TEXTURE_2D, deps.detailMicroColorTex);
+    deps.gl.uniform1i(deps.uniforms.uDetailMicroColor, 9);
 
     const viewHalf = deps.getViewHalfExtents(cameraZoom);
     deps.gl.uniform2f(deps.uniforms.uMapTexelSize, 1 / deps.heightSize.width, 1 / deps.heightSize.height);
@@ -83,35 +93,34 @@ export function createTerrainUniformUploader(deps) {
     deps.gl.uniform1f(deps.uniforms.uZoom, cameraZoom);
     const detailState = deps.detailAtlasState || {};
     const useDetail = input.useDetail && detailState.available;
-    const dirtMicroRect = getRect(detailState, "micro", 0);
-    const rockMicroRect = getRect(detailState, "micro", 1);
-    const dirtMacroRect = getRect(detailState, "macro", 0);
-    const rockMacroRect = getRect(detailState, "macro", 1);
+    const mapPixelWorldSize = 1 / Math.max(1, Number(deps.heightSize.height) || 1);
+    const pxPerMeterX = (deps.canvas.width * mapPixelWorldSize) / Math.max(0.001, 2 * viewHalf.x);
+    const pxPerMeterY = (deps.canvas.height * mapPixelWorldSize) / Math.max(0.001, 2 * viewHalf.y);
+    const pxPerMeter = Math.min(pxPerMeterX, pxPerMeterY);
+    const fullPxPerMeter = Math.max(input.detailStartPxPerMeter + 0.001, input.detailFullPxPerMeter);
+    const detailBlend = useDetail
+      ? smoothstepValue(input.detailStartPxPerMeter, fullPxPerMeter, pxPerMeter)
+      : 0;
     deps.gl.uniform1f(deps.uniforms.uUseDetail, useDetail ? 1 : 0);
-    deps.gl.uniform1f(deps.uniforms.uDetailStartPxPerMeter, input.detailStartPxPerMeter);
-    deps.gl.uniform1f(deps.uniforms.uDetailFullPxPerMeter, input.detailFullPxPerMeter);
+    deps.gl.uniform1f(deps.uniforms.uDetailBlend, detailBlend);
     deps.gl.uniform1f(deps.uniforms.uDetailWaterSuppression, input.detailWaterSuppression);
-    deps.gl.uniform1f(deps.uniforms.uDetailRockSlopeStart, input.detailRockSlopeStart);
-    deps.gl.uniform1f(deps.uniforms.uDetailRockSlopeEnd, input.detailRockSlopeEnd);
-    deps.gl.uniform1f(deps.uniforms.uDetailRockNoiseScale, input.detailRockNoiseScale);
-    deps.gl.uniform1f(deps.uniforms.uDetailRockNoiseStrength, input.detailRockNoiseStrength);
-    deps.gl.uniform4f(deps.uniforms.uDetailDirtMicroRect, dirtMicroRect[0], dirtMicroRect[1], dirtMicroRect[2], dirtMicroRect[3]);
-    deps.gl.uniform4f(deps.uniforms.uDetailRockMicroRect, rockMicroRect[0], rockMicroRect[1], rockMicroRect[2], rockMicroRect[3]);
-    deps.gl.uniform4f(deps.uniforms.uDetailDirtMacroRect, dirtMacroRect[0], dirtMacroRect[1], dirtMacroRect[2], dirtMacroRect[3]);
-    deps.gl.uniform4f(deps.uniforms.uDetailRockMacroRect, rockMacroRect[0], rockMacroRect[1], rockMacroRect[2], rockMacroRect[3]);
+    uploadRect(deps.uniforms.uDetailMicroRect0, getRect(detailState, 0));
+    uploadRect(deps.uniforms.uDetailMicroRect1, getRect(detailState, 1));
+    uploadRect(deps.uniforms.uDetailMicroRect2, getRect(detailState, 2));
+    uploadRect(deps.uniforms.uDetailMicroRect3, getRect(detailState, 3));
     deps.gl.uniform4f(
-      deps.uniforms.uDetailMicroScales,
-      input.detailDirtMicroScale,
-      input.detailRockMicroScale,
-      input.detailDirtMicroColor,
-      input.detailRockMicroColor,
+      deps.uniforms.uDetailMicroScale0,
+      input.detailMaterial0MicroScale,
+      input.detailMaterial0MicroColor,
+      input.detailMaterial1MicroScale,
+      input.detailMaterial1MicroColor,
     );
     deps.gl.uniform4f(
-      deps.uniforms.uDetailMacroScales,
-      input.detailDirtMacroScale,
-      input.detailRockMacroScale,
-      input.detailDirtMacroColor,
-      input.detailRockMacroColor,
+      deps.uniforms.uDetailMicroScale1,
+      input.detailMaterial2MicroScale,
+      input.detailMaterial2MicroColor,
+      input.detailMaterial3MicroScale,
+      input.detailMaterial3MicroColor,
     );
     deps.gl.uniform1f(deps.uniforms.uUseFog, input.useFog ? 1 : 0);
     deps.gl.uniform3f(deps.uniforms.uFogColor, params.fogColor[0], params.fogColor[1], params.fogColor[2]);

@@ -1,11 +1,6 @@
 import { normalizeDetailSettings } from "../gameplay/detailDataSerializer.js";
 
-const MATERIALS = ["dirt", "rock"];
-const LAYERS = ["micro", "macro"];
-const DEFAULT_LAYER_SIZE = {
-  micro: 32,
-  macro: 512,
-};
+const DEFAULT_MICRO_SIZE = 32;
 
 function createCanvas(width, height) {
   const canvas = document.createElement("canvas");
@@ -20,10 +15,6 @@ function getContext2d(canvas) {
     throw new Error("2D canvas context is required for detail atlas generation.");
   }
   return ctx;
-}
-
-function resolveLayer(settings, material, layer) {
-  return settings.materials?.[material]?.[layer] || {};
 }
 
 function createResizedSourceImageData(image, width, height) {
@@ -61,7 +52,7 @@ function drawPaddedTile(ctx, imageData, x, y, padding) {
   ctx.drawImage(tileCanvas, imageData.width - 1, imageData.height - 1, 1, 1, x + imageData.width, y + imageData.height, padding, padding);
 }
 
-function makeNeutralCanvas(color = "rgb(128, 128, 128)") {
+function makeSolidCanvas(color) {
   const canvas = createCanvas(1, 1);
   const ctx = getContext2d(canvas);
   ctx.fillStyle = color;
@@ -78,6 +69,15 @@ function uploadCanvasToTexture(gl, texture, canvas, filter) {
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
 }
 
+function uploadImageToTexture(gl, texture, image, filter) {
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filter);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filter);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+}
+
 export function createDetailAtlasRuntime(deps) {
   const state = deps.state;
 
@@ -90,56 +90,50 @@ export function createDetailAtlasRuntime(deps) {
   }
 
   async function loadSources(settings) {
-    const entries = {};
+    const entries = [];
     let loadedCount = 0;
-    for (const material of MATERIALS) {
-      entries[material] = {};
-      for (const layer of LAYERS) {
-        const config = resolveLayer(settings, material, layer);
-        const image = config.src ? await tryLoadImage(config.src) : null;
-        if (image) loadedCount += 1;
-        entries[material][layer] = image;
-      }
+    for (const material of settings.materials) {
+      const config = material.micro || {};
+      const image = config.src ? await tryLoadImage(config.src) : null;
+      if (image) loadedCount += 1;
+      entries.push({ material, image });
     }
-    return { entries, loadedCount };
+    const splatImage = settings.splat.src ? await tryLoadImage(settings.splat.src) : null;
+    return { entries, loadedCount, splatImage };
   }
 
-  function buildLayerAtlas(settings, sources, layer) {
-    const padding = layer === "micro"
-      ? settings.atlas.microPaddingPx
-      : settings.atlas.macroPaddingPx;
-    const filterName = layer === "micro"
-      ? settings.atlas.microFilter
-      : settings.atlas.macroFilter;
+  function buildMicroAtlas(settings, sources) {
+    const padding = settings.atlas.microPaddingPx;
+    const filterName = settings.atlas.microFilter;
     const filter = filterName === "nearest" ? deps.gl.NEAREST : deps.gl.LINEAR;
-    const sourceImages = MATERIALS.map((material) => sources[material][layer]).filter(Boolean);
+    const sourceImages = sources.map((entry) => entry.image).filter(Boolean);
     const tileSize = sourceImages.length > 0
       ? Math.max(...sourceImages.map((image) => Math.max(image.width || 1, image.height || 1)))
-      : DEFAULT_LAYER_SIZE[layer];
+      : DEFAULT_MICRO_SIZE;
     const slotSize = tileSize + padding * 2;
-    const atlasWidth = slotSize * MATERIALS.length;
+    const atlasWidth = slotSize * settings.materials.length;
     const atlasHeight = slotSize;
     const colorCanvas = createCanvas(atlasWidth, atlasHeight);
     const colorCtx = getContext2d(colorCanvas);
     colorCtx.fillStyle = "rgb(128, 128, 128)";
     colorCtx.fillRect(0, 0, atlasWidth, atlasHeight);
 
-    const rects = [];
-    for (let index = 0; index < MATERIALS.length; index += 1) {
-      const material = MATERIALS[index];
-      const image = sources[material][layer];
+    const rects = new Array(settings.materials.length).fill(null).map(() => [0, 0, 1, 1]);
+    for (let index = 0; index < settings.materials.length; index += 1) {
+      const entry = sources[index];
+      const image = entry.image;
       const colorData = image
         ? createResizedSourceImageData(image, tileSize, tileSize)
         : createNeutralImageData(tileSize, tileSize);
       const x = index * slotSize + padding;
       const y = padding;
       drawPaddedTile(colorCtx, colorData, x, y, padding);
-      rects.push([
+      rects[entry.material.slot] = [
         x / atlasWidth,
         y / atlasHeight,
         tileSize / atlasWidth,
         tileSize / atlasHeight,
-      ]);
+      ];
     }
 
     return {
@@ -151,23 +145,28 @@ export function createDetailAtlasRuntime(deps) {
 
   async function rebuild(rawSettings) {
     const settings = normalizeDetailSettings(rawSettings, deps.defaultDetailSettings);
-    const { entries, loadedCount } = await loadSources(settings);
-    const micro = buildLayerAtlas(settings, entries, "micro");
-    const macro = buildLayerAtlas(settings, entries, "macro");
+    const { entries, loadedCount, splatImage } = await loadSources(settings);
+    const micro = buildMicroAtlas(settings, entries);
     uploadCanvasToTexture(deps.gl, deps.microColorTex, micro.colorCanvas, micro.filter);
-    uploadCanvasToTexture(deps.gl, deps.macroColorTex, macro.colorCanvas, macro.filter);
-    state.available = loadedCount === MATERIALS.length * LAYERS.length;
+    if (splatImage) {
+      const splatFilter = settings.splat.filter === "nearest" ? deps.gl.NEAREST : deps.gl.LINEAR;
+      uploadImageToTexture(deps.gl, deps.materialSplatTex, splatImage, splatFilter);
+    } else {
+      uploadCanvasToTexture(deps.gl, deps.materialSplatTex, makeSolidCanvas("rgba(255, 0, 0, 1)"), deps.gl.LINEAR);
+    }
+    state.available = loadedCount > 0;
     state.loadedSourceCount = loadedCount;
+    state.materialSplatAvailable = Boolean(splatImage);
     state.microRects = micro.rects;
-    state.macroRects = macro.rects;
     state.settings = settings;
     return state;
   }
 
   function uploadNeutral() {
-    const neutralColor = makeNeutralCanvas();
+    const neutralColor = makeSolidCanvas("rgb(128, 128, 128)");
+    const redSplat = makeSolidCanvas("rgba(255, 0, 0, 1)");
     uploadCanvasToTexture(deps.gl, deps.microColorTex, neutralColor, deps.gl.LINEAR);
-    uploadCanvasToTexture(deps.gl, deps.macroColorTex, neutralColor, deps.gl.LINEAR);
+    uploadCanvasToTexture(deps.gl, deps.materialSplatTex, redSplat, deps.gl.LINEAR);
   }
 
   uploadNeutral();

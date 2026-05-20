@@ -2,7 +2,7 @@
   "version": 3,
   "enabled": true,
   "splat": {
-    "src": "assets/detail/default/materials.png",
+    "src": "assets/Map 3/details.png",
     "filter": "linear"
   },
   "atlas": {
@@ -20,7 +20,7 @@
       "slot": 0,
       "micro": {
         "src": "assets/detail/default/dirt_micro.png",
-        "scaleMeters": 2,
+        "scaleMeters": 1,
         "colorStrength": 1
       }
     },

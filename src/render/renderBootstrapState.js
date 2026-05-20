@@ -4,19 +4,18 @@ export function createRenderBootstrapState(deps) {
   const heightTex = deps.createTexture();
   const waterTex = deps.createTexture();
   const flowMapTex = deps.createLinearTexture();
+  const materialSplatTex = deps.createLinearTexture();
   const detailMicroColorTex = deps.createLinearTexture();
-  const detailMacroColorTex = deps.createLinearTexture();
   const detailAtlasState = {
     available: false,
     loadedSourceCount: 0,
     microRects: [
       [0, 0, 1, 1],
       [0, 0, 1, 1],
-    ],
-    macroRects: [
       [0, 0, 1, 1],
       [0, 0, 1, 1],
     ],
+    materialSplatAvailable: false,
     settings: null,
   };
   const pointLightTex = deps.createTexture();
@@ -41,8 +40,8 @@ export function createRenderBootstrapState(deps) {
     heightTex,
     waterTex,
     flowMapTex,
+    materialSplatTex,
     detailMicroColorTex,
-    detailMacroColorTex,
     detailAtlasState,
     pointLightTex,
     cloudNoiseTex,

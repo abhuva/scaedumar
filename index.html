@@ -551,7 +551,7 @@
         </section>
 
         <section class="topic-card" data-topic="detail" data-title="Zoom Detail">
-          <p class="help">Tile px means terrain-map pixels. A 512x512 source with Tile px 8 spans 8x8 terrain pixels; the source is sampled continuously with linear filtering inside that area.</p>
+          <p class="help">The current terrain color map stays as the base. The material splat map is normalized RGBA: R dirt, G rock, B grass, A snow. Tile px means terrain-map pixels.</p>
           <div class="row">
             <label for="detailEnabled">Zoom Detail</label>
             <input id="detailEnabled" type="checkbox" data-detail-path="enabled" checked />
@@ -577,91 +577,64 @@
               <span id="detailWaterSuppressionValue">1.00</span>
             </div>
           </div>
-          <h2>Dirt</h2>
+          <h2>Dirt - Slot 0</h2>
           <div class="row">
-            <label for="detailDirtMicroScale">Dirt Micro Tile px</label>
+            <label for="detailMaterial0MicroScale">Dirt Micro Tile px</label>
             <div class="inline-control">
-              <input id="detailDirtMicroScale" type="range" min="0.25" max="64" step="0.25" value="2" data-detail-path="materials.dirt.micro.scaleMeters" data-detail-value="detailDirtMicroScaleValue" data-detail-format="2" />
-              <span id="detailDirtMicroScaleValue">2.00</span>
+              <input id="detailMaterial0MicroScale" type="range" min="0.25" max="64" step="0.25" value="2" data-detail-path="materials.0.micro.scaleMeters" data-detail-value="detailMaterial0MicroScaleValue" data-detail-format="2" />
+              <span id="detailMaterial0MicroScaleValue">2.00</span>
             </div>
           </div>
           <div class="row">
-            <label for="detailDirtMicroColor">Dirt Micro Color</label>
+            <label for="detailMaterial0MicroColor">Dirt Micro Color</label>
             <div class="inline-control">
-              <input id="detailDirtMicroColor" type="range" min="0" max="1" step="0.01" value="1" data-detail-path="materials.dirt.micro.colorStrength" data-detail-value="detailDirtMicroColorValue" />
-              <span id="detailDirtMicroColorValue">1.00</span>
+              <input id="detailMaterial0MicroColor" type="range" min="0" max="1" step="0.01" value="1" data-detail-path="materials.0.micro.colorStrength" data-detail-value="detailMaterial0MicroColorValue" />
+              <span id="detailMaterial0MicroColorValue">1.00</span>
+            </div>
+          </div>
+          <h2>Rock - Slot 1</h2>
+          <div class="row">
+            <label for="detailMaterial1MicroScale">Rock Micro Tile px</label>
+            <div class="inline-control">
+              <input id="detailMaterial1MicroScale" type="range" min="0.25" max="64" step="0.25" value="2" data-detail-path="materials.1.micro.scaleMeters" data-detail-value="detailMaterial1MicroScaleValue" data-detail-format="2" />
+              <span id="detailMaterial1MicroScaleValue">2.00</span>
             </div>
           </div>
           <div class="row">
-            <label for="detailDirtMacroScale">Dirt Macro Tile px</label>
+            <label for="detailMaterial1MicroColor">Rock Micro Color</label>
             <div class="inline-control">
-              <input id="detailDirtMacroScale" type="range" min="1" max="1024" step="1" value="192" data-detail-path="materials.dirt.macro.scaleMeters" data-detail-value="detailDirtMacroScaleValue" data-detail-format="int" />
-              <span id="detailDirtMacroScaleValue">192</span>
+              <input id="detailMaterial1MicroColor" type="range" min="0" max="1" step="0.01" value="1" data-detail-path="materials.1.micro.colorStrength" data-detail-value="detailMaterial1MicroColorValue" />
+              <span id="detailMaterial1MicroColorValue">1.00</span>
+            </div>
+          </div>
+          <h2>Grass - Slot 2</h2>
+          <div class="row">
+            <label for="detailMaterial2MicroScale">Grass Micro Tile px</label>
+            <div class="inline-control">
+              <input id="detailMaterial2MicroScale" type="range" min="0.25" max="64" step="0.25" value="2" data-detail-path="materials.2.micro.scaleMeters" data-detail-value="detailMaterial2MicroScaleValue" data-detail-format="2" />
+              <span id="detailMaterial2MicroScaleValue">2.00</span>
             </div>
           </div>
           <div class="row">
-            <label for="detailDirtMacroColor">Dirt Macro Color</label>
+            <label for="detailMaterial2MicroColor">Grass Micro Color</label>
             <div class="inline-control">
-              <input id="detailDirtMacroColor" type="range" min="0" max="1" step="0.01" value="1" data-detail-path="materials.dirt.macro.colorStrength" data-detail-value="detailDirtMacroColorValue" />
-              <span id="detailDirtMacroColorValue">1.00</span>
+              <input id="detailMaterial2MicroColor" type="range" min="0" max="1" step="0.01" value="1" data-detail-path="materials.2.micro.colorStrength" data-detail-value="detailMaterial2MicroColorValue" />
+              <span id="detailMaterial2MicroColorValue">1.00</span>
             </div>
           </div>
-          <h2>Rock</h2>
+          <h2>Snow - Slot 3</h2>
           <div class="row">
-            <label for="detailRockMicroScale">Rock Micro Tile px</label>
+            <label for="detailMaterial3MicroScale">Snow Micro Tile px</label>
             <div class="inline-control">
-              <input id="detailRockMicroScale" type="range" min="0.25" max="64" step="0.25" value="2" data-detail-path="materials.rock.micro.scaleMeters" data-detail-value="detailRockMicroScaleValue" />
-              <span id="detailRockMicroScaleValue">2.00</span>
-            </div>
-          </div>
-          <div class="row">
-            <label for="detailRockMicroColor">Rock Micro Color</label>
-            <div class="inline-control">
-              <input id="detailRockMicroColor" type="range" min="0" max="1" step="0.01" value="1" data-detail-path="materials.rock.micro.colorStrength" data-detail-value="detailRockMicroColorValue" />
-              <span id="detailRockMicroColorValue">1.00</span>
+              <input id="detailMaterial3MicroScale" type="range" min="0.25" max="64" step="0.25" value="2" data-detail-path="materials.3.micro.scaleMeters" data-detail-value="detailMaterial3MicroScaleValue" data-detail-format="2" />
+              <span id="detailMaterial3MicroScaleValue">2.00</span>
             </div>
           </div>
           <div class="row">
-            <label for="detailRockMacroScale">Rock Macro Tile px</label>
+            <label for="detailMaterial3MicroColor">Snow Micro Color</label>
             <div class="inline-control">
-              <input id="detailRockMacroScale" type="range" min="1" max="1024" step="1" value="256" data-detail-path="materials.rock.macro.scaleMeters" data-detail-value="detailRockMacroScaleValue" data-detail-format="int" />
-              <span id="detailRockMacroScaleValue">256</span>
-            </div>
-          </div>
-          <div class="row">
-            <label for="detailRockMacroColor">Rock Macro Color</label>
-            <div class="inline-control">
-              <input id="detailRockMacroColor" type="range" min="0" max="1" step="0.01" value="1" data-detail-path="materials.rock.macro.colorStrength" data-detail-value="detailRockMacroColorValue" />
-              <span id="detailRockMacroColorValue">1.00</span>
-            </div>
-          </div>
-          <h2>Rock Mask</h2>
-          <div class="row">
-            <label for="detailRockSlopeStart">Slope Start</label>
-            <div class="inline-control">
-              <input id="detailRockSlopeStart" type="range" min="0" max="1" step="0.01" value="0.35" data-detail-path="rules.rock.slopeStart" data-detail-value="detailRockSlopeStartValue" />
-              <span id="detailRockSlopeStartValue">0.35</span>
-            </div>
-          </div>
-          <div class="row">
-            <label for="detailRockSlopeEnd">Slope End</label>
-            <div class="inline-control">
-              <input id="detailRockSlopeEnd" type="range" min="0" max="1" step="0.01" value="0.75" data-detail-path="rules.rock.slopeEnd" data-detail-value="detailRockSlopeEndValue" />
-              <span id="detailRockSlopeEndValue">0.75</span>
-            </div>
-          </div>
-          <div class="row">
-            <label for="detailRockNoiseScale">Noise Scale</label>
-            <div class="inline-control">
-              <input id="detailRockNoiseScale" type="range" min="0" max="1" step="0.005" value="0.03" data-detail-path="rules.rock.noiseScale" data-detail-value="detailRockNoiseScaleValue" data-detail-format="3" />
-              <span id="detailRockNoiseScaleValue">0.030</span>
-            </div>
-          </div>
-          <div class="row">
-            <label for="detailRockNoiseStrength">Noise Strength</label>
-            <div class="inline-control">
-              <input id="detailRockNoiseStrength" type="range" min="0" max="1" step="0.01" value="0.12" data-detail-path="rules.rock.noiseStrength" data-detail-value="detailRockNoiseStrengthValue" />
-              <span id="detailRockNoiseStrengthValue">0.12</span>
+              <input id="detailMaterial3MicroColor" type="range" min="0" max="1" step="0.01" value="1" data-detail-path="materials.3.micro.colorStrength" data-detail-value="detailMaterial3MicroColorValue" />
+              <span id="detailMaterial3MicroColorValue">1.00</span>
             </div>
           </div>
         </section>

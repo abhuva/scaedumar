@@ -1,51 +1,56 @@
 {
-  "version": 1,
+  "version": 3,
   "enabled": true,
+  "splat": {
+    "src": "assets/Map 1/materials.png",
+    "filter": "linear"
+  },
   "atlas": {
     "microPaddingPx": 2,
-    "macroPaddingPx": 4,
     "microFilter": "linear",
-    "macroFilter": "linear",
     "generateMipmaps": false
   },
   "zoom": {
     "startPxPerMeter": 4,
     "fullPxPerMeter": 16
   },
-  "materials": {
-    "dirt": {
+  "materials": [
+    {
+      "id": "dirt",
+      "slot": 0,
       "micro": {
         "src": "assets/detail/default/dirt_micro.png",
         "scaleMeters": 1,
         "colorStrength": 1
-      },
-      "macro": {
-        "src": "assets/detail/default/dirt_macro.png",
-        "scaleMeters": 192,
-        "colorStrength": 1
       }
     },
-    "rock": {
+    {
+      "id": "rock",
+      "slot": 1,
       "micro": {
         "src": "assets/detail/default/rock_micro.png",
         "scaleMeters": 2,
         "colorStrength": 1
-      },
-      "macro": {
-        "src": "assets/detail/default/rock_macro.png",
-        "scaleMeters": 256,
+      }
+    },
+    {
+      "id": "grass",
+      "slot": 2,
+      "micro": {
+        "src": "assets/detail/default/grass_micro.png",
+        "scaleMeters": 2,
+        "colorStrength": 1
+      }
+    },
+    {
+      "id": "snow",
+      "slot": 3,
+      "micro": {
+        "src": "assets/detail/default/snow_micro.png",
+        "scaleMeters": 2,
         "colorStrength": 1
       }
     }
-  },
-  "rules": {
-    "defaultMaterial": "dirt",
-    "rock": {
-      "slopeStart": 0.35,
-      "slopeEnd": 0.75,
-      "noiseScale": 0.03,
-      "noiseStrength": 0.12
-    }
-  },
+  ],
   "waterSuppression": 1
 }

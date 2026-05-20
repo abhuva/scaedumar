@@ -17,8 +17,8 @@ uniform sampler2D uCloudNoiseTex;
 uniform sampler2D uShadowTex;
 uniform sampler2D uWater;
 uniform sampler2D uFlowMap;
+uniform sampler2D uMaterialSplat;
 uniform sampler2D uDetailMicroColor;
-uniform sampler2D uDetailMacroColor;
 uniform float uUseCursorLight;
 uniform vec2 uCursorLightUv;
 uniform vec3 uCursorLightColor;
@@ -44,19 +44,14 @@ uniform float uParallaxStrength;
 uniform float uParallaxBands;
 uniform float uZoom;
 uniform float uUseDetail;
-uniform float uDetailStartPxPerMeter;
-uniform float uDetailFullPxPerMeter;
+uniform float uDetailBlend;
 uniform float uDetailWaterSuppression;
-uniform float uDetailRockSlopeStart;
-uniform float uDetailRockSlopeEnd;
-uniform float uDetailRockNoiseScale;
-uniform float uDetailRockNoiseStrength;
-uniform vec4 uDetailDirtMicroRect;
-uniform vec4 uDetailRockMicroRect;
-uniform vec4 uDetailDirtMacroRect;
-uniform vec4 uDetailRockMacroRect;
-uniform vec4 uDetailMicroScales;
-uniform vec4 uDetailMacroScales;
+uniform vec4 uDetailMicroRect0;
+uniform vec4 uDetailMicroRect1;
+uniform vec4 uDetailMicroRect2;
+uniform vec4 uDetailMicroRect3;
+uniform vec4 uDetailMicroScale0;
+uniform vec4 uDetailMicroScale1;
 uniform float uUseFog;
 uniform vec3 uFogColor;
 uniform float uFogMinAlpha;
@@ -158,59 +153,57 @@ float uvHash(vec2 p) {
   return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
 }
 
-float detailNoise(vec2 p) {
-  vec2 i = floor(p);
-  vec2 f = fract(p);
-  float a = uvHash(i);
-  float b = uvHash(i + vec2(1.0, 0.0));
-  float c = uvHash(i + vec2(0.0, 1.0));
-  float d = uvHash(i + vec2(1.0, 1.0));
-  vec2 u = f * f * (3.0 - 2.0 * f);
-  return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
-}
-
 vec2 detailAtlasUv(vec2 mapPixel, float scaleMeters, vec4 rect) {
   vec2 tileUv = fract(mapPixel / max(vec2(0.25), vec2(scaleMeters)));
   return rect.xy + tileUv * rect.zw;
 }
 
-void applyZoomDetail(inout vec3 base, inout vec3 n, vec2 uv, vec2 mapPixel) {
-  if (uUseDetail < 0.5) return;
-  float mapPixelWorldSize = uMapTexelSize.y;
-  float pxPerMeterX = (uResolution.x * mapPixelWorldSize) / max(0.001, 2.0 * uViewHalfExtents.x);
-  float pxPerMeterY = (uResolution.y * mapPixelWorldSize) / max(0.001, 2.0 * uViewHalfExtents.y);
-  float pxPerMeter = min(pxPerMeterX, pxPerMeterY);
-  float fullPx = max(uDetailStartPxPerMeter + 0.001, uDetailFullPxPerMeter);
-  float blend = smoothstep(uDetailStartPxPerMeter, fullPx, pxPerMeter);
+void applyZoomDetail(inout vec3 base, vec2 uv, vec2 mapPixel) {
+  if (uUseDetail < 0.5 || uDetailBlend <= 0.0001) return;
+
+  vec4 microStrengths = vec4(
+    clamp(uDetailMicroScale0.y, 0.0, 1.0),
+    clamp(uDetailMicroScale0.w, 0.0, 1.0),
+    clamp(uDetailMicroScale1.y, 0.0, 1.0),
+    clamp(uDetailMicroScale1.w, 0.0, 1.0)
+  );
+  float maxMicroStrength = max(max(microStrengths.r, microStrengths.g), max(microStrengths.b, microStrengths.a));
+  if (maxMicroStrength <= 0.0001) return;
+
+  float blend = uDetailBlend;
+  if (uDetailWaterSuppression > 0.0001) {
+    float waterMask = smoothstep(0.46, 0.54, texture(uWater, uv).r);
+    blend *= mix(1.0, 1.0 - waterMask, clamp(uDetailWaterSuppression, 0.0, 1.0));
+  }
   if (blend <= 0.0001) return;
 
-  float waterMask = smoothstep(0.46, 0.54, texture(uWater, uv).r);
-  blend *= mix(1.0, 1.0 - waterMask, clamp(uDetailWaterSuppression, 0.0, 1.0));
-  if (blend <= 0.0001) return;
+  vec4 weights = max(texture(uMaterialSplat, uv), vec4(0.0));
+  float weightSum = weights.r + weights.g + weights.b + weights.a;
+  weights = weightSum > 0.0001 ? weights / weightSum : vec4(1.0, 0.0, 0.0, 0.0);
 
-  float maxColorEffect = max(max(uDetailMicroScales.z, uDetailMicroScales.w), max(uDetailMacroScales.z, uDetailMacroScales.w));
-  if (maxColorEffect <= 0.0001) return;
-
-  vec2 mapPixelCenter = floor(mapPixel) + vec2(0.5);
-  float slopeApprox = clamp(1.0 - n.z, 0.0, 1.0);
-  float maskNoise = (detailNoise(mapPixelCenter * uDetailRockNoiseScale) - 0.5) * 2.0 * uDetailRockNoiseStrength;
-  float rockWeight = smoothstep(uDetailRockSlopeStart, max(uDetailRockSlopeStart + 0.001, uDetailRockSlopeEnd), slopeApprox + maskNoise);
-
-  vec2 dirtMicroUv = detailAtlasUv(mapPixel, uDetailMicroScales.x, uDetailDirtMicroRect);
-  vec2 rockMicroUv = detailAtlasUv(mapPixel, uDetailMicroScales.y, uDetailRockMicroRect);
-  vec2 dirtMacroUv = detailAtlasUv(mapPixel, uDetailMacroScales.x, uDetailDirtMacroRect);
-  vec2 rockMacroUv = detailAtlasUv(mapPixel, uDetailMacroScales.y, uDetailRockMacroRect);
-
-  float microColorStrength = mix(uDetailMicroScales.z, uDetailMicroScales.w, rockWeight);
-  float macroColorStrength = mix(uDetailMacroScales.z, uDetailMacroScales.w, rockWeight);
-  vec3 dirtMicroColor = texture(uDetailMicroColor, dirtMicroUv).rgb;
-  vec3 rockMicroColor = texture(uDetailMicroColor, rockMicroUv).rgb;
-  vec3 dirtMacroColor = texture(uDetailMacroColor, dirtMacroUv).rgb;
-  vec3 rockMacroColor = texture(uDetailMacroColor, rockMacroUv).rgb;
-  vec3 microColor = mix(dirtMicroColor, rockMicroColor, rockWeight);
-  vec3 macroColor = mix(dirtMacroColor, rockMacroColor, rockWeight);
-  base = mix(base, microColor, clamp(microColorStrength * blend, 0.0, 1.0));
-  base = mix(base, macroColor, clamp(macroColorStrength * blend, 0.0, 1.0));
+  vec3 microBlendColor = vec3(0.0);
+  float microAmount = 0.0;
+  if (microStrengths.r > 0.0001 && weights.r > 0.0001) {
+    float influence = weights.r * microStrengths.r;
+    microAmount += influence;
+    microBlendColor += texture(uDetailMicroColor, detailAtlasUv(mapPixel, uDetailMicroScale0.x, uDetailMicroRect0)).rgb * influence;
+  }
+  if (microStrengths.g > 0.0001 && weights.g > 0.0001) {
+    float influence = weights.g * microStrengths.g;
+    microAmount += influence;
+    microBlendColor += texture(uDetailMicroColor, detailAtlasUv(mapPixel, uDetailMicroScale0.z, uDetailMicroRect1)).rgb * influence;
+  }
+  if (microStrengths.b > 0.0001 && weights.b > 0.0001) {
+    float influence = weights.b * microStrengths.b;
+    microAmount += influence;
+    microBlendColor += texture(uDetailMicroColor, detailAtlasUv(mapPixel, uDetailMicroScale1.x, uDetailMicroRect2)).rgb * influence;
+  }
+  if (microStrengths.a > 0.0001 && weights.a > 0.0001) {
+    float influence = weights.a * microStrengths.a;
+    microAmount += influence;
+    microBlendColor += texture(uDetailMicroColor, detailAtlasUv(mapPixel, uDetailMicroScale1.z, uDetailMicroRect3)).rgb * influence;
+  }
+  base += blend * (microBlendColor - base * microAmount);
 }
 
 float fogAmountAtUv(vec2 uv) {
@@ -394,7 +387,7 @@ void main() {
   vec3 n = texture(uNormals, uv).xyz * 2.0 - 1.0;
   n = normalize(n);
   vec2 mapPixel = uv / uMapTexelSize;
-  applyZoomDetail(base, n, uv, mapPixel);
+  applyZoomDetail(base, uv, mapPixel);
 
   float sunDiffuse = max(dot(n, uSunDir), 0.0);
   float moonDiffuse = max(dot(n, uMoonDir), 0.0);

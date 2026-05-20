@@ -350,16 +350,18 @@ No game engine is used.
   - water shading is evaluated at map texel centers (pixel-locked) so water influence is per map pixel
   - altitude-aware sun/moon glints, shoreline foam band, and sky-tint reflection
 - Core zoom-detail material layer:
-  - settings contract key is `detail`, persisted as optional `detail.json`
-  - default config is enabled, but missing source sprites disable the runtime effect through atlas availability fallback
-  - source sprites default to `assets/detail/default/dirt_micro.png`, `dirt_macro.png`, `rock_micro.png`, and `rock_macro.png`
-  - runtime builds micro/macro color atlases from those sources
-  - missing individual sprites use neutral 50% gray color tiles
-  - terrain shader applies dirt/rock detail before lighting; rock weight is derived from terrain normal slope plus world-space noise
-  - micro and macro detail sample continuous map coordinates; each layer's `scaleMeters`/Tile px value is the terrain-map-pixel width/height covered by one full source texture tile
+  - settings contract key is `detail`, persisted as optional version `3` `detail.json`
+  - default config is enabled; missing individual micro sprites use neutral gray atlas slots, and a missing material splat falls back to the dirt slot
+  - source sprites default to `assets/detail/default/{dirt,rock,grass,snow}_micro.png`
+  - runtime builds one micro color atlas from those sources and uploads one RGBA material splat texture
+  - material splat weights are normalized in the shader; channels map to `R=dirt`, `G=rock`, `B=grass`, `A=snow`
+  - terrain shader applies weighted material detail before lighting while preserving the current terrain color map as the base color
+  - micro detail samples continuous map coordinates; each material's `scaleMeters`/Tile px value is the terrain-map-pixel width/height covered by one full source texture tile
+  - each material's `colorStrength` is a `0..1` contribution scalar; `0` skips that material contribution, while `1` contributes fully according to splat weight and zoom fade
+  - zoom fade is computed once per frame and uploaded as `uDetailBlend`; the fragment shader returns before water/material/detail texture sampling when detail is inactive at the current zoom
   - detail is color-only for performance; it does not modify normals or cast shadows
   - detail is reduced on water through `waterSuppression`
-  - dev map mode exposes a `D` topic panel for live tuning dirt/rock micro+macro scale, color strength, zoom fade, water suppression, and rock-mask controls
+  - dev map mode exposes a `D` topic panel for live tuning four material slots, zoom fade, and water suppression
 - Camera settings:
   - settings contract key is `camera`, persisted as optional `camera.json`
   - `zoomMin` / `zoomMax` control runtime camera clamp; default `zoomMax` is `128` for close inspection of zoom-detail materials
@@ -529,7 +531,7 @@ Main light uniforms:
 - `uShadowTex`
 - `uWater`
 - `uFlowMap`
-- `uDetailMicroColor`, `uDetailMacroColor`
+- `uDetailMicroColor`
 - `uUseCursorLight`, `uCursorLightUv`, `uCursorLightColor`, `uCursorLightStrength`, `uCursorLightHeightOffset`, `uUseCursorTerrainHeight`, `uCursorLightMapSize`
 - `uTimeSec`, `uPointFlickerEnabled`, `uPointFlickerStrength`, `uPointFlickerSpeed`, `uPointFlickerSpatial`
 - `uUseClouds`, `uCloudCoverage`, `uCloudSoftness`, `uCloudOpacity`, `uCloudScale`, `uCloudSpeed1`, `uCloudSpeed2`, `uCloudSunParallax`, `uCloudUseSunProjection`
@@ -541,7 +543,7 @@ Map/camera uniforms:
 - `uMapAspect` (must come from splat texture size)
 - `uResolution`, `uViewHalfExtents`, `uPanWorld`
 - `uUseParallax`, `uParallaxStrength`, `uParallaxBands`, `uZoom`
-- `uUseDetail`, detail zoom/material/atlas uniforms for dirt/rock micro+macro color mixing
+- `uUseDetail`, `uDetailBlend`, `uMaterialSplat`, detail material/atlas uniforms for RGBA material-splat micro color mixing
 - `uUseFog`, `uFogColor`, `uFogMinAlpha`, `uFogMaxAlpha`, `uFogFalloff`, `uFogStartOffset`, `uCameraHeightNorm`
 - `uUseVolumetric`, `uVolumetricStrength`, `uVolumetricDensity`, `uVolumetricAnisotropy`, `uVolumetricLength`, `uVolumetricSamples`
 

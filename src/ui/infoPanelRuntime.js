@@ -117,7 +117,7 @@ export function createInfoPanelRuntime(deps) {
     if (!deps.detailInfoEl || typeof deps.getDetailDebugInfo !== "function") return;
     const info = deps.getDetailDebugInfo();
     const nextDetailInfo = info
-      ? `Zoom: ${info.zoom.toFixed(2)} | Detail px/m: ${info.pxPerMeter.toFixed(2)} | Fade: ${info.fade.toFixed(2)} (${info.startPxPerMeter.toFixed(1)}-${info.fullPxPerMeter.toFixed(1)})`
+      ? `Zoom: ${info.zoom.toFixed(2)} | Detail px/m: ${info.pxPerMeter.toFixed(2)} | Fade: ${info.fade.toFixed(2)} (${info.startPxPerMeter.toFixed(1)}-${info.fullPxPerMeter.toFixed(1)}) | Detail: ${info.atlasAvailable ? "on" : "off"} ${info.loadedSourceCount}/4 | Splat: ${info.materialSplatAvailable ? "yes" : "fallback"}`
       : "Zoom: -- | Detail px/m: -- | Fade: --";
     if (deps.detailInfoEl.textContent !== nextDetailInfo) {
       deps.detailInfoEl.textContent = nextDetailInfo;

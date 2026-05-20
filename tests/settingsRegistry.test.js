@@ -110,17 +110,21 @@ test("detail settings contract routes and returns enabled defaults", () => {
   const defaults = registry.getDefaults("detail");
   assert.deepEqual(defaults, DEFAULT_DETAIL_SETTINGS);
   assert.equal(defaults.enabled, true);
-  assert.equal(defaults.materials.dirt.macro.colorStrength, 1);
+  assert.equal(defaults.version, 3);
+  assert.equal(defaults.splat.src, "assets/detail/default/materials.png");
+  assert.equal(defaults.materials[1].id, "rock");
+  assert.equal(defaults.materials[1].slot, 1);
+  assert.equal(defaults.materials[0].micro.colorStrength, 1);
   const normalized = normalizeDetailSettings({
-    materials: {
-      dirt: {
-        macro: {
+    materials: [
+      {
+        micro: {
           colorStrength: 0.75,
         },
       },
-    },
+    ],
   });
-  assert.equal(normalized.materials.dirt.macro.colorStrength, 0.75);
+  assert.equal(normalized.materials[0].micro.colorStrength, 0.75);
 });
 
 test("camera settings contract routes and returns deep zoom defaults", () => {
