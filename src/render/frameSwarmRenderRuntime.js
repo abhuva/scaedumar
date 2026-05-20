@@ -1,7 +1,12 @@
 export function renderFrameSwarmLayers(deps) {
+  const now = typeof deps.now === "function"
+    ? deps.now
+    : () => (typeof performance !== "undefined" && typeof performance.now === "function" ? performance.now() : Date.now());
+  const profile = deps.profile && typeof deps.profile === "object" ? deps.profile : null;
   const swarmSettings = deps.getSwarmSettings();
   const swarmEnabled = swarmSettings.useAgentSwarm;
   const showTerrain = !swarmEnabled || swarmSettings.showTerrainInSwarm;
+  const buildStart = now();
   const frameState = deps.buildFrameRenderState({
     coreState: deps.coreState,
     nowMs: deps.nowMs,
@@ -18,8 +23,12 @@ export function renderFrameSwarmLayers(deps) {
     swarmEnabled,
     swarmLitEnabled: swarmSettings.useLitSwarm,
   });
+  if (profile) profile.frameStateMs = now() - buildStart;
+  const terrainStart = now();
   deps.renderer.renderTerrainFrame(frameState);
+  if (profile) profile.terrainRenderMs = now() - terrainStart;
   if (frameState.swarm.enabled && frameState.swarm.litEnabled) {
+    const swarmLitStart = now();
     deps.renderSwarmLit(
       frameState.lightingParams,
       frameState.time,
@@ -27,6 +36,9 @@ export function renderFrameSwarmLayers(deps) {
       frameState.uniformInput,
       frameState.camera,
     );
+    if (profile) profile.swarmLitRenderMs = now() - swarmLitStart;
+  } else if (profile) {
+    profile.swarmLitRenderMs = 0;
   }
   return frameState;
 }

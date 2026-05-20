@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "useShadows": true,
+  "heightScale": 80,
+  "shadowStrength": 0.6,
+  "shadowBlur": 1.9,
+  "ambient": 0.47,
+  "diffuse": 1.06,
+  "useVolumetric": false,
+  "volumetricStrength": 0.24,
+  "volumetricDensity": 0.85,
+  "volumetricAnisotropy": 0.45,
+  "volumetricLength": 52,
+  "volumetricSamples": 12,
+  "cycleHour": 12.3,
+  "cycleSpeed": 0,
+  "simTickHours": 0.01,
+  "pointFlickerEnabled": false,
+  "pointFlickerStrength": 0.55,
+  "pointFlickerSpeed": 2.4,
+  "pointFlickerSpatial": 1
+}

@@ -1,7 +1,11 @@
 export function createMainCommandAssemblyRuntime(deps) {
   return {
-    zoomMin: deps.zoomMin,
-    zoomMax: deps.zoomMax,
+    get zoomMin() {
+      return typeof deps.getZoomMin === "function" ? deps.getZoomMin() : deps.zoomMin;
+    },
+    get zoomMax() {
+      return typeof deps.getZoomMax === "function" ? deps.getZoomMax() : deps.zoomMax;
+    },
     lastDragClient: deps.lastDragClient,
     cycleState: deps.cycleState,
     cursorLightState: deps.cursorLightState,
@@ -63,13 +67,17 @@ export function createMainCommandAssemblyRuntime(deps) {
     markFogColorManual: deps.markFogColorManual,
     syncRenderFxCloudUi: deps.syncRenderFxCloudUi,
     syncRenderFxWaterUi: deps.syncRenderFxWaterUi,
+    syncDetailUi: deps.syncDetailUi,
     rebuildFlowMapTexture: deps.rebuildFlowMapTexture,
+    rebuildDetailAtlas: deps.rebuildDetailAtlas,
     schedulePointLightBake: deps.schedulePointLightBake,
     serializeLightingSettings: deps.serializeLightingSettings,
     serializeParallaxSettings: deps.serializeParallaxSettings,
     serializeFogSettings: deps.serializeFogSettings,
     serializeCloudSettings: deps.serializeCloudSettings,
     serializeWaterSettings: deps.serializeWaterSettings,
+    serializeDetailSettings: deps.serializeDetailSettings,
+    defaultDetailSettings: deps.defaultDetailSettings,
     serializeAudioSettingsCompat: deps.serializeAudioSettingsCompat,
     serializeAudioSettings: deps.serializeAudioSettings,
     syncAudioUi: deps.syncAudioUi,

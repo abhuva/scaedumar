@@ -58,6 +58,8 @@ import {
   DEFAULT_PARALLAX_SETTINGS,
   DEFAULT_CLOUD_SETTINGS,
   DEFAULT_WATER_SETTINGS,
+  DEFAULT_DETAIL_SETTINGS,
+  DEFAULT_CAMERA_SETTINGS,
   DEFAULT_INTERACTION_SETTINGS,
   DEFAULT_SWARM_SETTINGS,
   DEFAULT_AUDIO_SETTINGS,
@@ -87,6 +89,7 @@ import { applyPointLightUsagePass } from "./render/passes/pointLightUsagePass.js
 import { rebuildFlowMapTexture as rebuildFlowMapTexturePrecompute } from "./render/precompute/flowMap.js";
 import { createPointLightBakeRuntimeBinding } from "./render/pointLightBakeRuntimeBinding.js";
 import { createRenderPipelineRuntime } from "./render/renderPipelineRuntime.js";
+import { createDetailAtlasRuntime } from "./render/detailAtlasRuntime.js";
 import { createFrameUiRuntime } from "./render/frameUiRuntime.js";
 import { updateWeatherFieldMeta } from "./render/weatherFieldRuntime.js";
 import { renderFrameSwarmLayers } from "./render/frameSwarmRenderRuntime.js";
@@ -148,6 +151,7 @@ import { createInteractionModeUiRuntime } from "./ui/interactionModeUiRuntime.js
 import { createPointLightIoUiRuntime } from "./ui/pointLightIoUiRuntime.js";
 import { createWorkspaceRuntime } from "./ui/workspaceRuntime.js";
 import { createGameTimeDioramaRuntime } from "./ui/gameTimeDioramaRuntime.js";
+import { createDetailPanelRuntime } from "./ui/detailPanelRuntime.js";
 
 const runtimeCore = createRuntimeCore();
 const dispatchCoreCommand = createCoreCommandDispatch(runtimeCore);
@@ -174,6 +178,10 @@ const topicCards = getRequiredElements(".topic-card");
 const statusEl = getRequiredElementById("status");
 const statusRuntime = createStatusRuntime({ statusEl });
 const cycleInfoEl = getRequiredElementById("cycleInfo");
+const frameInfoEl = getRequiredElementById("frameInfo");
+const frameProfileInfoEl = getRequiredElementById("frameProfileInfo");
+const gpuProfileInfoEl = getRequiredElementById("gpuProfileInfo");
+const detailInfoEl = getRequiredElementById("detailInfo");
 const playerInfoEl = getRequiredElementById("playerInfo");
 const pathInfoEl = getRequiredElementById("pathInfo");
 const movementStatusPanelEl = getRequiredElementById("movementStatusPanel");
@@ -681,6 +689,8 @@ const settingsCoreSetupRuntime = createSettingsCoreSetupRuntime(createSettingsCo
   defaultLightingSettings: DEFAULT_LIGHTING_SETTINGS,
   defaultCloudSettings: DEFAULT_CLOUD_SETTINGS,
   defaultWaterSettings: DEFAULT_WATER_SETTINGS,
+  defaultDetailSettings: DEFAULT_DETAIL_SETTINGS,
+  defaultCameraSettings: DEFAULT_CAMERA_SETTINGS,
   normalizeTimeRouting,
   normalizeRoutingMode,
   normalizeSimTickHours,
@@ -732,6 +742,10 @@ const {
   applyCloudSettingsCompat,
   serializeWaterSettingsCompat,
   applyWaterSettingsCompat,
+  serializeDetailSettingsCompat,
+  applyDetailSettingsCompat,
+  serializeCameraSettingsCompat,
+  applyCameraSettingsCompat,
   serializeInteractionSettingsCompat,
   applyInteractionSettingsCompat,
   serializeAudioSettingsCompat,
@@ -750,6 +764,10 @@ const {
   applyCloudSettings,
   serializeWaterSettings,
   applyWaterSettings,
+  serializeDetailSettings,
+  applyDetailSettings,
+  serializeCameraSettings,
+  applyCameraSettings,
   serializeInteractionSettings,
   applyInteractionSettings,
   serializeAudioSettings,
@@ -769,8 +787,8 @@ const mainRuntimeStateBinding = createMainRuntimeStateBinding({
   defaultSwarmSettings: DEFAULT_SWARM_SETTINGS,
   clamp: clampUtil,
   swarmZMax: SWARM_Z_MAX,
-  zoomMin: 0.5,
-  zoomMax: 32,
+  getZoomMin,
+  getZoomMax,
   normalizeRoutingMode,
   getCurrentMapFolderPath,
   getSplatSize: () => splatSize,
@@ -800,6 +818,102 @@ function getSlimeSettings() {
     getSimulationKnobSectionFromStore("slime") || getSettingsDefaults("slime", DEFAULT_SLIME_SETTINGS),
     DEFAULT_SLIME_SETTINGS,
   );
+}
+
+function getDetailSettings() {
+  return getSimulationKnobSectionFromStore("detail") || getSettingsDefaults("detail", DEFAULT_DETAIL_SETTINGS);
+}
+
+function getCameraSettings() {
+  return getSimulationKnobSectionFromStore("camera") || getSettingsDefaults("camera", DEFAULT_CAMERA_SETTINGS);
+}
+
+function smoothstepValue(edge0, edge1, value) {
+  const span = Math.max(0.0001, Number(edge1) - Number(edge0));
+  const t = clamp((Number(value) - Number(edge0)) / span, 0, 1);
+  return t * t * (3 - 2 * t);
+}
+
+function getDetailDebugInfo() {
+  const camera = getCameraRuntimeBinding().getActiveCameraState();
+  const viewHalf = getCameraRuntimeBinding().getViewHalfExtents(camera.zoom);
+  const mapPixelWorldSize = 1 / Math.max(1, Number(heightSize.height) || 1);
+  const pxPerMeterX = (canvas.width * mapPixelWorldSize) / Math.max(0.001, 2 * viewHalf.x);
+  const pxPerMeterY = (canvas.height * mapPixelWorldSize) / Math.max(0.001, 2 * viewHalf.y);
+  const pxPerMeter = Math.min(pxPerMeterX, pxPerMeterY);
+  const detail = serializeDetailSettings();
+  const startPxPerMeter = clamp(Number(detail.zoom.startPxPerMeter), 0, 512);
+  const fullPxPerMeter = Math.max(startPxPerMeter + 0.001, clamp(Number(detail.zoom.fullPxPerMeter), 0, 1024));
+  return {
+    zoom: camera.zoom,
+    pxPerMeter,
+    pxPerMeterX,
+    pxPerMeterY,
+    startPxPerMeter,
+    fullPxPerMeter,
+    fade: smoothstepValue(startPxPerMeter, fullPxPerMeter, pxPerMeter),
+    atlasAvailable: Boolean(detailAtlasState.available),
+    loadedSourceCount: Number(detailAtlasState.loadedSourceCount) || 0,
+    materialSplatAvailable: Boolean(detailAtlasState.materialSplatAvailable),
+  };
+}
+
+function getFrameDebugInfo() {
+  const nowMs = Number(runtimeCore.frame.lastNowMs);
+  const dtSec = Number(runtimeCore.frame.lastDtSec);
+  if (!Number.isFinite(nowMs) || !Number.isFinite(dtSec) || dtSec <= 0) {
+    return null;
+  }
+  return {
+    nowMs,
+    frameMs: dtSec * 1000,
+    profile: runtimeCore.frame.profile || null,
+    gpuProfile: renderer && typeof renderer.getGpuProfile === "function"
+      ? renderer.getGpuProfile()
+      : null,
+  };
+}
+
+function getZoomBounds() {
+  const camera = getCameraSettings();
+  return {
+    min: clamp(Number(camera.zoomMin), 0.05, 32),
+    max: clamp(Number(camera.zoomMax), Math.max(0.05, Number(camera.zoomMin) || 0.05), 512),
+  };
+}
+
+function getZoomMin() {
+  return getZoomBounds().min;
+}
+
+function getZoomMax() {
+  return getZoomBounds().max;
+}
+
+function clampCameraToBounds() {
+  const state = runtimeCore.store.getState();
+  const camera = state.camera || {};
+  const bounds = getZoomBounds();
+  const zoom = clamp(Number(camera.zoom), bounds.min, bounds.max);
+  if (zoom === camera.zoom) return;
+  mainRuntimeStateBinding.setCameraPoseToStore(
+    Number.isFinite(Number(camera.panX)) ? Number(camera.panX) : 0,
+    Number.isFinite(Number(camera.panY)) ? Number(camera.panY) : 0,
+    zoom,
+  );
+}
+
+let detailAtlasRuntime = null;
+let detailPanelRuntime = null;
+function rebuildDetailAtlas() {
+  if (!detailAtlasRuntime) return Promise.resolve(null);
+  return detailAtlasRuntime.rebuild(getDetailSettings());
+}
+
+function syncDetailUi() {
+  if (detailPanelRuntime) {
+    detailPanelRuntime.syncDetailUi();
+  }
 }
 
 function getSlimeSimulationState() {
@@ -1541,6 +1655,8 @@ const uniforms = {
   uShadowTex: gl.getUniformLocation(program, "uShadowTex"),
   uWater: gl.getUniformLocation(program, "uWater"),
   uFlowMap: gl.getUniformLocation(program, "uFlowMap"),
+  uMaterialSplat: gl.getUniformLocation(program, "uMaterialSplat"),
+  uDetailMicroColor: gl.getUniformLocation(program, "uDetailMicroColor"),
   uUseCursorLight: gl.getUniformLocation(program, "uUseCursorLight"),
   uCursorLightUv: gl.getUniformLocation(program, "uCursorLightUv"),
   uCursorLightColor: gl.getUniformLocation(program, "uCursorLightColor"),
@@ -1565,6 +1681,15 @@ const uniforms = {
   uParallaxStrength: gl.getUniformLocation(program, "uParallaxStrength"),
   uParallaxBands: gl.getUniformLocation(program, "uParallaxBands"),
   uZoom: gl.getUniformLocation(program, "uZoom"),
+  uUseDetail: gl.getUniformLocation(program, "uUseDetail"),
+  uDetailBlend: gl.getUniformLocation(program, "uDetailBlend"),
+  uDetailWaterSuppression: gl.getUniformLocation(program, "uDetailWaterSuppression"),
+  uDetailMicroRect0: gl.getUniformLocation(program, "uDetailMicroRect0"),
+  uDetailMicroRect1: gl.getUniformLocation(program, "uDetailMicroRect1"),
+  uDetailMicroRect2: gl.getUniformLocation(program, "uDetailMicroRect2"),
+  uDetailMicroRect3: gl.getUniformLocation(program, "uDetailMicroRect3"),
+  uDetailMicroScale0: gl.getUniformLocation(program, "uDetailMicroScale0"),
+  uDetailMicroScale1: gl.getUniformLocation(program, "uDetailMicroScale1"),
   uUseFog: gl.getUniformLocation(program, "uUseFog"),
   uFogColor: gl.getUniformLocation(program, "uFogColor"),
   uFogMinAlpha: gl.getUniformLocation(program, "uFogMinAlpha"),
@@ -1731,6 +1856,9 @@ const {
   heightTex,
   waterTex,
   flowMapTex,
+  materialSplatTex,
+  detailMicroColorTex,
+  detailAtlasState,
   pointLightTex,
   cloudNoiseTex,
   shadowRawTex,
@@ -1767,6 +1895,17 @@ const {
   }),
   ...createGameplayBootstrapState(),
 };
+detailAtlasRuntime = createDetailAtlasRuntime({
+  gl,
+  loadImageFromUrl,
+  defaultDetailSettings: DEFAULT_DETAIL_SETTINGS,
+  state: detailAtlasState,
+  materialSplatTex,
+  microColorTex: detailMicroColorTex,
+});
+rebuildDetailAtlas().catch((error) => {
+  console.warn("Failed to build zoom-detail atlas; terrain detail will remain neutral.", error);
+});
 uploadCloudNoiseTexture();
 
 const DEFAULT_POINT_LIGHT_FLICKER = 0.7;
@@ -2017,6 +2156,8 @@ const updateCursorLightHeightOffsetLabel = (...args) => lightLabelRuntime.update
   defaultFogSettings: DEFAULT_FOG_SETTINGS,
   defaultCloudSettings: DEFAULT_CLOUD_SETTINGS,
   defaultWaterSettings: DEFAULT_WATER_SETTINGS,
+  defaultDetailSettings: DEFAULT_DETAIL_SETTINGS,
+  defaultCameraSettings: DEFAULT_CAMERA_SETTINGS,
   defaultAudioSettings: DEFAULT_AUDIO_SETTINGS,
   defaultSwarmSettings: DEFAULT_SWARM_SETTINGS,
   applyLightingSettings: (...args) => applyLightingSettings(...args),
@@ -2025,6 +2166,8 @@ const updateCursorLightHeightOffsetLabel = (...args) => lightLabelRuntime.update
   applyFogSettings: (...args) => applyFogSettings(...args),
   applyCloudSettings: (...args) => applyCloudSettings(...args),
   applyWaterSettings: (...args) => applyWaterSettings(...args),
+  applyDetailSettings: (...args) => applyDetailSettings(...args),
+  applyCameraSettings: (...args) => applyCameraSettings(...args),
   applyAudioSettings: (...args) => applyAudioSettings(...args),
   applySwarmSettings: (...args) => applySwarmSettings(...args),
   reseedSwarmAgents: (...args) => reseedSwarmAgents(...args),
@@ -2044,6 +2187,8 @@ const updateCursorLightHeightOffsetLabel = (...args) => lightLabelRuntime.update
   serializeFogSettings: (...args) => serializeFogSettings(...args),
   serializeCloudSettings: (...args) => serializeCloudSettings(...args),
   serializeWaterSettings: (...args) => serializeWaterSettings(...args),
+  serializeDetailSettings: (...args) => serializeDetailSettings(...args),
+  serializeCameraSettings: (...args) => serializeCameraSettings(...args),
   serializeAudioSettings: (...args) => serializeAudioSettings(...args),
   serializeSwarmData: (...args) => serializeSwarmData(...args),
   serializeNpcState: (...args) => serializeNpcStateFromBinding(...args),
@@ -2133,8 +2278,6 @@ const applyMapSizeChangeIfNeeded = (changed) => mapLifecycleRuntime.applyMapSize
 bakePointLightsTexture();
 updateLightEditorUi();
 
-const zoomMin = 0.5;
-const zoomMax = 32;
 function applyRuntimeCameraPose() {}
 
 let isMiddleDragging = false;
@@ -2158,8 +2301,8 @@ const timeLightingSetupRuntime = createTimeLightingSetupRuntime(createTimeLighti
   getFogColorManual: () => fogColorManual,
   rgbToHex,
   hexToRgb01,
-  zoomMin,
-  zoomMax,
+  getZoomMin,
+  getZoomMax,
   cycleHourInput,
   cycleHourValue,
   formatHour,
@@ -2277,6 +2420,10 @@ registerMainSettingsContracts(runtimeCore.settingsRegistry, {
   applyClouds: applyCloudSettingsCompat,
   serializeWater: serializeWaterSettingsCompat,
   applyWater: applyWaterSettingsCompat,
+  serializeDetail: serializeDetailSettingsCompat,
+  applyDetail: applyDetailSettingsCompat,
+  serializeCamera: serializeCameraSettingsCompat,
+  applyCamera: applyCameraSettingsCompat,
   serializeInteraction: serializeInteractionSettingsCompat,
   applyInteraction: applyInteractionSettingsCompat,
   serializeAudio: serializeAudioSettingsCompat,
@@ -2300,6 +2447,9 @@ const renderPipelineRuntime = createRenderPipelineRuntime(createRenderPipelineAs
   shadowRawTex,
   waterTex,
   flowMapTex,
+  materialSplatTex,
+  detailMicroColorTex,
+  detailAtlasState,
   heightSize,
   splatSize,
   getViewHalfExtents: (...args) => getViewHalfExtents(...args),
@@ -2318,9 +2468,19 @@ const renderPipelineRuntime = createRenderPipelineRuntime(createRenderPipelineAs
 const renderResources = renderPipelineRuntime.renderResources;
 const renderer = renderPipelineRuntime.renderer;
 
+detailPanelRuntime = createDetailPanelRuntime({
+  document,
+  serializeDetailSettings,
+  defaultDetailSettings: DEFAULT_DETAIL_SETTINGS,
+  dispatchCoreCommand,
+  setTimeout: (fn, ms) => window.setTimeout(fn, ms),
+  clearTimeout: (id) => window.clearTimeout(id),
+  requestAnimationFrame: (fn) => window.requestAnimationFrame(fn),
+});
+
 registerMainCommands(runtimeCore.commandBus, createMainCommandAssemblyRuntime({
-  zoomMin,
-  zoomMax,
+  getZoomMin,
+  getZoomMax,
   lastDragClient,
   cycleState,
   cursorLightState,
@@ -2392,13 +2552,17 @@ registerMainCommands(runtimeCore.commandBus, createMainCommandAssemblyRuntime({
   },
   syncRenderFxCloudUi,
   syncRenderFxWaterUi,
+  syncDetailUi,
   rebuildFlowMapTexture,
+  rebuildDetailAtlas,
   schedulePointLightBake,
   serializeLightingSettings,
   serializeParallaxSettings,
   serializeFogSettings,
   serializeCloudSettings,
   serializeWaterSettings,
+  serializeDetailSettings,
+  defaultDetailSettings: DEFAULT_DETAIL_SETTINGS,
   serializeAudioSettingsCompat,
   serializeAudioSettings,
   syncAudioUi,
@@ -2557,8 +2721,8 @@ const {
   defaultSwarmSettings: DEFAULT_SWARM_SETTINGS,
   clamp,
   swarmZMax: SWARM_Z_MAX,
-  zoomMin,
-  zoomMax,
+  getZoomMin,
+  getZoomMax,
   normalizeRoutingMode,
   getCurrentMapFolderPath,
   splatSize,
@@ -2676,6 +2840,8 @@ const swarmIntegrationSetupRuntime = createSwarmIntegrationSetupRuntime(
     defaultParallaxSettings: DEFAULT_PARALLAX_SETTINGS,
     defaultCloudSettings: DEFAULT_CLOUD_SETTINGS,
     defaultWaterSettings: DEFAULT_WATER_SETTINGS,
+    defaultDetailSettings: DEFAULT_DETAIL_SETTINGS,
+    defaultCameraSettings: DEFAULT_CAMERA_SETTINGS,
     defaultInteractionSettings: DEFAULT_INTERACTION_SETTINGS,
     defaultSwarmSettings: DEFAULT_SWARM_SETTINGS,
     defaultAudioSettings: DEFAULT_AUDIO_SETTINGS,
@@ -2759,6 +2925,11 @@ const swarmIntegrationSetupRuntime = createSwarmIntegrationSetupRuntime(
       getParallaxSettings: () => getSimulationKnobSectionFromStore("parallax") || getSettingsDefaults("parallax", DEFAULT_PARALLAX_SETTINGS),
       getCloudSettings: () => getSimulationKnobSectionFromStore("clouds") || getSettingsDefaults("clouds", DEFAULT_CLOUD_SETTINGS),
       getWaterSettings: () => getSimulationKnobSectionFromStore("waterFx") || getSettingsDefaults("waterfx", DEFAULT_WATER_SETTINGS),
+      getDetailSettings,
+      getCameraSettings,
+      clampCameraToBounds,
+      rebuildDetailAtlas,
+      syncDetailUi,
       getTimeState: () => runtimeCore.store.getState().systems.time || {},
       shadowsToggle,
       heightScaleInput,
@@ -2863,8 +3034,8 @@ const swarmIntegrationSetupRuntime = createSwarmIntegrationSetupRuntime(
     swarmFollowHawkScratch,
     swarmFollowAgentScratch,
     mapCoordToWorld: (...args) => mapCoordToWorld(...args),
-    zoomMin,
-    zoomMax,
+    getZoomMin,
+    getZoomMax,
     getZoom: () => getActiveCameraState().zoom,
     dispatchCoreCommand,
     setSwarmFollowHawkIndex: swarmFollowRuntimeState.setSwarmFollowHawkIndex,
@@ -2896,10 +3067,16 @@ const swarmIntegrationSetupRuntime = createSwarmIntegrationSetupRuntime(
     swarmPointBuffer,
     getSwarmCursorMode,
     playerState,
-    getCurrentPathMetrics,
-    getMovementSnapshot: () => movementSystem.getSnapshot(),
-    getMovementEtaSeconds,
-    playerInfoEl,
+      getCurrentPathMetrics,
+      getMovementSnapshot: () => movementSystem.getSnapshot(),
+      getMovementEtaSeconds,
+      getFrameDebugInfo,
+      getDetailDebugInfo,
+      frameInfoEl,
+      frameProfileInfoEl,
+      gpuProfileInfoEl,
+      detailInfoEl,
+      playerInfoEl,
     pathInfoEl,
     movementStatusPanelEl,
     movementStatusEtaEl,
@@ -2926,6 +3103,7 @@ const ensureSwarmBuffers = swarmIntegrationSetupRuntime.ensureSwarmBuffers;
 const reseedSwarmAgents = swarmIntegrationSetupRuntime.reseedSwarmAgents;
 settingsCompatBindings = swarmIntegrationSetupRuntime.settingsCompatBindings;
 settingsRuntimeBinding = swarmIntegrationSetupRuntime.settingsRuntimeBinding;
+detailPanelRuntime.bindDetailControls();
 const swarmRenderSetupRuntime = swarmIntegrationSetupRuntime.swarmRenderSetupRuntime;
 const swarmLoopRuntime = swarmRenderSetupRuntime.swarmLoopRuntime;
 const writeInterpolatedSwarmAgentPos = swarmLoopRuntime.writeInterpolatedSwarmAgentPos;
@@ -3151,6 +3329,7 @@ const renderShellSetupRuntime = createRenderShellSetupRuntime(createRenderShellA
   defaultFogSettings: DEFAULT_FOG_SETTINGS,
   defaultCloudSettings: DEFAULT_CLOUD_SETTINGS,
   defaultWaterSettings: DEFAULT_WATER_SETTINGS,
+  defaultDetailSettings: DEFAULT_DETAIL_SETTINGS,
   hexToRgb01,
   updateInfoPanel,
   updateSwarmStatsPanel,

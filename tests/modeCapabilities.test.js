@@ -25,6 +25,8 @@ test("gameplay mode gates topics and interaction modes", () => {
 test("dev mode exposes overlays and topics", () => {
   const caps = getModeCapabilities("dev");
   assert.ok(caps.topics.includes("lighting"));
+  assert.ok(caps.topics.includes("detail"));
   assert.ok(caps.overlays.includes("pointLights"));
+  assert.equal(canUseTopic("dev", "detail"), true);
   assert.equal(canUseOverlay("dev", "cursorLight"), true);
 });

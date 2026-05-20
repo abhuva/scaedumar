@@ -8,6 +8,8 @@ export function createMapDataSaveController(deps) {
       "fog.json": `${JSON.stringify(deps.serializeFogSettings(), null, 2)}\n`,
       "clouds.json": `${JSON.stringify(deps.serializeCloudSettings(), null, 2)}\n`,
       "waterfx.json": `${JSON.stringify(deps.serializeWaterSettings(), null, 2)}\n`,
+      "detail.json": `${JSON.stringify(deps.serializeDetailSettings(), null, 2)}\n`,
+      "camera.json": `${JSON.stringify(deps.serializeCameraSettings(), null, 2)}\n`,
       "audio.json": `${JSON.stringify(deps.serializeAudioSettings(), null, 2)}\n`,
       "swarm.json": `${JSON.stringify(deps.serializeSwarmData(), null, 2)}\n`,
       "npc.json": `${JSON.stringify(deps.serializeNpcState(), null, 2)}\n`,

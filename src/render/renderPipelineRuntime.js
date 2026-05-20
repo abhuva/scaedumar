@@ -9,7 +9,7 @@ const DEFAULT_BG = [0, 0, 0];
 
 export function createRenderPipelineRuntime(deps) {
   const renderResources = createRenderResources({ gl: deps.gl, canvas: deps.canvas });
-  const renderer = createRenderer({ resources: renderResources });
+  const renderer = createRenderer({ resources: renderResources, gl: deps.gl });
   const uploadUniforms = createTerrainUniformUploader({
     gl: deps.gl,
     program: deps.program,
@@ -23,6 +23,9 @@ export function createRenderPipelineRuntime(deps) {
     shadowRawTex: deps.shadowRawTex,
     waterTex: deps.waterTex,
     flowMapTex: deps.flowMapTex,
+    materialSplatTex: deps.materialSplatTex,
+    detailMicroColorTex: deps.detailMicroColorTex,
+    detailAtlasState: deps.detailAtlasState,
     heightSize: deps.heightSize,
     splatSize: deps.splatSize,
     canvas: deps.canvas,

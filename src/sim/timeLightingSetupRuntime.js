@@ -46,8 +46,8 @@ export function createTimeLightingSetupRuntime(deps) {
       getFogColorManual: deps.getFogColorManual,
       rgbToHex: deps.rgbToHex,
       hexToRgb01: deps.hexToRgb01,
-      zoomMin: deps.zoomMin,
-      zoomMax: deps.zoomMax,
+      getZoomMin: deps.getZoomMin,
+      getZoomMax: deps.getZoomMax,
       cycleState,
     });
     return lightingParamsRuntime;

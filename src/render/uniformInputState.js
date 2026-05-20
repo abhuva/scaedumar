@@ -1,9 +1,15 @@
+import { DEFAULT_DETAIL_SETTINGS, normalizeDetailSettings } from "../gameplay/detailDataSerializer.js";
+
 export function buildUniformInputState(deps) {
   const lighting = deps.lightingSettings || deps.defaultLightingSettings || {};
   const parallax = deps.parallaxSettings || deps.defaultParallaxSettings || {};
   const fog = deps.fogState || deps.defaultFogSettings || {};
   const cloud = deps.cloudState || deps.defaultCloudSettings || {};
   const water = deps.waterFxState || deps.defaultWaterSettings || {};
+  const detail = normalizeDetailSettings(
+    deps.detailState || deps.defaultDetailSettings || DEFAULT_DETAIL_SETTINGS,
+    deps.defaultDetailSettings || DEFAULT_DETAIL_SETTINGS,
+  );
   const weather = deps.weatherState || null;
   const flowDeg = deps.clamp(Number(water.waterFlowDirectionDeg), 0, 360);
   const flowRad = (flowDeg * Math.PI) / 180;
@@ -63,6 +69,18 @@ export function buildUniformInputState(deps) {
     waterReflectivity: deps.clamp(Number(water.waterReflectivity), 0, 1),
     waterTintColor: Array.isArray(water.waterTintColor) ? water.waterTintColor : deps.hexToRgb01(String(water.waterTintColor || "#5ea6d6")),
     waterTintStrength: deps.clamp(Number(water.waterTintStrength), 0, 1),
+    useDetail: Boolean(detail.enabled),
+    detailStartPxPerMeter: deps.clamp(Number(detail.zoom.startPxPerMeter), 0, 512),
+    detailFullPxPerMeter: deps.clamp(Number(detail.zoom.fullPxPerMeter), 0, 1024),
+    detailWaterSuppression: deps.clamp(Number(detail.waterSuppression), 0, 1),
+    detailMaterial0MicroScale: deps.clamp(Number(detail.materials[0].micro.scaleMeters), 0.25, 4096),
+    detailMaterial1MicroScale: deps.clamp(Number(detail.materials[1].micro.scaleMeters), 0.25, 4096),
+    detailMaterial2MicroScale: deps.clamp(Number(detail.materials[2].micro.scaleMeters), 0.25, 4096),
+    detailMaterial3MicroScale: deps.clamp(Number(detail.materials[3].micro.scaleMeters), 0.25, 4096),
+    detailMaterial0MicroColor: deps.clamp(Number(detail.materials[0].micro.colorStrength), 0, 1),
+    detailMaterial1MicroColor: deps.clamp(Number(detail.materials[1].micro.colorStrength), 0, 1),
+    detailMaterial2MicroColor: deps.clamp(Number(detail.materials[2].micro.colorStrength), 0, 1),
+    detailMaterial3MicroColor: deps.clamp(Number(detail.materials[3].micro.colorStrength), 0, 1),
     cloudTimeSec,
     waterTimeSec,
     weatherType: weather ? weather.type : "clear",

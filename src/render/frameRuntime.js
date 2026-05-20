@@ -2,8 +2,20 @@ export function createFrameRuntime(deps) {
   const getCurrentMapFolderPath = typeof deps.getCurrentMapFolderPath === "function"
     ? deps.getCurrentMapFolderPath
     : () => "";
+  const now = typeof deps.now === "function"
+    ? deps.now
+    : () => (typeof performance !== "undefined" && typeof performance.now === "function" ? performance.now() : Date.now());
 
   function render(nowMs) {
+    const profileStart = now();
+    let mark = profileStart;
+    const profile = {};
+    function lap(key) {
+      const next = now();
+      profile[key] = next - mark;
+      mark = next;
+    }
+
     const { dtSec, preUpdateState, frameTimeState, routedTime, smoothCloudTimeSec } = deps.computeFrameTiming({
       nowMs,
       frame: deps.runtimeFrame,
@@ -15,11 +27,15 @@ export function createFrameRuntime(deps) {
       getRoutedSystemTime: deps.getRoutedSystemTime,
       getInterpolatedRoutedTimeSec: deps.getInterpolatedRoutedTimeSec,
     });
+    lap("timingMs");
+    deps.runtimeFrame.lastDtSec = dtSec;
     deps.schedulerUpdateAll({ nowMs, dtSec, time: { ...frameTimeState, systems: routedTime } }, preUpdateState);
+    lap("systemsMs");
     const coreState = deps.getCoreState();
 
     deps.resize();
     deps.overlayHooks.updateGameplay(nowMs, dtSec, routedTime.swarm);
+    lap("gameplayMs");
     const systemState = coreState.systems || {};
     const simulationState = coreState.simulation || {};
     const simulationKnobs = simulationState.knobs || {};
@@ -35,8 +51,10 @@ export function createFrameRuntime(deps) {
       cursorLightState: deps.cursorLightState,
       lightingSettings: simulationKnobs.lighting || null,
       parallaxSettings: simulationKnobs.parallax || null,
+      detailState: simulationKnobs.detail || null,
       defaultLightingSettings: deps.getSettingsDefaults("lighting", deps.defaultLightingSettings),
       defaultParallaxSettings: deps.getSettingsDefaults("parallax", deps.defaultParallaxSettings),
+      defaultDetailSettings: deps.getSettingsDefaults("detail", deps.defaultDetailSettings),
       defaultFogSettings: deps.getSettingsDefaults("fog", deps.defaultFogSettings),
       defaultCloudSettings: deps.getSettingsDefaults("clouds", deps.defaultCloudSettings),
       defaultWaterSettings: deps.getSettingsDefaults("waterfx", deps.defaultWaterSettings),
@@ -48,6 +66,7 @@ export function createFrameRuntime(deps) {
       cloudTimeSec: smoothCloudTimeSec,
       waterTimeSec: routedTime.water.timeSec,
     });
+    lap("uniformInputMs");
     const { cycleSpeed } = frameUi.syncCycleInfoText(systemState);
     deps.updateInfoPanel();
     deps.updateSwarmStatsPanel();
@@ -55,6 +74,7 @@ export function createFrameRuntime(deps) {
     if (typeof deps.updateGameTimeDiorama === "function") {
       deps.updateGameTimeDiorama(deps.cycleState.hour, cycleSpeed);
     }
+    lap("uiMs");
 
     deps.updateWeatherFieldMeta({
       renderResources: deps.renderResources,
@@ -62,6 +82,7 @@ export function createFrameRuntime(deps) {
       simulationWeather,
       nowMs,
     });
+    lap("weatherMetaMs");
     const frameState = deps.renderFrameSwarmLayers({
       getSwarmSettings: deps.getSwarmSettings,
       buildFrameRenderState: deps.buildFrameRenderState,
@@ -78,9 +99,15 @@ export function createFrameRuntime(deps) {
       hexToRgb01: deps.hexToRgb01,
       renderer: deps.renderer,
       renderSwarmLit: deps.renderSwarmLit,
+      profile,
+      now,
     });
+    lap("renderMs");
 
     deps.overlayHooks.renderOverlayIfNeeded(frameState);
+    lap("overlayMs");
+    profile.totalCpuMs = now() - profileStart;
+    deps.runtimeFrame.profile = profile;
     deps.requestAnimationFrame(deps.renderCallback);
   }
 

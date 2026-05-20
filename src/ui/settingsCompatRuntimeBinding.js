@@ -1,4 +1,6 @@
 import { createInteractionDataSerializer } from "../gameplay/interactionDataSerializer.js";
+import { createDetailDataSerializer } from "../gameplay/detailDataSerializer.js";
+import { createCameraSettingsSerializer } from "../gameplay/cameraSettings.js";
 import { createRenderFxDataSerializer } from "../gameplay/renderFxDataSerializer.js";
 import { createSwarmSettingsApplier } from "./swarmSettingsApplier.js";
 import { createInteractionSettingsApplier } from "./interactionSettingsApplier.js";
@@ -214,6 +216,17 @@ export function createSettingsCompatRuntimeBinding(deps) {
     normalizeRoutingMode: deps.normalizeRoutingMode,
     rgbToHex: deps.rgbToHex,
   });
+  const detailDataSerializer = createDetailDataSerializer({
+    getDetailSettings: deps.getDetailSettings,
+    defaultDetailSettings: deps.defaultDetailSettings,
+    rebuildDetailAtlas: deps.rebuildDetailAtlas,
+    syncDetailUi: deps.syncDetailUi,
+  });
+  const cameraSettingsSerializer = createCameraSettingsSerializer({
+    getCameraSettings: deps.getCameraSettings,
+    defaultCameraSettings: deps.defaultCameraSettings,
+    clampCameraToBounds: deps.clampCameraToBounds,
+  });
 
   return {
     applySwarmSettingsCompat,
@@ -229,6 +242,10 @@ export function createSettingsCompatRuntimeBinding(deps) {
     applyParallaxSettingsCompat: renderFxSettingsApplier.applyParallaxSettingsCompat,
     applyCloudSettingsCompat: renderFxSettingsApplier.applyCloudSettingsCompat,
     applyWaterSettingsCompat: renderFxSettingsApplier.applyWaterSettingsCompat,
+    serializeDetailSettingsCompat: detailDataSerializer.serializeDetailSettingsCompat,
+    applyDetailSettingsCompat: detailDataSerializer.applyDetailSettingsCompat,
+    serializeCameraSettingsCompat: cameraSettingsSerializer.serializeCameraSettingsCompat,
+    applyCameraSettingsCompat: cameraSettingsSerializer.applyCameraSettingsCompat,
     serializeLightingSettingsCompat: renderFxDataSerializer.serializeLightingSettingsCompat,
     serializeFogSettingsCompat: renderFxDataSerializer.serializeFogSettingsCompat,
     serializeParallaxSettingsCompat: renderFxDataSerializer.serializeParallaxSettingsCompat,

@@ -12,6 +12,8 @@ export function createMapRuntimeState(deps) {
     deps.applyFogSettings(deps.getSettingsDefaults("fog", deps.defaultFogSettings));
     deps.applyCloudSettings(deps.getSettingsDefaults("clouds", deps.defaultCloudSettings));
     deps.applyWaterSettings(deps.getSettingsDefaults("waterfx", deps.defaultWaterSettings));
+    deps.applyDetailSettings(deps.getSettingsDefaults("detail", deps.defaultDetailSettings));
+    deps.applyCameraSettings(deps.getSettingsDefaults("camera", deps.defaultCameraSettings));
     deps.applyAudioSettings(deps.getSettingsDefaults("audio", deps.defaultAudioSettings));
     deps.applySwarmSettings(deps.getSettingsDefaults("swarm", deps.defaultSwarmSettings));
   }

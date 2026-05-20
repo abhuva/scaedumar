@@ -55,6 +55,7 @@
       <button class="topic-btn" type="button" data-topic="swarm" title="Agent Swarm" aria-label="Agent swarm settings">A</button>
       <button class="topic-btn" type="button" data-topic="lighting" title="Main Lighting" aria-label="Main lighting">L</button>
       <button class="topic-btn" type="button" data-topic="parallax" title="Parallax" aria-label="Parallax settings">P</button>
+      <button class="topic-btn" type="button" data-topic="detail" title="Zoom Detail" aria-label="Zoom detail material settings">D</button>
       <button class="topic-btn" type="button" data-topic="fog" title="Height Fog" aria-label="Height fog">F</button>
       <button class="topic-btn" type="button" data-topic="clouds" title="Cloud Shadows" aria-label="Cloud shadow settings">C</button>
       <button class="topic-btn" type="button" data-topic="water" title="Water FX" aria-label="Water effects">W</button>
@@ -549,6 +550,95 @@
           </div>
         </section>
 
+        <section class="topic-card" data-topic="detail" data-title="Zoom Detail">
+          <p class="help">The current terrain color map stays as the base. The material splat map is normalized RGBA: R dirt, G rock, B grass, A snow. Tile px means terrain-map pixels.</p>
+          <div class="row">
+            <label for="detailEnabled">Zoom Detail</label>
+            <input id="detailEnabled" type="checkbox" data-detail-path="enabled" checked />
+          </div>
+          <div class="row">
+            <label for="detailStartPxPerMeter">Fade Start px/m</label>
+            <div class="inline-control">
+              <input id="detailStartPxPerMeter" type="range" min="0" max="128" step="0.5" value="4" data-detail-path="zoom.startPxPerMeter" data-detail-value="detailStartPxPerMeterValue" data-detail-format="1" />
+              <span id="detailStartPxPerMeterValue">4.0</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="detailFullPxPerMeter">Fade Full px/m</label>
+            <div class="inline-control">
+              <input id="detailFullPxPerMeter" type="range" min="0" max="256" step="0.5" value="16" data-detail-path="zoom.fullPxPerMeter" data-detail-value="detailFullPxPerMeterValue" data-detail-format="1" />
+              <span id="detailFullPxPerMeterValue">16.0</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="detailWaterSuppression">Water Suppression</label>
+            <div class="inline-control">
+              <input id="detailWaterSuppression" type="range" min="0" max="1" step="0.01" value="1" data-detail-path="waterSuppression" data-detail-value="detailWaterSuppressionValue" />
+              <span id="detailWaterSuppressionValue">1.00</span>
+            </div>
+          </div>
+          <h2>Dirt - Slot 0</h2>
+          <div class="row">
+            <label for="detailMaterial0MicroScale">Dirt Micro Tile px</label>
+            <div class="inline-control">
+              <input id="detailMaterial0MicroScale" type="range" min="0.25" max="64" step="0.25" value="2" data-detail-path="materials.0.micro.scaleMeters" data-detail-value="detailMaterial0MicroScaleValue" data-detail-format="2" />
+              <span id="detailMaterial0MicroScaleValue">2.00</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="detailMaterial0MicroColor">Dirt Micro Color</label>
+            <div class="inline-control">
+              <input id="detailMaterial0MicroColor" type="range" min="0" max="1" step="0.01" value="1" data-detail-path="materials.0.micro.colorStrength" data-detail-value="detailMaterial0MicroColorValue" />
+              <span id="detailMaterial0MicroColorValue">1.00</span>
+            </div>
+          </div>
+          <h2>Rock - Slot 1</h2>
+          <div class="row">
+            <label for="detailMaterial1MicroScale">Rock Micro Tile px</label>
+            <div class="inline-control">
+              <input id="detailMaterial1MicroScale" type="range" min="0.25" max="64" step="0.25" value="2" data-detail-path="materials.1.micro.scaleMeters" data-detail-value="detailMaterial1MicroScaleValue" data-detail-format="2" />
+              <span id="detailMaterial1MicroScaleValue">2.00</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="detailMaterial1MicroColor">Rock Micro Color</label>
+            <div class="inline-control">
+              <input id="detailMaterial1MicroColor" type="range" min="0" max="1" step="0.01" value="1" data-detail-path="materials.1.micro.colorStrength" data-detail-value="detailMaterial1MicroColorValue" />
+              <span id="detailMaterial1MicroColorValue">1.00</span>
+            </div>
+          </div>
+          <h2>Grass - Slot 2</h2>
+          <div class="row">
+            <label for="detailMaterial2MicroScale">Grass Micro Tile px</label>
+            <div class="inline-control">
+              <input id="detailMaterial2MicroScale" type="range" min="0.25" max="64" step="0.25" value="2" data-detail-path="materials.2.micro.scaleMeters" data-detail-value="detailMaterial2MicroScaleValue" data-detail-format="2" />
+              <span id="detailMaterial2MicroScaleValue">2.00</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="detailMaterial2MicroColor">Grass Micro Color</label>
+            <div class="inline-control">
+              <input id="detailMaterial2MicroColor" type="range" min="0" max="1" step="0.01" value="1" data-detail-path="materials.2.micro.colorStrength" data-detail-value="detailMaterial2MicroColorValue" />
+              <span id="detailMaterial2MicroColorValue">1.00</span>
+            </div>
+          </div>
+          <h2>Snow - Slot 3</h2>
+          <div class="row">
+            <label for="detailMaterial3MicroScale">Snow Micro Tile px</label>
+            <div class="inline-control">
+              <input id="detailMaterial3MicroScale" type="range" min="0.25" max="64" step="0.25" value="2" data-detail-path="materials.3.micro.scaleMeters" data-detail-value="detailMaterial3MicroScaleValue" data-detail-format="2" />
+              <span id="detailMaterial3MicroScaleValue">2.00</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="detailMaterial3MicroColor">Snow Micro Color</label>
+            <div class="inline-control">
+              <input id="detailMaterial3MicroColor" type="range" min="0" max="1" step="0.01" value="1" data-detail-path="materials.3.micro.colorStrength" data-detail-value="detailMaterial3MicroColorValue" />
+              <span id="detailMaterial3MicroColorValue">1.00</span>
+            </div>
+          </div>
+        </section>
+
         <section class="topic-card" data-topic="fog" data-title="Height Fog">
           <div class="row">
             <label for="fogToggle">Height Fog</label>
@@ -880,6 +970,10 @@
 
         <section class="topic-card" data-topic="info" data-title="Info">
           <p id="cycleInfo" class="status">Time: --:-- | Speed: -- h/s</p>
+          <p id="frameInfo" class="status">FPS: -- | Frame: -- ms</p>
+          <p id="frameProfileInfo" class="status">CPU: -- | Update: -- | UI: -- | Render: -- | Overlay: --</p>
+          <p id="gpuProfileInfo" class="status">GPU: -- | Shadow: -- | Blur: -- | Terrain: --</p>
+          <p id="detailInfo" class="status">Zoom: -- | Detail px/m: -- | Fade: --</p>
           <p id="playerInfo" class="status">Player: (-, -)</p>
           <p id="pathInfo" class="status">Path: len -- | cost -- | avg --</p>
           <p id="status" class="status">Initializing...</p>

@@ -85,6 +85,8 @@ Build a self-contained prototype for top-down terrain rendering from Gaea-export
 - `assets/<mapName>/fog.json`: optional saved fog controls
 - `assets/<mapName>/clouds.json`: optional saved cloud-shadow controls
 - `assets/<mapName>/waterfx.json`: optional saved water animation/reflectance controls
+- `assets/<mapName>/detail.json`: optional saved zoom-detail material controls; points at an RGBA material splat map and global micro-detail source sprites default to `assets/detail/default/*`
+- `assets/<mapName>/camera.json`: optional saved camera controls (`zoomMin`, `zoomMax`)
 - `assets/<mapName>/audio.json`: optional saved Audio Lab settings (spectrogram/scribble/playback controls)
 - `assets/<mapName>/npc.json`: player state (`charID`, `pixelX`, `pixelY`, `color`)
 
@@ -123,6 +125,16 @@ Build a self-contained prototype for top-down terrain rendering from Gaea-export
   - Rendered directly in shader (no per-move bake)
   - Uses linear falloff and normal interaction
 - Optional parallax illusion from height map (continuous + banded)
+- Core zoom-detail material layer:
+  - optional `detail.json` uses version `3` and tunes RGBA splat-driven dirt/rock/grass/snow micro color detail
+  - default is enabled; missing individual micro sprites use neutral gray slots, and a missing material splat falls back to the dirt slot
+  - runtime builds one micro color atlas from `assets/detail/default/*`
+  - material splat weights are normalized in the shader; channels map to `R=dirt`, `G=rock`, `B=grass`, `A=snow`
+  - micro detail samples continuous map coordinates; each material's Tile px value is the terrain-map-pixel width/height covered by one full source texture tile
+  - each material's Color slider is a `0..1` contribution scalar; `0` skips that material/layer contribution and preserves the base terrain color
+  - zoom fade is computed once per frame and uploaded as `uDetailBlend` instead of recomputed per terrain fragment
+  - detail mixes color before lighting and does not affect normals or cast shadows
+  - dev map mode exposes a `D` panel for live tuning four material slots
 - Optional height fog illusion based on zoom-derived camera height vs terrain height
 - Optional cloud-shadow illusion from generated seamless noise texture (two scrolling layers + optional sun-direction projection)
 - Optional water FX (masked by `water.png`):

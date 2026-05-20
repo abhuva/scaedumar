@@ -17,6 +17,8 @@ uniform sampler2D uCloudNoiseTex;
 uniform sampler2D uShadowTex;
 uniform sampler2D uWater;
 uniform sampler2D uFlowMap;
+uniform sampler2D uMaterialSplat;
+uniform sampler2D uDetailMicroColor;
 uniform float uUseCursorLight;
 uniform vec2 uCursorLightUv;
 uniform vec3 uCursorLightColor;
@@ -41,6 +43,15 @@ uniform float uUseParallax;
 uniform float uParallaxStrength;
 uniform float uParallaxBands;
 uniform float uZoom;
+uniform float uUseDetail;
+uniform float uDetailBlend;
+uniform float uDetailWaterSuppression;
+uniform vec4 uDetailMicroRect0;
+uniform vec4 uDetailMicroRect1;
+uniform vec4 uDetailMicroRect2;
+uniform vec4 uDetailMicroRect3;
+uniform vec4 uDetailMicroScale0;
+uniform vec4 uDetailMicroScale1;
 uniform float uUseFog;
 uniform vec3 uFogColor;
 uniform float uFogMinAlpha;
@@ -140,6 +151,59 @@ vec2 fitUvOffsetToBounds(vec2 baseUv, vec2 displacedUv) {
 
 float uvHash(vec2 p) {
   return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+}
+
+vec2 detailAtlasUv(vec2 mapPixel, float scaleMeters, vec4 rect) {
+  vec2 tileUv = fract(mapPixel / max(vec2(0.25), vec2(scaleMeters)));
+  return rect.xy + tileUv * rect.zw;
+}
+
+void applyZoomDetail(inout vec3 base, vec2 uv, vec2 mapPixel) {
+  if (uUseDetail < 0.5 || uDetailBlend <= 0.0001) return;
+
+  vec4 microStrengths = vec4(
+    clamp(uDetailMicroScale0.y, 0.0, 1.0),
+    clamp(uDetailMicroScale0.w, 0.0, 1.0),
+    clamp(uDetailMicroScale1.y, 0.0, 1.0),
+    clamp(uDetailMicroScale1.w, 0.0, 1.0)
+  );
+  float maxMicroStrength = max(max(microStrengths.r, microStrengths.g), max(microStrengths.b, microStrengths.a));
+  if (maxMicroStrength <= 0.0001) return;
+
+  float blend = uDetailBlend;
+  if (uDetailWaterSuppression > 0.0001) {
+    float waterMask = smoothstep(0.46, 0.54, texture(uWater, uv).r);
+    blend *= mix(1.0, 1.0 - waterMask, clamp(uDetailWaterSuppression, 0.0, 1.0));
+  }
+  if (blend <= 0.0001) return;
+
+  vec4 weights = max(texture(uMaterialSplat, uv), vec4(0.0));
+  float weightSum = weights.r + weights.g + weights.b + weights.a;
+  weights = weightSum > 0.0001 ? weights / weightSum : vec4(1.0, 0.0, 0.0, 0.0);
+
+  vec3 microBlendColor = vec3(0.0);
+  float microAmount = 0.0;
+  if (microStrengths.r > 0.0001 && weights.r > 0.0001) {
+    float influence = weights.r * microStrengths.r;
+    microAmount += influence;
+    microBlendColor += texture(uDetailMicroColor, detailAtlasUv(mapPixel, uDetailMicroScale0.x, uDetailMicroRect0)).rgb * influence;
+  }
+  if (microStrengths.g > 0.0001 && weights.g > 0.0001) {
+    float influence = weights.g * microStrengths.g;
+    microAmount += influence;
+    microBlendColor += texture(uDetailMicroColor, detailAtlasUv(mapPixel, uDetailMicroScale0.z, uDetailMicroRect1)).rgb * influence;
+  }
+  if (microStrengths.b > 0.0001 && weights.b > 0.0001) {
+    float influence = weights.b * microStrengths.b;
+    microAmount += influence;
+    microBlendColor += texture(uDetailMicroColor, detailAtlasUv(mapPixel, uDetailMicroScale1.x, uDetailMicroRect2)).rgb * influence;
+  }
+  if (microStrengths.a > 0.0001 && weights.a > 0.0001) {
+    float influence = weights.a * microStrengths.a;
+    microAmount += influence;
+    microBlendColor += texture(uDetailMicroColor, detailAtlasUv(mapPixel, uDetailMicroScale1.z, uDetailMicroRect3)).rgb * influence;
+  }
+  base += blend * (microBlendColor - base * microAmount);
 }
 
 float fogAmountAtUv(vec2 uv) {
@@ -322,6 +386,8 @@ void main() {
   vec3 base = texture(uSplat, uv).rgb;
   vec3 n = texture(uNormals, uv).xyz * 2.0 - 1.0;
   n = normalize(n);
+  vec2 mapPixel = uv / uMapTexelSize;
+  applyZoomDetail(base, uv, mapPixel);
 
   float sunDiffuse = max(dot(n, uSunDir), 0.0);
   float moonDiffuse = max(dot(n, uMoonDir), 0.0);

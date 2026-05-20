@@ -259,6 +259,8 @@ No game engine is used.
   - `fog.json`
   - `clouds.json`
   - `waterfx.json`
+  - `detail.json`
+  - `camera.json`
   - `audio.json`
   - `swarm.json`
   - `npc.json`
@@ -347,8 +349,25 @@ No game engine is used.
   - optional flow debug overlay displays computed water direction on water pixels
   - water shading is evaluated at map texel centers (pixel-locked) so water influence is per map pixel
   - altitude-aware sun/moon glints, shoreline foam band, and sky-tint reflection
+- Core zoom-detail material layer:
+  - settings contract key is `detail`, persisted as optional version `3` `detail.json`
+  - default config is enabled; missing individual micro sprites use neutral gray atlas slots, and a missing material splat falls back to the dirt slot
+  - source sprites default to `assets/detail/default/{dirt,rock,grass,snow}_micro.png`
+  - runtime builds one micro color atlas from those sources and uploads one RGBA material splat texture
+  - material splat weights are normalized in the shader; channels map to `R=dirt`, `G=rock`, `B=grass`, `A=snow`
+  - terrain shader applies weighted material detail before lighting while preserving the current terrain color map as the base color
+  - micro detail samples continuous map coordinates; each material's `scaleMeters`/Tile px value is the terrain-map-pixel width/height covered by one full source texture tile
+  - each material's `colorStrength` is a `0..1` contribution scalar; `0` skips that material contribution, while `1` contributes fully according to splat weight and zoom fade
+  - zoom fade is computed once per frame and uploaded as `uDetailBlend`; the fragment shader returns before water/material/detail texture sampling when detail is inactive at the current zoom
+  - detail is color-only for performance; it does not modify normals or cast shadows
+  - detail is reduced on water through `waterSuppression`
+  - dev map mode exposes a `D` topic panel for live tuning four material slots, zoom fade, and water suppression
+- Camera settings:
+  - settings contract key is `camera`, persisted as optional `camera.json`
+  - `zoomMin` / `zoomMax` control runtime camera clamp; default `zoomMax` is `128` for close inspection of zoom-detail materials
+  - camera commands, swarm follow zoom normalization, and fog camera-height normalization resolve current bounds lazily from settings
 - Map-level persistence:
-  - `Load Map -> Save All` writes `pointlights.json`, `lighting.json`, `parallax.json`, `interaction.json`, `fog.json`, `clouds.json`, `waterfx.json`, `audio.json`, `swarm.json`, and `npc.json`
+  - `Load Map -> Save All` writes `pointlights.json`, `lighting.json`, `parallax.json`, `interaction.json`, `fog.json`, `clouds.json`, `waterfx.json`, `detail.json`, `camera.json`, `audio.json`, `swarm.json`, and `npc.json`
   - map loading auto-applies these files when present
 - Audio Lab groundwork:
   - core settings registry now includes `audio` defaults/serialize/apply contract key
@@ -512,6 +531,7 @@ Main light uniforms:
 - `uShadowTex`
 - `uWater`
 - `uFlowMap`
+- `uDetailMicroColor`
 - `uUseCursorLight`, `uCursorLightUv`, `uCursorLightColor`, `uCursorLightStrength`, `uCursorLightHeightOffset`, `uUseCursorTerrainHeight`, `uCursorLightMapSize`
 - `uTimeSec`, `uPointFlickerEnabled`, `uPointFlickerStrength`, `uPointFlickerSpeed`, `uPointFlickerSpatial`
 - `uUseClouds`, `uCloudCoverage`, `uCloudSoftness`, `uCloudOpacity`, `uCloudScale`, `uCloudSpeed1`, `uCloudSpeed2`, `uCloudSunParallax`, `uCloudUseSunProjection`
@@ -523,6 +543,7 @@ Map/camera uniforms:
 - `uMapAspect` (must come from splat texture size)
 - `uResolution`, `uViewHalfExtents`, `uPanWorld`
 - `uUseParallax`, `uParallaxStrength`, `uParallaxBands`, `uZoom`
+- `uUseDetail`, `uDetailBlend`, `uMaterialSplat`, detail material/atlas uniforms for RGBA material-splat micro color mixing
 - `uUseFog`, `uFogColor`, `uFogMinAlpha`, `uFogMaxAlpha`, `uFogFalloff`, `uFogStartOffset`, `uCameraHeightNorm`
 - `uUseVolumetric`, `uVolumetricStrength`, `uVolumetricDensity`, `uVolumetricAnisotropy`, `uVolumetricLength`, `uVolumetricSamples`
 
