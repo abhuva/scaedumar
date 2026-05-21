@@ -24,12 +24,6 @@ export function createSettingsRuntimeBinding(deps) {
     deps.applyFogSettingsCompat,
     deps.defaultFogSettings,
   );
-  const parallax = make(
-    "parallax",
-    deps.serializeParallaxSettingsCompat,
-    deps.applyParallaxSettingsCompat,
-    deps.defaultParallaxSettings,
-  );
   const clouds = make(
     "clouds",
     deps.serializeCloudSettingsCompat,
@@ -72,8 +66,6 @@ export function createSettingsRuntimeBinding(deps) {
     applyLightingSettings: lighting.apply,
     serializeFogSettings: fog.serialize,
     applyFogSettings: fog.apply,
-    serializeParallaxSettings: parallax.serialize,
-    applyParallaxSettings: parallax.apply,
     serializeCloudSettings: clouds.serialize,
     applyCloudSettings: clouds.apply,
     serializeWaterSettings: waterfx.serialize,

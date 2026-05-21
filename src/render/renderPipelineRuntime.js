@@ -23,6 +23,7 @@ export function createRenderPipelineRuntime(deps) {
     shadowRawTex: deps.shadowRawTex,
     waterTex: deps.waterTex,
     flowMapTex: deps.flowMapTex,
+    waterTrailTex: deps.waterTrailTex,
     materialSplatTex: deps.materialSplatTex,
     detailMicroColorTex: deps.detailMicroColorTex,
     detailAtlasState: deps.detailAtlasState,

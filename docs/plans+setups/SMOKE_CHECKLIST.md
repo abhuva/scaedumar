@@ -38,7 +38,6 @@ Policy: architecture-first; visual drift is acceptable unless it breaks usabilit
 - JSON compatibility preserved for existing keys:
   - `pointlights.json`
   - `lighting.json`
-  - `parallax.json`
   - `interaction.json`
   - `fog.json`
   - `clouds.json`

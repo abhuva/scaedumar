@@ -4,6 +4,7 @@ export function createRenderBootstrapState(deps) {
   const heightTex = deps.createTexture();
   const waterTex = deps.createTexture();
   const flowMapTex = deps.createLinearTexture();
+  const waterTrailTex = deps.createLinearTexture();
   const materialSplatTex = deps.createLinearTexture();
   const detailMicroColorTex = deps.createLinearTexture();
   const detailAtlasState = {
@@ -40,6 +41,7 @@ export function createRenderBootstrapState(deps) {
     heightTex,
     waterTex,
     flowMapTex,
+    waterTrailTex,
     materialSplatTex,
     detailMicroColorTex,
     detailAtlasState,

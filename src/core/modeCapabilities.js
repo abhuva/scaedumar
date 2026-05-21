@@ -1,5 +1,5 @@
 const FULL_CAPABILITIES = {
-  topics: ["map", "interaction", "swarm", "lighting", "parallax", "detail", "fog", "clouds", "water", "editor", "info"],
+  topics: ["map", "interaction", "swarm", "lighting", "detail", "fog", "clouds", "water", "water-trails", "editor", "info"],
   interactionModes: ["none", "lighting", "pathfinding"],
   overlays: ["pathPreview", "pointLights", "cursorLight", "swarmStats"],
 };

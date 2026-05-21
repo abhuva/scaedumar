@@ -41,16 +41,6 @@ export function createRenderFxDataSerializer(deps) {
     };
   }
 
-  function serializeParallaxSettingsCompat() {
-    const parallax = deps.getParallaxSettings();
-    return {
-      version: 1,
-      useParallax: Boolean(parallax.useParallax),
-      parallaxStrength: deps.clamp(Number(parallax.parallaxStrength), 0, 1),
-      parallaxBands: Math.round(deps.clamp(Number(parallax.parallaxBands), 2, 256)),
-    };
-  }
-
   function serializeCloudSettingsCompat() {
     const clouds = deps.getCloudSettings();
     const timeState = deps.getTimeState();
@@ -72,10 +62,18 @@ export function createRenderFxDataSerializer(deps) {
   function serializeWaterSettingsCompat() {
     const water = deps.getWaterSettings();
     const timeState = deps.getTimeState();
+    const flowSource = water.waterFlowSource === "fixed" || water.waterFlowSource === "height" || water.waterFlowSource === "image"
+      ? water.waterFlowSource
+      : (water.waterFlowDownhill === false ? "fixed" : "height");
     return {
       version: 1,
       useWaterFx: Boolean(water.useWaterFx),
-      waterFlowDownhill: Boolean(water.waterFlowDownhill),
+      waterFlowSource: flowSource,
+      waterFlowRenderMode: water.waterFlowRenderMode === "procedural" ? "procedural" : "streamlines",
+      waterFlowChannelPair: water.waterFlowChannelPair === "gb" || water.waterFlowChannelPair === "rb" ? water.waterFlowChannelPair : "rg",
+      waterFlowFlipX: Boolean(water.waterFlowFlipX),
+      waterFlowFlipY: Boolean(water.waterFlowFlipY),
+      waterFlowUseMagnitude: Boolean(water.waterFlowUseMagnitude),
       waterFlowInvertDownhill: Boolean(water.waterFlowInvertDownhill),
       waterFlowDebug: Boolean(water.waterFlowDebug),
       waterFlowDirectionDeg: Math.round(deps.clamp(Number(water.waterFlowDirectionDeg), 0, 360)),
@@ -88,6 +86,10 @@ export function createRenderFxDataSerializer(deps) {
       waterFlowWeight2: deps.clamp(Number(water.waterFlowWeight2), 0, 1),
       waterFlowWeight3: deps.clamp(Number(water.waterFlowWeight3), 0, 1),
       waterFlowStrength: deps.clamp(Number(water.waterFlowStrength), 0, 0.15),
+      waterFlowMapStrength: deps.clamp(Number(water.waterFlowMapStrength), 0, 4),
+      waterFlowVisibility: deps.clamp(Number(water.waterFlowVisibility), 0, 4),
+      waterStreamlineDensity: deps.clamp(Number(water.waterStreamlineDensity), 4, 80),
+      waterStreamlineSharpness: deps.clamp(Number(water.waterStreamlineSharpness), 0, 1),
       waterFlowSpeed: deps.clamp(Number(water.waterFlowSpeed), 0, 2.5),
       waterFlowScale: deps.clamp(Number(water.waterFlowScale), 0.5, 14),
       waterShimmerStrength: deps.clamp(Number(water.waterShimmerStrength), 0, 0.2),
@@ -96,6 +98,8 @@ export function createRenderFxDataSerializer(deps) {
       waterShoreFoamStrength: deps.clamp(Number(water.waterShoreFoamStrength), 0, 0.5),
       waterShoreWidth: deps.clamp(Number(water.waterShoreWidth), 0.4, 6),
       waterReflectivity: deps.clamp(Number(water.waterReflectivity), 0, 1),
+      waterBaseColor: Array.isArray(water.waterBaseColor) ? deps.rgbToHex(water.waterBaseColor) : String(water.waterBaseColor || "#245f73"),
+      waterOpacity: deps.clamp(Number(water.waterOpacity), 0, 1),
       waterTintColor: Array.isArray(water.waterTintColor) ? deps.rgbToHex(water.waterTintColor) : String(water.waterTintColor || "#5ea6d6"),
       waterTintStrength: deps.clamp(Number(water.waterTintStrength), 0, 1),
       timeRouting: deps.normalizeRoutingMode(timeState.routing && timeState.routing.water, "detached"),
@@ -105,7 +109,6 @@ export function createRenderFxDataSerializer(deps) {
   return {
     serializeLightingSettingsCompat,
     serializeFogSettingsCompat,
-    serializeParallaxSettingsCompat,
     serializeCloudSettingsCompat,
     serializeWaterSettingsCompat,
   };

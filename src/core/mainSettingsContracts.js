@@ -36,12 +36,6 @@ export const DEFAULT_FOG_SETTINGS = {
   fogStartOffset: 0,
 };
 
-export const DEFAULT_PARALLAX_SETTINGS = {
-  useParallax: false,
-  parallaxStrength: 0.35,
-  parallaxBands: 6,
-};
-
 export const DEFAULT_CLOUD_SETTINGS = {
   useClouds: false,
   cloudCoverage: 0.58,
@@ -57,7 +51,12 @@ export const DEFAULT_CLOUD_SETTINGS = {
 
 export const DEFAULT_WATER_SETTINGS = {
   useWaterFx: false,
-  waterFlowDownhill: true,
+  waterFlowSource: "height",
+  waterFlowRenderMode: "streamlines",
+  waterFlowChannelPair: "rg",
+  waterFlowFlipX: false,
+  waterFlowFlipY: false,
+  waterFlowUseMagnitude: false,
   waterFlowInvertDownhill: false,
   waterFlowDebug: false,
   waterFlowDirectionDeg: 135,
@@ -70,6 +69,10 @@ export const DEFAULT_WATER_SETTINGS = {
   waterFlowWeight2: 0.33,
   waterFlowWeight3: 0.45,
   waterFlowStrength: 0.045,
+  waterFlowMapStrength: 1.0,
+  waterFlowVisibility: 1.0,
+  waterStreamlineDensity: 32,
+  waterStreamlineSharpness: 0.55,
   waterFlowSpeed: 0.75,
   waterFlowScale: 4.2,
   waterShimmerStrength: 0.05,
@@ -78,6 +81,8 @@ export const DEFAULT_WATER_SETTINGS = {
   waterShoreFoamStrength: 0.14,
   waterShoreWidth: 2.2,
   waterReflectivity: 0.33,
+  waterBaseColor: "#245f73",
+  waterOpacity: 0.25,
   waterTintColor: "#4aa6c8",
   waterTintStrength: 0.2,
   timeRouting: "detached",
@@ -289,12 +294,6 @@ export function registerMainSettingsContracts(settingsRegistry, deps) {
       defaults: DEFAULT_FOG_SETTINGS,
       serialize: () => deps.serializeFog(),
       apply: (input) => deps.applyFog(input),
-    },
-    {
-      key: "parallax",
-      defaults: DEFAULT_PARALLAX_SETTINGS,
-      serialize: () => deps.serializeParallax(),
-      apply: (input) => deps.applyParallax(input),
     },
     {
       key: "clouds",

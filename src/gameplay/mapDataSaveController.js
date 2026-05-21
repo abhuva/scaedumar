@@ -3,11 +3,11 @@ export function createMapDataSaveController(deps) {
     return {
       "pointlights.json": `${JSON.stringify(deps.serializePointLights(), null, 2)}\n`,
       "lighting.json": `${JSON.stringify(deps.serializeLightingSettings(), null, 2)}\n`,
-      "parallax.json": `${JSON.stringify(deps.serializeParallaxSettings(), null, 2)}\n`,
       "interaction.json": `${JSON.stringify(deps.serializeInteractionSettings(), null, 2)}\n`,
       "fog.json": `${JSON.stringify(deps.serializeFogSettings(), null, 2)}\n`,
       "clouds.json": `${JSON.stringify(deps.serializeCloudSettings(), null, 2)}\n`,
       "waterfx.json": `${JSON.stringify(deps.serializeWaterSettings(), null, 2)}\n`,
+      "watertrails.json": `${JSON.stringify(deps.serializeWaterTrailSettings(), null, 2)}\n`,
       "detail.json": `${JSON.stringify(deps.serializeDetailSettings(), null, 2)}\n`,
       "camera.json": `${JSON.stringify(deps.serializeCameraSettings(), null, 2)}\n`,
       "audio.json": `${JSON.stringify(deps.serializeAudioSettings(), null, 2)}\n`,

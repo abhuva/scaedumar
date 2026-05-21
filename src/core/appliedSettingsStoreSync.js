@@ -143,33 +143,6 @@ export function createAppliedSettingsStoreSync(deps) {
           },
         };
       }
-      if (key === "parallax") {
-        const prevParallax = prev.simulation?.knobs?.parallax || {};
-        const nextParallax = {
-          ...prevParallax,
-          useParallax: Boolean(normalized.useParallax),
-          parallaxStrength: deps.clamp(
-            finiteOr(normalized.parallaxStrength, finiteOr(prevParallax.parallaxStrength, 0.2)),
-            0,
-            1,
-          ),
-          parallaxBands: clampRound(
-            normalized.parallaxBands ?? prevParallax.parallaxBands ?? 24,
-            2,
-            256,
-          ),
-        };
-        return {
-          ...prev,
-          simulation: {
-            ...prev.simulation,
-            knobs: {
-              ...prev.simulation.knobs,
-              parallax: nextParallax,
-            },
-          },
-        };
-      }
       if (key === "clouds") {
         const prevClouds = prev.simulation?.knobs?.clouds || {};
         const nextClouds = {
@@ -208,10 +181,19 @@ export function createAppliedSettingsStoreSync(deps) {
       }
       if (key === "waterfx") {
         const prevWater = prev.simulation?.knobs?.waterFx || {};
+        const flowSource = normalized.waterFlowSource === "fixed" || normalized.waterFlowSource === "height" || normalized.waterFlowSource === "image"
+          ? normalized.waterFlowSource
+          : (normalized.waterFlowDownhill === false ? "fixed" : (prevWater.waterFlowSource || "height"));
         const nextWater = {
           ...prevWater,
           useWaterFx: Boolean(normalized.useWaterFx),
-          waterFlowDownhill: Boolean(normalized.waterFlowDownhill),
+          waterFlowSource: flowSource,
+          waterFlowRenderMode: normalized.waterFlowRenderMode === "procedural" ? "procedural" : "streamlines",
+          waterFlowDownhill: flowSource !== "fixed",
+          waterFlowChannelPair: normalized.waterFlowChannelPair === "gb" || normalized.waterFlowChannelPair === "rb" ? normalized.waterFlowChannelPair : "rg",
+          waterFlowFlipX: Boolean(normalized.waterFlowFlipX),
+          waterFlowFlipY: Boolean(normalized.waterFlowFlipY),
+          waterFlowUseMagnitude: Boolean(normalized.waterFlowUseMagnitude),
           waterFlowInvertDownhill: Boolean(normalized.waterFlowInvertDownhill),
           waterFlowDebug: Boolean(normalized.waterFlowDebug),
           waterFlowDirectionDeg: clampRound(
@@ -228,6 +210,10 @@ export function createAppliedSettingsStoreSync(deps) {
           waterFlowWeight2: deps.clamp(finiteOr(normalized.waterFlowWeight2, finiteOr(prevWater.waterFlowWeight2, 0.33)), 0, 1),
           waterFlowWeight3: deps.clamp(finiteOr(normalized.waterFlowWeight3, finiteOr(prevWater.waterFlowWeight3, 0.33)), 0, 1),
           waterFlowStrength: deps.clamp(finiteOr(normalized.waterFlowStrength, finiteOr(prevWater.waterFlowStrength, 0.05)), 0, 0.15),
+          waterFlowMapStrength: deps.clamp(finiteOr(normalized.waterFlowMapStrength, finiteOr(prevWater.waterFlowMapStrength, 1)), 0, 4),
+          waterFlowVisibility: deps.clamp(finiteOr(normalized.waterFlowVisibility, finiteOr(prevWater.waterFlowVisibility, 1)), 0, 4),
+          waterStreamlineDensity: deps.clamp(finiteOr(normalized.waterStreamlineDensity, finiteOr(prevWater.waterStreamlineDensity, 32)), 4, 80),
+          waterStreamlineSharpness: deps.clamp(finiteOr(normalized.waterStreamlineSharpness, finiteOr(prevWater.waterStreamlineSharpness, 0.55)), 0, 1),
           waterFlowSpeed: deps.clamp(finiteOr(normalized.waterFlowSpeed, finiteOr(prevWater.waterFlowSpeed, 0.5)), 0, 2.5),
           waterFlowScale: deps.clamp(finiteOr(normalized.waterFlowScale, finiteOr(prevWater.waterFlowScale, 3.2)), 0.5, 14),
           waterShimmerStrength: deps.clamp(finiteOr(normalized.waterShimmerStrength, finiteOr(prevWater.waterShimmerStrength, 0.04)), 0, 0.2),
@@ -236,6 +222,8 @@ export function createAppliedSettingsStoreSync(deps) {
           waterShoreFoamStrength: deps.clamp(finiteOr(normalized.waterShoreFoamStrength, finiteOr(prevWater.waterShoreFoamStrength, 0.15)), 0, 0.5),
           waterShoreWidth: deps.clamp(finiteOr(normalized.waterShoreWidth, finiteOr(prevWater.waterShoreWidth, 2.5)), 0.4, 6),
           waterReflectivity: deps.clamp(finiteOr(normalized.waterReflectivity, finiteOr(prevWater.waterReflectivity, 0.3)), 0, 1),
+          waterBaseColor: normalizeHexColor(normalized.waterBaseColor, prevWater.waterBaseColor || "#245f73"),
+          waterOpacity: deps.clamp(finiteOr(normalized.waterOpacity, finiteOr(prevWater.waterOpacity, 0.25)), 0, 1),
           waterTintColor: normalizeHexColor(normalized.waterTintColor, prevWater.waterTintColor || "#1f6f8f"),
           waterTintStrength: deps.clamp(finiteOr(normalized.waterTintStrength, finiteOr(prevWater.waterTintStrength, 0.25)), 0, 1),
           timeRouting: deps.normalizeRoutingMode(normalized.timeRouting, "detached"),

@@ -111,7 +111,6 @@ export function createInitialState() {
     simulation: {
       knobs: {
         lighting: {},
-        parallax: {},
         fog: {},
         clouds: {},
         waterFx: {},

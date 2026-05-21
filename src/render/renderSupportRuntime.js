@@ -81,6 +81,7 @@ export function createRenderSupportRuntime(deps) {
     createLinearTexture: () => getGlResourceRuntime().createLinearTexture(),
     uploadImageToTexture: (tex, image) => getGlResourceRuntime().uploadImageToTexture(tex, image),
     rebuildFlowMapTexture: () => getFlowMapRuntime().rebuildFlowMapTexture(),
+    setFlowMapImage: (image) => getFlowMapRuntime().setFlowMapImage(image),
     ensureShadowTargets: () => getShadowPipelineRuntime().ensureShadowTargets(),
     renderShadowPipeline: (params) => getShadowPipelineRuntime().renderShadowPipeline(params),
     createCloudNoiseImage: (size = 128) => deps.createCloudNoiseImageRender(size, deps.clamp),

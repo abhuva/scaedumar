@@ -4,11 +4,11 @@ export function createMapDataSaveRuntime(deps) {
   const controller = createMapDataSaveController({
     serializePointLights: deps.serializePointLights,
     serializeLightingSettings: deps.serializeLightingSettings,
-    serializeParallaxSettings: deps.serializeParallaxSettings,
     serializeInteractionSettings: deps.serializeInteractionSettings,
     serializeFogSettings: deps.serializeFogSettings,
     serializeCloudSettings: deps.serializeCloudSettings,
     serializeWaterSettings: deps.serializeWaterSettings,
+    serializeWaterTrailSettings: deps.serializeWaterTrailSettings,
     serializeDetailSettings: deps.serializeDetailSettings,
     serializeCameraSettings: deps.serializeCameraSettings,
     serializeAudioSettings: deps.serializeAudioSettings,

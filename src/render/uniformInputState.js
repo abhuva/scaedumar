@@ -2,10 +2,11 @@ import { DEFAULT_DETAIL_SETTINGS, normalizeDetailSettings } from "../gameplay/de
 
 export function buildUniformInputState(deps) {
   const lighting = deps.lightingSettings || deps.defaultLightingSettings || {};
-  const parallax = deps.parallaxSettings || deps.defaultParallaxSettings || {};
   const fog = deps.fogState || deps.defaultFogSettings || {};
   const cloud = deps.cloudState || deps.defaultCloudSettings || {};
   const water = deps.waterFxState || deps.defaultWaterSettings || {};
+  const defaultWaterTrailSettings = deps.defaultWaterTrailSettings || {};
+  const waterTrail = deps.waterTrailState || defaultWaterTrailSettings;
   const detail = normalizeDetailSettings(
     deps.detailState || deps.defaultDetailSettings || DEFAULT_DETAIL_SETTINGS,
     deps.defaultDetailSettings || DEFAULT_DETAIL_SETTINGS,
@@ -23,9 +24,6 @@ export function buildUniformInputState(deps) {
     heightScale: Number(lighting.heightScale),
     shadowStrength: Number(lighting.shadowStrength),
     useShadows: Boolean(lighting.useShadows),
-    useParallax: Boolean(parallax.useParallax),
-    parallaxStrength: deps.clamp(Number(parallax.parallaxStrength), 0, 1),
-    parallaxBands: Math.round(deps.clamp(Number(parallax.parallaxBands), 2, 256)),
     useFog: Boolean(fog.useFog),
     fogMinAlpha: deps.clamp(Number(fog.fogMinAlpha), 0, 1),
     fogMaxAlpha: deps.clamp(Number(fog.fogMaxAlpha), 0, 1),
@@ -51,6 +49,14 @@ export function buildUniformInputState(deps) {
     cloudSunParallax: deps.clamp(Number(cloud.cloudSunParallax), 0, 2),
     cloudUseSunProjection: Boolean(cloud.cloudUseSunProjection),
     useWaterFx: Boolean(water.useWaterFx),
+    waterFlowSource: water.waterFlowSource === "fixed" || water.waterFlowSource === "height" || water.waterFlowSource === "image"
+      ? water.waterFlowSource
+      : (water.waterFlowDownhill === false ? "fixed" : "height"),
+    waterFlowRenderMode: water.waterFlowRenderMode === "procedural" ? "procedural" : "streamlines",
+    waterFlowChannelPair: water.waterFlowChannelPair === "gb" || water.waterFlowChannelPair === "rb" ? water.waterFlowChannelPair : "rg",
+    waterFlowFlipX: Boolean(water.waterFlowFlipX),
+    waterFlowFlipY: Boolean(water.waterFlowFlipY),
+    waterFlowUseMagnitude: Boolean(water.waterFlowUseMagnitude),
     waterFlowDownhill: Boolean(water.waterFlowDownhill),
     waterFlowInvertDownhill: Boolean(water.waterFlowInvertDownhill),
     waterFlowDebug: Boolean(water.waterFlowDebug),
@@ -59,6 +65,10 @@ export function buildUniformInputState(deps) {
     waterLocalFlowMix: deps.clamp(Number(water.waterLocalFlowMix), 0, 1),
     waterDownhillBoost: deps.clamp(Number(water.waterDownhillBoost), 0, 4),
     waterFlowStrength: deps.clamp(Number(water.waterFlowStrength), 0, 0.15),
+    waterFlowMapStrength: deps.clamp(Number(water.waterFlowMapStrength), 0, 4),
+    waterFlowVisibility: deps.clamp(Number(water.waterFlowVisibility), 0, 4),
+    waterStreamlineDensity: deps.clamp(Number(water.waterStreamlineDensity), 4, 80),
+    waterStreamlineSharpness: deps.clamp(Number(water.waterStreamlineSharpness), 0, 1),
     waterFlowSpeed: deps.clamp(Number(water.waterFlowSpeed), 0, 2.5),
     waterFlowScale: deps.clamp(Number(water.waterFlowScale), 0.5, 14),
     waterShimmerStrength: deps.clamp(Number(water.waterShimmerStrength), 0, 0.2),
@@ -67,6 +77,19 @@ export function buildUniformInputState(deps) {
     waterShoreFoamStrength: deps.clamp(Number(water.waterShoreFoamStrength), 0, 0.5),
     waterShoreWidth: deps.clamp(Number(water.waterShoreWidth), 0.4, 6),
     waterReflectivity: deps.clamp(Number(water.waterReflectivity), 0, 1),
+    waterBaseColor: Array.isArray(water.waterBaseColor) ? water.waterBaseColor : deps.hexToRgb01(String(water.waterBaseColor || "#245f73")),
+    waterOpacity: deps.clamp(Number(water.waterOpacity), 0, 1),
+    useWaterTrail: Boolean(waterTrail.enabled),
+    waterTrailStrength: deps.clamp(Number(waterTrail.strength ?? waterTrail.trailStrength), 0, 6),
+    waterTrailHeadroom: deps.clamp(Number(waterTrail.headroom ?? waterTrail.trailHeadroom), 1, 12),
+    waterTrailDebug: Boolean(waterTrail.debug),
+    waterTrailColor: Array.isArray(waterTrail.tintColor) ? waterTrail.tintColor : [0.494, 0.843, 1],
+    waterGlitterStrength: deps.clamp(Number(waterTrail.glitterStrength), 0, 2),
+    waterGlitterDensity: deps.clamp(Number(waterTrail.glitterDensity), 0.001, 0.25),
+    waterGlitterSpeed: deps.clamp(Number(waterTrail.glitterSpeed), 0, 12),
+    waterGlitterSize: Math.round(deps.clamp(Number(waterTrail.glitterSize), 1, 12)),
+    waterGlitterSharpness: deps.clamp(Number(waterTrail.glitterSharpness), 1, 24),
+    waterGlitterWakeSuppression: deps.clamp(Number(waterTrail.glitterWakeSuppression), 0, 1),
     waterTintColor: Array.isArray(water.waterTintColor) ? water.waterTintColor : deps.hexToRgb01(String(water.waterTintColor || "#5ea6d6")),
     waterTintStrength: deps.clamp(Number(water.waterTintStrength), 0, 1),
     useDetail: Boolean(detail.enabled),

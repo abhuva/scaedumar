@@ -12,7 +12,7 @@
   "volumetricAnisotropy": 0.45,
   "volumetricLength": 52,
   "volumetricSamples": 12,
-  "cycleHour": 12.3,
+  "cycleHour": 11.02,
   "cycleSpeed": 0,
   "simTickHours": 0.01,
   "pointFlickerEnabled": false,

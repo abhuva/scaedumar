@@ -3,11 +3,11 @@
   "enabled": true,
   "splat": {
     "src": "assets/Map 3/details.png",
-    "filter": "linear"
+    "filter": "nearest"
   },
   "atlas": {
     "microPaddingPx": 2,
-    "microFilter": "linear",
+    "microFilter": "nearest",
     "generateMipmaps": false
   },
   "zoom": {
@@ -20,8 +20,8 @@
       "slot": 0,
       "micro": {
         "src": "assets/detail/default/dirt_micro.png",
-        "scaleMeters": 1,
-        "colorStrength": 1
+        "scaleMeters": 8.5,
+        "colorStrength": 0.44
       }
     },
     {
@@ -29,8 +29,8 @@
       "slot": 1,
       "micro": {
         "src": "assets/detail/default/rock_micro.png",
-        "scaleMeters": 2,
-        "colorStrength": 1
+        "scaleMeters": 14,
+        "colorStrength": 0.6
       }
     },
     {
@@ -39,7 +39,7 @@
       "micro": {
         "src": "assets/detail/default/grass_micro.png",
         "scaleMeters": 2,
-        "colorStrength": 1
+        "colorStrength": 0
       }
     },
     {
@@ -48,7 +48,7 @@
       "micro": {
         "src": "assets/detail/default/snow_micro.png",
         "scaleMeters": 2,
-        "colorStrength": 1
+        "colorStrength": 0
       }
     }
   ],

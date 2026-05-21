@@ -55,7 +55,6 @@ import { normalizeRuntimeMode, canUseInteractionMode as canUseModeInteraction, c
 import {
   DEFAULT_LIGHTING_SETTINGS,
   DEFAULT_FOG_SETTINGS,
-  DEFAULT_PARALLAX_SETTINGS,
   DEFAULT_CLOUD_SETTINGS,
   DEFAULT_WATER_SETTINGS,
   DEFAULT_DETAIL_SETTINGS,
@@ -96,6 +95,7 @@ import { renderFrameSwarmLayers } from "./render/frameSwarmRenderRuntime.js";
 import { computeFrameTiming } from "./render/frameTimeRuntime.js";
 import { createCloudNoiseImage as createCloudNoiseImageRender, uploadCloudNoiseTexture as uploadCloudNoiseTextureRender } from "./render/cloudNoiseRuntime.js";
 import { createRenderSupportRuntime } from "./render/renderSupportRuntime.js";
+import { createWaterParticleTrailRuntime, DEFAULT_WATER_TRAIL_SETTINGS } from "./render/waterParticleTrailRuntime.js";
 import { sampleSunAtHour as sampleSunAtHourModel } from "./sim/sunModel.js";
 import { createTimeLightingSetupRuntime } from "./sim/timeLightingSetupRuntime.js";
 import { createEntityStore } from "./gameplay/entityStore.js";
@@ -152,6 +152,7 @@ import { createPointLightIoUiRuntime } from "./ui/pointLightIoUiRuntime.js";
 import { createWorkspaceRuntime } from "./ui/workspaceRuntime.js";
 import { createGameTimeDioramaRuntime } from "./ui/gameTimeDioramaRuntime.js";
 import { createDetailPanelRuntime } from "./ui/detailPanelRuntime.js";
+import { createModulePresetRuntime } from "./ui/modulePresetRuntime.js";
 
 const runtimeCore = createRuntimeCore();
 const dispatchCoreCommand = createCoreCommandDispatch(runtimeCore);
@@ -296,11 +297,6 @@ const gameTimeSunEl = getRequiredElementById("gameTimeSun");
 const gameTimeMoonEl = getRequiredElementById("gameTimeMoon");
 const gameTimeSpeedButtons = getRequiredElements(".time-speed-btn");
 const shadowsToggle = getRequiredElementById("shadowsToggle");
-const parallaxToggle = getRequiredElementById("parallaxToggle");
-const parallaxStrengthInput = getRequiredElementById("parallaxStrength");
-const parallaxStrengthValue = getRequiredElementById("parallaxStrengthValue");
-const parallaxBandsInput = getRequiredElementById("parallaxBands");
-const parallaxBandsValue = getRequiredElementById("parallaxBandsValue");
 const fogToggle = getRequiredElementById("fogToggle");
 const fogColorInput = getRequiredElementById("fogColor");
 const fogMinAlphaInput = getRequiredElementById("fogMinAlpha");
@@ -328,14 +324,31 @@ const cloudTimeRoutingInput = getRequiredElementById("cloudTimeRouting");
 const cloudSunParallaxInput = getRequiredElementById("cloudSunParallax");
 const cloudSunParallaxValue = getRequiredElementById("cloudSunParallaxValue");
 const cloudSunProjectToggle = getRequiredElementById("cloudSunProjectToggle");
+const waterPresetSelect = getRequiredElementById("waterPresetSelect");
+const waterPresetNameInput = getRequiredElementById("waterPresetName");
+const waterPresetApplyBtn = getRequiredElementById("waterPresetApplyBtn");
+const waterPresetSaveBtn = getRequiredElementById("waterPresetSaveBtn");
 const waterFxToggle = getRequiredElementById("waterFxToggle");
-const waterFlowDownhillToggle = getRequiredElementById("waterFlowDownhillToggle");
+const waterFlowSourceInput = getRequiredElementById("waterFlowSource");
+const waterFlowRenderModeInput = getRequiredElementById("waterFlowRenderMode");
+const waterFlowChannelPairInput = getRequiredElementById("waterFlowChannelPair");
+const waterFlowFlipXToggle = getRequiredElementById("waterFlowFlipXToggle");
+const waterFlowFlipYToggle = getRequiredElementById("waterFlowFlipYToggle");
+const waterFlowUseMagnitudeToggle = getRequiredElementById("waterFlowUseMagnitudeToggle");
 const waterFlowInvertDownhillToggle = getRequiredElementById("waterFlowInvertDownhillToggle");
 const waterFlowDebugToggle = getRequiredElementById("waterFlowDebugToggle");
 const waterFlowDirectionInput = getRequiredElementById("waterFlowDirection");
 const waterFlowDirectionValue = getRequiredElementById("waterFlowDirectionValue");
 const waterFlowStrengthInput = getRequiredElementById("waterFlowStrength");
 const waterFlowStrengthValue = getRequiredElementById("waterFlowStrengthValue");
+const waterFlowMapStrengthInput = getRequiredElementById("waterFlowMapStrength");
+const waterFlowMapStrengthValue = getRequiredElementById("waterFlowMapStrengthValue");
+const waterFlowVisibilityInput = getRequiredElementById("waterFlowVisibility");
+const waterFlowVisibilityValue = getRequiredElementById("waterFlowVisibilityValue");
+const waterStreamlineDensityInput = getRequiredElementById("waterStreamlineDensity");
+const waterStreamlineDensityValue = getRequiredElementById("waterStreamlineDensityValue");
+const waterStreamlineSharpnessInput = getRequiredElementById("waterStreamlineSharpness");
+const waterStreamlineSharpnessValue = getRequiredElementById("waterStreamlineSharpnessValue");
 const waterFlowSpeedInput = getRequiredElementById("waterFlowSpeed");
 const waterFlowSpeedValue = getRequiredElementById("waterFlowSpeedValue");
 const waterFlowScaleInput = getRequiredElementById("waterFlowScale");
@@ -368,10 +381,17 @@ const waterShoreWidthInput = getRequiredElementById("waterShoreWidth");
 const waterShoreWidthValue = getRequiredElementById("waterShoreWidthValue");
 const waterReflectivityInput = getRequiredElementById("waterReflectivity");
 const waterReflectivityValue = getRequiredElementById("waterReflectivityValue");
+const waterBaseColorInput = getRequiredElementById("waterBaseColor");
+const waterOpacityInput = getRequiredElementById("waterOpacity");
+const waterOpacityValue = getRequiredElementById("waterOpacityValue");
 const waterTintColorInput = getRequiredElementById("waterTintColor");
 const waterTintStrengthInput = getRequiredElementById("waterTintStrength");
 const waterTintStrengthValue = getRequiredElementById("waterTintStrengthValue");
 const waterTimeRoutingInput = getRequiredElementById("waterTimeRouting");
+const waterTrailPresetSelect = getRequiredElementById("waterTrailPresetSelect");
+const waterTrailPresetNameInput = getRequiredElementById("waterTrailPresetName");
+const waterTrailPresetApplyBtn = getRequiredElementById("waterTrailPresetApplyBtn");
+const waterTrailPresetSaveBtn = getRequiredElementById("waterTrailPresetSaveBtn");
 const heightScaleInput = getRequiredElementById("heightScale");
 const shadowStrengthInput = getRequiredElementById("shadowStrength");
 const shadowBlurInput = getRequiredElementById("shadowBlur");
@@ -602,6 +622,12 @@ const mapSupportRuntime = createMapSupportRuntime(createMapSupportAssemblyRuntim
   extractImageData: (...args) => extractImageDataRender(...args),
   uploadImageToTexture: (tex, image) => renderSupportRuntime.uploadImageToTexture(tex, image),
   rebuildFlowMapTexture: () => renderSupportRuntime.rebuildFlowMapTexture(),
+  setFlowMapImage: (image) => {
+    renderSupportRuntime.setFlowMapImage(image);
+    if (waterParticleTrailRuntime) {
+      waterParticleTrailRuntime.clear();
+    }
+  },
   syncMapStateToStore: () => syncMapStateToStore(),
   getPointLightBakeWorker: () => pointLightBakeRuntimeBinding.getWorker(),
   clamp: clampUtil,
@@ -617,6 +643,15 @@ const mapSupportRuntime = createMapSupportRuntime(createMapSupportAssemblyRuntim
   },
   setWaterImageData: (value) => {
     waterImageData = value;
+    if (waterParticleTrailRuntime) {
+      waterParticleTrailRuntime.clear();
+    }
+  },
+  setFlowImageData: (value) => {
+    flowImageData = value;
+    if (waterParticleTrailRuntime) {
+      waterParticleTrailRuntime.clear();
+    }
   },
   getSplatSize: () => splatSize,
   setSplatSize: (width, height) => {
@@ -689,6 +724,7 @@ const settingsCoreSetupRuntime = createSettingsCoreSetupRuntime(createSettingsCo
   defaultLightingSettings: DEFAULT_LIGHTING_SETTINGS,
   defaultCloudSettings: DEFAULT_CLOUD_SETTINGS,
   defaultWaterSettings: DEFAULT_WATER_SETTINGS,
+  defaultWaterTrailSettings: DEFAULT_WATER_TRAIL_SETTINGS,
   defaultDetailSettings: DEFAULT_DETAIL_SETTINGS,
   defaultCameraSettings: DEFAULT_CAMERA_SETTINGS,
   normalizeTimeRouting,
@@ -736,8 +772,6 @@ const {
   applyLightingSettingsCompat,
   serializeFogSettingsCompat,
   applyFogSettingsCompat,
-  serializeParallaxSettingsCompat,
-  applyParallaxSettingsCompat,
   serializeCloudSettingsCompat,
   applyCloudSettingsCompat,
   serializeWaterSettingsCompat,
@@ -758,8 +792,6 @@ const {
   applyLightingSettings,
   serializeFogSettings,
   applyFogSettings,
-  serializeParallaxSettings,
-  applyParallaxSettings,
   serializeCloudSettings,
   applyCloudSettings,
   serializeWaterSettings,
@@ -905,6 +937,7 @@ function clampCameraToBounds() {
 
 let detailAtlasRuntime = null;
 let detailPanelRuntime = null;
+let waterParticleTrailRuntime = null;
 function rebuildDetailAtlas() {
   if (!detailAtlasRuntime) return Promise.resolve(null);
   return detailAtlasRuntime.rebuild(getDetailSettings());
@@ -1655,6 +1688,7 @@ const uniforms = {
   uShadowTex: gl.getUniformLocation(program, "uShadowTex"),
   uWater: gl.getUniformLocation(program, "uWater"),
   uFlowMap: gl.getUniformLocation(program, "uFlowMap"),
+  uWaterTrailTex: gl.getUniformLocation(program, "uWaterTrailTex"),
   uMaterialSplat: gl.getUniformLocation(program, "uMaterialSplat"),
   uDetailMicroColor: gl.getUniformLocation(program, "uDetailMicroColor"),
   uUseCursorLight: gl.getUniformLocation(program, "uUseCursorLight"),
@@ -1677,10 +1711,6 @@ const uniforms = {
   uHeightScale: gl.getUniformLocation(program, "uHeightScale"),
   uShadowStrength: gl.getUniformLocation(program, "uShadowStrength"),
   uUseShadows: gl.getUniformLocation(program, "uUseShadows"),
-  uUseParallax: gl.getUniformLocation(program, "uUseParallax"),
-  uParallaxStrength: gl.getUniformLocation(program, "uParallaxStrength"),
-  uParallaxBands: gl.getUniformLocation(program, "uParallaxBands"),
-  uZoom: gl.getUniformLocation(program, "uZoom"),
   uUseDetail: gl.getUniformLocation(program, "uUseDetail"),
   uDetailBlend: gl.getUniformLocation(program, "uDetailBlend"),
   uDetailWaterSuppression: gl.getUniformLocation(program, "uDetailWaterSuppression"),
@@ -1723,13 +1753,22 @@ const uniforms = {
   uCloudSunParallax: gl.getUniformLocation(program, "uCloudSunParallax"),
   uCloudUseSunProjection: gl.getUniformLocation(program, "uCloudUseSunProjection"),
   uUseWaterFx: gl.getUniformLocation(program, "uUseWaterFx"),
+  uWaterFlowSource: gl.getUniformLocation(program, "uWaterFlowSource"),
+  uWaterFlowRenderMode: gl.getUniformLocation(program, "uWaterFlowRenderMode"),
   uWaterFlowDownhill: gl.getUniformLocation(program, "uWaterFlowDownhill"),
+  uWaterFlowChannelPair: gl.getUniformLocation(program, "uWaterFlowChannelPair"),
+  uWaterFlowFlip: gl.getUniformLocation(program, "uWaterFlowFlip"),
+  uWaterFlowUseMagnitude: gl.getUniformLocation(program, "uWaterFlowUseMagnitude"),
   uWaterFlowInvertDownhill: gl.getUniformLocation(program, "uWaterFlowInvertDownhill"),
   uWaterFlowDebug: gl.getUniformLocation(program, "uWaterFlowDebug"),
   uWaterFlowDir: gl.getUniformLocation(program, "uWaterFlowDir"),
   uWaterLocalFlowMix: gl.getUniformLocation(program, "uWaterLocalFlowMix"),
   uWaterDownhillBoost: gl.getUniformLocation(program, "uWaterDownhillBoost"),
   uWaterFlowStrength: gl.getUniformLocation(program, "uWaterFlowStrength"),
+  uWaterFlowMapStrength: gl.getUniformLocation(program, "uWaterFlowMapStrength"),
+  uWaterFlowVisibility: gl.getUniformLocation(program, "uWaterFlowVisibility"),
+  uWaterStreamlineDensity: gl.getUniformLocation(program, "uWaterStreamlineDensity"),
+  uWaterStreamlineSharpness: gl.getUniformLocation(program, "uWaterStreamlineSharpness"),
   uWaterFlowSpeed: gl.getUniformLocation(program, "uWaterFlowSpeed"),
   uWaterFlowScale: gl.getUniformLocation(program, "uWaterFlowScale"),
   uWaterShimmerStrength: gl.getUniformLocation(program, "uWaterShimmerStrength"),
@@ -1738,6 +1777,19 @@ const uniforms = {
   uWaterShoreFoamStrength: gl.getUniformLocation(program, "uWaterShoreFoamStrength"),
   uWaterShoreWidth: gl.getUniformLocation(program, "uWaterShoreWidth"),
   uWaterReflectivity: gl.getUniformLocation(program, "uWaterReflectivity"),
+  uWaterBaseColor: gl.getUniformLocation(program, "uWaterBaseColor"),
+  uWaterOpacity: gl.getUniformLocation(program, "uWaterOpacity"),
+  uUseWaterTrail: gl.getUniformLocation(program, "uUseWaterTrail"),
+  uWaterTrailStrength: gl.getUniformLocation(program, "uWaterTrailStrength"),
+  uWaterTrailHeadroom: gl.getUniformLocation(program, "uWaterTrailHeadroom"),
+  uWaterTrailDebug: gl.getUniformLocation(program, "uWaterTrailDebug"),
+  uWaterTrailColor: gl.getUniformLocation(program, "uWaterTrailColor"),
+  uWaterGlitterStrength: gl.getUniformLocation(program, "uWaterGlitterStrength"),
+  uWaterGlitterDensity: gl.getUniformLocation(program, "uWaterGlitterDensity"),
+  uWaterGlitterSpeed: gl.getUniformLocation(program, "uWaterGlitterSpeed"),
+  uWaterGlitterSize: gl.getUniformLocation(program, "uWaterGlitterSize"),
+  uWaterGlitterSharpness: gl.getUniformLocation(program, "uWaterGlitterSharpness"),
+  uWaterGlitterWakeSuppression: gl.getUniformLocation(program, "uWaterGlitterWakeSuppression"),
   uWaterTintColor: gl.getUniformLocation(program, "uWaterTintColor"),
   uWaterTintStrength: gl.getUniformLocation(program, "uWaterTintStrength"),
   uSkyColor: gl.getUniformLocation(program, "uSkyColor"),
@@ -1856,6 +1908,7 @@ const {
   heightTex,
   waterTex,
   flowMapTex,
+  waterTrailTex,
   materialSplatTex,
   detailMicroColorTex,
   detailAtlasState,
@@ -1916,6 +1969,66 @@ let normalsImageData = null;
 let heightImageData = null;
 let slopeImageData = null;
 let waterImageData = null;
+let flowImageData = null;
+waterParticleTrailRuntime = createWaterParticleTrailRuntime({
+  gl,
+  document,
+  texture: waterTrailTex,
+  getWaterImageData: () => waterImageData,
+  getFlowImageData: () => flowImageData,
+});
+function serializeWaterTrailSettings() {
+  return waterParticleTrailRuntime.serializeSettings();
+}
+function applyWaterTrailSettings(rawData) {
+  waterParticleTrailRuntime.applySettings(rawData);
+}
+createModulePresetRuntime({
+  kind: "waterfx",
+  label: "Water FX",
+  basePath: "assets/presets/waterfx",
+  document,
+  select: waterPresetSelect,
+  nameInput: waterPresetNameInput,
+  applyButton: waterPresetApplyBtn,
+  saveButton: waterPresetSaveBtn,
+  loadJson: (path) => tryLoadJsonFromUrl(path),
+  serializeSettings: () => serializeWaterSettings(),
+  applySettings: (settings) => applyWaterSettings(settings),
+  getCurrentMapFolderPath,
+  tauriInvoke,
+  invokeTauri,
+  isAbsoluteFsPath,
+  joinFsPath,
+  downloadTextFile,
+  showDirectoryPicker:
+    typeof window.showDirectoryPicker === "function" ? window.showDirectoryPicker.bind(window) : null,
+  confirm: (text) => window.confirm(text),
+  setStatus,
+});
+createModulePresetRuntime({
+  kind: "watertrails",
+  label: "Water Trails",
+  basePath: "assets/presets/watertrails",
+  document,
+  select: waterTrailPresetSelect,
+  nameInput: waterTrailPresetNameInput,
+  applyButton: waterTrailPresetApplyBtn,
+  saveButton: waterTrailPresetSaveBtn,
+  loadJson: (path) => tryLoadJsonFromUrl(path),
+  serializeSettings: () => serializeWaterTrailSettings(),
+  applySettings: (settings) => applyWaterTrailSettings(settings),
+  getCurrentMapFolderPath,
+  tauriInvoke,
+  invokeTauri,
+  isAbsoluteFsPath,
+  joinFsPath,
+  downloadTextFile,
+  showDirectoryPicker:
+    typeof window.showDirectoryPicker === "function" ? window.showDirectoryPicker.bind(window) : null,
+  confirm: (text) => window.confirm(text),
+  setStatus,
+});
 const POINT_LIGHT_BLEND_EXPOSURE = 0.65;
 const POINT_LIGHT_SELECT_RADIUS = 3;
 const POINT_LIGHT_BAKE_LIVE_SCALE = 0.5;
@@ -2076,8 +2189,6 @@ const updatePathWeightLabels = (...args) => pathfindingLabelRuntime.updatePathWe
 const updatePathSlopeCutoffLabel = (...args) => pathfindingLabelRuntime.updatePathSlopeCutoffLabel(...args);
 const updatePathBaseCostLabel = (...args) => pathfindingLabelRuntime.updatePathBaseCostLabel(...args);
 
-const updateParallaxStrengthLabel = (...args) => renderFxUiRuntime.updateParallaxStrengthLabel(...args);
-const updateParallaxBandsLabel = (...args) => renderFxUiRuntime.updateParallaxBandsLabel(...args);
 const updateShadowBlurLabel = (...args) => renderFxUiRuntime.updateShadowBlurLabel(...args);
 const updateSimTickLabel = (...args) => renderFxUiRuntime.updateSimTickLabel(...args);
 const updateFogAlphaLabels = (...args) => renderFxUiRuntime.updateFogAlphaLabels(...args);
@@ -2089,16 +2200,14 @@ const updateVolumetricLabels = (...args) => renderFxUiRuntime.updateVolumetricLa
 const updateVolumetricUi = (...args) => renderFxUiRuntime.updateVolumetricUi(...args);
 const updateCloudLabels = (...args) => renderFxUiRuntime.updateCloudLabels(...args);
 const updateWaterLabels = (...args) => renderFxUiRuntime.updateWaterLabels(...args);
-const updateParallaxUi = (...args) => renderFxUiRuntime.updateParallaxUi(...args);
 const updateFogUi = (...args) => renderFxUiRuntime.updateFogUi(...args);
 const updateCloudUi = (...args) => renderFxUiRuntime.updateCloudUi(...args);
 const updateWaterUi = (...args) => renderFxUiRuntime.updateWaterUi(...args);
 
-const syncRenderFxParallaxUi = (...args) => renderFxSettingsSyncRuntime.syncRenderFxParallaxUi(...args);
-const syncRenderFxLightingUi = (...args) => renderFxSettingsSyncRuntime.syncRenderFxLightingUi(...args);
-const syncRenderFxFogUi = (...args) => renderFxSettingsSyncRuntime.syncRenderFxFogUi(...args);
-const syncRenderFxCloudUi = (...args) => renderFxSettingsSyncRuntime.syncRenderFxCloudUi(...args);
-const syncRenderFxWaterUi = (...args) => renderFxSettingsSyncRuntime.syncRenderFxWaterUi(...args);
+const syncRenderFxLightingUi = (...args) => renderFxSettingsSyncRuntime.syncLightingUi(...args);
+const syncRenderFxFogUi = (...args) => renderFxSettingsSyncRuntime.syncFogUi(...args);
+const syncRenderFxCloudUi = (...args) => renderFxSettingsSyncRuntime.syncCloudUi(...args);
+const syncRenderFxWaterUi = (...args) => renderFxSettingsSyncRuntime.syncWaterUi(...args);
 
 const updatePointLightStrengthLabel = (...args) => lightLabelRuntime.updatePointLightStrengthLabel(...args);
 const updatePointLightIntensityLabel = (...args) => lightLabelRuntime.updatePointLightIntensityLabel(...args);
@@ -2151,21 +2260,21 @@ const updateCursorLightHeightOffsetLabel = (...args) => lightLabelRuntime.update
   syncMapStateToStore: (...args) => mainRuntimeStateBinding.syncMapStateToStore(...args),
   getSettingsDefaults,
   defaultLightingSettings: DEFAULT_LIGHTING_SETTINGS,
-  defaultParallaxSettings: DEFAULT_PARALLAX_SETTINGS,
   defaultInteractionSettings: DEFAULT_INTERACTION_SETTINGS,
   defaultFogSettings: DEFAULT_FOG_SETTINGS,
   defaultCloudSettings: DEFAULT_CLOUD_SETTINGS,
   defaultWaterSettings: DEFAULT_WATER_SETTINGS,
+  defaultWaterTrailSettings: DEFAULT_WATER_TRAIL_SETTINGS,
   defaultDetailSettings: DEFAULT_DETAIL_SETTINGS,
   defaultCameraSettings: DEFAULT_CAMERA_SETTINGS,
   defaultAudioSettings: DEFAULT_AUDIO_SETTINGS,
   defaultSwarmSettings: DEFAULT_SWARM_SETTINGS,
   applyLightingSettings: (...args) => applyLightingSettings(...args),
-  applyParallaxSettings: (...args) => applyParallaxSettings(...args),
   applyInteractionSettings: (...args) => applyInteractionSettings(...args),
   applyFogSettings: (...args) => applyFogSettings(...args),
   applyCloudSettings: (...args) => applyCloudSettings(...args),
   applyWaterSettings: (...args) => applyWaterSettings(...args),
+  applyWaterTrailSettings: (...args) => applyWaterTrailSettings(...args),
   applyDetailSettings: (...args) => applyDetailSettings(...args),
   applyCameraSettings: (...args) => applyCameraSettings(...args),
   applyAudioSettings: (...args) => applyAudioSettings(...args),
@@ -2182,11 +2291,11 @@ const updateCursorLightHeightOffsetLabel = (...args) => lightLabelRuntime.update
   applyMapImages,
   rebuildMovementField,
   serializeLightingSettings: (...args) => serializeLightingSettings(...args),
-  serializeParallaxSettings: (...args) => serializeParallaxSettings(...args),
   serializeInteractionSettings: (...args) => serializeInteractionSettings(...args),
   serializeFogSettings: (...args) => serializeFogSettings(...args),
   serializeCloudSettings: (...args) => serializeCloudSettings(...args),
   serializeWaterSettings: (...args) => serializeWaterSettings(...args),
+  serializeWaterTrailSettings: (...args) => serializeWaterTrailSettings(...args),
   serializeDetailSettings: (...args) => serializeDetailSettings(...args),
   serializeCameraSettings: (...args) => serializeCameraSettings(...args),
   serializeAudioSettings: (...args) => serializeAudioSettings(...args),
@@ -2414,8 +2523,6 @@ registerMainSettingsContracts(runtimeCore.settingsRegistry, {
   applyLighting: applyLightingSettingsCompat,
   serializeFog: serializeFogSettingsCompat,
   applyFog: applyFogSettingsCompat,
-  serializeParallax: serializeParallaxSettingsCompat,
-  applyParallax: applyParallaxSettingsCompat,
   serializeClouds: serializeCloudSettingsCompat,
   applyClouds: applyCloudSettingsCompat,
   serializeWater: serializeWaterSettingsCompat,
@@ -2447,6 +2554,7 @@ const renderPipelineRuntime = createRenderPipelineRuntime(createRenderPipelineAs
   shadowRawTex,
   waterTex,
   flowMapTex,
+  waterTrailTex,
   materialSplatTex,
   detailMicroColorTex,
   detailAtlasState,
@@ -2544,7 +2652,6 @@ registerMainCommands(runtimeCore.commandBus, createMainCommandAssemblyRuntime({
   setCycleSpeedToStore: (...args) => mainRuntimeStateBinding.setCycleSpeedToStore(...args),
   setSimTickHoursToStore: (...args) => mainRuntimeStateBinding.setSimTickHoursToStore(...args),
   setTimeRoutingModeToStore: (...args) => mainRuntimeStateBinding.setTimeRoutingModeToStore(...args),
-  syncRenderFxParallaxUi,
   syncRenderFxLightingUi,
   syncRenderFxFogUi,
   markFogColorManual: () => {
@@ -2557,7 +2664,6 @@ registerMainCommands(runtimeCore.commandBus, createMainCommandAssemblyRuntime({
   rebuildDetailAtlas,
   schedulePointLightBake,
   serializeLightingSettings,
-  serializeParallaxSettings,
   serializeFogSettings,
   serializeCloudSettings,
   serializeWaterSettings,
@@ -2837,8 +2943,7 @@ const swarmIntegrationSetupRuntime = createSwarmIntegrationSetupRuntime(
     syncSwarmStateToStore: (...args) => swarmRuntime.syncSwarmStateToStore(...args),
     defaultLightingSettings: DEFAULT_LIGHTING_SETTINGS,
     defaultFogSettings: DEFAULT_FOG_SETTINGS,
-    defaultParallaxSettings: DEFAULT_PARALLAX_SETTINGS,
-    defaultCloudSettings: DEFAULT_CLOUD_SETTINGS,
+      defaultCloudSettings: DEFAULT_CLOUD_SETTINGS,
     defaultWaterSettings: DEFAULT_WATER_SETTINGS,
     defaultDetailSettings: DEFAULT_DETAIL_SETTINGS,
     defaultCameraSettings: DEFAULT_CAMERA_SETTINGS,
@@ -2922,7 +3027,6 @@ const swarmIntegrationSetupRuntime = createSwarmIntegrationSetupRuntime(
       getCoreState: () => runtimeCore.store.getState(),
       getLightingSettings: () => getSimulationKnobSectionFromStore("lighting") || getSettingsDefaults("lighting", DEFAULT_LIGHTING_SETTINGS),
       getFogSettings: () => getSimulationKnobSectionFromStore("fog") || getSettingsDefaults("fog", DEFAULT_FOG_SETTINGS),
-      getParallaxSettings: () => getSimulationKnobSectionFromStore("parallax") || getSettingsDefaults("parallax", DEFAULT_PARALLAX_SETTINGS),
       getCloudSettings: () => getSimulationKnobSectionFromStore("clouds") || getSettingsDefaults("clouds", DEFAULT_CLOUD_SETTINGS),
       getWaterSettings: () => getSimulationKnobSectionFromStore("waterFx") || getSettingsDefaults("waterfx", DEFAULT_WATER_SETTINGS),
       getDetailSettings,
@@ -2959,9 +3063,6 @@ const swarmIntegrationSetupRuntime = createSwarmIntegrationSetupRuntime(
       fogMaxAlphaInput,
       fogFalloffInput,
       fogStartOffsetInput,
-      parallaxToggle,
-      parallaxStrengthInput,
-      parallaxBandsInput,
       cloudToggle,
       cloudCoverageInput,
       cloudSoftnessInput,
@@ -2973,7 +3074,12 @@ const swarmIntegrationSetupRuntime = createSwarmIntegrationSetupRuntime(
       cloudSunProjectToggle,
       cloudTimeRoutingInput,
       waterFxToggle,
-      waterFlowDownhillToggle,
+      waterFlowSourceInput,
+      waterFlowRenderModeInput,
+      waterFlowChannelPairInput,
+      waterFlowFlipXToggle,
+      waterFlowFlipYToggle,
+      waterFlowUseMagnitudeToggle,
       waterFlowInvertDownhillToggle,
       waterFlowDebugToggle,
       waterFlowDirectionInput,
@@ -2986,6 +3092,10 @@ const swarmIntegrationSetupRuntime = createSwarmIntegrationSetupRuntime(
       waterFlowWeight2Input,
       waterFlowWeight3Input,
       waterFlowStrengthInput,
+      waterFlowMapStrengthInput,
+      waterFlowVisibilityInput,
+      waterStreamlineDensityInput,
+      waterStreamlineSharpnessInput,
       waterFlowSpeedInput,
       waterFlowScaleInput,
       waterShimmerStrengthInput,
@@ -2994,6 +3104,8 @@ const swarmIntegrationSetupRuntime = createSwarmIntegrationSetupRuntime(
       waterShoreFoamStrengthInput,
       waterShoreWidthInput,
       waterReflectivityInput,
+      waterBaseColorInput,
+      waterOpacityInput,
       waterTintColorInput,
       waterTintStrengthInput,
       waterTimeRoutingInput,
@@ -3015,9 +3127,6 @@ const swarmIntegrationSetupRuntime = createSwarmIntegrationSetupRuntime(
       updateFogFalloffLabel,
       updateFogStartOffsetLabel,
       updateFogUi,
-      updateParallaxStrengthLabel,
-      updateParallaxBandsLabel,
-      updateParallaxUi,
       updateCloudLabels,
       updateCloudUi,
       updateWaterLabels,
@@ -3169,11 +3278,8 @@ const interactionUiSetupRuntime = createInteractionUiSetupRuntime(createInteract
   normalizeSimTickHours,
   serializeLightingSettings,
   serializeFogSettings,
-  serializeParallaxSettings,
   serializeCloudSettings,
   serializeWaterSettings,
-  parallaxStrengthValue,
-  parallaxBandsValue,
   shadowBlurValue,
   simTickHoursValue,
   fogMinAlphaValue,
@@ -3205,6 +3311,10 @@ const interactionUiSetupRuntime = createInteractionUiSetupRuntime(createInteract
   waterFlowWeight2Value,
   waterFlowWeight3Value,
   waterFlowStrengthValue,
+      waterFlowMapStrengthValue,
+      waterFlowVisibilityValue,
+      waterStreamlineDensityValue,
+      waterStreamlineSharpnessValue,
   waterFlowSpeedValue,
   waterFlowScaleValue,
   waterShimmerStrengthValue,
@@ -3213,6 +3323,7 @@ const interactionUiSetupRuntime = createInteractionUiSetupRuntime(createInteract
   waterShoreFoamStrengthValue,
   waterShoreWidthValue,
   waterReflectivityValue,
+      waterOpacityValue,
   waterTintStrengthValue,
   pointFlickerStrengthInput,
   pointFlickerSpeedInput,
@@ -3222,8 +3333,6 @@ const interactionUiSetupRuntime = createInteractionUiSetupRuntime(createInteract
   volumetricAnisotropyInput,
   volumetricLengthInput,
   volumetricSamplesInput,
-  parallaxStrengthInput,
-  parallaxBandsInput,
   fogColorInput,
   fogMinAlphaInput,
   fogMaxAlphaInput,
@@ -3237,7 +3346,12 @@ const interactionUiSetupRuntime = createInteractionUiSetupRuntime(createInteract
   cloudSpeed2Input,
   cloudSunParallaxInput,
   cloudSunProjectToggle,
-  waterFlowDownhillToggle,
+  waterFlowSourceInput,
+      waterFlowRenderModeInput,
+      waterFlowChannelPairInput,
+      waterFlowFlipXToggle,
+      waterFlowFlipYToggle,
+      waterFlowUseMagnitudeToggle,
   waterFlowInvertDownhillToggle,
   waterFlowDebugToggle,
   waterFlowDirectionInput,
@@ -3250,6 +3364,10 @@ const interactionUiSetupRuntime = createInteractionUiSetupRuntime(createInteract
   waterFlowWeight2Input,
   waterFlowWeight3Input,
   waterFlowStrengthInput,
+      waterFlowMapStrengthInput,
+      waterFlowVisibilityInput,
+      waterStreamlineDensityInput,
+      waterStreamlineSharpnessInput,
   waterFlowSpeedInput,
   waterFlowScaleInput,
   waterShimmerStrengthInput,
@@ -3258,11 +3376,10 @@ const interactionUiSetupRuntime = createInteractionUiSetupRuntime(createInteract
   waterShoreFoamStrengthInput,
   waterShoreWidthInput,
   waterReflectivityInput,
+      waterBaseColorInput,
+      waterOpacityInput,
   waterTintColorInput,
   waterTintStrengthInput,
-  updateParallaxStrengthLabel,
-  updateParallaxBandsLabel,
-  updateParallaxUi,
   updateShadowBlurLabel,
   updateVolumetricLabels,
   updateVolumetricUi,
@@ -3325,7 +3442,6 @@ const renderShellSetupRuntime = createRenderShellSetupRuntime(createRenderShellA
   buildUniformInputState,
   getSettingsDefaults,
   defaultLightingSettings: DEFAULT_LIGHTING_SETTINGS,
-  defaultParallaxSettings: DEFAULT_PARALLAX_SETTINGS,
   defaultFogSettings: DEFAULT_FOG_SETTINGS,
   defaultCloudSettings: DEFAULT_CLOUD_SETTINGS,
   defaultWaterSettings: DEFAULT_WATER_SETTINGS,
@@ -3335,6 +3451,8 @@ const renderShellSetupRuntime = createRenderShellSetupRuntime(createRenderShellA
   updateSwarmStatsPanel,
   updateCycleHourLabel,
   updateGameTimeDiorama: (hour, cycleSpeed) => gameTimeDioramaRuntime.update(hour, cycleSpeed),
+  updateWaterParticleTrails: (dtSec) => waterParticleTrailRuntime.update(dtSec),
+  getWaterParticleTrailUniformState: () => waterParticleTrailRuntime.getUniformState(),
   updateWeatherFieldMeta,
   renderResources,
   renderFrameSwarmLayers,
@@ -3394,10 +3512,14 @@ runAppShellLifecycleRuntime(createAppShellLifecycleAssemblyRuntime({
     swarmLitModeToggle,
     swarmFollowZoomToggle,
     swarmFollowZoomInInput,
+    swarmFollowZoomInValue,
     swarmFollowZoomOutInput,
+    swarmFollowZoomOutValue,
     swarmFollowHawkRangeGizmoToggle,
     swarmFollowAgentSpeedSmoothingInput,
+    swarmFollowAgentSpeedSmoothingValue,
     swarmFollowAgentZoomSmoothingInput,
+    swarmFollowAgentZoomSmoothingValue,
     swarmStatsPanelToggle,
     swarmBackgroundColorInput,
     swarmAgentCountInput,
@@ -3501,10 +3623,7 @@ runAppShellLifecycleRuntime(createAppShellLifecycleAssemblyRuntime({
     savePointLightsJson,
     loadPointLightsFromAssetsOrPrompt,
     applyLoadedPointLights,
-    parallaxStrengthInput,
-    parallaxBandsInput,
-    parallaxToggle,
-    shadowsToggle,
+        shadowsToggle,
     heightScaleInput,
     shadowStrengthInput,
     shadowBlurInput,
@@ -3546,6 +3665,10 @@ runAppShellLifecycleRuntime(createAppShellLifecycleAssemblyRuntime({
     waterFlowWeight2Input,
     waterFlowWeight3Input,
     waterFlowStrengthInput,
+      waterFlowMapStrengthInput,
+      waterFlowVisibilityInput,
+      waterStreamlineDensityInput,
+      waterStreamlineSharpnessInput,
     waterFlowSpeedInput,
     waterFlowScaleInput,
     waterShimmerStrengthInput,
@@ -3554,17 +3677,21 @@ runAppShellLifecycleRuntime(createAppShellLifecycleAssemblyRuntime({
     waterShoreFoamStrengthInput,
     waterShoreWidthInput,
     waterReflectivityInput,
+      waterBaseColorInput,
+      waterOpacityInput,
     waterTintColorInput,
     waterTintStrengthInput,
     waterFxToggle,
-    waterFlowDownhillToggle,
+    waterFlowSourceInput,
+      waterFlowRenderModeInput,
+      waterFlowChannelPairInput,
+      waterFlowFlipXToggle,
+      waterFlowFlipYToggle,
+      waterFlowUseMagnitudeToggle,
     waterFlowInvertDownhillToggle,
     waterFlowDebugToggle,
     waterTimeRoutingInput,
-    updateParallaxStrengthLabel,
-    updateParallaxBandsLabel,
-    updateParallaxUi,
-    updateShadowBlurLabel,
+          updateShadowBlurLabel,
     updateVolumetricLabels,
     updateVolumetricUi,
     updatePointFlickerLabels,
@@ -3690,8 +3817,6 @@ runAppShellLifecycleRuntime(createAppShellLifecycleAssemblyRuntime({
   updateSwarmUi,
   updateSwarmStatsPanel,
   updateSwarmFollowButtonUi,
-  updateParallaxStrengthLabel,
-  updateParallaxBandsLabel,
   updateShadowBlurLabel,
   updateVolumetricLabels,
   updatePointFlickerLabels,
@@ -3714,7 +3839,6 @@ runAppShellLifecycleRuntime(createAppShellLifecycleAssemblyRuntime({
   currentMapFolderPath: getCurrentMapFolderPath(),
   updateLightEditorUi,
   updateCursorLightModeUi,
-  updateParallaxUi,
   updateVolumetricUi,
   updatePointFlickerUi,
   updateFogUi,

@@ -22,16 +22,6 @@ export function createRenderFxSettingsApplier(deps) {
     deps.updateFogUi();
   }
 
-  function applyParallaxSettingsCompat() {
-    const parallax = deps.getParallaxSettings();
-    deps.parallaxToggle.checked = Boolean(parallax.useParallax);
-    deps.parallaxStrengthInput.value = String(deps.clamp(Number(parallax.parallaxStrength), 0, 1));
-    deps.parallaxBandsInput.value = String(Math.round(deps.clamp(Number(parallax.parallaxBands), 2, 256)));
-    deps.updateParallaxStrengthLabel();
-    deps.updateParallaxBandsLabel();
-    deps.updateParallaxUi();
-  }
-
   function applyCloudSettingsCompat() {
     const clouds = deps.getCloudSettings();
     const timeState = deps.getTimeState();
@@ -52,8 +42,16 @@ export function createRenderFxSettingsApplier(deps) {
   function applyWaterSettingsCompat() {
     const water = deps.getWaterSettings();
     const timeState = deps.getTimeState();
+    const flowSource = water.waterFlowSource === "fixed" || water.waterFlowSource === "height" || water.waterFlowSource === "image"
+      ? water.waterFlowSource
+      : (water.waterFlowDownhill === false ? "fixed" : "height");
     deps.waterFxToggle.checked = Boolean(water.useWaterFx);
-    deps.waterFlowDownhillToggle.checked = Boolean(water.waterFlowDownhill);
+    deps.waterFlowSourceInput.value = flowSource;
+    deps.waterFlowRenderModeInput.value = water.waterFlowRenderMode === "procedural" ? "procedural" : "streamlines";
+    deps.waterFlowChannelPairInput.value = water.waterFlowChannelPair === "gb" || water.waterFlowChannelPair === "rb" ? water.waterFlowChannelPair : "rg";
+    deps.waterFlowFlipXToggle.checked = Boolean(water.waterFlowFlipX);
+    deps.waterFlowFlipYToggle.checked = Boolean(water.waterFlowFlipY);
+    deps.waterFlowUseMagnitudeToggle.checked = Boolean(water.waterFlowUseMagnitude);
     deps.waterFlowInvertDownhillToggle.checked = Boolean(water.waterFlowInvertDownhill);
     deps.waterFlowDebugToggle.checked = Boolean(water.waterFlowDebug);
     deps.waterFlowDirectionInput.value = String(Math.round(normalizeDegrees(water.waterFlowDirectionDeg)));
@@ -66,6 +64,10 @@ export function createRenderFxSettingsApplier(deps) {
     deps.waterFlowWeight2Input.value = String(deps.clamp(Number(water.waterFlowWeight2), 0, 1));
     deps.waterFlowWeight3Input.value = String(deps.clamp(Number(water.waterFlowWeight3), 0, 1));
     deps.waterFlowStrengthInput.value = String(deps.clamp(Number(water.waterFlowStrength), 0, 0.15));
+    deps.waterFlowMapStrengthInput.value = String(deps.clamp(Number(water.waterFlowMapStrength), 0, 4));
+    deps.waterFlowVisibilityInput.value = String(deps.clamp(Number(water.waterFlowVisibility), 0, 4));
+    deps.waterStreamlineDensityInput.value = String(Math.round(deps.clamp(Number(water.waterStreamlineDensity), 4, 80)));
+    deps.waterStreamlineSharpnessInput.value = String(deps.clamp(Number(water.waterStreamlineSharpness), 0, 1));
     deps.waterFlowSpeedInput.value = String(deps.clamp(Number(water.waterFlowSpeed), 0, 2.5));
     deps.waterFlowScaleInput.value = String(deps.clamp(Number(water.waterFlowScale), 0.5, 14));
     deps.waterShimmerStrengthInput.value = String(deps.clamp(Number(water.waterShimmerStrength), 0, 0.2));
@@ -74,6 +76,10 @@ export function createRenderFxSettingsApplier(deps) {
     deps.waterShoreFoamStrengthInput.value = String(deps.clamp(Number(water.waterShoreFoamStrength), 0, 0.5));
     deps.waterShoreWidthInput.value = String(deps.clamp(Number(water.waterShoreWidth), 0.4, 6));
     deps.waterReflectivityInput.value = String(deps.clamp(Number(water.waterReflectivity), 0, 1));
+    deps.waterBaseColorInput.value = Array.isArray(water.waterBaseColor)
+      ? deps.rgbToHex(water.waterBaseColor)
+      : String(water.waterBaseColor || "#245f73");
+    deps.waterOpacityInput.value = String(deps.clamp(Number(water.waterOpacity), 0, 1));
     deps.waterTintColorInput.value = Array.isArray(water.waterTintColor)
       ? deps.rgbToHex(water.waterTintColor)
       : String(water.waterTintColor || "#5ea6d6");
@@ -86,7 +92,6 @@ export function createRenderFxSettingsApplier(deps) {
 
   return {
     applyFogSettingsCompat,
-    applyParallaxSettingsCompat,
     applyCloudSettingsCompat,
     applyWaterSettingsCompat,
   };

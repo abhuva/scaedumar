@@ -80,7 +80,7 @@ export function createMapImageRuntime(deps) {
     });
   }
 
-  async function applyMapImages(splatImage, normalsImage, heightImage, slopeImage, waterImage) {
+  async function applyMapImages(splatImage, normalsImage, heightImage, slopeImage, waterImage, flowImage = null) {
     deps.uploadImageToTexture(deps.getSplatTex(), splatImage);
     const sizeChanged = setSplatSizeFromImage(splatImage);
     deps.resetCamera();
@@ -92,6 +92,12 @@ export function createMapImageRuntime(deps) {
     deps.uploadImageToTexture(deps.getHeightTex(), heightImage);
     setHeightSizeFromImage(heightImage);
     deps.setHeightImageData(deps.extractImageData(heightImage));
+    if (typeof deps.setFlowMapImage === "function") {
+      deps.setFlowMapImage(flowImage);
+    }
+    if (typeof deps.setFlowImageData === "function") {
+      deps.setFlowImageData(flowImage ? deps.extractImageData(flowImage) : null);
+    }
     deps.rebuildFlowMapTexture();
     deps.uploadImageToTexture(deps.getWaterTex(), waterImage);
     deps.setSlopeImageData(deps.extractImageData(slopeImage));

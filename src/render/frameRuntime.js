@@ -45,23 +45,29 @@ export function createFrameRuntime(deps) {
       ? systemState.lighting.lightingParams
       : deps.computeLightingParams(coreState);
     frameUi.syncFogAutoColorInput(lightingParams);
+    if (typeof deps.updateWaterParticleTrails === "function") {
+      deps.updateWaterParticleTrails(dtSec);
+    }
+    lap("waterTrailMs");
     const uniformInput = deps.buildUniformInputState({
       clamp: deps.clamp,
       getMapAspect: deps.getMapAspect,
       cursorLightState: deps.cursorLightState,
       lightingSettings: simulationKnobs.lighting || null,
-      parallaxSettings: simulationKnobs.parallax || null,
       detailState: simulationKnobs.detail || null,
       defaultLightingSettings: deps.getSettingsDefaults("lighting", deps.defaultLightingSettings),
-      defaultParallaxSettings: deps.getSettingsDefaults("parallax", deps.defaultParallaxSettings),
       defaultDetailSettings: deps.getSettingsDefaults("detail", deps.defaultDetailSettings),
       defaultFogSettings: deps.getSettingsDefaults("fog", deps.defaultFogSettings),
       defaultCloudSettings: deps.getSettingsDefaults("clouds", deps.defaultCloudSettings),
       defaultWaterSettings: deps.getSettingsDefaults("waterfx", deps.defaultWaterSettings),
+      defaultWaterTrailSettings: deps.getSettingsDefaults("watertrails", deps.defaultWaterTrailSettings),
       hexToRgb01: deps.hexToRgb01,
       fogState: systemState.fog || null,
       cloudState: systemState.clouds || null,
       waterFxState: systemState.waterFx || null,
+      waterTrailState: typeof deps.getWaterParticleTrailUniformState === "function"
+        ? deps.getWaterParticleTrailUniformState()
+        : null,
       weatherState: simulationWeather,
       cloudTimeSec: smoothCloudTimeSec,
       waterTimeSec: routedTime.water.timeSec,
