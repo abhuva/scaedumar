@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "kind": "watertrails",
+  "presets": [
+    {
+      "id": "calm-river-01",
+      "label": "calm-river-01",
+      "file": "calm-river-01.json"
+    },
+    {
+      "id": "blood-stream",
+      "label": "blood-stream",
+      "file": "blood-stream.json"
+    }
+  ]
+}

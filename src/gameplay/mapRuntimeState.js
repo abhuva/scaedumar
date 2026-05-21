@@ -7,11 +7,11 @@ export function createMapRuntimeState(deps) {
 
   function applyDefaultMapSettings() {
     deps.applyLightingSettings(deps.getSettingsDefaults("lighting", deps.defaultLightingSettings));
-    deps.applyParallaxSettings(deps.getSettingsDefaults("parallax", deps.defaultParallaxSettings));
     deps.applyInteractionSettings(deps.getSettingsDefaults("interaction", deps.defaultInteractionSettings));
     deps.applyFogSettings(deps.getSettingsDefaults("fog", deps.defaultFogSettings));
     deps.applyCloudSettings(deps.getSettingsDefaults("clouds", deps.defaultCloudSettings));
     deps.applyWaterSettings(deps.getSettingsDefaults("waterfx", deps.defaultWaterSettings));
+    deps.applyWaterTrailSettings(deps.defaultWaterTrailSettings);
     deps.applyDetailSettings(deps.getSettingsDefaults("detail", deps.defaultDetailSettings));
     deps.applyCameraSettings(deps.getSettingsDefaults("camera", deps.defaultCameraSettings));
     deps.applyAudioSettings(deps.getSettingsDefaults("audio", deps.defaultAudioSettings));

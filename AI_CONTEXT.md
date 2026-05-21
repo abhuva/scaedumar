@@ -54,8 +54,8 @@ No game engine is used.
 - NPC persistence helpers (`serializeNpcState`, `parseNpcPlayer`, `applyLoadedNpc`) are now extracted to `src/gameplay/npcPersistence.js`.
 - Player-position clamp/apply helper (`setPlayerPosition`) is now extracted to `src/gameplay/playerStateRuntime.js`.
 - Lighting settings UI-apply reflection path is now extracted to `src/ui/lightingSettingsApplier.js`.
-- Render-FX settings UI-apply reflection paths (fog/parallax/cloud/water) are now extracted to `src/ui/renderFxSettingsApplier.js`.
-- Render-FX sidecar serialization helpers (lighting/fog/parallax/cloud/water) are now extracted to `src/gameplay/renderFxDataSerializer.js`.
+- Render-FX settings UI-apply reflection paths (fog/cloud/water) are now extracted to `src/ui/renderFxSettingsApplier.js`.
+- Render-FX sidecar serialization helpers (lighting/fog/cloud/water) are now extracted to `src/gameplay/renderFxDataSerializer.js`.
 - Core map/player/point-light store sync helpers are now extracted to `src/gameplay/stateSync.js`.
 - Interaction state access helpers for cursor-light snapshot and point-light live-update are now extracted to `src/gameplay/interactionStateAccess.js`.
 - Swarm state access helpers for defaults/reset and enabled-state lookup are now extracted to `src/gameplay/swarmStateAccess.js`.
@@ -149,7 +149,7 @@ No game engine is used.
 - Map-IO helper composition now uses `src/gameplay/mapIoHelpers.js` directly inside `src/gameplay/mapSupportRuntime.js`.
 - Map path/url helpers are now extracted to `src/gameplay/mapPathUtils.js`.
 - Settings-apply composition now lives directly inside `src/core/settingsCoreSetupRuntime.js`.
-- Settings runtime binding (canonical serialize/apply/default access for lighting/fog/parallax/cloud/water/interaction/swarm settings) is extracted to `src/core/settingsRuntimeBinding.js`.
+- Settings runtime binding (canonical serialize/apply/default access for lighting/fog/cloud/water/interaction/swarm settings) is extracted to `src/core/settingsRuntimeBinding.js`.
 - Lazy settings compatibility wiring now lives directly inside `src/core/settingsCoreSetupRuntime.js`, so `main.js` no longer owns the long serialize/apply/get-defaults shim block inline.
 - Compatibility settings/UI composition (swarm/interaction/lighting/render-FX appliers plus JSON-compatible serializers) is extracted to `src/ui/settingsCompatRuntimeBinding.js`.
 - Render-FX command-side UI reflection is now grouped behind `src/ui/renderFxSettingsSyncRuntime.js` instead of being expanded inline inside `src/core/registerMainCommands.js`.
@@ -251,10 +251,10 @@ No game engine is used.
   - `height.png`
   - `slope.png`
   - `water.png`
+  - optional `flow.png` (`R/G = signed XY direction by default`, neutral `128/128`)
 - Optional sidecar JSON files in each candidate folder:
   - `pointlights.json`
   - `lighting.json`
-  - `parallax.json`
   - `interaction.json`
   - `fog.json`
   - `clouds.json`
@@ -315,14 +315,6 @@ No game engine is used.
     - terrain-following (`height at cursor + offset`)
     - old fixed-height behavior (derived from light strength)
   - no bake per mouse move (direct fragment shading path)
-- Optional parallax mode (toggle in UI):
-  - combines continuous height-based UV offset (option 1)
-  - plus quantized height-band offset (option 2)
-  - effect is anchored to the current view center (focal UV), so relative displacement is stronger away from center
-  - effect is scaled by zoom to reduce "strong when zoomed out / weak when zoomed in" mismatch
-  - displaced UV is fitted back to map bounds near edges to avoid border holes/cutouts
-  - strength is controlled by `parallaxStrength`
-  - band count is controlled by `parallaxBands` (default 6)
 - Optional height fog mode (toggle in UI):
   - camera-height proxy is derived from zoom (`zoomed out => higher camera`)
   - per-pixel fog is based on `cameraHeightNorm - terrainHeight`
@@ -341,14 +333,26 @@ No game engine is used.
   - controls: strength, density, anisotropy, ray length, sample count
 - Optional water FX mode (toggle in Water UI):
   - masked by `water.png`
-  - animated shimmer + flow-line cues from fixed or downhill direction
-  - water tint color + tint-strength control can apply additional stylized color influence
-  - downhill flow direction can be flipped with an explicit invert toggle
-  - downhill direction samples a precomputed multi-scale flow-map texture built from `height.png`
+  - animated shimmer + flow-line cues from fixed, height-generated, or image-authored direction
+  - flow rendering can use older procedural modulation or authored-vector streamlines with density/sharpness controls
+  - water opacity blends an independent base water color over terrain before scene lighting, so water receives ambient, sun/moon, shadows, point lights, cursor light, and cloud shade with the rest of the terrain
+  - water tint color + tint-strength control applies as a pre-lighting material color
+  - non-fixed flow direction can be flipped with an explicit invert toggle
+  - height-generated flow samples a precomputed multi-scale flow-map texture built from `height.png`
+  - image-authored flow loads optional map-local `flow.png` into the same flow-map texture (`R/G = signed XY direction by default`)
   - flow-map precompute uses user-controlled 3-radius / 3-weight trend settings; runtime can blend trend with local 1-texel downhill flow
-  - optional flow debug overlay displays computed water direction on water pixels
+  - optional flow debug overlay displays computed/sampled water direction on water pixels
   - water shading is evaluated at map texel centers (pixel-locked) so water influence is per map pixel
-  - altitude-aware sun/moon glints, shoreline foam band, and sky-tint reflection
+  - flow-line color, shoreline foam, and particle-trail tint apply as pre-lighting material edits; altitude-aware sun/moon glints, sky-tint reflection, and glitter remain post-lighting specular-style terms gated by scene light
+- Optional water particle trail mode (`WT` topic, separate from Water FX):
+  - CPU particles spawn on `water.png`, sample authored `flow.png`, and write a fading RGBA trail texture
+  - the terrain shader samples the trail texture as a water-only tint/brightness overlay
+  - wake simulation supports full/half/quarter/eighth map resolution, defaults to recommended `1/2`, and precomputes water/flow fields at that active resolution
+  - wake propagation/decay/current-drag update runs as a GPU ping-pong pass; CPU particles only upload the per-frame deposit texture
+  - live controls tune particles, agent speed, simulation speed, wake resolution, flow influence, wake spread/current drag, trail fade/width/strength/headroom, channel pair, flips, B magnitude, tint color, and shader-only glitter
+  - trail headroom compresses deposits before RGBA8 storage and expands them in the terrain shader, preserving more visible overlap range before saturation
+  - glitter is an animated water-only sparkle layer; the trail texture can suppress sparkle where wakes are strong
+  - `Save All` persists controls to map-local `watertrails.json`; missing sidecars reset WT to defaults on map load
 - Core zoom-detail material layer:
   - settings contract key is `detail`, persisted as optional version `3` `detail.json`
   - default config is enabled; missing individual micro sprites use neutral gray atlas slots, and a missing material splat falls back to the dirt slot
@@ -367,7 +371,7 @@ No game engine is used.
   - `zoomMin` / `zoomMax` control runtime camera clamp; default `zoomMax` is `128` for close inspection of zoom-detail materials
   - camera commands, swarm follow zoom normalization, and fog camera-height normalization resolve current bounds lazily from settings
 - Map-level persistence:
-  - `Load Map -> Save All` writes `pointlights.json`, `lighting.json`, `parallax.json`, `interaction.json`, `fog.json`, `clouds.json`, `waterfx.json`, `detail.json`, `camera.json`, `audio.json`, `swarm.json`, and `npc.json`
+  - `Load Map -> Save All` writes `pointlights.json`, `lighting.json`, `interaction.json`, `fog.json`, `clouds.json`, `waterfx.json`, `detail.json`, `camera.json`, `audio.json`, `swarm.json`, and `npc.json`
   - map loading auto-applies these files when present
 - Audio Lab groundwork:
   - core settings registry now includes `audio` defaults/serialize/apply contract key
@@ -497,7 +501,7 @@ No game engine is used.
   - breeding mode auto-disables when bird count returns to configured `Agent Count`
 - `none`: left click intentionally falls through to player reposition for testing; this is aligned with the `interactionMode === "none"` runtime branch in interaction command routing.
 - Core settings registry usage:
-  - lighting/fog/parallax/cloud/water/interaction/swarm defaults + serialize/apply flows are registered through `src/core/mainSettingsContracts.js`.
+  - lighting/fog/cloud/water/interaction/swarm defaults + serialize/apply flows are registered through `src/core/mainSettingsContracts.js`.
   - JSON compatibility is preserved (existing map-sidecar keys unchanged).
   - Render FX UI controls are command-routed via `core/renderFx/changed` (handler updates labels/UI + synchronizes `simulation.knobs` in core state).
   - Swarm panel controls are command-routed via `core/swarm/settingsChanged` (handler owns swarm UI side effects, reseed behavior, and gameplay swarm state sync).
@@ -535,14 +539,13 @@ Main light uniforms:
 - `uUseCursorLight`, `uCursorLightUv`, `uCursorLightColor`, `uCursorLightStrength`, `uCursorLightHeightOffset`, `uUseCursorTerrainHeight`, `uCursorLightMapSize`
 - `uTimeSec`, `uPointFlickerEnabled`, `uPointFlickerStrength`, `uPointFlickerSpeed`, `uPointFlickerSpatial`
 - `uUseClouds`, `uCloudCoverage`, `uCloudSoftness`, `uCloudOpacity`, `uCloudScale`, `uCloudSpeed1`, `uCloudSpeed2`, `uCloudSunParallax`, `uCloudUseSunProjection`
-- `uUseWaterFx`, `uWaterFlowDownhill`, `uWaterFlowInvertDownhill`, `uWaterFlowDebug`, `uWaterFlowDir`, `uWaterLocalFlowMix`, `uWaterFlowStrength`, `uWaterFlowSpeed`, `uWaterFlowScale`, `uWaterShimmerStrength`, `uWaterGlintStrength`, `uWaterGlintSharpness`, `uWaterShoreFoamStrength`, `uWaterShoreWidth`, `uWaterReflectivity`, `uWaterTintColor`, `uWaterTintStrength`, `uSkyColor`
+- `uUseWaterFx`, `uWaterFlowSource`, `uWaterFlowChannelPair`, `uWaterFlowFlip`, `uWaterFlowUseMagnitude`, `uWaterFlowDownhill`, `uWaterFlowInvertDownhill`, `uWaterFlowDebug`, `uWaterFlowDir`, `uWaterLocalFlowMix`, `uWaterFlowStrength`, `uWaterFlowMapStrength`, `uWaterFlowVisibility`, `uWaterFlowSpeed`, `uWaterFlowScale`, `uWaterShimmerStrength`, `uWaterGlintStrength`, `uWaterGlintSharpness`, `uWaterShoreFoamStrength`, `uWaterShoreWidth`, `uWaterReflectivity`, `uWaterBaseColor`, `uWaterOpacity`, `uWaterTintColor`, `uWaterTintStrength`, `uSkyColor`
 
 Map/camera uniforms:
 - `uSplat`, `uNormals`, `uHeight`
 - `uMapTexelSize` (must come from height texture size)
 - `uMapAspect` (must come from splat texture size)
 - `uResolution`, `uViewHalfExtents`, `uPanWorld`
-- `uUseParallax`, `uParallaxStrength`, `uParallaxBands`, `uZoom`
 - `uUseDetail`, `uDetailBlend`, `uMaterialSplat`, detail material/atlas uniforms for RGBA material-splat micro color mixing
 - `uUseFog`, `uFogColor`, `uFogMinAlpha`, `uFogMaxAlpha`, `uFogFalloff`, `uFogStartOffset`, `uCameraHeightNorm`
 - `uUseVolumetric`, `uVolumetricStrength`, `uVolumetricDensity`, `uVolumetricAnisotropy`, `uVolumetricLength`, `uVolumetricSamples`

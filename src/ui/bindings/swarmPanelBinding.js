@@ -1,4 +1,18 @@
 export function bindSwarmPanelControls(deps) {
+  function syncFollowZoomControlsFromDom() {
+    const enabled = Boolean(deps.swarmEnabledToggle.checked && deps.swarmFollowZoomToggle.checked);
+    deps.swarmFollowZoomInInput.disabled = !enabled;
+    deps.swarmFollowZoomOutInput.disabled = !enabled;
+    deps.swarmFollowAgentSpeedSmoothingInput.disabled = !enabled;
+    deps.swarmFollowAgentZoomSmoothingInput.disabled = !enabled;
+  }
+
+  function setText(el, value) {
+    if (el) {
+      el.textContent = value;
+    }
+  }
+
   function dispatchSwarmSettingChange(action, payload = {}) {
     deps.dispatchCoreCommand({
       type: "core/swarm/settingsChanged",
@@ -20,18 +34,21 @@ export function bindSwarmPanelControls(deps) {
   });
 
   deps.swarmFollowZoomToggle.addEventListener("change", () => {
+    syncFollowZoomControlsFromDom();
     dispatchSwarmSettingChange("followZoomToggleChanged", {
       value: deps.swarmFollowZoomToggle.checked,
     });
   });
 
   deps.swarmFollowZoomInInput.addEventListener("input", () => {
+    setText(deps.swarmFollowZoomInValue, `${Number(deps.swarmFollowZoomInInput.value).toFixed(1)}x`);
     dispatchSwarmSettingChange("followZoomInChanged", {
       zoomIn: Number(deps.swarmFollowZoomInInput.value),
     });
   });
 
   deps.swarmFollowZoomOutInput.addEventListener("input", () => {
+    setText(deps.swarmFollowZoomOutValue, `${Number(deps.swarmFollowZoomOutInput.value).toFixed(1)}x`);
     dispatchSwarmSettingChange("followZoomOutChanged", {
       zoomOut: Number(deps.swarmFollowZoomOutInput.value),
     });
@@ -44,11 +61,13 @@ export function bindSwarmPanelControls(deps) {
   });
 
   deps.swarmFollowAgentSpeedSmoothingInput.addEventListener("input", () => {
+    setText(deps.swarmFollowAgentSpeedSmoothingValue, Number(deps.swarmFollowAgentSpeedSmoothingInput.value).toFixed(2));
     dispatchSwarmSettingChange("followAgentSpeedSmoothingChanged", {
       value: Number(deps.swarmFollowAgentSpeedSmoothingInput.value),
     });
   });
   deps.swarmFollowAgentZoomSmoothingInput.addEventListener("input", () => {
+    setText(deps.swarmFollowAgentZoomSmoothingValue, Number(deps.swarmFollowAgentZoomSmoothingInput.value).toFixed(2));
     dispatchSwarmSettingChange("followAgentZoomSmoothingChanged", {
       value: Number(deps.swarmFollowAgentZoomSmoothingInput.value),
     });
@@ -151,6 +170,7 @@ export function bindSwarmPanelControls(deps) {
   deps.swarmHawkTargetRangeInput.addEventListener("input", () => dispatchSwarmSettingChange("hawkTargetRangeChanged", { value: Number(deps.swarmHawkTargetRangeInput.value) }));
 
   deps.swarmEnabledToggle.addEventListener("change", () => {
+    syncFollowZoomControlsFromDom();
     dispatchSwarmSettingChange("enabledToggleChanged", {
       value: deps.swarmEnabledToggle.checked,
     });

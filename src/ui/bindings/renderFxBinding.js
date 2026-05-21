@@ -14,24 +14,6 @@ export function bindRenderFxControls(deps) {
 
   const bindings = [
     {
-      element: deps.parallaxStrengthInput,
-      eventType: "input",
-      section: "parallax",
-      patchFactory: () => ({ parallaxStrength: Number(deps.parallaxStrengthInput.value) }),
-    },
-    {
-      element: deps.parallaxBandsInput,
-      eventType: "input",
-      section: "parallax",
-      patchFactory: () => ({ parallaxBands: Number(deps.parallaxBandsInput.value) }),
-    },
-    {
-      element: deps.parallaxToggle,
-      eventType: "change",
-      section: "parallax",
-      patchFactory: () => ({ useParallax: Boolean(deps.parallaxToggle.checked) }),
-    },
-    {
       element: deps.shadowsToggle,
       eventType: "change",
       section: "lighting",
@@ -285,6 +267,30 @@ export function bindRenderFxControls(deps) {
       patchFactory: () => ({ waterFlowStrength: Number(deps.waterFlowStrengthInput.value) }),
     },
     {
+      element: deps.waterFlowMapStrengthInput,
+      eventType: "input",
+      section: "waterfx",
+      patchFactory: () => ({ waterFlowMapStrength: Number(deps.waterFlowMapStrengthInput.value) }),
+    },
+    {
+      element: deps.waterFlowVisibilityInput,
+      eventType: "input",
+      section: "waterfx",
+      patchFactory: () => ({ waterFlowVisibility: Number(deps.waterFlowVisibilityInput.value) }),
+    },
+    {
+      element: deps.waterStreamlineDensityInput,
+      eventType: "input",
+      section: "waterfx",
+      patchFactory: () => ({ waterStreamlineDensity: Number(deps.waterStreamlineDensityInput.value) }),
+    },
+    {
+      element: deps.waterStreamlineSharpnessInput,
+      eventType: "input",
+      section: "waterfx",
+      patchFactory: () => ({ waterStreamlineSharpness: Number(deps.waterStreamlineSharpnessInput.value) }),
+    },
+    {
       element: deps.waterFlowSpeedInput,
       eventType: "input",
       section: "waterfx",
@@ -333,6 +339,18 @@ export function bindRenderFxControls(deps) {
       patchFactory: () => ({ waterReflectivity: Number(deps.waterReflectivityInput.value) }),
     },
     {
+      element: deps.waterOpacityInput,
+      eventType: "input",
+      section: "waterfx",
+      patchFactory: () => ({ waterOpacity: Number(deps.waterOpacityInput.value) }),
+    },
+    {
+      element: deps.waterBaseColorInput,
+      eventType: "input",
+      section: "waterfx",
+      patchFactory: () => ({ waterBaseColor: deps.waterBaseColorInput.value }),
+    },
+    {
       element: deps.waterTintStrengthInput,
       eventType: "input",
       section: "waterfx",
@@ -351,11 +369,41 @@ export function bindRenderFxControls(deps) {
       patchFactory: () => ({ useWaterFx: Boolean(deps.waterFxToggle.checked) }),
     },
     {
-      element: deps.waterFlowDownhillToggle,
+      element: deps.waterFlowSourceInput,
       eventType: "change",
       section: "waterfx",
-      patchFactory: () => ({ waterFlowDownhill: Boolean(deps.waterFlowDownhillToggle.checked) }),
+      patchFactory: () => ({ waterFlowSource: deps.waterFlowSourceInput.value }),
       options: { rebuildFlowMap: true },
+    },
+    {
+      element: deps.waterFlowRenderModeInput,
+      eventType: "change",
+      section: "waterfx",
+      patchFactory: () => ({ waterFlowRenderMode: deps.waterFlowRenderModeInput.value }),
+    },
+    {
+      element: deps.waterFlowChannelPairInput,
+      eventType: "change",
+      section: "waterfx",
+      patchFactory: () => ({ waterFlowChannelPair: deps.waterFlowChannelPairInput.value }),
+    },
+    {
+      element: deps.waterFlowFlipXToggle,
+      eventType: "change",
+      section: "waterfx",
+      patchFactory: () => ({ waterFlowFlipX: Boolean(deps.waterFlowFlipXToggle.checked) }),
+    },
+    {
+      element: deps.waterFlowFlipYToggle,
+      eventType: "change",
+      section: "waterfx",
+      patchFactory: () => ({ waterFlowFlipY: Boolean(deps.waterFlowFlipYToggle.checked) }),
+    },
+    {
+      element: deps.waterFlowUseMagnitudeToggle,
+      eventType: "change",
+      section: "waterfx",
+      patchFactory: () => ({ waterFlowUseMagnitude: Boolean(deps.waterFlowUseMagnitudeToggle.checked) }),
     },
     {
       element: deps.waterFlowInvertDownhillToggle,

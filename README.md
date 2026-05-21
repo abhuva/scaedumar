@@ -43,9 +43,9 @@ Each candidate folder should contain:
 - `height.png`
 - `slope.png`
 - `water.png`
+- optional: `flow.png` (authored water flowmap, `R/G = XY direction by default`, neutral `128/128`)
 - optional: `pointlights.json`
 - optional: `lighting.json`
-- optional: `parallax.json`
 - optional: `interaction.json`
 - optional: `fog.json`
 - optional: `clouds.json`
@@ -251,11 +251,10 @@ Architecture map:
 - `Load Map` includes a map-level `Save All` action that writes:
   - `pointlights.json`
   - `lighting.json` (`heightScale`, `shadowStrength`, `shadowBlur`, `useShadows`, `ambient`, `diffuse`, volumetric-scatter controls, cycle + point-flicker controls)
-  - `parallax.json` (`useParallax`, `parallaxStrength`, `parallaxBands`)
   - `interaction.json` (pathfinding window/weights/cutoff/base-cost + cursor-light UI settings)
   - `fog.json` (`useFog`, color, alpha/falloff/start settings)
   - `clouds.json` (`useClouds`, coverage/softness/opacity/scale, two-layer scroll speeds, sun-projection controls)
-  - `waterfx.json` (`useWaterFx`, downhill/fixed flow, `waterFlowInvertDownhill`, `waterDownhillBoost`, local-mix, trend radii/weights, debug overlay, shimmer/specular/shore/reflection controls, `waterTintColor`, `waterTintStrength`)
+  - `waterfx.json` (`useWaterFx`, `waterFlowSource` fixed/height/image, `waterFlowInvertDownhill`, `waterDownhillBoost`, local-mix, trend radii/weights, debug overlay, flow visibility, opacity/base-color, shimmer/specular/shore/reflection controls, `waterTintColor`, `waterTintStrength`)
   - `detail.json` (core zoom-detail material tuning for RGBA splat-driven dirt/rock/grass/snow micro color sprites)
   - `camera.json` (`zoomMin`, `zoomMax`)
   - `audio.json` (spectrogram settings, scribble/playback controls)
@@ -302,14 +301,6 @@ Architecture map:
 - Point-light baking also uses height-map line-of-sight occlusion so steep terrain can block local light spread.
 - Terrain shading samples that baked texture during normal rendering, so frame-time cost stays low.
 - Settings are opened from a left vertical icon dock, one topic panel at a time.
-- `Parallax` toggle enables a combined depth illusion from the height map:
-  - continuous height-based UV offset while panning
-  - quantized height-band offset for layered depth separation
-  - anchored to the current view center to produce stronger relative motion toward screen edges
-  - normalized by current zoom so perceived effect stays more consistent across zoom levels
-  - edge-safe displacement fitting keeps parallax inside map bounds to avoid border cutouts
-- `Parallax Strength` controls the blend intensity of both effects.
-- `Parallax Bands` controls the number of quantized height bands (default `6`, range `2..256`).
 - `Height Fog` toggle enables a camera-height-vs-terrain-height fog illusion:
   - camera height is derived from zoom (zoomed out = higher camera)
   - per-pixel fog amount is based on height difference between camera and terrain
@@ -325,14 +316,27 @@ Architecture map:
   - altitude-aware sun/moon glints
   - shoreline foam/lapping near water-land transitions
   - sky-tint reflection blended by reflectivity
-- Flow can use fixed direction or downhill mode.
-- Downhill flow includes an `Invert Downhill` toggle to quickly flip detected flow direction.
-- Downhill mode samples a precomputed multi-scale flow map (from `height.png`) and can be blended with local 1-texel downhill flow via `Local Flow Mix`.
-- `Downhill Boost` amplifies downhill water-motion intensity without changing fixed-direction mode.
-- `Water Tint` color plus `Tint Strength` (`0..1`) applies controllable water color tinting.
+- Flow source can be fixed direction, height-generated, or an authored `flow.png` image.
+- `Flow Render` switches between the older procedural flow modulation and authored-vector streamlines; line density/sharpness tune the streamline overlay.
+- Image flowmaps default to `R/G` as signed XY direction (`128/128` is neutral); decode controls can switch channel pair, flip X/Y, and optionally use B as vector magnitude.
+- Height-generated mode samples a precomputed multi-scale flow map from `height.png` and can blend with local 1-texel downhill flow via `Local Flow Mix`.
+- `Downhill Boost` amplifies generated/image water-motion intensity without changing fixed-direction mode.
+- `Water Opacity` blends in an independent water base color before scene lighting, so underlying terrain can be reduced or fully hidden while water still receives ambient, sun/moon, shadow, point-light, cursor-light, and cloud lighting.
+- `Water Tint` color plus `Tint Strength` (`0..1`) applies controllable water color tinting as a pre-lighting material color.
+- Flow-line color, shoreline foam, and particle-trail tint are also treated as material edits before lighting; water glints, sky reflection, and glitter remain post-lighting specular-style terms gated by scene light.
 - Water shading is now evaluated at map-texel centers (pixel-locked), so water influence is resolved per map pixel instead of per screen fragment.
 - Trend precompute is tunable with `Trend Radius 1/2/3` + `Trend Weight 1/2/3`.
 - `Flow Debug` renders direction overlay on water to inspect computed flow behavior.
+- `Water Particle Trails` (separate `WT` topic) is independent from the Water FX controls:
+  - CPU particles spawn on `water.png`, sample the authored `flow.png` direction field, and write a fading trail texture.
+  - The main terrain shader samples that trail texture as a water-only tint/brightness overlay.
+  - Wake simulation can run at full, half, quarter, or eighth map resolution; `1/2` is the recommended quality/performance default.
+  - Flow/water masks are precomputed at the active wake resolution, and a GPU ping-pong pass updates wake propagation/decay/current drag.
+  - `Simulation Speed` controls the wake simulation independently from agent movement speed.
+  - Controls include particle count, speed, simulation speed, wake resolution, flow influence, wake spread/current drag, trail strength/headroom/fade/width, flow channel pair, flips, B magnitude, tint color, and shader-only glitter.
+  - `Trail Headroom` compresses deposits before storing them in the 8-bit wake texture, then expands them in the terrain shader so overlapping trails have more visible brightness range before saturation.
+  - Glitter is a lightweight animated sparkle layer masked to water; the wake texture can suppress sparkle where particle trails are already strong.
+  - `Save All` persists the panel to map-local `watertrails.json`; missing sidecars reset WT controls to defaults on map load.
 - `Volumetric Scatter` (Main Lighting panel) adds a lightweight single-pass in-scattering estimate:
   - raymarches along projected sun direction in texture space
   - reuses cloud shadow occlusion + fog density shaping per sample

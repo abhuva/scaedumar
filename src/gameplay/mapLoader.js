@@ -1,6 +1,6 @@
 export function createMapLoader(deps) {
   function sidecarStatusText(prefix, loaded) {
-    return `${prefix} | pointlights: ${loaded.pointLights ? "yes" : "no"} | lighting: ${loaded.lighting ? "yes" : "no"} | parallax: ${loaded.parallax ? "yes" : "no"} | interaction: ${loaded.interaction ? "yes" : "no"} | fog: ${loaded.fog ? "yes" : "no"} | clouds: ${loaded.clouds ? "yes" : "no"} | waterfx: ${loaded.waterFx ? "yes" : "no"} | detail: ${loaded.detail ? "yes" : "default"} | camera: ${loaded.camera ? "yes" : "default"} | swarm: ${loaded.swarm ? "yes" : "default"} | npc: ${loaded.npc ? "yes" : "default"}`;
+    return `${prefix} | pointlights: ${loaded.pointLights ? "yes" : "no"} | lighting: ${loaded.lighting ? "yes" : "no"} | interaction: ${loaded.interaction ? "yes" : "no"} | fog: ${loaded.fog ? "yes" : "no"} | clouds: ${loaded.clouds ? "yes" : "no"} | waterfx: ${loaded.waterFx ? "yes" : "no"} | watertrails: ${loaded.waterTrails ? "yes" : "default"} | detail: ${loaded.detail ? "yes" : "default"} | camera: ${loaded.camera ? "yes" : "default"} | swarm: ${loaded.swarm ? "yes" : "default"} | npc: ${loaded.npc ? "yes" : "default"}`;
   }
 
   async function loadMapFromPath(mapFolderPath) {
@@ -13,15 +13,24 @@ export function createMapLoader(deps) {
     }
 
     const jsonPath = (name) => (deps.isAbsoluteFsPath(folder) ? deps.joinFsPath(folder, name) : `${folder}/${name}`);
-    const [splat, normals, height, slope, water] = await Promise.all([
+    async function loadOptionalImage(fileName) {
+      try {
+        return await deps.loadImageFromUrl(deps.buildMapAssetPath(folder, fileName));
+      } catch {
+        return null;
+      }
+    }
+
+    const [splat, normals, height, slope, water, flow] = await Promise.all([
       deps.loadImageFromUrl(deps.buildMapAssetPath(folder, "splat.png")),
       deps.loadImageFromUrl(deps.buildMapAssetPath(folder, "normals.png")),
       deps.loadImageFromUrl(deps.buildMapAssetPath(folder, "height.png")),
       deps.loadImageFromUrl(deps.buildMapAssetPath(folder, "slope.png")),
       deps.loadImageFromUrl(deps.buildMapAssetPath(folder, "water.png")),
+      loadOptionalImage("flow.png"),
     ]);
 
-    await deps.applyMapImages(splat, normals, height, slope, water);
+    await deps.applyMapImages(splat, normals, height, slope, water, flow);
     deps.setCurrentMapFolderPath(folder);
     deps.resetMapRuntimeStateAfterImages();
     const loaded = await deps.mapSidecarLoader.loadSidecarsFromUrl(folder, jsonPath);
@@ -36,18 +45,20 @@ export function createMapLoader(deps) {
     const heightFile = deps.getFileFromFolderSelection(files, "height.png");
     const slopeFile = deps.getFileFromFolderSelection(files, "slope.png");
     const waterFile = deps.getFileFromFolderSelection(files, "water.png");
+    const flowFile = deps.getFileFromFolderSelection(files, "flow.png");
     if (!splatFile || !normalsFile || !heightFile || !slopeFile || !waterFile) {
       throw new Error("Folder must contain splat.png, normals.png, height.png, slope.png, and water.png.");
     }
 
-    const [splat, normals, height, slope, water] = await Promise.all([
+    const [splat, normals, height, slope, water, flow] = await Promise.all([
       deps.loadImageFromFile(splatFile),
       deps.loadImageFromFile(normalsFile),
       deps.loadImageFromFile(heightFile),
       deps.loadImageFromFile(slopeFile),
       deps.loadImageFromFile(waterFile),
+      flowFile ? deps.loadImageFromFile(flowFile) : Promise.resolve(null),
     ]);
-    await deps.applyMapImages(splat, normals, height, slope, water);
+    await deps.applyMapImages(splat, normals, height, slope, water, flow);
 
     const relPath = String(splatFile.webkitRelativePath || "");
     const firstFolder = relPath.includes("/") ? relPath.split("/")[0] : "";

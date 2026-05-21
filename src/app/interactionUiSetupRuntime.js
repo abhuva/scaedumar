@@ -27,9 +27,6 @@ export function createInteractionUiSetupRuntime(deps) {
   };
   const renderFxUiRuntime = createRenderFxUiBindingRuntime(deps.renderFxUi);
   const renderFxSettingsSyncRuntime = createRenderFxSettingsSyncRuntime({
-    updateParallaxStrengthLabel: deps.renderFxUi.updateParallaxStrengthLabel,
-    updateParallaxBandsLabel: deps.renderFxUi.updateParallaxBandsLabel,
-    updateParallaxUi: deps.renderFxUi.updateParallaxUi,
     updateShadowBlurLabel: deps.renderFxUi.updateShadowBlurLabel,
     updateVolumetricLabels: deps.renderFxUi.updateVolumetricLabels,
     updateVolumetricUi: deps.renderFxUi.updateVolumetricUi,

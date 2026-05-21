@@ -30,7 +30,6 @@
 - Optional sidecar JSON files:
   - `pointlights.json`
   - `lighting.json`
-  - `parallax.json`
   - `interaction.json`
   - `fog.json`
   - `clouds.json`

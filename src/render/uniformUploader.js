@@ -73,6 +73,10 @@ export function createTerrainUniformUploader(deps) {
     deps.gl.bindTexture(deps.gl.TEXTURE_2D, deps.detailMicroColorTex);
     deps.gl.uniform1i(deps.uniforms.uDetailMicroColor, 9);
 
+    deps.gl.activeTexture(deps.gl.TEXTURE10);
+    deps.gl.bindTexture(deps.gl.TEXTURE_2D, deps.waterTrailTex);
+    deps.gl.uniform1i(deps.uniforms.uWaterTrailTex, 10);
+
     const viewHalf = deps.getViewHalfExtents(cameraZoom);
     deps.gl.uniform2f(deps.uniforms.uMapTexelSize, 1 / deps.heightSize.width, 1 / deps.heightSize.height);
     deps.gl.uniform2f(deps.uniforms.uResolution, deps.canvas.width, deps.canvas.height);
@@ -87,10 +91,6 @@ export function createTerrainUniformUploader(deps) {
     deps.gl.uniform1f(deps.uniforms.uHeightScale, input.heightScale);
     deps.gl.uniform1f(deps.uniforms.uShadowStrength, input.shadowStrength);
     deps.gl.uniform1f(deps.uniforms.uUseShadows, input.useShadows ? 1 : 0);
-    deps.gl.uniform1f(deps.uniforms.uUseParallax, input.useParallax ? 1 : 0);
-    deps.gl.uniform1f(deps.uniforms.uParallaxStrength, input.parallaxStrength);
-    deps.gl.uniform1f(deps.uniforms.uParallaxBands, input.parallaxBands);
-    deps.gl.uniform1f(deps.uniforms.uZoom, cameraZoom);
     const detailState = deps.detailAtlasState || {};
     const useDetail = input.useDetail && detailState.available;
     const mapPixelWorldSize = 1 / Math.max(1, Number(deps.heightSize.height) || 1);
@@ -165,7 +165,19 @@ export function createTerrainUniformUploader(deps) {
     deps.gl.uniform1f(deps.uniforms.uCloudSunParallax, input.cloudSunParallax);
     deps.gl.uniform1f(deps.uniforms.uCloudUseSunProjection, input.cloudUseSunProjection ? 1 : 0);
     deps.gl.uniform1f(deps.uniforms.uUseWaterFx, input.useWaterFx ? 1 : 0);
-    deps.gl.uniform1f(deps.uniforms.uWaterFlowDownhill, input.waterFlowDownhill ? 1 : 0);
+    const waterFlowSource = input.waterFlowSource === "image" ? 2 : (input.waterFlowSource === "height" ? 1 : 0);
+    const waterFlowRenderMode = input.waterFlowRenderMode === "procedural" ? 0 : 1;
+    const waterFlowChannelPair = input.waterFlowChannelPair === "gb" ? 1 : (input.waterFlowChannelPair === "rb" ? 2 : 0);
+    deps.gl.uniform1f(deps.uniforms.uWaterFlowSource, waterFlowSource);
+    deps.gl.uniform1f(deps.uniforms.uWaterFlowRenderMode, waterFlowRenderMode);
+    deps.gl.uniform1f(deps.uniforms.uWaterFlowDownhill, waterFlowSource > 0 ? 1 : 0);
+    deps.gl.uniform1f(deps.uniforms.uWaterFlowChannelPair, waterFlowChannelPair);
+    deps.gl.uniform2f(deps.uniforms.uWaterFlowFlip, input.waterFlowFlipX ? -1 : 1, input.waterFlowFlipY ? -1 : 1);
+    deps.gl.uniform1f(deps.uniforms.uWaterFlowUseMagnitude, input.waterFlowUseMagnitude ? 1 : 0);
+    deps.gl.uniform1f(deps.uniforms.uWaterFlowMapStrength, input.waterFlowMapStrength);
+    deps.gl.uniform1f(deps.uniforms.uWaterFlowVisibility, input.waterFlowVisibility);
+    deps.gl.uniform1f(deps.uniforms.uWaterStreamlineDensity, input.waterStreamlineDensity);
+    deps.gl.uniform1f(deps.uniforms.uWaterStreamlineSharpness, input.waterStreamlineSharpness);
     deps.gl.uniform1f(deps.uniforms.uWaterFlowInvertDownhill, input.waterFlowInvertDownhill ? 1 : 0);
     deps.gl.uniform1f(deps.uniforms.uWaterFlowDebug, input.waterFlowDebug ? 1 : 0);
     deps.gl.uniform2f(deps.uniforms.uWaterFlowDir, input.waterFlowDirX, input.waterFlowDirY);
@@ -180,6 +192,19 @@ export function createTerrainUniformUploader(deps) {
     deps.gl.uniform1f(deps.uniforms.uWaterShoreFoamStrength, input.waterShoreFoamStrength);
     deps.gl.uniform1f(deps.uniforms.uWaterShoreWidth, input.waterShoreWidth);
     deps.gl.uniform1f(deps.uniforms.uWaterReflectivity, input.waterReflectivity);
+    deps.gl.uniform3f(deps.uniforms.uWaterBaseColor, input.waterBaseColor[0], input.waterBaseColor[1], input.waterBaseColor[2]);
+    deps.gl.uniform1f(deps.uniforms.uWaterOpacity, input.waterOpacity);
+    deps.gl.uniform1f(deps.uniforms.uUseWaterTrail, input.useWaterTrail ? 1 : 0);
+    deps.gl.uniform1f(deps.uniforms.uWaterTrailStrength, input.waterTrailStrength);
+    deps.gl.uniform1f(deps.uniforms.uWaterTrailHeadroom, input.waterTrailHeadroom);
+    deps.gl.uniform1f(deps.uniforms.uWaterTrailDebug, input.waterTrailDebug ? 1 : 0);
+    deps.gl.uniform3f(deps.uniforms.uWaterTrailColor, input.waterTrailColor[0], input.waterTrailColor[1], input.waterTrailColor[2]);
+    deps.gl.uniform1f(deps.uniforms.uWaterGlitterStrength, input.waterGlitterStrength);
+    deps.gl.uniform1f(deps.uniforms.uWaterGlitterDensity, input.waterGlitterDensity);
+    deps.gl.uniform1f(deps.uniforms.uWaterGlitterSpeed, input.waterGlitterSpeed);
+    deps.gl.uniform1f(deps.uniforms.uWaterGlitterSize, input.waterGlitterSize);
+    deps.gl.uniform1f(deps.uniforms.uWaterGlitterSharpness, input.waterGlitterSharpness);
+    deps.gl.uniform1f(deps.uniforms.uWaterGlitterWakeSuppression, input.waterGlitterWakeSuppression);
     const waterTintColor = input.waterTintColor;
     deps.gl.uniform3f(deps.uniforms.uWaterTintColor, waterTintColor[0], waterTintColor[1], waterTintColor[2]);
     deps.gl.uniform1f(deps.uniforms.uWaterTintStrength, input.waterTintStrength);

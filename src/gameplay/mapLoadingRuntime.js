@@ -6,11 +6,11 @@ export function createMapLoadingRuntime(deps) {
     tryLoadJsonFromUrl: deps.tryLoadJsonFromUrl,
     applyLoadedPointLights: deps.applyLoadedPointLights,
     applyLightingSettings: deps.applyLightingSettings,
-    applyParallaxSettings: deps.applyParallaxSettings,
     applyInteractionSettings: deps.applyInteractionSettings,
     applyFogSettings: deps.applyFogSettings,
     applyCloudSettings: deps.applyCloudSettings,
     applyWaterSettings: deps.applyWaterSettings,
+    applyWaterTrailSettings: deps.applyWaterTrailSettings,
     applyDetailSettings: deps.applyDetailSettings,
     applyCameraSettings: deps.applyCameraSettings,
     applyAudioSettings: deps.applyAudioSettings,
@@ -18,6 +18,7 @@ export function createMapLoadingRuntime(deps) {
     applyLoadedNpc: deps.applyLoadedNpc,
     getFileFromFolderSelection: deps.getFileFromFolderSelection,
     defaultPlayer: deps.defaultPlayer,
+    defaultWaterTrailSettings: deps.defaultWaterTrailSettings,
   });
   const mapLoader = createMapLoader({
     normalizeMapFolderPath: deps.normalizeMapFolderPath,

@@ -17,6 +17,7 @@ uniform sampler2D uCloudNoiseTex;
 uniform sampler2D uShadowTex;
 uniform sampler2D uWater;
 uniform sampler2D uFlowMap;
+uniform sampler2D uWaterTrailTex;
 uniform sampler2D uMaterialSplat;
 uniform sampler2D uDetailMicroColor;
 uniform float uUseCursorLight;
@@ -39,10 +40,6 @@ uniform float uAmbient;
 uniform float uHeightScale;
 uniform float uShadowStrength;
 uniform float uUseShadows;
-uniform float uUseParallax;
-uniform float uParallaxStrength;
-uniform float uParallaxBands;
-uniform float uZoom;
 uniform float uUseDetail;
 uniform float uDetailBlend;
 uniform float uDetailWaterSuppression;
@@ -85,13 +82,22 @@ uniform float uCloudSpeed2;
 uniform float uCloudSunParallax;
 uniform float uCloudUseSunProjection;
 uniform float uUseWaterFx;
+uniform float uWaterFlowSource;
+uniform float uWaterFlowRenderMode;
 uniform float uWaterFlowDownhill;
+uniform float uWaterFlowChannelPair;
+uniform vec2 uWaterFlowFlip;
+uniform float uWaterFlowUseMagnitude;
 uniform float uWaterFlowInvertDownhill;
 uniform float uWaterFlowDebug;
 uniform vec2 uWaterFlowDir;
 uniform float uWaterLocalFlowMix;
 uniform float uWaterDownhillBoost;
 uniform float uWaterFlowStrength;
+uniform float uWaterFlowMapStrength;
+uniform float uWaterFlowVisibility;
+uniform float uWaterStreamlineDensity;
+uniform float uWaterStreamlineSharpness;
 uniform float uWaterFlowSpeed;
 uniform float uWaterFlowScale;
 uniform float uWaterShimmerStrength;
@@ -100,6 +106,19 @@ uniform float uWaterGlintSharpness;
 uniform float uWaterShoreFoamStrength;
 uniform float uWaterShoreWidth;
 uniform float uWaterReflectivity;
+uniform vec3 uWaterBaseColor;
+uniform float uWaterOpacity;
+uniform float uUseWaterTrail;
+uniform float uWaterTrailStrength;
+uniform float uWaterTrailHeadroom;
+uniform float uWaterTrailDebug;
+uniform vec3 uWaterTrailColor;
+uniform float uWaterGlitterStrength;
+uniform float uWaterGlitterDensity;
+uniform float uWaterGlitterSpeed;
+uniform float uWaterGlitterSize;
+uniform float uWaterGlitterSharpness;
+uniform float uWaterGlitterWakeSuppression;
 uniform vec3 uWaterTintColor;
 uniform float uWaterTintStrength;
 uniform vec3 uSkyColor;
@@ -108,49 +127,22 @@ float readHeight(vec2 uv) {
   return texture(uHeight, uv).r * uHeightScale;
 }
 
-vec2 applyParallax(vec2 baseUv, vec2 focalUv) {
-  if (uUseParallax < 0.5) return baseUv;
-
-  float hRaw = texture(uHeight, baseUv).r;
-  vec2 fromFocal = baseUv - focalUv;
-  float dist = length(fromFocal);
-  float edgeBoost = smoothstep(0.0, 0.9, dist);
-  float zoomNorm = max(0.35, uZoom);
-  float amount = uParallaxStrength * (0.35 + 0.65 * edgeBoost) * zoomNorm;
-
-  float centeredHeight = hRaw - 0.5;
-  vec2 continuousOffset = -fromFocal * (centeredHeight * amount * 0.48);
-
-  float bandSteps = max(2.0, uParallaxBands);
-  float bandNorm = floor(hRaw * bandSteps) / max(1.0, bandSteps - 1.0);
-  float centeredBand = bandNorm - 0.5;
-  vec2 bandOffset = -fromFocal * (centeredBand * amount * 0.70);
-
-  return baseUv + continuousOffset + bandOffset;
-}
-
-vec2 fitUvOffsetToBounds(vec2 baseUv, vec2 displacedUv) {
-  vec2 offset = displacedUv - baseUv;
-  float scale = 1.0;
-
-  if (offset.x > 0.0) {
-    scale = min(scale, (1.0 - baseUv.x) / max(0.000001, offset.x));
-  } else if (offset.x < 0.0) {
-    scale = min(scale, baseUv.x / max(0.000001, -offset.x));
-  }
-
-  if (offset.y > 0.0) {
-    scale = min(scale, (1.0 - baseUv.y) / max(0.000001, offset.y));
-  } else if (offset.y < 0.0) {
-    scale = min(scale, baseUv.y / max(0.000001, -offset.y));
-  }
-
-  scale = clamp(scale, 0.0, 1.0);
-  return baseUv + offset * scale;
-}
-
 float uvHash(vec2 p) {
   return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+}
+
+vec2 decodeImageFlowDir(vec4 sampleValue) {
+  vec2 pair = sampleValue.rg;
+  if (uWaterFlowChannelPair > 1.5) {
+    pair = sampleValue.rb;
+  } else if (uWaterFlowChannelPair > 0.5) {
+    pair = sampleValue.gb;
+  }
+  vec2 dir = (pair * 2.0 - 1.0) * uWaterFlowFlip;
+  float len = length(dir);
+  if (len <= 0.00002) return vec2(0.0);
+  float magnitude = mix(1.0, clamp(sampleValue.b, 0.0, 1.0), step(0.5, uWaterFlowUseMagnitude));
+  return (dir / len) * magnitude * max(0.0, uWaterFlowMapStrength);
 }
 
 vec2 detailAtlasUv(vec2 mapPixel, float scaleMeters, vec4 rect) {
@@ -239,6 +231,113 @@ float cloudMaskAtUv(vec2 uv, float timeSec, vec3 sunDir) {
   return clamp(maskA * 0.66 + maskB * 0.34, 0.0, 1.0);
 }
 
+vec2 waterTexelUv(vec2 uv) {
+  return clamp((floor(uv / uMapTexelSize) + vec2(0.5)) * uMapTexelSize, vec2(0.0), vec2(1.0));
+}
+
+float waterMaskAtUv(vec2 waterUv) {
+  return smoothstep(0.46, 0.54, texture(uWater, waterUv).r);
+}
+
+vec3 applyWaterMaterial(vec2 uv, vec3 base, float timeSec) {
+  vec2 waterUv = waterTexelUv(uv);
+  float waterRaw = texture(uWater, waterUv).r;
+  float waterMask = waterMaskAtUv(waterUv);
+  if (waterMask <= 0.0001) return base;
+
+  float waterAmount = waterMask * clamp(uWaterOpacity, 0.0, 1.0) * step(0.5, uUseWaterFx);
+  vec3 waterMaterial = mix(uWaterBaseColor, uWaterBaseColor * uWaterTintColor, clamp(uWaterTintStrength, 0.0, 1.0));
+
+  if (uUseWaterFx > 0.5) {
+    vec2 flowDir = normalize(uWaterFlowDir);
+    float sampledFlowStrength = 1.0;
+    if (uWaterFlowSource > 0.5) {
+      vec4 flowSample = texture(uFlowMap, waterUv);
+      vec2 mapDir = uWaterFlowSource > 1.5
+        ? decodeImageFlowDir(flowSample)
+        : (flowSample.xy * 2.0 - 1.0);
+      float mapLen = length(mapDir);
+      if (uWaterFlowSource > 1.5) {
+        sampledFlowStrength = clamp(mapLen, 0.0, 4.0);
+      }
+      vec2 localDir = vec2(0.0);
+      float localLen = 0.0;
+      if (uWaterFlowSource < 1.5) {
+        float hL = texture(uHeight, clamp(waterUv - vec2(uMapTexelSize.x, 0.0), vec2(0.0), vec2(1.0))).r;
+        float hR = texture(uHeight, clamp(waterUv + vec2(uMapTexelSize.x, 0.0), vec2(0.0), vec2(1.0))).r;
+        float hD = texture(uHeight, clamp(waterUv - vec2(0.0, uMapTexelSize.y), vec2(0.0), vec2(1.0))).r;
+        float hU = texture(uHeight, clamp(waterUv + vec2(0.0, uMapTexelSize.y), vec2(0.0), vec2(1.0))).r;
+        localLen = length(vec2(hR - hL, hU - hD));
+        if (localLen > 0.00002) {
+          localDir = normalize(-vec2(hR - hL, hU - hD));
+        }
+      }
+      if (uWaterFlowSource < 1.5 && mapLen > 0.00002 && localLen > 0.00002) {
+        flowDir = normalize(mix(mapDir / mapLen, localDir, clamp(uWaterLocalFlowMix, 0.0, 1.0)));
+      } else if (localLen > 0.00002) {
+        flowDir = localDir;
+      } else if (mapLen > 0.00002) {
+        flowDir = mapDir / mapLen;
+      } else {
+        flowDir = vec2(0.0, 1.0);
+      }
+      if (uWaterFlowInvertDownhill > 0.5) {
+        flowDir = -flowDir;
+      }
+    }
+
+    float flowScale = max(0.05, uWaterFlowScale);
+    float flowSpeed = max(0.0, uWaterFlowSpeed);
+    float downhillBoost = (uWaterFlowDownhill > 0.5) ? max(0.0, uWaterDownhillBoost) : 1.0;
+    float flowStrength = uWaterFlowStrength * downhillBoost * sampledFlowStrength;
+    vec2 flowOffset = flowDir * (timeSec * flowSpeed * 0.045);
+    vec2 sideDir = vec2(-flowDir.y, flowDir.x);
+    float nA = texture(uCloudNoiseTex, fract(waterUv * flowScale + flowOffset)).r;
+    float nB = texture(uCloudNoiseTex, fract(waterUv * (flowScale * 1.73) + sideDir * 0.29 - flowOffset * 1.31)).r;
+    float nC = texture(uCloudNoiseTex, fract(waterUv * (flowScale * 3.4) + flowOffset * 2.2)).r;
+    float shimmer = ((nA * 0.5 + nB * 0.35 + nC * 0.15) - 0.5) * 2.0;
+    float alongCoord = dot(waterUv * (flowScale * 2.1), flowDir);
+    float lineWave = 0.5 + 0.5 * sin(alongCoord * 48.0 + timeSec * flowSpeed * 6.0 + (nB - 0.5) * 5.0);
+    float proceduralLines = smoothstep(0.58, 0.96, lineWave * 0.7 + nA * 0.3);
+    vec2 streamlineNormal = vec2(-flowDir.y, flowDir.x);
+    float streamlineDensity = max(4.0, uWaterStreamlineDensity);
+    float streamlineSharpness = clamp(uWaterStreamlineSharpness, 0.0, 1.0);
+    float crossCoord = dot(waterUv * streamlineDensity, streamlineNormal);
+    float streamAlongCoord = dot(waterUv * streamlineDensity, flowDir);
+    float stripeCenterDist = abs(fract(crossCoord) - 0.5);
+    float stripeInner = mix(0.18, 0.035, streamlineSharpness);
+    float stripeOuter = mix(0.46, 0.12, streamlineSharpness);
+    float stripe = 1.0 - smoothstep(stripeInner, stripeOuter, stripeCenterDist);
+    float dashPhase = fract(streamAlongCoord * 0.35 - timeSec * flowSpeed * 0.9 + nA * 0.18);
+    float dash = smoothstep(0.08, 0.42, dashPhase) * (1.0 - smoothstep(0.74, 0.98, dashPhase));
+    float streamlineLines = stripe * mix(0.45, 1.0, dash);
+    float flowLines = mix(proceduralLines, streamlineLines, step(0.5, uWaterFlowRenderMode));
+    float flowVisibility = max(0.0, uWaterFlowVisibility);
+    vec3 flowTint = vec3(shimmer * uWaterShimmerStrength * 0.26 + flowLines * flowStrength * 0.22) * flowVisibility;
+
+    float hEdge = abs(texture(uWater, clamp(waterUv - vec2(uMapTexelSize.x * uWaterShoreWidth, 0.0), vec2(0.0), vec2(1.0))).r - waterRaw);
+    float vEdge = abs(texture(uWater, clamp(waterUv - vec2(0.0, uMapTexelSize.y * uWaterShoreWidth), vec2(0.0), vec2(1.0))).r - waterRaw);
+    float shoreline = smoothstep(0.02, 0.33, max(hEdge, vEdge)) * waterMask;
+    float foamPulse = 0.45 + 0.55 * (0.5 + 0.5 * sin(timeSec * (2.2 + flowSpeed * 1.6) + nC * 6.2831853));
+    float foam = shoreline * uWaterShoreFoamStrength * foamPulse;
+    waterMaterial = clamp(waterMaterial + flowTint, 0.0, 1.0);
+    waterMaterial = mix(waterMaterial, vec3(0.78, 0.86, 0.92), clamp(foam, 0.0, 1.0));
+  }
+
+  if (uUseWaterTrail > 0.5 && uWaterTrailStrength > 0.0001) {
+    vec4 trailSample = texture(uWaterTrailTex, waterUv);
+    vec2 wakeDir = trailSample.rg * 2.0 - 1.0;
+    float trailEnergy = trailSample.b * max(1.0, uWaterTrailHeadroom);
+    float trail = mix(clamp(trailEnergy, 0.0, 1.0), 1.0 - exp(-trailEnergy), step(1.01, uWaterTrailHeadroom));
+    float directionalLift = 0.75 + 0.25 * clamp(length(wakeDir), 0.0, 1.0);
+    float trailAmount = trail * uWaterTrailStrength * directionalLift;
+    waterAmount = max(waterAmount, waterMask * clamp(trailAmount, 0.0, 1.0));
+    waterMaterial = clamp(waterMaterial + uWaterTrailColor * trailAmount, 0.0, 1.0);
+  }
+
+  return mix(base, waterMaterial, waterAmount);
+}
+
 vec3 applyWaterFx(vec2 uv, vec3 baseLit, vec3 terrainN, float timeSec, float sunVisibility) {
   if (uUseWaterFx < 0.5) return baseLit;
   // Lock water evaluation to terrain texel centers so each map pixel gets one water result.
@@ -249,21 +348,31 @@ vec3 applyWaterFx(vec2 uv, vec3 baseLit, vec3 terrainN, float timeSec, float sun
   if (waterMask <= 0.0001) return baseLit;
 
   vec2 flowDir = normalize(uWaterFlowDir);
-  if (uWaterFlowDownhill > 0.5) {
-    vec2 mapDir = texture(uFlowMap, waterUv).xy * 2.0 - 1.0;
+  float sampledFlowStrength = 1.0;
+  if (uWaterFlowSource > 0.5) {
+    vec4 flowSample = texture(uFlowMap, waterUv);
+    vec2 mapDir = uWaterFlowSource > 1.5
+      ? decodeImageFlowDir(flowSample)
+      : (flowSample.xy * 2.0 - 1.0);
     float mapLen = length(mapDir);
-    float hL = texture(uHeight, clamp(waterUv - vec2(uMapTexelSize.x, 0.0), vec2(0.0), vec2(1.0))).r;
-    float hR = texture(uHeight, clamp(waterUv + vec2(uMapTexelSize.x, 0.0), vec2(0.0), vec2(1.0))).r;
-    float hD = texture(uHeight, clamp(waterUv - vec2(0.0, uMapTexelSize.y), vec2(0.0), vec2(1.0))).r;
-    float hU = texture(uHeight, clamp(waterUv + vec2(0.0, uMapTexelSize.y), vec2(0.0), vec2(1.0))).r;
+    if (uWaterFlowSource > 1.5) {
+      sampledFlowStrength = clamp(mapLen, 0.0, 4.0);
+    }
     vec2 localDir = vec2(0.0);
-    float localLen = length(vec2(hR - hL, hU - hD));
-    if (localLen > 0.00002) {
-      localDir = normalize(-vec2(hR - hL, hU - hD));
+    float localLen = 0.0;
+    if (uWaterFlowSource < 1.5) {
+      float hL = texture(uHeight, clamp(waterUv - vec2(uMapTexelSize.x, 0.0), vec2(0.0), vec2(1.0))).r;
+      float hR = texture(uHeight, clamp(waterUv + vec2(uMapTexelSize.x, 0.0), vec2(0.0), vec2(1.0))).r;
+      float hD = texture(uHeight, clamp(waterUv - vec2(0.0, uMapTexelSize.y), vec2(0.0), vec2(1.0))).r;
+      float hU = texture(uHeight, clamp(waterUv + vec2(0.0, uMapTexelSize.y), vec2(0.0), vec2(1.0))).r;
+      localLen = length(vec2(hR - hL, hU - hD));
+      if (localLen > 0.00002) {
+        localDir = normalize(-vec2(hR - hL, hU - hD));
+      }
     }
 
-    // In downhill mode, do not seed direction from the fixed-direction slider.
-    if (mapLen > 0.00002 && localLen > 0.00002) {
+    // Height-generated mode can blend with local downhill; image mode uses the authored vector map directly.
+    if (uWaterFlowSource < 1.5 && mapLen > 0.00002 && localLen > 0.00002) {
       flowDir = normalize(mix(mapDir / mapLen, localDir, clamp(uWaterLocalFlowMix, 0.0, 1.0)));
     } else if (localLen > 0.00002) {
       flowDir = localDir;
@@ -280,7 +389,7 @@ vec3 applyWaterFx(vec2 uv, vec3 baseLit, vec3 terrainN, float timeSec, float sun
   float flowScale = max(0.05, uWaterFlowScale);
   float flowSpeed = max(0.0, uWaterFlowSpeed);
   float downhillBoost = (uWaterFlowDownhill > 0.5) ? max(0.0, uWaterDownhillBoost) : 1.0;
-  float flowStrength = uWaterFlowStrength * downhillBoost;
+  float flowStrength = uWaterFlowStrength * downhillBoost * sampledFlowStrength;
   vec2 flowOffset = flowDir * (timeSec * flowSpeed * 0.045);
   vec2 sideDir = vec2(-flowDir.y, flowDir.x);
   float nA = texture(uCloudNoiseTex, fract(waterUv * flowScale + flowOffset)).r;
@@ -290,7 +399,21 @@ vec3 applyWaterFx(vec2 uv, vec3 baseLit, vec3 terrainN, float timeSec, float sun
 
   float alongCoord = dot(waterUv * (flowScale * 2.1), flowDir);
   float lineWave = 0.5 + 0.5 * sin(alongCoord * 48.0 + timeSec * flowSpeed * 6.0 + (nB - 0.5) * 5.0);
-  float flowLines = smoothstep(0.58, 0.96, lineWave * 0.7 + nA * 0.3);
+  float proceduralLines = smoothstep(0.58, 0.96, lineWave * 0.7 + nA * 0.3);
+  vec2 streamlineNormal = vec2(-flowDir.y, flowDir.x);
+  float streamlineDensity = max(4.0, uWaterStreamlineDensity);
+  float streamlineSharpness = clamp(uWaterStreamlineSharpness, 0.0, 1.0);
+  float crossCoord = dot(waterUv * streamlineDensity, streamlineNormal);
+  float streamAlongCoord = dot(waterUv * streamlineDensity, flowDir);
+  float stripeCenterDist = abs(fract(crossCoord) - 0.5);
+  float stripeInner = mix(0.18, 0.035, streamlineSharpness);
+  float stripeOuter = mix(0.46, 0.12, streamlineSharpness);
+  float stripe = 1.0 - smoothstep(stripeInner, stripeOuter, stripeCenterDist);
+  float dashPhase = fract(streamAlongCoord * 0.35 - timeSec * flowSpeed * 0.9 + nA * 0.18);
+  float dash = smoothstep(0.08, 0.42, dashPhase) * (1.0 - smoothstep(0.74, 0.98, dashPhase));
+  float streamlineLines = stripe * mix(0.45, 1.0, dash);
+  float flowLines = mix(proceduralLines, streamlineLines, step(0.5, uWaterFlowRenderMode));
+  float flowVisibility = max(0.0, uWaterFlowVisibility);
 
   vec3 waterN = normalize(vec3(
     terrainN.x + shimmer * flowStrength * 1.9,
@@ -317,18 +440,51 @@ vec3 applyWaterFx(vec2 uv, vec3 baseLit, vec3 terrainN, float timeSec, float sun
 
   float fakeFresnel = 0.10 + 0.55 * (1.0 - clamp(waterN.z, 0.0, 1.0));
   vec3 reflection = uSkyColor * uWaterReflectivity * (0.24 + 0.76 * fakeFresnel);
-  vec3 flowTint = vec3(shimmer * uWaterShimmerStrength * 0.55 + flowLines * flowStrength * 0.35);
   vec3 glintColor = mix(uSunColor, vec3(1.0), 0.35) * sunGlint + uMoonColor * moonGlint;
-  vec3 shoreFoamColor = vec3(0.78, 0.86, 0.92) * foam;
-
-  vec3 waterLit = baseLit;
-  waterLit = waterLit + flowTint + reflection + glintColor + shoreFoamColor;
-  waterLit = mix(waterLit, waterLit * uWaterTintColor, clamp(uWaterTintStrength, 0.0, 1.0));
+  float reflectionLight = clamp(uAmbient * 0.18 + max(0.0, uSunStrength) * sunVisibility * 0.55 + max(0.0, uMoonStrength) * 0.18, 0.0, 1.0);
+  vec3 waterSpecular = reflection * reflectionLight + glintColor;
   if (uWaterFlowDebug > 0.5) {
-    vec3 debugColor = vec3(0.5 + 0.5 * flowDir.x, 0.5 + 0.5 * flowDir.y, 0.22 + 0.78 * flowLines);
+    vec3 debugColor = vec3(0.5 + 0.5 * flowDir.x, 0.5 + 0.5 * flowDir.y, 0.22 + 0.78 * clamp(flowLines * flowVisibility, 0.0, 1.0));
     return mix(baseLit, debugColor, waterMask);
   }
-  return mix(baseLit, waterLit, waterMask);
+  return mix(baseLit, clamp(baseLit + waterSpecular, 0.0, 1.0), waterMask);
+}
+
+vec3 applyWaterParticleTrail(vec2 uv, vec3 lit, float localLight) {
+  if (uUseWaterTrail < 0.5 || (uWaterTrailDebug < 0.5 && uWaterGlitterStrength <= 0.0001)) return lit;
+  vec2 waterUv = (floor(uv / uMapTexelSize) + vec2(0.5)) * uMapTexelSize;
+  waterUv = clamp(waterUv, vec2(0.0), vec2(1.0));
+  float waterMask = smoothstep(0.46, 0.54, texture(uWater, waterUv).r);
+  if (waterMask <= 0.0001) return lit;
+  vec4 trailSample = texture(uWaterTrailTex, waterUv);
+  vec2 wakeDir = trailSample.rg * 2.0 - 1.0;
+  float trailEnergy = trailSample.b * max(1.0, uWaterTrailHeadroom);
+  float trail = mix(clamp(trailEnergy, 0.0, 1.0), 1.0 - exp(-trailEnergy), step(1.01, uWaterTrailHeadroom));
+  if (uWaterTrailDebug > 0.5) {
+    vec3 flowColor = vec3(trailSample.r, trailSample.g, 0.22);
+    vec3 debugColor = mix(flowColor, vec3(1.0, 0.15, 0.02), clamp(trail * 3.0, 0.0, 1.0));
+    return mix(lit, debugColor, waterMask);
+  }
+  vec3 result = lit;
+  if (uWaterGlitterStrength > 0.0001) {
+    vec2 mapPixel = waterUv / uMapTexelSize;
+    float sizeT = clamp((uWaterGlitterSize - 1.0) / 11.0, 0.0, 1.0);
+    float noiseScale = mix(0.92, 0.055, sizeT);
+    float time = max(0.0, uTimeSec) * uWaterGlitterSpeed;
+    vec2 glitterUv = mapPixel * noiseScale;
+    float grainA = texture(uCloudNoiseTex, fract(glitterUv + vec2(time * 0.071, -time * 0.043))).r;
+    float grainB = texture(uCloudNoiseTex, fract(glitterUv * 1.93 + vec2(-time * 0.029, time * 0.061) + vec2(0.37, 0.19))).r;
+    float flicker = texture(uCloudNoiseTex, fract(glitterUv * 0.41 + vec2(time * 0.113, time * 0.087))).r;
+    float density = clamp(uWaterGlitterDensity, 0.001, 0.25);
+    float threshold = mix(0.985, 0.62, sqrt(density / 0.25));
+    float edge = mix(0.16, 0.012, clamp(uWaterGlitterSharpness / 24.0, 0.0, 1.0));
+    float sparkleNoise = max(grainA, grainB * 0.9) * mix(0.45, 1.25, flicker);
+    float spark = smoothstep(threshold, min(1.0, threshold + edge), sparkleNoise);
+    spark *= pow(clamp(sparkleNoise, 0.0, 1.0), max(1.0, uWaterGlitterSharpness * 0.35));
+    float wakeMask = 1.0 - clamp(trail * uWaterGlitterWakeSuppression, 0.0, 1.0);
+    result += vec3(0.86, 0.96, 1.0) * (spark * uWaterGlitterStrength * wakeMask * clamp(localLight, 0.0, 1.25));
+  }
+  return mix(lit, clamp(result, 0.0, 1.0), waterMask);
 }
 
 vec3 computeVolumetricScattering(vec2 uv, float timeSec, float sunVisibility) {
@@ -380,14 +536,15 @@ void main() {
     return;
   }
 
-  vec2 focalUv = vec2(uPanWorld.x / uMapAspect + 0.5, uPanWorld.y + 0.5);
-  vec2 uv = fitUvOffsetToBounds(baseUv, applyParallax(baseUv, focalUv));
+  vec2 uv = baseUv;
 
   vec3 base = texture(uSplat, uv).rgb;
   vec3 n = texture(uNormals, uv).xyz * 2.0 - 1.0;
   n = normalize(n);
   vec2 mapPixel = uv / uMapTexelSize;
   applyZoomDetail(base, uv, mapPixel);
+  float waterTimeSec = max(0.0, uWaterTimeSec);
+  base = applyWaterMaterial(uv, base, waterTimeSec);
 
   float sunDiffuse = max(dot(n, uSunDir), 0.0);
   float moonDiffuse = max(dot(n, uMoonDir), 0.0);
@@ -433,7 +590,6 @@ void main() {
   }
   vec3 lit = clamp(ambientLit + sunLit + moonLit + pointLit + cursorLit, 0.0, 1.0);
   float cloudTimeSec = max(0.0, uCloudTimeSec);
-  float waterTimeSec = max(0.0, uWaterTimeSec);
   float sunVisibility = smoothstep(-0.04, 0.15, uSunDir.z);
 
   if (sunVisibility > 0.0001) {
@@ -443,6 +599,8 @@ void main() {
   }
 
   lit = applyWaterFx(uv, lit, n, waterTimeSec, sunVisibility);
+  float localLight = max(lit.r, max(lit.g, lit.b));
+  lit = applyWaterParticleTrail(uv, lit, localLight);
 
   float fogAmount = fogAmountAtUv(uv);
   float fogAlpha = fogAlphaFromAmount(fogAmount);

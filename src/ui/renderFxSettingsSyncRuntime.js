@@ -1,10 +1,5 @@
 export function createRenderFxSettingsSyncRuntime(deps) {
   return {
-    syncParallaxUi: () => {
-      deps.updateParallaxStrengthLabel();
-      deps.updateParallaxBandsLabel();
-      deps.updateParallaxUi();
-    },
     syncLightingUi: () => {
       deps.updateShadowBlurLabel();
       deps.updateVolumetricLabels();

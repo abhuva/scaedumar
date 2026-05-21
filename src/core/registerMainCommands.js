@@ -107,14 +107,6 @@ export function registerMainCommands(commandBus, deps) {
       };
     }
 
-    function getParallaxSettings() {
-      const current = deps.serializeParallaxSettings();
-      return {
-        ...current,
-        ...(patch || {}),
-      };
-    }
-
     function getCloudSettings() {
       const current = deps.serializeCloudSettings();
       return {
@@ -129,17 +121,6 @@ export function registerMainCommands(commandBus, deps) {
         mergePlainObject(current, patch || {}),
         deps.defaultDetailSettings,
       );
-    }
-
-    if (section === "parallax") {
-      const nextParallax = getParallaxSettings();
-      updateSimulationSection("parallax", {
-        useParallax: Boolean(nextParallax.useParallax),
-        parallaxStrength: deps.clamp(Number(nextParallax.parallaxStrength), 0, 1),
-        parallaxBands: clampRound(nextParallax.parallaxBands, 2, 256),
-      });
-      deps.syncRenderFxParallaxUi();
-      return;
     }
 
     if (section === "lighting") {
@@ -216,10 +197,19 @@ export function registerMainCommands(commandBus, deps) {
         ...currentWater,
         ...(patch || {}),
       };
+      const flowSource = nextWater.waterFlowSource === "fixed" || nextWater.waterFlowSource === "height" || nextWater.waterFlowSource === "image"
+        ? nextWater.waterFlowSource
+        : (nextWater.waterFlowDownhill === false ? "fixed" : "height");
       updateSimulationSection("waterFx", {
         ...nextWater,
         useWaterFx: Boolean(nextWater.useWaterFx),
-        waterFlowDownhill: Boolean(nextWater.waterFlowDownhill),
+        waterFlowSource: flowSource,
+        waterFlowRenderMode: nextWater.waterFlowRenderMode === "procedural" ? "procedural" : "streamlines",
+        waterFlowDownhill: flowSource !== "fixed",
+        waterFlowChannelPair: nextWater.waterFlowChannelPair === "gb" || nextWater.waterFlowChannelPair === "rb" ? nextWater.waterFlowChannelPair : "rg",
+        waterFlowFlipX: Boolean(nextWater.waterFlowFlipX),
+        waterFlowFlipY: Boolean(nextWater.waterFlowFlipY),
+        waterFlowUseMagnitude: Boolean(nextWater.waterFlowUseMagnitude),
         waterFlowInvertDownhill: Boolean(nextWater.waterFlowInvertDownhill),
         waterFlowDebug: Boolean(nextWater.waterFlowDebug),
         waterFlowDirectionDeg: clampRound(nextWater.waterFlowDirectionDeg, 0, 360),
@@ -232,6 +222,10 @@ export function registerMainCommands(commandBus, deps) {
         waterFlowWeight2: deps.clamp(Number(nextWater.waterFlowWeight2), 0, 1),
         waterFlowWeight3: deps.clamp(Number(nextWater.waterFlowWeight3), 0, 1),
         waterFlowStrength: deps.clamp(Number(nextWater.waterFlowStrength), 0, 0.15),
+        waterFlowMapStrength: deps.clamp(Number(nextWater.waterFlowMapStrength), 0, 4),
+        waterFlowVisibility: deps.clamp(Number(nextWater.waterFlowVisibility), 0, 4),
+        waterStreamlineDensity: deps.clamp(Number(nextWater.waterStreamlineDensity), 4, 80),
+        waterStreamlineSharpness: deps.clamp(Number(nextWater.waterStreamlineSharpness), 0, 1),
         waterFlowSpeed: deps.clamp(Number(nextWater.waterFlowSpeed), 0, 2.5),
         waterFlowScale: deps.clamp(Number(nextWater.waterFlowScale), 0.5, 14),
         waterShimmerStrength: deps.clamp(Number(nextWater.waterShimmerStrength), 0, 0.2),
@@ -240,6 +234,8 @@ export function registerMainCommands(commandBus, deps) {
         waterShoreFoamStrength: deps.clamp(Number(nextWater.waterShoreFoamStrength), 0, 0.5),
         waterShoreWidth: deps.clamp(Number(nextWater.waterShoreWidth), 0.4, 6),
         waterReflectivity: deps.clamp(Number(nextWater.waterReflectivity), 0, 1),
+        waterBaseColor: normalizeHexColor(nextWater.waterBaseColor, currentWater.waterBaseColor || "#245f73"),
+        waterOpacity: deps.clamp(Number(nextWater.waterOpacity), 0, 1),
         waterTintColor: normalizeHexColor(nextWater.waterTintColor, currentWater.waterTintColor),
         waterTintStrength: deps.clamp(Number(nextWater.waterTintStrength), 0, 1),
       });

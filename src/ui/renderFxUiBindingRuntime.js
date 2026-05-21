@@ -1,6 +1,4 @@
 import {
-  updateParallaxStrengthLabel,
-  updateParallaxBandsLabel,
   updateShadowBlurLabel,
   updateSimTickLabel,
   updateFogAlphaLabels,
@@ -12,7 +10,6 @@ import {
   updateVolumetricUi,
   updateCloudLabels,
   updateWaterLabels,
-  updateParallaxUi,
   updateFogUi,
   updateCloudUi,
   updateWaterUi,
@@ -20,16 +17,6 @@ import {
 
 export function createRenderFxUiBindingRuntime(deps) {
   return {
-    updateParallaxStrengthLabel: () => updateParallaxStrengthLabel({
-      clamp: deps.clamp,
-      serializeParallaxSettings: deps.serializeParallaxSettings,
-      parallaxStrengthValue: deps.parallaxStrengthValue,
-    }),
-    updateParallaxBandsLabel: () => updateParallaxBandsLabel({
-      clamp: deps.clamp,
-      serializeParallaxSettings: deps.serializeParallaxSettings,
-      parallaxBandsValue: deps.parallaxBandsValue,
-    }),
     updateShadowBlurLabel: () => updateShadowBlurLabel({
       clamp: deps.clamp,
       serializeLightingSettings: deps.serializeLightingSettings,
@@ -108,6 +95,10 @@ export function createRenderFxUiBindingRuntime(deps) {
       waterFlowWeight2Value: deps.waterFlowWeight2Value,
       waterFlowWeight3Value: deps.waterFlowWeight3Value,
       waterFlowStrengthValue: deps.waterFlowStrengthValue,
+      waterFlowMapStrengthValue: deps.waterFlowMapStrengthValue,
+      waterFlowVisibilityValue: deps.waterFlowVisibilityValue,
+      waterStreamlineDensityValue: deps.waterStreamlineDensityValue,
+      waterStreamlineSharpnessValue: deps.waterStreamlineSharpnessValue,
       waterFlowSpeedValue: deps.waterFlowSpeedValue,
       waterFlowScaleValue: deps.waterFlowScaleValue,
       waterShimmerStrengthValue: deps.waterShimmerStrengthValue,
@@ -116,11 +107,8 @@ export function createRenderFxUiBindingRuntime(deps) {
       waterShoreFoamStrengthValue: deps.waterShoreFoamStrengthValue,
       waterShoreWidthValue: deps.waterShoreWidthValue,
       waterReflectivityValue: deps.waterReflectivityValue,
+      waterOpacityValue: deps.waterOpacityValue,
       waterTintStrengthValue: deps.waterTintStrengthValue,
-    }),
-    updateParallaxUi: () => updateParallaxUi({
-      parallaxStrengthInput: deps.parallaxStrengthInput,
-      parallaxBandsInput: deps.parallaxBandsInput,
     }),
     updateFogUi: () => updateFogUi({
       fogColorInput: deps.fogColorInput,
@@ -141,7 +129,12 @@ export function createRenderFxUiBindingRuntime(deps) {
     }),
     updateWaterUi: () => updateWaterUi({
       serializeWaterSettings: deps.serializeWaterSettings,
-      waterFlowDownhillToggle: deps.waterFlowDownhillToggle,
+      waterFlowSourceInput: deps.waterFlowSourceInput,
+      waterFlowRenderModeInput: deps.waterFlowRenderModeInput,
+      waterFlowChannelPairInput: deps.waterFlowChannelPairInput,
+      waterFlowFlipXToggle: deps.waterFlowFlipXToggle,
+      waterFlowFlipYToggle: deps.waterFlowFlipYToggle,
+      waterFlowUseMagnitudeToggle: deps.waterFlowUseMagnitudeToggle,
       waterFlowInvertDownhillToggle: deps.waterFlowInvertDownhillToggle,
       waterFlowDebugToggle: deps.waterFlowDebugToggle,
       waterFlowDirectionInput: deps.waterFlowDirectionInput,
@@ -154,6 +147,10 @@ export function createRenderFxUiBindingRuntime(deps) {
       waterFlowWeight2Input: deps.waterFlowWeight2Input,
       waterFlowWeight3Input: deps.waterFlowWeight3Input,
       waterFlowStrengthInput: deps.waterFlowStrengthInput,
+      waterFlowMapStrengthInput: deps.waterFlowMapStrengthInput,
+      waterFlowVisibilityInput: deps.waterFlowVisibilityInput,
+      waterStreamlineDensityInput: deps.waterStreamlineDensityInput,
+      waterStreamlineSharpnessInput: deps.waterStreamlineSharpnessInput,
       waterFlowSpeedInput: deps.waterFlowSpeedInput,
       waterFlowScaleInput: deps.waterFlowScaleInput,
       waterShimmerStrengthInput: deps.waterShimmerStrengthInput,
@@ -162,6 +159,8 @@ export function createRenderFxUiBindingRuntime(deps) {
       waterShoreFoamStrengthInput: deps.waterShoreFoamStrengthInput,
       waterShoreWidthInput: deps.waterShoreWidthInput,
       waterReflectivityInput: deps.waterReflectivityInput,
+      waterBaseColorInput: deps.waterBaseColorInput,
+      waterOpacityInput: deps.waterOpacityInput,
       waterTintColorInput: deps.waterTintColorInput,
       waterTintStrengthInput: deps.waterTintStrengthInput,
     }),

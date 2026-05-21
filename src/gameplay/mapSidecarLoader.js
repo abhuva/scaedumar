@@ -29,11 +29,11 @@ export function createMapSidecarLoader(deps) {
     return {
       pointLights: false,
       lighting: false,
-      parallax: false,
       interaction: false,
       fog: false,
       clouds: false,
       waterFx: false,
+      waterTrails: false,
       detail: false,
       camera: false,
       audio: false,
@@ -84,12 +84,6 @@ export function createMapSidecarLoader(deps) {
         onErrorLabel: `Failed to load lighting.json from ${folder}`,
       },
       {
-        key: "parallax",
-        loadJson: loadOptionalUrlJson(jsonPath("parallax.json")),
-        applyFn: (rawData) => deps.applyParallaxSettings(rawData),
-        onErrorLabel: `Failed to load parallax.json from ${folder}`,
-      },
-      {
         key: "interaction",
         loadJson: loadOptionalUrlJson(jsonPath("interaction.json")),
         applyFn: (rawData) => deps.applyInteractionSettings(rawData),
@@ -112,6 +106,13 @@ export function createMapSidecarLoader(deps) {
         loadJson: loadOptionalUrlJson(jsonPath("waterfx.json")),
         applyFn: (rawData) => deps.applyWaterSettings(rawData),
         onErrorLabel: `Failed to load waterfx.json from ${folder}`,
+      },
+      {
+        key: "waterTrails",
+        loadJson: loadOptionalUrlJson(jsonPath("watertrails.json")),
+        applyFn: (rawData) => deps.applyWaterTrailSettings(rawData),
+        onAbsentOrFailed: () => deps.applyWaterTrailSettings(deps.defaultWaterTrailSettings),
+        onErrorLabel: `Failed to load watertrails.json from ${folder}`,
       },
       {
         key: "detail",
@@ -174,12 +175,6 @@ export function createMapSidecarLoader(deps) {
         onErrorLabel: "Failed to parse lighting.json from selected folder",
       },
       {
-        key: "parallax",
-        loadJson: loadOptionalFileJson("parallax.json"),
-        applyFn: (rawData) => deps.applyParallaxSettings(rawData),
-        onErrorLabel: "Failed to parse parallax.json from selected folder",
-      },
-      {
         key: "interaction",
         loadJson: loadOptionalFileJson("interaction.json"),
         applyFn: (rawData) => deps.applyInteractionSettings(rawData),
@@ -202,6 +197,13 @@ export function createMapSidecarLoader(deps) {
         loadJson: loadOptionalFileJson("waterfx.json"),
         applyFn: (rawData) => deps.applyWaterSettings(rawData),
         onErrorLabel: "Failed to parse waterfx.json from selected folder",
+      },
+      {
+        key: "waterTrails",
+        loadJson: loadOptionalFileJson("watertrails.json"),
+        applyFn: (rawData) => deps.applyWaterTrailSettings(rawData),
+        onAbsentOrFailed: () => deps.applyWaterTrailSettings(deps.defaultWaterTrailSettings),
+        onErrorLabel: "Failed to parse watertrails.json from selected folder",
       },
       {
         key: "detail",

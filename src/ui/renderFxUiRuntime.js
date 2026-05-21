@@ -1,13 +1,3 @@
-export function updateParallaxStrengthLabel(deps) {
-  const value = deps.clamp(Number(deps.serializeParallaxSettings().parallaxStrength), 0, 1);
-  deps.parallaxStrengthValue.textContent = value.toFixed(2);
-}
-
-export function updateParallaxBandsLabel(deps) {
-  const value = Math.round(deps.clamp(Number(deps.serializeParallaxSettings().parallaxBands), 2, 256));
-  deps.parallaxBandsValue.textContent = String(value);
-}
-
 export function updateShadowBlurLabel(deps) {
   const value = deps.clamp(Number(deps.serializeLightingSettings().shadowBlur), 0, 3);
   deps.shadowBlurValue.textContent = `${value.toFixed(2)} px`;
@@ -91,6 +81,10 @@ export function updateWaterLabels(deps) {
   deps.waterFlowWeight2Value.textContent = deps.clamp(Number(water.waterFlowWeight2), 0, 1).toFixed(2);
   deps.waterFlowWeight3Value.textContent = deps.clamp(Number(water.waterFlowWeight3), 0, 1).toFixed(2);
   deps.waterFlowStrengthValue.textContent = deps.clamp(Number(water.waterFlowStrength), 0, 0.15).toFixed(3);
+  deps.waterFlowMapStrengthValue.textContent = deps.clamp(Number(water.waterFlowMapStrength), 0, 4).toFixed(2);
+  deps.waterFlowVisibilityValue.textContent = deps.clamp(Number(water.waterFlowVisibility), 0, 4).toFixed(2);
+  deps.waterStreamlineDensityValue.textContent = String(Math.round(deps.clamp(Number(water.waterStreamlineDensity), 4, 80)));
+  deps.waterStreamlineSharpnessValue.textContent = deps.clamp(Number(water.waterStreamlineSharpness), 0, 1).toFixed(2);
   deps.waterFlowSpeedValue.textContent = deps.clamp(Number(water.waterFlowSpeed), 0, 2.5).toFixed(2);
   deps.waterFlowScaleValue.textContent = deps.clamp(Number(water.waterFlowScale), 0.5, 14).toFixed(2);
   deps.waterShimmerStrengthValue.textContent = deps.clamp(Number(water.waterShimmerStrength), 0, 0.2).toFixed(3);
@@ -99,12 +93,8 @@ export function updateWaterLabels(deps) {
   deps.waterShoreFoamStrengthValue.textContent = deps.clamp(Number(water.waterShoreFoamStrength), 0, 0.5).toFixed(2);
   deps.waterShoreWidthValue.textContent = `${deps.clamp(Number(water.waterShoreWidth), 0.4, 6).toFixed(1)} px`;
   deps.waterReflectivityValue.textContent = deps.clamp(Number(water.waterReflectivity), 0, 1).toFixed(2);
+  deps.waterOpacityValue.textContent = deps.clamp(Number(water.waterOpacity), 0, 1).toFixed(2);
   deps.waterTintStrengthValue.textContent = deps.clamp(Number(water.waterTintStrength), 0, 1).toFixed(2);
-}
-
-export function updateParallaxUi(deps) {
-  deps.parallaxStrengthInput.disabled = false;
-  deps.parallaxBandsInput.disabled = false;
 }
 
 export function updateFogUi(deps) {
@@ -127,7 +117,12 @@ export function updateCloudUi(deps) {
 }
 
 export function updateWaterUi(deps) {
-  deps.waterFlowDownhillToggle.disabled = false;
+  deps.waterFlowSourceInput.disabled = false;
+  deps.waterFlowRenderModeInput.disabled = false;
+  deps.waterFlowChannelPairInput.disabled = false;
+  deps.waterFlowFlipXToggle.disabled = false;
+  deps.waterFlowFlipYToggle.disabled = false;
+  deps.waterFlowUseMagnitudeToggle.disabled = false;
   deps.waterFlowInvertDownhillToggle.disabled = false;
   deps.waterFlowDebugToggle.disabled = false;
   deps.waterFlowDirectionInput.disabled = false;
@@ -140,6 +135,10 @@ export function updateWaterUi(deps) {
   deps.waterFlowWeight2Input.disabled = false;
   deps.waterFlowWeight3Input.disabled = false;
   deps.waterFlowStrengthInput.disabled = false;
+  deps.waterFlowMapStrengthInput.disabled = false;
+  deps.waterFlowVisibilityInput.disabled = false;
+  deps.waterStreamlineDensityInput.disabled = false;
+  deps.waterStreamlineSharpnessInput.disabled = false;
   deps.waterFlowSpeedInput.disabled = false;
   deps.waterFlowScaleInput.disabled = false;
   deps.waterShimmerStrengthInput.disabled = false;
@@ -148,6 +147,8 @@ export function updateWaterUi(deps) {
   deps.waterShoreFoamStrengthInput.disabled = false;
   deps.waterShoreWidthInput.disabled = false;
   deps.waterReflectivityInput.disabled = false;
+  deps.waterBaseColorInput.disabled = false;
+  deps.waterOpacityInput.disabled = false;
   deps.waterTintColorInput.disabled = false;
   deps.waterTintStrengthInput.disabled = false;
 }

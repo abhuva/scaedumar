@@ -25,7 +25,6 @@ export function createSwarmIntegrationAssemblyRuntime(deps) {
       syncSwarmStateToStore: deps.syncSwarmStateToStore,
       defaultLightingSettings: deps.defaultLightingSettings,
       defaultFogSettings: deps.defaultFogSettings,
-      defaultParallaxSettings: deps.defaultParallaxSettings,
       defaultCloudSettings: deps.defaultCloudSettings,
       defaultWaterSettings: deps.defaultWaterSettings,
       defaultDetailSettings: deps.defaultDetailSettings,

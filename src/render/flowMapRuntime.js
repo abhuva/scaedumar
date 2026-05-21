@@ -8,9 +8,33 @@ export function createFlowMapRuntime(deps) {
     clamp,
     getWaterSettings,
   } = deps;
+  let imageFlowMap = null;
+
+  function uploadFlowMapImage(image) {
+    gl.bindTexture(gl.TEXTURE_2D, flowMapTex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+  }
+
+  function setFlowMapImage(image) {
+    imageFlowMap = image || null;
+  }
 
   function rebuildFlowMapTexture() {
     const waterSettings = getWaterSettings();
+    const flowSource = waterSettings.waterFlowSource === "image"
+      ? "image"
+      : (waterSettings.waterFlowSource === "fixed" ? "fixed" : "height");
+    if (flowSource === "image") {
+      if (imageFlowMap) {
+        uploadFlowMapImage(imageFlowMap);
+      } else {
+        console.warn("Water flow source is image, but no flow.png image is loaded for the current map.");
+      }
+      return;
+    }
+    if (flowSource === "fixed") {
+      return;
+    }
     rebuildFlowMapTexturePrecompute({
       gl,
       flowMapTex,
@@ -30,5 +54,6 @@ export function createFlowMapRuntime(deps) {
 
   return {
     rebuildFlowMapTexture,
+    setFlowMapImage,
   };
 }

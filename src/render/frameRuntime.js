@@ -50,10 +50,8 @@ export function createFrameRuntime(deps) {
       getMapAspect: deps.getMapAspect,
       cursorLightState: deps.cursorLightState,
       lightingSettings: simulationKnobs.lighting || null,
-      parallaxSettings: simulationKnobs.parallax || null,
       detailState: simulationKnobs.detail || null,
       defaultLightingSettings: deps.getSettingsDefaults("lighting", deps.defaultLightingSettings),
-      defaultParallaxSettings: deps.getSettingsDefaults("parallax", deps.defaultParallaxSettings),
       defaultDetailSettings: deps.getSettingsDefaults("detail", deps.defaultDetailSettings),
       defaultFogSettings: deps.getSettingsDefaults("fog", deps.defaultFogSettings),
       defaultCloudSettings: deps.getSettingsDefaults("clouds", deps.defaultCloudSettings),
@@ -62,6 +60,9 @@ export function createFrameRuntime(deps) {
       fogState: systemState.fog || null,
       cloudState: systemState.clouds || null,
       waterFxState: systemState.waterFx || null,
+      waterTrailState: typeof deps.getWaterParticleTrailUniformState === "function"
+        ? deps.getWaterParticleTrailUniformState()
+        : null,
       weatherState: simulationWeather,
       cloudTimeSec: smoothCloudTimeSec,
       waterTimeSec: routedTime.water.timeSec,
@@ -75,6 +76,11 @@ export function createFrameRuntime(deps) {
       deps.updateGameTimeDiorama(deps.cycleState.hour, cycleSpeed);
     }
     lap("uiMs");
+
+    if (typeof deps.updateWaterParticleTrails === "function") {
+      deps.updateWaterParticleTrails(dtSec);
+    }
+    lap("waterTrailMs");
 
     deps.updateWeatherFieldMeta({
       renderResources: deps.renderResources,

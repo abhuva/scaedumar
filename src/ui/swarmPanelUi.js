@@ -117,7 +117,7 @@ export function createSwarmPanelUi(deps) {
     const swarmEnabled = Boolean(settings.useAgentSwarm);
     const cursorMode = settings.cursorMode;
     const cursorControlsEnabled = swarmEnabled && cursorMode !== "none";
-    const followZoomControlsEnabled = swarmEnabled && Boolean(settings.followZoomBySpeed);
+    const followZoomControlsEnabled = swarmEnabled && Boolean(settings.followZoomBySpeed || swarmFollowZoomToggle.checked);
     syncSwarmStatsPanelVisibility();
     swarmShowTerrainToggle.disabled = !swarmEnabled;
     swarmLitModeToggle.disabled = !swarmEnabled;

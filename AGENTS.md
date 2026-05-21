@@ -78,13 +78,14 @@ Build a self-contained prototype for top-down terrain rendering from Gaea-export
 - `assets/<mapName>/height.png`: grayscale height map (required in current prototype)
 - `assets/<mapName>/slope.png`: grayscale slope cost map for movement/pathfinding
 - `assets/<mapName>/water.png`: grayscale/water influence map (required in current prototype)
+- `assets/<mapName>/flow.png`: optional authored water flowmap (`R/G = signed XY direction by default`, neutral `128/128`)
 - `assets/<mapName>/pointlights.json`: optional saved point-light set for that map
 - `assets/<mapName>/lighting.json`: optional saved lighting controls (`heightScale`, `shadowStrength`, `shadowBlur`, `useShadows`, `ambient`, `diffuse`, volumetric scattering)
-- `assets/<mapName>/parallax.json`: optional saved parallax controls (`useParallax`, `parallaxStrength`, `parallaxBands`)
 - `assets/<mapName>/interaction.json`: optional saved interaction/pathfinding + cursor-light controls
 - `assets/<mapName>/fog.json`: optional saved fog controls
 - `assets/<mapName>/clouds.json`: optional saved cloud-shadow controls
 - `assets/<mapName>/waterfx.json`: optional saved water animation/reflectance controls
+- `assets/<mapName>/watertrails.json`: optional saved water particle trail controls
 - `assets/<mapName>/detail.json`: optional saved zoom-detail material controls; points at an RGBA material splat map and global micro-detail source sprites default to `assets/detail/default/*`
 - `assets/<mapName>/camera.json`: optional saved camera controls (`zoomMin`, `zoomMax`)
 - `assets/<mapName>/audio.json`: optional saved Audio Lab settings (spectrogram/scribble/playback controls)
@@ -124,7 +125,6 @@ Build a self-contained prototype for top-down terrain rendering from Gaea-export
   - Cursor position is used as a single real-time point light
   - Rendered directly in shader (no per-move bake)
   - Uses linear falloff and normal interaction
-- Optional parallax illusion from height map (continuous + banded)
 - Core zoom-detail material layer:
   - optional `detail.json` uses version `3` and tunes RGBA splat-driven dirt/rock/grass/snow micro color detail
   - default is enabled; missing individual micro sprites use neutral gray slots, and a missing material splat falls back to the dirt slot
@@ -139,13 +139,25 @@ Build a self-contained prototype for top-down terrain rendering from Gaea-export
 - Optional cloud-shadow illusion from generated seamless noise texture (two scrolling layers + optional sun-direction projection)
 - Optional water FX (masked by `water.png`):
   - animated shimmer + flow-line cues
-  - downhill flow uses a precomputed multi-scale height-derived flow map (broader trend) mixed with optional local 1-texel downhill component
-  - precompute radii/weights are user-tunable; optional debug overlay can display computed water flow direction
-  - sun/moon glints, shoreline foam band, and sky-tint reflection
+  - flow source can be fixed direction, height-generated, or authored `flow.png`
+  - flow rendering can use older procedural modulation or authored-vector streamlines with density/sharpness controls
+  - height-generated flow uses a precomputed multi-scale height-derived flow map (broader trend) mixed with optional local 1-texel downhill component
+  - authored `flow.png` defaults to `R/G` signed direction; decode controls can switch channel pair, flip X/Y, and use B as magnitude; optional debug overlay can display sampled flow direction
+  - precompute radii/weights are user-tunable for height-generated mode
+  - water opacity blends an independent base water color over underlying terrain before scene lighting, so water receives ambient, sun/moon, shadows, point lights, cursor light, and cloud shade with terrain
+  - flow-line color, shoreline foam, and particle-trail tint apply as pre-lighting material edits; sun/moon glints, sky-tint reflection, and glitter remain post-lighting specular-style terms gated by scene light
+- Optional water particle trails (`WT` topic, separate from Water FX):
+  - CPU particles spawn on `water.png`, sample authored `flow.png`, and write a fading trail texture
+  - the terrain shader samples that trail texture as a water-only tint/brightness overlay
+  - wake simulation can run at full/half/quarter/eighth map resolution, defaults to recommended `1/2`, and precomputes water/flow fields at that active resolution
+  - wake propagation/decay/current-drag update runs as a GPU ping-pong pass; CPU particles only upload the per-frame deposit texture
+  - trail headroom compresses deposits before RGBA8 wake storage and expands them in the terrain shader to retain more overlap brightness range
+  - shader-only glitter can add animated water sparkle, optionally suppressed by strong wake/trail pixels
+  - `Save All` persists controls to map-local `watertrails.json`; missing sidecars reset WT to defaults on map load
 - Optional volumetric scattering in the main lighting pass:
   - samples fog density + cloud sun-occlusion along projected sun direction
   - exposes `strength`, `density`, `anisotropy`, `ray length`, `sample count`
-- Map-level `Save All` writes point lights + lighting + parallax + interaction + fog + clouds + waterfx + swarm + npc JSON alongside map textures
+- Map-level `Save All` writes point lights + lighting + interaction + fog + clouds + waterfx + swarm + npc JSON alongside map textures
 
 ## Gameplay Prototype (Current)
 

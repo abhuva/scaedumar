@@ -85,6 +85,7 @@ export function createMapSupportRuntime(deps) {
       getHeightTex,
       getWaterTex,
       uploadImageToTexture: deps.uploadImageToTexture,
+      setFlowMapImage: deps.setFlowMapImage,
       applyMapSizeChangeIfNeeded: deps.applyMapSizeChangeIfNeeded,
       resetCamera: deps.resetCamera,
       extractImageData: deps.extractImageData,
@@ -95,6 +96,7 @@ export function createMapSupportRuntime(deps) {
       getHeightImageData: deps.getHeightImageData,
       setNormalsImageData: deps.setNormalsImageData,
       setHeightImageData: deps.setHeightImageData,
+      setFlowImageData: deps.setFlowImageData,
       setSlopeImageData: deps.setSlopeImageData,
       setWaterImageData: deps.setWaterImageData,
     });
@@ -136,8 +138,8 @@ export function createMapSupportRuntime(deps) {
     toAbsoluteFileUrl,
     pickMapFolderViaTauri: () => tauriRuntimeHelpers.pickMapFolderViaTauri(),
     validateMapFolderViaTauri: (folderPath) => tauriRuntimeHelpers.validateMapFolderViaTauri(folderPath),
-    applyMapImages: (splatImage, normalsImage, heightImage, slopeImage, waterImage) =>
-      getMapImageRuntime().applyMapImages(splatImage, normalsImage, heightImage, slopeImage, waterImage),
+    applyMapImages: (splatImage, normalsImage, heightImage, slopeImage, waterImage, flowImage = null) =>
+      getMapImageRuntime().applyMapImages(splatImage, normalsImage, heightImage, slopeImage, waterImage, flowImage),
     syncPointLightWorkerMapData: () => getMapImageRuntime().syncPointLightWorkerMapData(),
     getFileFromFolderSelection: (files, fileName) => selectFileFromFolder(files, fileName),
     tryLoadJsonFromUrl: (path) => mapIoHelpers.tryLoadJsonFromUrl(path),
