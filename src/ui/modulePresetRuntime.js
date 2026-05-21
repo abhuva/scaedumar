@@ -219,14 +219,21 @@ export function createModulePresetRuntime(deps) {
       label,
       settings: deps.serializeSettings(),
     };
-    upsertIndexEntry(entry);
+    const indexWithEntry = {
+      ...state.index,
+      presets: [
+        ...state.index.presets.filter((item) => item.id !== id),
+        entry,
+      ].sort((a, b) => String(a.label || a.id).localeCompare(String(b.label || b.id))),
+    };
     const files = {
       [file]: `${JSON.stringify(preset, null, 2)}\n`,
-      "index.json": `${JSON.stringify(state.index, null, 2)}\n`,
+      "index.json": `${JSON.stringify(indexWithEntry, null, 2)}\n`,
     };
 
     try {
       const mode = await saveJsonFiles(files);
+      upsertIndexEntry(entry);
       refreshDropdown();
       if (deps.select) deps.select.value = id;
       setInputValue(label);

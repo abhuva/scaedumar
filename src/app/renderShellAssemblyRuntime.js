@@ -52,6 +52,7 @@ export function createRenderShellAssemblyRuntime(deps) {
       defaultFogSettings: deps.defaultFogSettings,
       defaultCloudSettings: deps.defaultCloudSettings,
       defaultWaterSettings: deps.defaultWaterSettings,
+      defaultWaterTrailSettings: deps.defaultWaterTrailSettings,
       hexToRgb01: deps.hexToRgb01,
       updateInfoPanel: deps.updateInfoPanel,
       updateSwarmStatsPanel: deps.updateSwarmStatsPanel,

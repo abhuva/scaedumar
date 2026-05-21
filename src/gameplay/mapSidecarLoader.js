@@ -1,4 +1,10 @@
 export function createMapSidecarLoader(deps) {
+  function waterTrailDefaults() {
+    return typeof deps.getSettingsDefaults === "function"
+      ? deps.getSettingsDefaults("watertrails", deps.defaultWaterTrailSettings)
+      : deps.defaultWaterTrailSettings;
+  }
+
   function isMissingOptionalJsonError(err) {
     return Boolean(err && err.code === "MISSING_OPTIONAL_JSON");
   }
@@ -111,7 +117,7 @@ export function createMapSidecarLoader(deps) {
         key: "waterTrails",
         loadJson: loadOptionalUrlJson(jsonPath("watertrails.json")),
         applyFn: (rawData) => deps.applyWaterTrailSettings(rawData),
-        onAbsentOrFailed: () => deps.applyWaterTrailSettings(deps.defaultWaterTrailSettings),
+        onAbsentOrFailed: () => deps.applyWaterTrailSettings(waterTrailDefaults()),
         onErrorLabel: `Failed to load watertrails.json from ${folder}`,
       },
       {
@@ -202,7 +208,7 @@ export function createMapSidecarLoader(deps) {
         key: "waterTrails",
         loadJson: loadOptionalFileJson("watertrails.json"),
         applyFn: (rawData) => deps.applyWaterTrailSettings(rawData),
-        onAbsentOrFailed: () => deps.applyWaterTrailSettings(deps.defaultWaterTrailSettings),
+        onAbsentOrFailed: () => deps.applyWaterTrailSettings(waterTrailDefaults()),
         onErrorLabel: "Failed to parse watertrails.json from selected folder",
       },
       {

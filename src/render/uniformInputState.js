@@ -5,7 +5,8 @@ export function buildUniformInputState(deps) {
   const fog = deps.fogState || deps.defaultFogSettings || {};
   const cloud = deps.cloudState || deps.defaultCloudSettings || {};
   const water = deps.waterFxState || deps.defaultWaterSettings || {};
-  const waterTrail = deps.waterTrailState || {};
+  const defaultWaterTrailSettings = deps.defaultWaterTrailSettings || {};
+  const waterTrail = deps.waterTrailState || defaultWaterTrailSettings;
   const detail = normalizeDetailSettings(
     deps.detailState || deps.defaultDetailSettings || DEFAULT_DETAIL_SETTINGS,
     deps.defaultDetailSettings || DEFAULT_DETAIL_SETTINGS,
@@ -79,8 +80,8 @@ export function buildUniformInputState(deps) {
     waterBaseColor: Array.isArray(water.waterBaseColor) ? water.waterBaseColor : deps.hexToRgb01(String(water.waterBaseColor || "#245f73")),
     waterOpacity: deps.clamp(Number(water.waterOpacity), 0, 1),
     useWaterTrail: Boolean(waterTrail.enabled),
-    waterTrailStrength: deps.clamp(Number(waterTrail.strength), 0, 6),
-    waterTrailHeadroom: deps.clamp(Number(waterTrail.headroom), 1, 12),
+    waterTrailStrength: deps.clamp(Number(waterTrail.strength ?? waterTrail.trailStrength), 0, 6),
+    waterTrailHeadroom: deps.clamp(Number(waterTrail.headroom ?? waterTrail.trailHeadroom), 1, 12),
     waterTrailDebug: Boolean(waterTrail.debug),
     waterTrailColor: Array.isArray(waterTrail.tintColor) ? waterTrail.tintColor : [0.494, 0.843, 1],
     waterGlitterStrength: deps.clamp(Number(waterTrail.glitterStrength), 0, 2),

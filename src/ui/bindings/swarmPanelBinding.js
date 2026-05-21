@@ -185,4 +185,6 @@ export function bindSwarmPanelControls(deps) {
       });
     });
   }
+
+  syncFollowZoomControlsFromDom();
 }

@@ -255,11 +255,12 @@ Architecture map:
   - `fog.json` (`useFog`, color, alpha/falloff/start settings)
   - `clouds.json` (`useClouds`, coverage/softness/opacity/scale, two-layer scroll speeds, sun-projection controls)
   - `waterfx.json` (`useWaterFx`, `waterFlowSource` fixed/height/image, `waterFlowInvertDownhill`, `waterDownhillBoost`, local-mix, trend radii/weights, debug overlay, flow visibility, opacity/base-color, shimmer/specular/shore/reflection controls, `waterTintColor`, `waterTintStrength`)
+  - `watertrails.json` (water particle trail controls, wake/glitter settings, flow channel decode settings)
   - `detail.json` (core zoom-detail material tuning for RGBA splat-driven dirt/rock/grass/snow micro color sprites)
   - `camera.json` (`zoomMin`, `zoomMax`)
   - `audio.json` (spectrogram settings, scribble/playback controls)
   - `npc.json` (`charID`, `pixelX`, `pixelY`, `color`)
-- Map loading automatically applies these JSON files when present in the selected map folder.
+- Map loading automatically applies these JSON files when present in the selected map folder. Map-specific JSONs such as `watertrails.json` live under `assets/<mapName>/`, following the `assets/*/*.json` sidecar convention.
 - Dev map mode exposes a `D` panel for live zoom-detail tuning. Detail is color-only for performance: the current terrain color map remains the base, while a normalized RGBA material splat (`R=dirt`, `G=rock`, `B=grass`, `A=snow`) blends micro material detail over it by zoom fade.
 - `detail.json` is a version `3` micro-only contract. Each material has one `micro` source, tile scale, and color strength; `0` strength contributes nothing and `1` contributes fully according to material-splat weight and zoom fade.
 - The terrain shader receives zoom fade as a frame-level `uDetailBlend` uniform, so the per-fragment detail path only samples water/material/detail textures after detail is active at the current zoom.

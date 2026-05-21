@@ -45,6 +45,10 @@ export function createFrameRuntime(deps) {
       ? systemState.lighting.lightingParams
       : deps.computeLightingParams(coreState);
     frameUi.syncFogAutoColorInput(lightingParams);
+    if (typeof deps.updateWaterParticleTrails === "function") {
+      deps.updateWaterParticleTrails(dtSec);
+    }
+    lap("waterTrailMs");
     const uniformInput = deps.buildUniformInputState({
       clamp: deps.clamp,
       getMapAspect: deps.getMapAspect,
@@ -56,6 +60,7 @@ export function createFrameRuntime(deps) {
       defaultFogSettings: deps.getSettingsDefaults("fog", deps.defaultFogSettings),
       defaultCloudSettings: deps.getSettingsDefaults("clouds", deps.defaultCloudSettings),
       defaultWaterSettings: deps.getSettingsDefaults("waterfx", deps.defaultWaterSettings),
+      defaultWaterTrailSettings: deps.getSettingsDefaults("watertrails", deps.defaultWaterTrailSettings),
       hexToRgb01: deps.hexToRgb01,
       fogState: systemState.fog || null,
       cloudState: systemState.clouds || null,
@@ -76,11 +81,6 @@ export function createFrameRuntime(deps) {
       deps.updateGameTimeDiorama(deps.cycleState.hour, cycleSpeed);
     }
     lap("uiMs");
-
-    if (typeof deps.updateWaterParticleTrails === "function") {
-      deps.updateWaterParticleTrails(dtSec);
-    }
-    lap("waterTrailMs");
 
     deps.updateWeatherFieldMeta({
       renderResources: deps.renderResources,

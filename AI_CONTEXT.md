@@ -259,6 +259,7 @@ No game engine is used.
   - `fog.json`
   - `clouds.json`
   - `waterfx.json`
+  - `watertrails.json`
   - `detail.json`
   - `camera.json`
   - `audio.json`
@@ -371,7 +372,7 @@ No game engine is used.
   - `zoomMin` / `zoomMax` control runtime camera clamp; default `zoomMax` is `128` for close inspection of zoom-detail materials
   - camera commands, swarm follow zoom normalization, and fog camera-height normalization resolve current bounds lazily from settings
 - Map-level persistence:
-  - `Load Map -> Save All` writes `pointlights.json`, `lighting.json`, `interaction.json`, `fog.json`, `clouds.json`, `waterfx.json`, `detail.json`, `camera.json`, `audio.json`, `swarm.json`, and `npc.json`
+  - `Load Map -> Save All` writes `pointlights.json`, `lighting.json`, `interaction.json`, `fog.json`, `clouds.json`, `waterfx.json`, `watertrails.json`, `detail.json`, `camera.json`, `audio.json`, `swarm.json`, and `npc.json`
   - map loading auto-applies these files when present
 - Audio Lab groundwork:
   - core settings registry now includes `audio` defaults/serialize/apply contract key

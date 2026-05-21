@@ -15,6 +15,12 @@ export function createFlowMapRuntime(deps) {
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
   }
 
+  function clearFlowMapTexture() {
+    const empty = new Uint8Array([128, 128, 0, 255]);
+    gl.bindTexture(gl.TEXTURE_2D, flowMapTex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, empty);
+  }
+
   function setFlowMapImage(image) {
     imageFlowMap = image || null;
   }
@@ -29,6 +35,7 @@ export function createFlowMapRuntime(deps) {
         uploadFlowMapImage(imageFlowMap);
       } else {
         console.warn("Water flow source is image, but no flow.png image is loaded for the current map.");
+        clearFlowMapTexture();
       }
       return;
     }

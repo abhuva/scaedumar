@@ -14,7 +14,7 @@ export const DEFAULT_WATER_TRAIL_SETTINGS = {
   stampRadius: 0.6,
   spawnInheritRadius: 24,
   spawnWarmupSec: 0.8,
-  channelPair: "gb",
+  channelPair: "rg",
   flipX: false,
   flipY: false,
   useMagnitude: false,
@@ -128,6 +128,13 @@ function normalizeResolutionScale(input) {
   return DEFAULT_WATER_TRAIL_SETTINGS.resolutionScale;
 }
 
+function readFlowChannel(channels, channel) {
+  if (channel === "r") return channels.r;
+  if (channel === "g") return channels.g;
+  if (channel === "b") return channels.b;
+  return 0.5;
+}
+
 function normalizeSettings(input = {}) {
   function numberOr(value, fallback) {
     const numeric = Number(value);
@@ -150,7 +157,7 @@ function normalizeSettings(input = {}) {
     stampRadius: clamp(numberOr(input.stampRadius, DEFAULT_WATER_TRAIL_SETTINGS.stampRadius), 0.1, 8),
     spawnInheritRadius: clamp(numberOr(input.spawnInheritRadius, DEFAULT_WATER_TRAIL_SETTINGS.spawnInheritRadius), 0, 80),
     spawnWarmupSec: clamp(numberOr(input.spawnWarmupSec, DEFAULT_WATER_TRAIL_SETTINGS.spawnWarmupSec), 0, 2),
-    channelPair: input.channelPair === "rg" || input.channelPair === "rb" ? input.channelPair : "gb",
+    channelPair: input.channelPair === "gb" || input.channelPair === "rb" ? input.channelPair : "rg",
     flipX: Boolean(input.flipX),
     flipY: Boolean(input.flipY),
     useMagnitude: Boolean(input.useMagnitude),
@@ -233,6 +240,19 @@ export function createWaterParticleTrailRuntime(deps) {
     activeParticles: 0,
     trailMax: 0,
   };
+
+  function resetStats() {
+    lastDepositMax = 0;
+    lastStats = {
+      enabled: false,
+      particles: 0,
+      waterPixels: 0,
+      flowLoaded: false,
+      activeParticles: 0,
+      trailMax: 0,
+    };
+    updateStatsText();
+  }
 
   function createWakeTexture() {
     const texture = gl.createTexture();
@@ -356,6 +376,7 @@ export function createWaterParticleTrailRuntime(deps) {
   }
 
   function clear() {
+    resetStats();
     rebuildWaterSpawnPixels();
     rebuildFlowField();
     depositUpload.fill(0);
@@ -407,14 +428,19 @@ export function createWaterParticleTrailRuntime(deps) {
     const r = flow.data[index] / 255;
     const g = flow.data[index + 1] / 255;
     const b = flow.data[index + 2] / 255;
-    let a = r;
-    let c = g;
-    if (settings.channelPair === "gb") {
-      a = g;
-      c = b;
-    } else if (settings.channelPair === "rb") {
-      a = r;
-      c = b;
+    const channels = { r, g, b };
+    const pair = String(settings.channelPair || "rg");
+    const xChannel = pair[0] || "r";
+    const yChannel = pair[1] || "g";
+    let a = readFlowChannel(channels, xChannel);
+    let c = readFlowChannel(channels, yChannel);
+    let magnitude = 1;
+    if (settings.useMagnitude) {
+      magnitude = b;
+      if (xChannel === "b" || yChannel === "b") {
+        a = xChannel === "r" || yChannel === "r" ? r : 0.5;
+        c = xChannel === "g" || yChannel === "g" ? g : 0.5;
+      }
     }
     let dx = a * 2 - 1;
     let dy = c * 2 - 1;
@@ -422,7 +448,6 @@ export function createWaterParticleTrailRuntime(deps) {
     if (settings.flipY) dy = -dy;
     const len = Math.hypot(dx, dy);
     if (len <= 0.0001) return [0, 0, 0];
-    const magnitude = settings.useMagnitude ? b : 1;
     return [dx / len, dy / len, magnitude];
   }
 
@@ -639,9 +664,15 @@ export function createWaterParticleTrailRuntime(deps) {
 
   function update(dtSec) {
     const water = deps.getWaterImageData();
-    if (!water || !water.width || !water.height) return;
+    if (!water || !water.width || !water.height) {
+      resetStats();
+      return;
+    }
     ensureTextureSize(water.width, water.height);
-    if (!settings.enabled) return;
+    if (!settings.enabled) {
+      resetStats();
+      return;
+    }
     ensureParticleCount();
     const dt = clamp((Number(dtSec) || 0) * settings.simSpeed, 0, 0.12);
     if (dt <= 0) return;

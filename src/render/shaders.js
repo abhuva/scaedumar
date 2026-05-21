@@ -138,6 +138,11 @@ vec2 decodeImageFlowDir(vec4 sampleValue) {
   } else if (uWaterFlowChannelPair > 0.5) {
     pair = sampleValue.gb;
   }
+  if (uWaterFlowUseMagnitude > 0.5 && uWaterFlowChannelPair > 0.5) {
+    pair = uWaterFlowChannelPair > 1.5
+      ? vec2(sampleValue.r, 0.5)
+      : vec2(0.5, sampleValue.g);
+  }
   vec2 dir = (pair * 2.0 - 1.0) * uWaterFlowFlip;
   float len = length(dir);
   if (len <= 0.00002) return vec2(0.0);
@@ -288,7 +293,7 @@ vec3 applyWaterMaterial(vec2 uv, vec3 base, float timeSec) {
 
     float flowScale = max(0.05, uWaterFlowScale);
     float flowSpeed = max(0.0, uWaterFlowSpeed);
-    float downhillBoost = (uWaterFlowDownhill > 0.5) ? max(0.0, uWaterDownhillBoost) : 1.0;
+    float downhillBoost = (uWaterFlowSource > 0.5) ? max(0.0, uWaterDownhillBoost) : 1.0;
     float flowStrength = uWaterFlowStrength * downhillBoost * sampledFlowStrength;
     vec2 flowOffset = flowDir * (timeSec * flowSpeed * 0.045);
     vec2 sideDir = vec2(-flowDir.y, flowDir.x);
@@ -388,7 +393,7 @@ vec3 applyWaterFx(vec2 uv, vec3 baseLit, vec3 terrainN, float timeSec, float sun
 
   float flowScale = max(0.05, uWaterFlowScale);
   float flowSpeed = max(0.0, uWaterFlowSpeed);
-  float downhillBoost = (uWaterFlowDownhill > 0.5) ? max(0.0, uWaterDownhillBoost) : 1.0;
+  float downhillBoost = (uWaterFlowSource > 0.5) ? max(0.0, uWaterDownhillBoost) : 1.0;
   float flowStrength = uWaterFlowStrength * downhillBoost * sampledFlowStrength;
   vec2 flowOffset = flowDir * (timeSec * flowSpeed * 0.045);
   vec2 sideDir = vec2(-flowDir.y, flowDir.x);

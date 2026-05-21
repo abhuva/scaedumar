@@ -67,6 +67,7 @@ export function createMapLifecycleRuntime(deps) {
     applySwarmData: deps.applySwarmData,
     applyLoadedNpc: deps.applyLoadedNpc,
     getFileFromFolderSelection: deps.getFileFromFolderSelection,
+    getSettingsDefaults: deps.getSettingsDefaults,
     defaultPlayer: deps.defaultPlayer,
     defaultWaterTrailSettings: deps.defaultWaterTrailSettings,
     normalizeMapFolderPath: deps.normalizeMapFolderPath,

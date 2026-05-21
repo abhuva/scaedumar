@@ -622,7 +622,12 @@ const mapSupportRuntime = createMapSupportRuntime(createMapSupportAssemblyRuntim
   extractImageData: (...args) => extractImageDataRender(...args),
   uploadImageToTexture: (tex, image) => renderSupportRuntime.uploadImageToTexture(tex, image),
   rebuildFlowMapTexture: () => renderSupportRuntime.rebuildFlowMapTexture(),
-  setFlowMapImage: (image) => renderSupportRuntime.setFlowMapImage(image),
+  setFlowMapImage: (image) => {
+    renderSupportRuntime.setFlowMapImage(image);
+    if (waterParticleTrailRuntime) {
+      waterParticleTrailRuntime.clear();
+    }
+  },
   syncMapStateToStore: () => syncMapStateToStore(),
   getPointLightBakeWorker: () => pointLightBakeRuntimeBinding.getWorker(),
   clamp: clampUtil,
@@ -2259,6 +2264,7 @@ const updateCursorLightHeightOffsetLabel = (...args) => lightLabelRuntime.update
   defaultFogSettings: DEFAULT_FOG_SETTINGS,
   defaultCloudSettings: DEFAULT_CLOUD_SETTINGS,
   defaultWaterSettings: DEFAULT_WATER_SETTINGS,
+  defaultWaterTrailSettings: DEFAULT_WATER_TRAIL_SETTINGS,
   defaultDetailSettings: DEFAULT_DETAIL_SETTINGS,
   defaultCameraSettings: DEFAULT_CAMERA_SETTINGS,
   defaultAudioSettings: DEFAULT_AUDIO_SETTINGS,
