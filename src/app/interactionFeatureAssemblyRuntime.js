@@ -45,11 +45,17 @@ export function createMovementAssemblyRuntime(deps) {
     getMapWidth: deps.getMapWidth,
     getMapHeight: deps.getMapHeight,
     computeMoveStepCost: deps.computeMoveStepCost,
+    getMoveCostContext: deps.getMoveCostContext,
     rebuildMovementField: deps.rebuildMovementField,
     requestOverlayDraw: deps.requestOverlayDraw,
     setStatus: deps.setStatus,
     setPlayerSnapshot: deps.setPlayerSnapshot,
     setMovementSnapshot: deps.setMovementSnapshot,
     onMovementSnapshot: deps.onMovementSnapshot,
+    onMovementStarted: deps.onMovementStarted,
+    onStepStarted: deps.onStepStarted,
+    onStepCompleted: deps.onStepCompleted,
+    onQueueCompleted: deps.onQueueCompleted,
+    onMovementCanceled: deps.onMovementCanceled,
   };
 }

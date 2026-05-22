@@ -28,6 +28,13 @@ export function createMovementSystem(deps) {
     runtime.currentCost = 0;
   }
 
+  function emitHook(name, ...args) {
+    const hook = deps && deps[name];
+    if (typeof hook === "function") {
+      hook(...args);
+    }
+  }
+
   function syncActiveStepFromIndex() {
     if (!runtime.active) return;
     const current = runtime.queue[runtime.currentStepIndex] || null;
@@ -37,6 +44,7 @@ export function createMovementSystem(deps) {
     }
     runtime.ticksRemaining = Math.max(1, Math.round(finite(current.ticksRequired, 1)));
     runtime.currentCost = finite(current.cost, 0);
+    emitHook("onStepStarted", current, getSnapshot());
   }
 
   function buildQueueFromPath(pathPixels, simTickHours) {
@@ -158,12 +166,14 @@ export function createMovementSystem(deps) {
     };
   }
 
-  function replaceQueue(pathPixels, simTickHours) {
+  function replaceQueue(pathPixels, simTickHours, options = {}) {
     const replaced = setQueue(pathPixels, simTickHours);
-    if (replaced && typeof deps.setStatus === "function") {
+    if (replaced && !options.silent && typeof deps.setStatus === "function") {
       deps.setStatus(`Movement queued (${runtime.queue.length} steps).`);
     }
     if (replaced) {
+      emitHook("onMovementStarted", getSnapshot());
+      emitHook("onStepStarted", runtime.queue[0], getSnapshot());
       syncStore({
         forceMovementSync: true,
         requestOverlayDraw: true,
@@ -173,7 +183,12 @@ export function createMovementSystem(deps) {
   }
 
   function cancelQueue() {
+    const wasActive = runtime.active;
+    const snapshotBeforeCancel = getSnapshot();
     resetRuntime();
+    if (wasActive) {
+      emitHook("onMovementCanceled", snapshotBeforeCancel);
+    }
     syncStore({
       forceMovementSync: true,
       rebuildMovementField: true,
@@ -214,9 +229,12 @@ export function createMovementSystem(deps) {
         deps.playerState.pixelX = toSafePixel(currentStep.toX, maxX);
         deps.playerState.pixelY = toSafePixel(currentStep.toY, maxY);
         moved = true;
+        emitHook("onStepCompleted", currentStep, getSnapshot());
         runtime.currentStepIndex += 1;
         if (runtime.currentStepIndex >= runtime.queue.length) {
+          const completedSnapshot = getSnapshot();
           resetRuntime();
+          emitHook("onQueueCompleted", completedSnapshot);
           break;
         }
         syncActiveStepFromIndex();

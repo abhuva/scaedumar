@@ -70,3 +70,34 @@ test("movementSystem keeps existing queue when replacement path is invalid", () 
   assert.equal(after.queueLength, before.queueLength);
   assert.equal(after.active, true);
 });
+
+test("movementSystem emits lifecycle hooks for queued movement", () => {
+  const playerState = { pixelX: 0, pixelY: 0 };
+  const events = [];
+  const system = createMovementSystem({
+    entityStore: null,
+    playerState,
+    getMapWidth: () => 10,
+    getMapHeight: () => 10,
+    computeMoveStepCost: () => 1,
+    rebuildMovementField: () => {},
+    requestOverlayDraw: () => {},
+    setStatus: () => {},
+    setPlayerSnapshot: () => {},
+    setMovementSnapshot: () => {},
+    onMovementStarted: () => events.push("movement-started"),
+    onStepStarted: (step) => events.push(`step-started:${step.toX},${step.toY}`),
+    onStepCompleted: (step) => events.push(`step-completed:${step.toX},${step.toY}`),
+    onQueueCompleted: () => events.push("queue-completed"),
+  });
+
+  assert.equal(system.replaceQueue([{ x: 0, y: 0 }, { x: 1, y: 0 }], 0.01), true);
+  system.update({ time: { systems: { movement: { ticksProcessed: 1 } } } }, {});
+
+  assert.deepEqual(events, [
+    "movement-started",
+    "step-started:1,0",
+    "step-completed:1,0",
+    "queue-completed",
+  ]);
+});

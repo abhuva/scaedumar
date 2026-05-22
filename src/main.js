@@ -101,6 +101,8 @@ import { createTimeLightingSetupRuntime } from "./sim/timeLightingSetupRuntime.j
 import { createEntityStore } from "./gameplay/entityStore.js";
 import { createMovementSystem } from "./gameplay/movementSystem.js";
 import { createMovementStoreSyncRuntime } from "./gameplay/movementStoreSyncRuntime.js";
+import { createActivityStoreSyncRuntime } from "./gameplay/activityStoreSyncRuntime.js";
+import { createGatheringActivityRuntime } from "./gameplay/gatheringActivityRuntime.js";
 import { createLightInteractionRuntimeBinding } from "./gameplay/lightInteractionRuntimeBinding.js";
 import { createMapSupportRuntime } from "./gameplay/mapSupportRuntime.js";
 import { parsePointLightsPayload, serializePointLightsPayload } from "./gameplay/pointLightsPersistence.js";
@@ -186,6 +188,7 @@ const detailInfoEl = getRequiredElementById("detailInfo");
 const playerInfoEl = getRequiredElementById("playerInfo");
 const pathInfoEl = getRequiredElementById("pathInfo");
 const movementStatusPanelEl = getRequiredElementById("movementStatusPanel");
+const movementStatusTitleEl = getRequiredElementById("movementStatusTitle");
 const movementStatusEtaEl = getRequiredElementById("movementStatusEta");
 const movementStatusDetailEl = getRequiredElementById("movementStatusDetail");
 const movementCancelBtn = getRequiredElementById("movementCancelBtn");
@@ -195,6 +198,9 @@ const mapFolderInput = getRequiredElementById("mapFolderInput");
 const mapSaveAllBtn = getRequiredElementById("mapSaveAllBtn");
 const dockLightingModeToggle = getRequiredElementById("dockLightingModeToggle");
 const dockPathfindingModeToggle = getRequiredElementById("dockPathfindingModeToggle");
+const dockGatheringActivityBtn = getRequiredElementById("dockGatheringActivityBtn");
+const dockInspectActivityBtn = getRequiredElementById("dockInspectActivityBtn");
+const dockShowPlayerBtn = getRequiredElementById("dockShowPlayerBtn");
 const pathfindingRangeInput = getRequiredElementById("pathfindingRange");
 const pathfindingRangeValue = getRequiredElementById("pathfindingRangeValue");
 const pathWeightSlopeInput = getRequiredElementById("pathWeightSlope");
@@ -2177,6 +2183,7 @@ const {
   createPointLight,
 } = lightInteractionRuntimeBinding;
 const getGrayAt = (...args) => pathfindingRuntimeBinding.getGrayAt(...args);
+const getMoveCostContext = (...args) => pathfindingRuntimeBinding.createMoveCostContext(...args);
 const computeMoveStepCost = (...args) => pathfindingRuntimeBinding.computeMoveStepCost(...args);
 const rebuildMovementField = (...args) => pathfindingRuntimeBinding.rebuildMovementField(...args);
 const extractPathTo = (...args) => pathfindingRuntimeBinding.extractPathTo(...args);
@@ -2468,6 +2475,44 @@ const syncSwarmStateToStore = swarmRuntime.syncSwarmStateToStore;
 const movementStoreSyncRuntime = createMovementStoreSyncRuntime({
   store: runtimeCore.store,
 });
+const activityStoreSyncRuntime = createActivityStoreSyncRuntime({
+  store: runtimeCore.store,
+});
+let gatheringActivityRuntime = null;
+
+function getActivitySnapshot() {
+  if (gatheringActivityRuntime) {
+    return gatheringActivityRuntime.getSnapshot();
+  }
+  const state = runtimeCore.store.getState();
+  return state && state.gameplay ? state.gameplay.activity || null : null;
+}
+
+function sampleInspectGray(imageData, pixelX, pixelY) {
+  return getGrayAt(imageData, pixelX, pixelY, splatSize.width, splatSize.height);
+}
+
+function setActivityTimeSpeed1x() {
+  dispatchCoreCommand({
+    type: "core/time/setCycleSpeed",
+    cycleSpeed: 0.01,
+  });
+}
+
+function updateInspectFromPointer(clientX, clientY) {
+  if (!gatheringActivityRuntime || !gatheringActivityRuntime.isInspectActive()) return;
+  const ndc = clientToNdc(clientX, clientY);
+  const world = worldFromNdc(ndc);
+  const uv = worldToUv(world);
+  if (uv.x < 0 || uv.x > 1 || uv.y < 0 || uv.y > 1) return;
+  const pixel = uvToMapPixelIndex(uv);
+  dispatchCoreCommand({
+    type: "core/activity/updateInspectAt",
+    x: pixel.x,
+    y: pixel.y,
+  });
+}
+
 
 function formatMovementEta(seconds) {
   if (seconds === Number.POSITIVE_INFINITY) return "paused";
@@ -2493,6 +2538,24 @@ function getMovementEtaSeconds(movementSnapshot) {
 }
 
 function updateMovementStatusPanel(movementSnapshot) {
+  const activitySnapshot = getActivitySnapshot();
+  if (activitySnapshot && activitySnapshot.active) {
+    if (activitySnapshot.type === "inspect") {
+      const height = Number(activitySnapshot.inspectHeight);
+      const slope = Number(activitySnapshot.inspectSlope);
+      movementStatusTitleEl.textContent = "Inspect Terrain";
+      movementStatusEtaEl.textContent = `Position: ${activitySnapshot.inspectX ?? "--"}, ${activitySnapshot.inspectY ?? "--"}`;
+      movementStatusDetailEl.textContent = `Height: ${Number.isFinite(height) ? height.toFixed(3) : "--"} | Slope: ${Number.isFinite(slope) ? `${(slope * 90).toFixed(1)} deg` : "--"}`;
+      movementCancelBtn.textContent = "Stop Inspect";
+    } else {
+      movementStatusTitleEl.textContent = activitySnapshot.type === "gathering" ? "Gathering" : "Activity";
+      movementStatusEtaEl.textContent = `Radius: ${Math.max(0, Math.round(Number(activitySnapshot.radius) || 0))}`;
+      movementStatusDetailEl.textContent = `Steps: ${activitySnapshot.stepsTaken} | Visited: ${activitySnapshot.visitedCount} | Plants: ${activitySnapshot.foundCount}`;
+      movementCancelBtn.textContent = activitySnapshot.type === "gathering" ? "Stop Gathering" : "Stop Activity";
+    }
+    movementStatusPanelEl.classList.remove("hidden");
+    return;
+  }
   if (!movementSnapshot || !movementSnapshot.active) {
     movementStatusPanelEl.classList.add("hidden");
     return;
@@ -2511,13 +2574,47 @@ const movementSystem = createMovementSystem(createMovementAssemblyRuntime({
   getMapWidth: () => splatSize.width,
   getMapHeight: () => splatSize.height,
   computeMoveStepCost,
+  getMoveCostContext,
   rebuildMovementField,
   requestOverlayDraw: () => overlayDirtyRuntime.requestOverlayDraw(),
   setStatus,
   setPlayerSnapshot: movementStoreSyncRuntime.setPlayerSnapshot,
   setMovementSnapshot: movementStoreSyncRuntime.setMovementSnapshot,
   onMovementSnapshot: updateMovementStatusPanel,
+  onStepCompleted: (...args) => gatheringActivityRuntime?.onStepCompleted(...args),
+  onQueueCompleted: (...args) => {
+    const activityWasActive = Boolean(gatheringActivityRuntime?.isActivityActive());
+    gatheringActivityRuntime?.onQueueCompleted(...args);
+    if (!activityWasActive) {
+      setActivityTimeSpeed1x();
+    }
+  },
+  onMovementCanceled: (...args) => {
+    const activityWasActive = Boolean(gatheringActivityRuntime?.isActivityActive());
+    gatheringActivityRuntime?.onMovementCanceled(...args);
+    if (!activityWasActive) {
+      setActivityTimeSpeed1x();
+    }
+  },
 }));
+gatheringActivityRuntime = createGatheringActivityRuntime({
+  playerState,
+  getMapWidth: () => splatSize.width,
+  getMapHeight: () => splatSize.height,
+  computeMoveStepCost,
+  getMoveCostContext,
+  sampleHeight: (pixelX, pixelY) => sampleInspectGray(heightImageData, pixelX, pixelY),
+  sampleSlope: (pixelX, pixelY) => sampleInspectGray(slopeImageData, pixelX, pixelY),
+  getMovementSnapshot: () => movementSystem.getSnapshot(),
+  replaceMovementQueue: (pathPixels, options = {}) =>
+    movementSystem.replaceQueue(pathPixels, runtimeCore.store.getState().systems.time.simTickHours, options),
+  cancelMovementQueue: () => movementSystem.cancelQueue(),
+  setCycleSpeed: (cycleSpeed) => dispatchCoreCommand({ type: "core/time/setCycleSpeed", cycleSpeed }),
+  setActivitySnapshot: activityStoreSyncRuntime.setActivitySnapshot,
+  onActivitySnapshot: () => updateMovementStatusPanel(movementSystem.getSnapshot()),
+  requestOverlayDraw: () => overlayDirtyRuntime.requestOverlayDraw(),
+  setStatus,
+});
 registerMainSettingsContracts(runtimeCore.settingsRegistry, {
   serializeLighting: serializeLightingSettingsCompat,
   applyLighting: applyLightingSettingsCompat,
@@ -2593,6 +2690,7 @@ registerMainCommands(runtimeCore.commandBus, createMainCommandAssemblyRuntime({
   cycleState,
   cursorLightState,
   movePreviewState,
+  getActivitySnapshot,
   playerState,
   swarmFollowState,
   getSwarmFollowSnapshot: swarmFollowRuntimeState.getSwarmFollowSnapshot,
@@ -2610,6 +2708,7 @@ registerMainCommands(runtimeCore.commandBus, createMainCommandAssemblyRuntime({
   clamp,
   clientToNdc: (...args) => clientToNdc(...args),
   worldFromNdc: (...args) => worldFromNdc(...args),
+  mapPixelToWorld: (...args) => mapPixelToWorld(...args),
   getCursorLightSnapshot: (...args) => getCursorLightSnapshot(...args),
   applyCursorLightConfigSnapshot: (...args) => applyCursorLightConfigSnapshot(...args),
   clearCursorLightPointerState: (...args) => clearCursorLightPointerState(...args),
@@ -2627,13 +2726,23 @@ registerMainCommands(runtimeCore.commandBus, createMainCommandAssemblyRuntime({
   extractPathTo,
   setPlayerPosition: (...args) => setPlayerPosition(...args),
   syncPlayerStateToStore: (...args) => playerRuntimeBinding.syncPlayerStateToStore(...args),
-  replaceMovementQueue: (pathPixels) =>
-    movementSystem.replaceQueue(
+  replaceMovementQueue: (pathPixels) => {
+    const replaced = movementSystem.replaceQueue(
       pathPixels,
       normalizeSimTickHours(runtimeCore.store.getState().systems.time.simTickHours ?? getConfiguredSimTickHours()),
-    ),
+    );
+    if (replaced) {
+      setActivityTimeSpeed1x();
+    }
+    return replaced;
+  },
   cancelMovementQueue: () => movementSystem.cancelQueue(),
   getMovementStateSnapshot: () => movementSystem.getSnapshot(),
+  startGatheringActivity: () => gatheringActivityRuntime.startGathering(),
+  startInspectActivity: () => gatheringActivityRuntime.startInspect(),
+  updateInspectActivityAt: (pixelX, pixelY) => gatheringActivityRuntime.updateInspectAtPixel(pixelX, pixelY),
+  cancelActivity: () => gatheringActivityRuntime.cancelActivity(),
+  isActivityActive: () => gatheringActivityRuntime.isActivityActive(),
   rebuildMovementField,
   getPathfindingStateSnapshot: (...args) => getPathfindingStateSnapshot(...args),
   syncPathfindingSettingsUi,
@@ -3178,6 +3287,7 @@ const swarmIntegrationSetupRuntime = createSwarmIntegrationSetupRuntime(
     playerState,
       getCurrentPathMetrics,
       getMovementSnapshot: () => movementSystem.getSnapshot(),
+      getActivitySnapshot,
       getMovementEtaSeconds,
       getFrameDebugInfo,
       getDetailDebugInfo,
@@ -3188,8 +3298,10 @@ const swarmIntegrationSetupRuntime = createSwarmIntegrationSetupRuntime(
       playerInfoEl,
     pathInfoEl,
     movementStatusPanelEl,
+    movementStatusTitleEl,
     movementStatusEtaEl,
     movementStatusDetailEl,
+    movementCancelBtn,
     applyInteractionMode,
     canUseInteractionInCurrentMode,
     syncInteractionModeUi: interactionModeUiRuntime.syncInteractionModeUi,
@@ -3491,6 +3603,7 @@ runAppShellLifecycleRuntime(createAppShellLifecycleAssemblyRuntime({
     updateSwarmCursorFromPointer,
     updateCursorLightFromPointer,
     updatePathPreviewFromPointer,
+    updateInspectFromPointer,
     isMiddleDragging: () => isMiddleDragging,
     isCursorLightEnabled: () => getCursorLightSnapshot().enabled,
     getInteractionMode: () => getInteractionModeSnapshot(),
@@ -3570,10 +3683,14 @@ runAppShellLifecycleRuntime(createAppShellLifecycleAssemblyRuntime({
     canUseTopic: canUseTopicInCurrentMode,
     dockLightingModeToggle,
     dockPathfindingModeToggle,
+    dockGatheringActivityBtn,
+    dockInspectActivityBtn,
+    dockShowPlayerBtn,
     movementCancelBtn,
     cycleSpeedInput,
     cycleHourInput,
     simTickHoursInput,
+    isActivityActive: () => gatheringActivityRuntime.isActivityActive(),
     canUseInteractionMode: canUseInteractionInCurrentMode,
     rebuildMovementField,
     cursorLightModeToggle,

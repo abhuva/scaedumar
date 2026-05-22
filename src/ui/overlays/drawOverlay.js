@@ -78,6 +78,21 @@ export function createOverlayDrawer(deps) {
       }
     }
 
+    const activitySnapshot = typeof deps.getActivitySnapshot === "function" ? deps.getActivitySnapshot() : null;
+    if (activitySnapshot && activitySnapshot.active && activitySnapshot.type === "gathering") {
+      const radius = Math.max(0, Number(activitySnapshot.radius) || 0);
+      const centerWorld = deps.mapPixelToWorld(activitySnapshot.originX, activitySnapshot.originY);
+      const centerScreen = deps.worldToScreen(centerWorld);
+      const edgeWorld = { x: centerWorld.x + worldPerMapPixel * radius, y: centerWorld.y };
+      const edgeScreen = deps.worldToScreen(edgeWorld);
+      const screenRadius = Math.max(1, Math.hypot(edgeScreen.x - centerScreen.x, edgeScreen.y - centerScreen.y));
+      deps.overlayCtx.beginPath();
+      deps.overlayCtx.arc(centerScreen.x, centerScreen.y, screenRadius, 0, Math.PI * 2);
+      deps.overlayCtx.strokeStyle = "rgba(180, 126, 71, 0.85)";
+      deps.overlayCtx.lineWidth = 2;
+      deps.overlayCtx.stroke();
+    }
+
     drawMapDot(deps.playerState.pixelX, deps.playerState.pixelY, deps.playerState.color);
     if (deps.isSwarmEnabled()) {
       const swarmSettings = deps.getSwarmSettings();

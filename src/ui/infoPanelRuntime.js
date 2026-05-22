@@ -25,10 +25,50 @@ export function createInfoPanelRuntime(deps) {
     deps.movementStatusPanelEl.classList.toggle("hidden", !visible);
   }
 
-  function updateMovementPanel(movementSnapshot) {
+  function updateMovementPanel(movementSnapshot, activitySnapshot) {
+    if (activitySnapshot && activitySnapshot.active) {
+      setMovementPanelVisible(true);
+      if (deps.movementStatusTitleEl) {
+        deps.movementStatusTitleEl.textContent = activitySnapshot.type === "gathering"
+          ? "Gathering"
+          : (activitySnapshot.type === "inspect" ? "Inspect Terrain" : "Activity");
+      }
+      if (activitySnapshot.type === "inspect") {
+        const x = activitySnapshot.inspectX == null ? "--" : Math.round(Number(activitySnapshot.inspectX));
+        const y = activitySnapshot.inspectY == null ? "--" : Math.round(Number(activitySnapshot.inspectY));
+        const height = Number(activitySnapshot.inspectHeight);
+        const slope = Number(activitySnapshot.inspectSlope);
+        if (deps.movementStatusEtaEl) {
+          deps.movementStatusEtaEl.textContent = `Position: ${x}, ${y}`;
+        }
+        if (deps.movementStatusDetailEl) {
+          deps.movementStatusDetailEl.textContent = `Height: ${Number.isFinite(height) ? height.toFixed(3) : "--"} | Slope: ${Number.isFinite(slope) ? `${(slope * 90).toFixed(1)} deg` : "--"}`;
+        }
+        if (deps.movementCancelBtn) {
+          deps.movementCancelBtn.textContent = "Stop Inspect";
+        }
+        return;
+      }
+      if (deps.movementStatusEtaEl) {
+        deps.movementStatusEtaEl.textContent = `Radius: ${Math.max(0, Math.round(Number(activitySnapshot.radius) || 0))}`;
+      }
+      if (deps.movementStatusDetailEl) {
+        const steps = Math.max(0, Math.round(Number(activitySnapshot.stepsTaken) || 0));
+        const visited = Math.max(0, Math.round(Number(activitySnapshot.visitedCount) || 0));
+        const found = Math.max(0, Math.round(Number(activitySnapshot.foundCount) || 0));
+        deps.movementStatusDetailEl.textContent = `Steps: ${steps} | Visited: ${visited} | Plants: ${found}`;
+      }
+      if (deps.movementCancelBtn) {
+        deps.movementCancelBtn.textContent = activitySnapshot.type === "gathering" ? "Stop Gathering" : "Stop Activity";
+      }
+      return;
+    }
     if (!movementSnapshot || !movementSnapshot.active) {
       setMovementPanelVisible(false);
       return;
+    }
+    if (deps.movementStatusTitleEl) {
+      deps.movementStatusTitleEl.textContent = "Player Moving";
     }
     const etaSeconds = typeof deps.getMovementEtaSeconds === "function"
       ? deps.getMovementEtaSeconds(movementSnapshot)
@@ -42,6 +82,9 @@ export function createInfoPanelRuntime(deps) {
     }
     if (deps.movementStatusDetailEl) {
       deps.movementStatusDetailEl.textContent = `Path: step ${stepIndex}/${queueLength}, ${remainingTicks} ticks remaining`;
+    }
+    if (deps.movementCancelBtn) {
+      deps.movementCancelBtn.textContent = "Cancel Travel";
     }
     setMovementPanelVisible(true);
   }
@@ -135,7 +178,10 @@ export function createInfoPanelRuntime(deps) {
     const movementSnapshot = typeof deps.getMovementSnapshot === "function"
       ? deps.getMovementSnapshot()
       : null;
-    updateMovementPanel(movementSnapshot);
+    const activitySnapshot = typeof deps.getActivitySnapshot === "function"
+      ? deps.getActivitySnapshot()
+      : null;
+    updateMovementPanel(movementSnapshot, activitySnapshot);
     updateFrameInfo();
     updateDetailInfo();
 
@@ -158,6 +204,17 @@ export function createInfoPanelRuntime(deps) {
     }
 
     const metrics = deps.getCurrentPathMetrics();
+    if (activitySnapshot && activitySnapshot.active) {
+      const nextPathInfo = activitySnapshot.type === "gathering"
+        ? `Gathering: steps ${activitySnapshot.stepsTaken} | visited ${activitySnapshot.visitedCount} | plants ${activitySnapshot.foundCount}`
+        : (activitySnapshot.type === "inspect"
+          ? `Inspect: (${activitySnapshot.inspectX ?? "--"}, ${activitySnapshot.inspectY ?? "--"})`
+          : `Activity: ${activitySnapshot.type}`);
+      if (deps.pathInfoEl.textContent !== nextPathInfo) {
+        deps.pathInfoEl.textContent = nextPathInfo;
+      }
+      return;
+    }
     if (movementSnapshot && movementSnapshot.active) {
       const nextPathInfo = `Move: active | q ${movementSnapshot.queueLength} | step ${movementSnapshot.currentStepIndex + 1} | ticks ${movementSnapshot.ticksRemaining} | cost ${movementSnapshot.currentStepCost.toFixed(2)}`;
       if (deps.pathInfoEl.textContent !== nextPathInfo) {

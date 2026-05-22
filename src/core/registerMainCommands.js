@@ -767,6 +767,24 @@ export function registerMainCommands(commandBus, deps) {
     );
   });
 
+  commandBus.register("core/player/show", (command, ctx) => {
+    if (typeof deps.mapPixelToWorld !== "function") return;
+    const player = deps.playerState || {};
+    const world = deps.mapPixelToWorld(player.pixelX, player.pixelY);
+    applyCameraPose(
+      ctx,
+      {
+        panX: world.x,
+        panY: world.y,
+        zoom: 35,
+      },
+      { requestOverlay: true },
+    );
+    if (typeof deps.setStatus === "function") {
+      deps.setStatus(`Camera centered on player (${player.pixelX}, ${player.pixelY}).`);
+    }
+  });
+
   commandBus.register("core/time/setHourScrubbing", (command) => {
     deps.setCycleHourScrubbing(Boolean(command.scrubbing));
   });

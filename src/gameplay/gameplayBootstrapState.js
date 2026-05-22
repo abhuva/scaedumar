@@ -4,6 +4,9 @@ export function createGameplayBootstrapState() {
     pixelX: 120,
     pixelY: 96,
     color: "#ff69b4",
+    stats: {
+      gatherRadius: 30,
+    },
   };
 
   const playerState = {
@@ -11,6 +14,7 @@ export function createGameplayBootstrapState() {
     pixelX: defaultPlayer.pixelX,
     pixelY: defaultPlayer.pixelY,
     color: defaultPlayer.color,
+    stats: { ...defaultPlayer.stats },
   };
 
   const movePreviewState = {
