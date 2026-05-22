@@ -113,16 +113,36 @@ test("detail settings contract routes and returns enabled defaults", () => {
   assert.equal(defaults.materials[1].id, "rock");
   assert.equal(defaults.materials[1].slot, 1);
   assert.equal(defaults.materials[0].micro.colorStrength, 1);
+  assert.equal(defaults.transition.blendMode, "smooth");
+  assert.equal(defaults.transition.quantizationSteps, 0);
+  assert.equal(defaults.transition.ditherScale, 0.25);
+  assert.equal(defaults.transition.debugChannel, "none");
   const normalized = normalizeDetailSettings({
+    transition: {
+      blendMode: "priorityDither",
+      debugChannel: "alpha",
+      quantizationSteps: 12.7,
+      ditherScale: 0.11,
+      minWeight: 0.75,
+      priorities: [-1, 0.1, 1],
+    },
     materials: [
       {
         micro: {
           colorStrength: 0.75,
+          scaleMeters: 9,
         },
       },
     ],
   });
   assert.equal(normalized.materials[0].micro.colorStrength, 0.75);
+  assert.equal(normalized.materials[0].micro.scaleMeters, 8);
+  assert.equal(normalized.transition.blendMode, "priorityDither");
+  assert.equal(normalized.transition.debugChannel, "alpha");
+  assert.equal(normalized.transition.quantizationSteps, 13);
+  assert.equal(normalized.transition.ditherScale, 0.125);
+  assert.equal(normalized.transition.minWeight, 0.5);
+  assert.deepEqual(normalized.transition.priorities, [-0.5, 0.1, 0.5, 0.03]);
 });
 
 test("camera settings contract routes and returns deep zoom defaults", () => {

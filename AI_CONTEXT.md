@@ -245,7 +245,7 @@ No game engine is used.
   - Audio is a top-level workspace, not a map topic; the workspace switcher exposes `Map` and `Audio`.
   - Runtime mode capability gating is now active (`dev`/`gameplay`/`hybrid`) for topic buttons + interaction mode toggles.
 - Map bundle auto-load tries these folders in order:
-  - `assets/Map 1/`
+  - `assets/Map 3/`
   - `assets/`
 - Required PNG names in each candidate folder:
   - `splat.png`
@@ -362,12 +362,14 @@ No game engine is used.
   - source sprites default to `assets/detail/default/{dirt,rock,grass,snow}_micro.png`
   - runtime builds one micro color atlas from those sources and uploads one RGBA material splat texture
   - material splat weights are normalized in the shader; channels map to `R=dirt`, `G=rock`, `B=grass`, `A=snow`
-  - terrain shader applies weighted material detail before lighting while preserving the current terrain color map as the base color
-  - micro detail samples continuous map coordinates; each material's `scaleMeters`/Tile px value is the terrain-map-pixel width/height covered by one full source texture tile
+  - terrain shader applies material detail before lighting while preserving the current terrain color map as the base color
+  - material transition mode is configurable in the `D` panel: `smooth` keeps weighted blending, `dithered` chooses one material through stable sub-map-pixel hash noise, and `priorityDither` chooses one material from weight + per-material priority + noise
+  - transition tuning includes shader-side weight quantization, dither cell size snapped to six map-pixel steps (`1`, `0.5`, `0.25`, `0.125`, `0.0625`, `0.03125`), priority-noise strength, minimum visible material weight, dirt/rock/grass/snow priority values, and a raw material-splat debug channel view; this is an experiment that does not change the RGBA splat asset format
+  - micro detail samples continuous map coordinates; each material's `scaleMeters`/Tile px value is the terrain-map-pixel width/height covered by one full source texture tile, snapped to `1`, `2`, `4`, `8`, `16`, or `32`
   - each material's `colorStrength` is a `0..1` contribution scalar; `0` skips that material contribution, while `1` contributes fully according to splat weight and zoom fade
   - zoom fade is computed once per frame and uploaded as `uDetailBlend`; the fragment shader returns before water/material/detail texture sampling when detail is inactive at the current zoom
   - detail is color-only for performance; it does not modify normals or cast shadows
-  - detail is reduced on water through `waterSuppression`
+  - detail is not suppressed by authored water masks; zoom-detail materials are applied before water material rendering, so visible water overlays detailed terrain instead of disabling the detail pass
   - dev map mode exposes a `D` topic panel for live tuning four material slots, zoom fade, and water suppression
 - Camera settings:
   - settings contract key is `camera`, persisted as optional `camera.json`
@@ -568,7 +570,7 @@ Map/camera uniforms:
 - `uMapTexelSize` (must come from height texture size)
 - `uMapAspect` (must come from splat texture size)
 - `uResolution`, `uViewHalfExtents`, `uPanWorld`
-- `uUseDetail`, `uDetailBlend`, `uMaterialSplat`, detail material/atlas uniforms for RGBA material-splat micro color mixing
+- `uUseDetail`, `uDetailBlend`, `uMaterialSplat`, detail material/atlas uniforms for RGBA material-splat micro color mixing, plus detail transition uniforms (`uDetailBlendMode`, `uDetailDebugMode`, `uDetailWeightQuantization`, `uDetailDitherScale`, `uDetailDitherStrength`, `uDetailMinWeight`, `uDetailMaterialPriority`)
 - `uUseFog`, `uFogColor`, `uFogMinAlpha`, `uFogMaxAlpha`, `uFogFalloff`, `uFogStartOffset`, `uCameraHeightNorm`
 - `uUseVolumetric`, `uVolumetricStrength`, `uVolumetricDensity`, `uVolumetricAnisotropy`, `uVolumetricLength`, `uVolumetricSamples`
 

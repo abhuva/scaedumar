@@ -130,6 +130,8 @@ Build a self-contained prototype for top-down terrain rendering from Gaea-export
   - Uses linear falloff and normal interaction
 - Core zoom-detail material layer:
   - optional `detail.json` uses version `3` and tunes RGBA splat-driven dirt/rock/grass/snow micro color detail
+  - detail transitions support `smooth`, `dithered`, and `priorityDither` shader modes for comparing weighted blending against crisp sub-map-pixel hash-dithered material selection
+  - transition tuning includes shader-side weight quantization, dither cell size snapped to six map-pixel steps (`1`, `0.5`, `0.25`, `0.125`, `0.0625`, `0.03125`), priority-noise strength, minimum visible weight, raw material-splat debug channel view, and per-material priority values without changing the RGBA splat asset format
   - default is enabled; missing individual micro sprites use neutral gray slots, and a missing material splat falls back to the dirt slot
   - runtime builds one micro color atlas from `assets/detail/default/*`
   - material splat weights are normalized in the shader; channels map to `R=dirt`, `G=rock`, `B=grass`, `A=snow`

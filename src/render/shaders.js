@@ -42,7 +42,13 @@ uniform float uShadowStrength;
 uniform float uUseShadows;
 uniform float uUseDetail;
 uniform float uDetailBlend;
-uniform float uDetailWaterSuppression;
+uniform float uDetailBlendMode;
+uniform float uDetailDebugMode;
+uniform float uDetailWeightQuantization;
+uniform float uDetailDitherScale;
+uniform float uDetailDitherStrength;
+uniform float uDetailMinWeight;
+uniform vec4 uDetailMaterialPriority;
 uniform vec4 uDetailMicroRect0;
 uniform vec4 uDetailMicroRect1;
 uniform vec4 uDetailMicroRect2;
@@ -131,6 +137,12 @@ float uvHash(vec2 p) {
   return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
 }
 
+float detailHash(vec2 p) {
+  vec3 p3 = fract(vec3(p.xyx) * vec3(0.1031, 0.11369, 0.13787));
+  p3 += dot(p3, p3.yzx + 19.19);
+  return fract((p3.x + p3.y) * p3.z);
+}
+
 vec2 decodeImageFlowDir(vec4 sampleValue) {
   vec2 pair = sampleValue.rg;
   if (uWaterFlowChannelPair > 1.5) {
@@ -155,6 +167,43 @@ vec2 detailAtlasUv(vec2 mapPixel, float scaleMeters, vec4 rect) {
   return rect.xy + tileUv * rect.zw;
 }
 
+vec4 normalizeDetailWeights(vec4 weights) {
+  weights = max(weights, vec4(0.0));
+  if (uDetailMinWeight > 0.0001) {
+    weights *= step(vec4(uDetailMinWeight), weights);
+  }
+  if (uDetailWeightQuantization >= 2.0) {
+    float steps = max(2.0, floor(uDetailWeightQuantization + 0.5));
+    weights = floor(weights * steps + 0.5) / steps;
+  }
+  float weightSum = weights.r + weights.g + weights.b + weights.a;
+  return weightSum > 0.0001 ? weights / weightSum : vec4(1.0, 0.0, 0.0, 0.0);
+}
+
+vec4 ditheredDetailWeights(vec4 weights, vec2 mapPixel) {
+  float noise = detailHash(floor(mapPixel / max(0.03125, uDetailDitherScale)));
+  if (noise < weights.r) return vec4(1.0, 0.0, 0.0, 0.0);
+  if (noise < weights.r + weights.g) return vec4(0.0, 1.0, 0.0, 0.0);
+  if (noise < weights.r + weights.g + weights.b) return vec4(0.0, 0.0, 1.0, 0.0);
+  return vec4(0.0, 0.0, 0.0, 1.0);
+}
+
+vec4 priorityDitherDetailWeights(vec4 weights, vec2 mapPixel) {
+  vec2 cell = floor(mapPixel / max(0.03125, uDetailDitherScale));
+  vec4 noise = vec4(
+    detailHash(cell + vec2(11.0, 3.0)),
+    detailHash(cell + vec2(29.0, 17.0)),
+    detailHash(cell + vec2(47.0, 31.0)),
+    detailHash(cell + vec2(71.0, 53.0))
+  ) - vec4(0.5);
+  vec4 scores = weights + uDetailMaterialPriority + noise * clamp(uDetailDitherStrength, 0.0, 1.0);
+  scores = mix(vec4(-1000.0), scores, step(vec4(0.0001), weights));
+  if (scores.r >= scores.g && scores.r >= scores.b && scores.r >= scores.a) return vec4(1.0, 0.0, 0.0, 0.0);
+  if (scores.g >= scores.b && scores.g >= scores.a) return vec4(0.0, 1.0, 0.0, 0.0);
+  if (scores.b >= scores.a) return vec4(0.0, 0.0, 1.0, 0.0);
+  return vec4(0.0, 0.0, 0.0, 1.0);
+}
+
 void applyZoomDetail(inout vec3 base, vec2 uv, vec2 mapPixel) {
   if (uUseDetail < 0.5 || uDetailBlend <= 0.0001) return;
 
@@ -168,15 +217,14 @@ void applyZoomDetail(inout vec3 base, vec2 uv, vec2 mapPixel) {
   if (maxMicroStrength <= 0.0001) return;
 
   float blend = uDetailBlend;
-  if (uDetailWaterSuppression > 0.0001) {
-    float waterMask = smoothstep(0.46, 0.54, texture(uWater, uv).r);
-    blend *= mix(1.0, 1.0 - waterMask, clamp(uDetailWaterSuppression, 0.0, 1.0));
-  }
   if (blend <= 0.0001) return;
 
-  vec4 weights = max(texture(uMaterialSplat, uv), vec4(0.0));
-  float weightSum = weights.r + weights.g + weights.b + weights.a;
-  weights = weightSum > 0.0001 ? weights / weightSum : vec4(1.0, 0.0, 0.0, 0.0);
+  vec4 weights = normalizeDetailWeights(texture(uMaterialSplat, uv));
+  if (uDetailBlendMode > 1.5) {
+    weights = priorityDitherDetailWeights(weights, mapPixel);
+  } else if (uDetailBlendMode > 0.5) {
+    weights = ditheredDetailWeights(weights, mapPixel);
+  }
 
   vec3 microBlendColor = vec3(0.0);
   float microAmount = 0.0;
@@ -542,6 +590,22 @@ void main() {
   }
 
   vec2 uv = baseUv;
+
+  if (uDetailDebugMode > 0.5) {
+    vec4 materialSample = texture(uMaterialSplat, uv);
+    if (uDetailDebugMode < 1.5) {
+      outColor = vec4(materialSample.rgb, 1.0);
+    } else if (uDetailDebugMode < 2.5) {
+      outColor = vec4(vec3(materialSample.r), 1.0);
+    } else if (uDetailDebugMode < 3.5) {
+      outColor = vec4(vec3(materialSample.g), 1.0);
+    } else if (uDetailDebugMode < 4.5) {
+      outColor = vec4(vec3(materialSample.b), 1.0);
+    } else {
+      outColor = vec4(vec3(materialSample.a), 1.0);
+    }
+    return;
+  }
 
   vec3 base = texture(uSplat, uv).rgb;
   vec3 n = texture(uNormals, uv).xyz * 2.0 - 1.0;

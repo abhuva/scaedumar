@@ -103,7 +103,32 @@ export function createTerrainUniformUploader(deps) {
       : 0;
     deps.gl.uniform1f(deps.uniforms.uUseDetail, useDetail ? 1 : 0);
     deps.gl.uniform1f(deps.uniforms.uDetailBlend, detailBlend);
-    deps.gl.uniform1f(deps.uniforms.uDetailWaterSuppression, input.detailWaterSuppression);
+    const detailBlendMode = input.detailBlendMode === "priorityDither"
+      ? 2
+      : (input.detailBlendMode === "dithered" ? 1 : 0);
+    const detailDebugMode = input.detailDebugChannel === "rgba"
+      ? 1
+      : (input.detailDebugChannel === "red"
+        ? 2
+        : (input.detailDebugChannel === "green"
+          ? 3
+          : (input.detailDebugChannel === "blue"
+            ? 4
+            : (input.detailDebugChannel === "alpha" ? 5 : 0))));
+    const detailPriorities = Array.isArray(input.detailMaterialPriorities) ? input.detailMaterialPriorities : [0, 0, 0, 0];
+    deps.gl.uniform1f(deps.uniforms.uDetailBlendMode, detailBlendMode);
+    deps.gl.uniform1f(deps.uniforms.uDetailDebugMode, detailDebugMode);
+    deps.gl.uniform1f(deps.uniforms.uDetailWeightQuantization, input.detailQuantizationSteps);
+    deps.gl.uniform1f(deps.uniforms.uDetailDitherScale, input.detailDitherScale);
+    deps.gl.uniform1f(deps.uniforms.uDetailDitherStrength, input.detailDitherStrength);
+    deps.gl.uniform1f(deps.uniforms.uDetailMinWeight, input.detailMinWeight);
+    deps.gl.uniform4f(
+      deps.uniforms.uDetailMaterialPriority,
+      Number(detailPriorities[0]) || 0,
+      Number(detailPriorities[1]) || 0,
+      Number(detailPriorities[2]) || 0,
+      Number(detailPriorities[3]) || 0,
+    );
     uploadRect(deps.uniforms.uDetailMicroRect0, getRect(detailState, 0));
     uploadRect(deps.uniforms.uDetailMicroRect1, getRect(detailState, 1));
     uploadRect(deps.uniforms.uDetailMicroRect2, getRect(detailState, 2));

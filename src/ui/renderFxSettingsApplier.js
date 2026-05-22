@@ -5,6 +5,18 @@ export function createRenderFxSettingsApplier(deps) {
     return ((deg % 360) + 360) % 360;
   }
 
+  function setControlValue(control, value) {
+    const text = String(value);
+    if (control.type === "range") {
+      const num = Number(value);
+      if (Number.isFinite(num)) {
+        control.valueAsNumber = num;
+      }
+    }
+    control.value = text;
+    control.setAttribute("value", text);
+  }
+
   function applyFogSettingsCompat() {
     const fog = deps.getFogSettings();
     deps.fogToggle.checked = Boolean(fog.useFog);
@@ -54,36 +66,36 @@ export function createRenderFxSettingsApplier(deps) {
     deps.waterFlowUseMagnitudeToggle.checked = Boolean(water.waterFlowUseMagnitude);
     deps.waterFlowInvertDownhillToggle.checked = Boolean(water.waterFlowInvertDownhill);
     deps.waterFlowDebugToggle.checked = Boolean(water.waterFlowDebug);
-    deps.waterFlowDirectionInput.value = String(Math.round(normalizeDegrees(water.waterFlowDirectionDeg)));
-    deps.waterLocalFlowMixInput.value = String(deps.clamp(Number(water.waterLocalFlowMix), 0, 1));
-    deps.waterDownhillBoostInput.value = String(deps.clamp(Number(water.waterDownhillBoost), 0, 4));
-    deps.waterFlowRadius1Input.value = String(Math.round(deps.clamp(Number(water.waterFlowRadius1), 1, 12)));
-    deps.waterFlowRadius2Input.value = String(Math.round(deps.clamp(Number(water.waterFlowRadius2), 1, 24)));
-    deps.waterFlowRadius3Input.value = String(Math.round(deps.clamp(Number(water.waterFlowRadius3), 1, 40)));
-    deps.waterFlowWeight1Input.value = String(deps.clamp(Number(water.waterFlowWeight1), 0, 1));
-    deps.waterFlowWeight2Input.value = String(deps.clamp(Number(water.waterFlowWeight2), 0, 1));
-    deps.waterFlowWeight3Input.value = String(deps.clamp(Number(water.waterFlowWeight3), 0, 1));
-    deps.waterFlowStrengthInput.value = String(deps.clamp(Number(water.waterFlowStrength), 0, 0.15));
-    deps.waterFlowMapStrengthInput.value = String(deps.clamp(Number(water.waterFlowMapStrength), 0, 4));
-    deps.waterFlowVisibilityInput.value = String(deps.clamp(Number(water.waterFlowVisibility), 0, 4));
-    deps.waterStreamlineDensityInput.value = String(Math.round(deps.clamp(Number(water.waterStreamlineDensity), 4, 80)));
-    deps.waterStreamlineSharpnessInput.value = String(deps.clamp(Number(water.waterStreamlineSharpness), 0, 1));
-    deps.waterFlowSpeedInput.value = String(deps.clamp(Number(water.waterFlowSpeed), 0, 2.5));
-    deps.waterFlowScaleInput.value = String(deps.clamp(Number(water.waterFlowScale), 0.5, 14));
-    deps.waterShimmerStrengthInput.value = String(deps.clamp(Number(water.waterShimmerStrength), 0, 0.2));
-    deps.waterGlintStrengthInput.value = String(deps.clamp(Number(water.waterGlintStrength), 0, 1.5));
-    deps.waterGlintSharpnessInput.value = String(deps.clamp(Number(water.waterGlintSharpness), 0, 1));
-    deps.waterShoreFoamStrengthInput.value = String(deps.clamp(Number(water.waterShoreFoamStrength), 0, 0.5));
-    deps.waterShoreWidthInput.value = String(deps.clamp(Number(water.waterShoreWidth), 0.4, 6));
-    deps.waterReflectivityInput.value = String(deps.clamp(Number(water.waterReflectivity), 0, 1));
-    deps.waterBaseColorInput.value = Array.isArray(water.waterBaseColor)
+    setControlValue(deps.waterFlowDirectionInput, Math.round(normalizeDegrees(water.waterFlowDirectionDeg)));
+    setControlValue(deps.waterLocalFlowMixInput, deps.clamp(Number(water.waterLocalFlowMix), 0, 1));
+    setControlValue(deps.waterDownhillBoostInput, deps.clamp(Number(water.waterDownhillBoost), 0, 4));
+    setControlValue(deps.waterFlowRadius1Input, Math.round(deps.clamp(Number(water.waterFlowRadius1), 1, 12)));
+    setControlValue(deps.waterFlowRadius2Input, Math.round(deps.clamp(Number(water.waterFlowRadius2), 1, 24)));
+    setControlValue(deps.waterFlowRadius3Input, Math.round(deps.clamp(Number(water.waterFlowRadius3), 1, 40)));
+    setControlValue(deps.waterFlowWeight1Input, deps.clamp(Number(water.waterFlowWeight1), 0, 1));
+    setControlValue(deps.waterFlowWeight2Input, deps.clamp(Number(water.waterFlowWeight2), 0, 1));
+    setControlValue(deps.waterFlowWeight3Input, deps.clamp(Number(water.waterFlowWeight3), 0, 1));
+    setControlValue(deps.waterFlowStrengthInput, deps.clamp(Number(water.waterFlowStrength), 0, 0.15));
+    setControlValue(deps.waterFlowMapStrengthInput, deps.clamp(Number(water.waterFlowMapStrength), 0, 4));
+    setControlValue(deps.waterFlowVisibilityInput, deps.clamp(Number(water.waterFlowVisibility), 0, 4));
+    setControlValue(deps.waterStreamlineDensityInput, Math.round(deps.clamp(Number(water.waterStreamlineDensity), 4, 80)));
+    setControlValue(deps.waterStreamlineSharpnessInput, deps.clamp(Number(water.waterStreamlineSharpness), 0, 1));
+    setControlValue(deps.waterFlowSpeedInput, deps.clamp(Number(water.waterFlowSpeed), 0, 2.5));
+    setControlValue(deps.waterFlowScaleInput, deps.clamp(Number(water.waterFlowScale), 0.5, 14));
+    setControlValue(deps.waterShimmerStrengthInput, deps.clamp(Number(water.waterShimmerStrength), 0, 0.2));
+    setControlValue(deps.waterGlintStrengthInput, deps.clamp(Number(water.waterGlintStrength), 0, 1.5));
+    setControlValue(deps.waterGlintSharpnessInput, deps.clamp(Number(water.waterGlintSharpness), 0, 1));
+    setControlValue(deps.waterShoreFoamStrengthInput, deps.clamp(Number(water.waterShoreFoamStrength), 0, 0.5));
+    setControlValue(deps.waterShoreWidthInput, deps.clamp(Number(water.waterShoreWidth), 0.4, 6));
+    setControlValue(deps.waterReflectivityInput, deps.clamp(Number(water.waterReflectivity), 0, 1));
+    setControlValue(deps.waterBaseColorInput, Array.isArray(water.waterBaseColor)
       ? deps.rgbToHex(water.waterBaseColor)
-      : String(water.waterBaseColor || "#245f73");
-    deps.waterOpacityInput.value = String(deps.clamp(Number(water.waterOpacity), 0, 1));
-    deps.waterTintColorInput.value = Array.isArray(water.waterTintColor)
+      : String(water.waterBaseColor || "#245f73"));
+    setControlValue(deps.waterOpacityInput, deps.clamp(Number(water.waterOpacity), 0, 1));
+    setControlValue(deps.waterTintColorInput, Array.isArray(water.waterTintColor)
       ? deps.rgbToHex(water.waterTintColor)
-      : String(water.waterTintColor || "#5ea6d6");
-    deps.waterTintStrengthInput.value = String(deps.clamp(Number(water.waterTintStrength), 0, 1));
+      : String(water.waterTintColor || "#5ea6d6"));
+    setControlValue(deps.waterTintStrengthInput, deps.clamp(Number(water.waterTintStrength), 0, 1));
     deps.waterTimeRoutingInput.value = deps.normalizeRoutingMode(timeState.routing && timeState.routing.water, "detached");
     deps.updateWaterLabels();
     deps.updateWaterUi();
