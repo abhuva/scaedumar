@@ -113,16 +113,84 @@ test("detail settings contract routes and returns enabled defaults", () => {
   assert.equal(defaults.materials[1].id, "rock");
   assert.equal(defaults.materials[1].slot, 1);
   assert.equal(defaults.materials[0].micro.colorStrength, 1);
+  assert.equal(defaults.transition.blendMode, "smooth");
+  assert.equal(defaults.transition.quantizationSteps, 0);
+  assert.equal(defaults.transition.ditherScale, 0.25);
+  assert.equal(defaults.transition.debugChannel, "none");
   const normalized = normalizeDetailSettings({
+    transition: {
+      blendMode: "priorityDither",
+      debugChannel: "alpha",
+      quantizationSteps: 12.7,
+      ditherScale: 0.11,
+      minWeight: 0.75,
+      priorities: [-1, 0.1, 1],
+    },
     materials: [
       {
         micro: {
           colorStrength: 0.75,
+          scaleMeters: 9,
         },
       },
     ],
   });
   assert.equal(normalized.materials[0].micro.colorStrength, 0.75);
+  assert.equal(normalized.materials[0].micro.scaleMeters, 8);
+  assert.equal(normalized.transition.blendMode, "priorityDither");
+  assert.equal(normalized.transition.debugChannel, "alpha");
+  assert.equal(normalized.transition.quantizationSteps, 13);
+  assert.equal(normalized.transition.ditherScale, 0.125);
+  assert.equal(normalized.transition.minWeight, 0.5);
+  assert.deepEqual(normalized.transition.priorities, [-0.5, 0.1, 0.5, 0.03]);
+});
+
+test("detail settings preserve explicit smooth and none transition values with fallback fields", () => {
+  const fallback = normalizeDetailSettings({
+    transition: {
+      blendMode: "priorityDither",
+      debugChannel: "alpha",
+      quantizationSteps: 9,
+      ditherScale: 0.5,
+      ditherStrength: 0.42,
+      minWeight: 0.2,
+      priorities: [0.1, 0.2, -0.1, -0.2],
+    },
+    materials: [
+      {
+        micro: {
+          colorStrength: 0.6,
+          scaleMeters: 4,
+        },
+      },
+    ],
+  });
+  const normalized = normalizeDetailSettings({
+    transition: {
+      blendMode: "smooth",
+      debugChannel: "none",
+    },
+    materials: [
+      {
+        micro: {
+          colorStrength: 0.8,
+          scaleMeters: 16,
+        },
+      },
+    ],
+  }, fallback);
+
+  assert.equal(normalized.transition.blendMode, "smooth");
+  assert.equal(normalized.transition.debugChannel, "none");
+  assert.equal(normalized.transition.quantizationSteps, 9);
+  assert.equal(normalized.transition.ditherScale, 0.5);
+  assert.equal(normalized.transition.ditherStrength, 0.42);
+  assert.equal(normalized.transition.minWeight, 0.2);
+  assert.deepEqual(normalized.transition.priorities, [0.1, 0.2, -0.1, -0.2]);
+  assert.equal(normalized.materials[0].micro.colorStrength, 0.8);
+  assert.equal(normalized.materials[0].micro.scaleMeters, 16);
+  assert.equal(normalized.materials[1].micro.colorStrength, 1);
+  assert.equal(normalized.materials[1].micro.scaleMeters, 2);
 });
 
 test("camera settings contract routes and returns deep zoom defaults", () => {

@@ -20,7 +20,7 @@
       "slot": 0,
       "micro": {
         "src": "assets/detail/default/dirt_micro.png",
-        "scaleMeters": 8.5,
+        "scaleMeters": 8,
         "colorStrength": 0.44
       }
     },
@@ -29,7 +29,7 @@
       "slot": 1,
       "micro": {
         "src": "assets/detail/default/rock_micro.png",
-        "scaleMeters": 14,
+        "scaleMeters": 16,
         "colorStrength": 0.6
       }
     },
@@ -39,7 +39,7 @@
       "micro": {
         "src": "assets/detail/default/grass_micro.png",
         "scaleMeters": 2,
-        "colorStrength": 0
+        "colorStrength": 0.45
       }
     },
     {
@@ -48,9 +48,23 @@
       "micro": {
         "src": "assets/detail/default/snow_micro.png",
         "scaleMeters": 2,
-        "colorStrength": 0
+        "colorStrength": 0.45
       }
     }
   ],
+  "transition": {
+    "blendMode": "smooth",
+    "quantizationSteps": 0,
+    "ditherScale": 0.25,
+    "ditherStrength": 0.18,
+    "minWeight": 0.06,
+    "debugChannel": "none",
+    "priorities": [
+      -0.02,
+      0.05,
+      0,
+      0.03
+    ]
+  },
   "waterSuppression": 1
 }

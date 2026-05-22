@@ -621,7 +621,7 @@ const renderSupportRuntime = createRenderSupportRuntime(createRenderSupportAssem
   uploadCloudNoiseTextureRender,
 }));
 const mapSupportRuntime = createMapSupportRuntime(createMapSupportAssemblyRuntime({
-  defaultMapFolder: "assets/Map 1/",
+  defaultMapFolder: "assets/Map 3/",
   windowEl: window,
   applyMapSizeChangeIfNeeded: (...args) => applyMapSizeChangeIfNeeded(...args),
   resetCamera: () => resetCamera(),
@@ -1719,7 +1719,13 @@ const uniforms = {
   uUseShadows: gl.getUniformLocation(program, "uUseShadows"),
   uUseDetail: gl.getUniformLocation(program, "uUseDetail"),
   uDetailBlend: gl.getUniformLocation(program, "uDetailBlend"),
-  uDetailWaterSuppression: gl.getUniformLocation(program, "uDetailWaterSuppression"),
+  uDetailBlendMode: gl.getUniformLocation(program, "uDetailBlendMode"),
+  uDetailDebugMode: gl.getUniformLocation(program, "uDetailDebugMode"),
+  uDetailWeightQuantization: gl.getUniformLocation(program, "uDetailWeightQuantization"),
+  uDetailDitherScale: gl.getUniformLocation(program, "uDetailDitherScale"),
+  uDetailDitherStrength: gl.getUniformLocation(program, "uDetailDitherStrength"),
+  uDetailMinWeight: gl.getUniformLocation(program, "uDetailMinWeight"),
+  uDetailMaterialPriority: gl.getUniformLocation(program, "uDetailMaterialPriority"),
   uDetailMicroRect0: gl.getUniformLocation(program, "uDetailMicroRect0"),
   uDetailMicroRect1: gl.getUniformLocation(program, "uDetailMicroRect1"),
   uDetailMicroRect2: gl.getUniformLocation(program, "uDetailMicroRect2"),
@@ -1989,6 +1995,14 @@ function serializeWaterTrailSettings() {
 function applyWaterTrailSettings(rawData) {
   waterParticleTrailRuntime.applySettings(rawData);
 }
+
+function applyWaterPresetSettings(settings) {
+  applyWaterSettings(settings);
+  applyWaterSettingsCompat();
+  syncRenderFxWaterUi();
+  renderSupportRuntime.rebuildFlowMapTexture();
+}
+
 createModulePresetRuntime({
   kind: "waterfx",
   label: "Water FX",
@@ -2000,7 +2014,7 @@ createModulePresetRuntime({
   saveButton: waterPresetSaveBtn,
   loadJson: (path) => tryLoadJsonFromUrl(path),
   serializeSettings: () => serializeWaterSettings(),
-  applySettings: (settings) => applyWaterSettings(settings),
+  applySettings: (settings) => applyWaterPresetSettings(settings),
   getCurrentMapFolderPath,
   tauriInvoke,
   invokeTauri,
@@ -2041,8 +2055,8 @@ const POINT_LIGHT_BAKE_LIVE_SCALE = 0.5;
 const POINT_LIGHT_BAKE_DEBOUNCE_MS = 80;
 const SWARM_POINT_LIGHT_EDGE_MIN = 0.08;
 const overlayDirtyRuntime = createOverlayDirtyRuntime(true);
-const DEFAULT_MAP_FOLDER = "assets/Map 1/";
-const DEFAULT_MAP_FOLDER_CANDIDATES = ["assets/Map 1/", "assets/"];
+const DEFAULT_MAP_FOLDER = "assets/Map 3/";
+const DEFAULT_MAP_FOLDER_CANDIDATES = ["assets/Map 3/", "assets/"];
 const playerRuntimeBinding = createPlayerRuntimeBinding({
   store: runtimeCore.store,
   playerState,

@@ -18,6 +18,7 @@ function setPathValue(target, path, value) {
 }
 
 function formatValue(value, format) {
+  if (format === "text") return String(value);
   const num = Number(value);
   if (format === "int") return String(Math.round(num));
   if (format === "3") return num.toFixed(3);
@@ -27,6 +28,9 @@ function formatValue(value, format) {
 
 function readControlValue(control) {
   if (control.type === "checkbox") return Boolean(control.checked);
+  if (control.tagName === "SELECT") {
+    return control.dataset.detailFormat === "text" ? control.value : Number(control.value);
+  }
   return Number(control.value);
 }
 
@@ -51,6 +55,8 @@ export function createDetailPanelRuntime(deps) {
       if (value === undefined) continue;
       if (control.type === "checkbox") {
         control.checked = Boolean(value);
+      } else if (control.tagName === "SELECT") {
+        control.value = String(value);
       } else {
         control.value = String(value);
       }
@@ -96,11 +102,11 @@ export function createDetailPanelRuntime(deps) {
 
   function bindDetailControls() {
     for (const control of getControls()) {
-      const eventType = control.type === "checkbox" ? "change" : "input";
+      const eventType = control.type === "checkbox" || control.tagName === "SELECT" ? "change" : "input";
       control.addEventListener(eventType, () => {
         const needsRebuild = control.dataset.detailRebuild === "true";
         syncControlValueLabel(control);
-        if (control.type === "checkbox") {
+        if (control.type === "checkbox" || control.tagName === "SELECT") {
           dispatchFromControl(control, { rebuildDetailAtlas: false });
         } else {
           scheduleDispatch(control);

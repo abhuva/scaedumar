@@ -329,7 +329,7 @@ export function createWaterParticleTrailRuntime(deps) {
     if (settings.enabled !== wasEnabled) {
       clear();
     }
-    updateLabels();
+    syncControls();
   }
 
   function ensureTextureSize(nextWidth, nextHeight) {
@@ -744,6 +744,19 @@ export function createWaterParticleTrailRuntime(deps) {
     if (element) element.textContent = text;
   }
 
+  function setControlValue(control, value) {
+    if (!control) return;
+    const text = String(value);
+    if (control.type === "range") {
+      const num = Number(value);
+      if (Number.isFinite(num)) {
+        control.valueAsNumber = num;
+      }
+    }
+    control.value = text;
+    control.setAttribute("value", text);
+  }
+
   function updateLabels() {
     setText("waterTrailParticleCountValue", String(settings.particleCount));
     setText("waterTrailSpeedValue", `${settings.speedPxPerSec.toFixed(0)} px/s`);
@@ -788,32 +801,32 @@ export function createWaterParticleTrailRuntime(deps) {
 
   function syncControls() {
     if (controls.enabled) controls.enabled.checked = settings.enabled;
-    if (controls.particleCount) controls.particleCount.value = String(settings.particleCount);
-    if (controls.speedPxPerSec) controls.speedPxPerSec.value = String(settings.speedPxPerSec);
-    if (controls.simSpeed) controls.simSpeed.value = String(settings.simSpeed);
-    if (controls.resolutionScale) controls.resolutionScale.value = String(settings.resolutionScale);
-    if (controls.flowInfluence) controls.flowInfluence.value = String(settings.flowInfluence);
-    if (controls.trailStrength) controls.trailStrength.value = String(settings.trailStrength);
-    if (controls.agentOpacity) controls.agentOpacity.value = String(settings.agentOpacity);
-    if (controls.trailHeadroom) controls.trailHeadroom.value = String(settings.trailHeadroom);
-    if (controls.trailFade) controls.trailFade.value = String(settings.trailFade);
-    if (controls.diffusion) controls.diffusion.value = String(settings.diffusion);
-    if (controls.currentDrag) controls.currentDrag.value = String(settings.currentDrag);
-    if (controls.stampRadius) controls.stampRadius.value = String(settings.stampRadius);
-    if (controls.spawnInheritRadius) controls.spawnInheritRadius.value = String(settings.spawnInheritRadius);
-    if (controls.spawnWarmupSec) controls.spawnWarmupSec.value = String(settings.spawnWarmupSec);
-    if (controls.channelPair) controls.channelPair.value = settings.channelPair;
+    setControlValue(controls.particleCount, settings.particleCount);
+    setControlValue(controls.speedPxPerSec, settings.speedPxPerSec);
+    setControlValue(controls.simSpeed, settings.simSpeed);
+    setControlValue(controls.resolutionScale, settings.resolutionScale);
+    setControlValue(controls.flowInfluence, settings.flowInfluence);
+    setControlValue(controls.trailStrength, settings.trailStrength);
+    setControlValue(controls.agentOpacity, settings.agentOpacity);
+    setControlValue(controls.trailHeadroom, settings.trailHeadroom);
+    setControlValue(controls.trailFade, settings.trailFade);
+    setControlValue(controls.diffusion, settings.diffusion);
+    setControlValue(controls.currentDrag, settings.currentDrag);
+    setControlValue(controls.stampRadius, settings.stampRadius);
+    setControlValue(controls.spawnInheritRadius, settings.spawnInheritRadius);
+    setControlValue(controls.spawnWarmupSec, settings.spawnWarmupSec);
+    setControlValue(controls.channelPair, settings.channelPair);
     if (controls.flipX) controls.flipX.checked = settings.flipX;
     if (controls.flipY) controls.flipY.checked = settings.flipY;
     if (controls.useMagnitude) controls.useMagnitude.checked = settings.useMagnitude;
     if (controls.debug) controls.debug.checked = settings.debug;
-    if (controls.tintColor) controls.tintColor.value = settings.tintColor;
-    if (controls.glitterStrength) controls.glitterStrength.value = String(settings.glitterStrength);
-    if (controls.glitterDensity) controls.glitterDensity.value = String(settings.glitterDensity);
-    if (controls.glitterSpeed) controls.glitterSpeed.value = String(settings.glitterSpeed);
-    if (controls.glitterSize) controls.glitterSize.value = String(settings.glitterSize);
-    if (controls.glitterSharpness) controls.glitterSharpness.value = String(settings.glitterSharpness);
-    if (controls.glitterWakeSuppression) controls.glitterWakeSuppression.value = String(settings.glitterWakeSuppression);
+    setControlValue(controls.tintColor, settings.tintColor);
+    setControlValue(controls.glitterStrength, settings.glitterStrength);
+    setControlValue(controls.glitterDensity, settings.glitterDensity);
+    setControlValue(controls.glitterSpeed, settings.glitterSpeed);
+    setControlValue(controls.glitterSize, settings.glitterSize);
+    setControlValue(controls.glitterSharpness, settings.glitterSharpness);
+    setControlValue(controls.glitterWakeSuppression, settings.glitterWakeSuppression);
     updateLabels();
   }
 

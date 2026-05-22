@@ -46,10 +46,17 @@ export function createRenderSupportRuntime(deps) {
     return shadowPipelineRuntime;
   }
 
+  function withImageCacheBust(url) {
+    const text = String(url || "");
+    if (!text || text.startsWith("data:") || text.startsWith("blob:")) return text;
+    const separator = text.includes("?") ? "&" : "?";
+    return `${text}${separator}terrainImageBust=${Date.now()}`;
+  }
+
   async function loadImageFromUrl(url) {
     const image = new Image();
     image.decoding = "async";
-    image.src = url;
+    image.src = withImageCacheBust(url);
     try {
       await image.decode();
     } catch (error) {

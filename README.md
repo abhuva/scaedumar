@@ -33,7 +33,7 @@ Current architecture baseline:
 
 Auto-load checks these folders in order:
 
-1. `assets/Map 1/`
+1. `assets/Map 3/`
 2. `assets/`
 
 Each candidate folder should contain:
@@ -246,7 +246,7 @@ Architecture map:
 - Point-light sets can be exported/imported as `pointlights.json` via `Save All` / `Load All`.
 - `Save All` uses a two-step confirmation (click once to arm, click again within 5s to confirm).
 - `Load All` first tries `<current map folder>/pointlights.json` and falls back to manual JSON file selection.
-- For persistence across reloads, save the JSON as `<current map folder>/pointlights.json` (for example `assets/Map 1/pointlights.json`).
+- For persistence across reloads, save the JSON as `<current map folder>/pointlights.json` (for example `assets/Map 3/pointlights.json`).
 - In desktop runtime, map path can be left empty and `Load` opens a native folder picker.
 - `Load Map` includes a map-level `Save All` action that writes:
   - `pointlights.json`
@@ -261,8 +261,11 @@ Architecture map:
   - `audio.json` (spectrogram settings, scribble/playback controls)
   - `npc.json` (`charID`, `pixelX`, `pixelY`, `color`)
 - Map loading automatically applies these JSON files when present in the selected map folder. Map-specific JSONs such as `watertrails.json` live under `assets/<mapName>/`, following the `assets/*/*.json` sidecar convention.
-- Dev map mode exposes a `D` panel for live zoom-detail tuning. Detail is color-only for performance: the current terrain color map remains the base, while a normalized RGBA material splat (`R=dirt`, `G=rock`, `B=grass`, `A=snow`) blends micro material detail over it by zoom fade.
-- `detail.json` is a version `3` micro-only contract. Each material has one `micro` source, tile scale, and color strength; `0` strength contributes nothing and `1` contributes fully according to material-splat weight and zoom fade.
+- Dev map mode exposes a `D` panel for live zoom-detail tuning. Detail is color-only for performance: the current terrain color map remains the base, while a normalized RGBA material splat (`R=dirt`, `G=rock`, `B=grass`, `A=snow`) drives micro material detail over it by zoom fade.
+- `detail.json` is a version `3` micro-only contract. Each material has one `micro` source, tile scale, and color strength; `0` strength contributes nothing and `1` contributes fully according to material-splat influence and zoom fade.
+- Detail material transitions can be compared in `Smooth`, `Dithered`, and `Priority Dither` modes. The experiment runs shader-side only: optional weight quantization, minimum visible weight, sub-map-pixel hash dithering, raw material-splat debug channel view, and per-material priority values sharpen close-zoom material identity without changing source asset formats.
+- Material micro tile size controls are snapped to discrete map-pixel values: `1`, `2`, `4`, `8`, `16`, and `32`.
+- Detail is not suppressed by authored water masks. Zoom-detail materials are applied before water material rendering, so visible water overlays detailed terrain instead of disabling the detail pass.
 - The terrain shader receives zoom fade as a frame-level `uDetailBlend` uniform, so the per-fragment detail path only samples water/material/detail textures after detail is active at the current zoom.
 - Missing individual micro sprites are replaced by neutral gray atlas slots. If the material splat cannot load, detail falls back to the dirt slot so available micro detail still renders instead of disabling the whole pass.
 - `Audio Studio` is a top-level workspace beside the map workspace.
