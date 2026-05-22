@@ -60,14 +60,14 @@ function normalizeSlot(value, fallback) {
 }
 
 function normalizeBlendMode(value, fallback) {
-  if (value === "dithered" || value === "priorityDither") return value;
-  if (fallback === "dithered" || fallback === "priorityDither") return fallback;
+  if (value === "smooth" || value === "dithered" || value === "priorityDither") return value;
+  if (fallback === "smooth" || fallback === "dithered" || fallback === "priorityDither") return fallback;
   return "smooth";
 }
 
 function normalizeDebugChannel(value, fallback) {
-  if (value === "rgba" || value === "red" || value === "green" || value === "blue" || value === "alpha") return value;
-  if (fallback === "rgba" || fallback === "red" || fallback === "green" || fallback === "blue" || fallback === "alpha") return fallback;
+  if (value === "none" || value === "rgba" || value === "red" || value === "green" || value === "blue" || value === "alpha") return value;
+  if (fallback === "none" || fallback === "rgba" || fallback === "red" || fallback === "green" || fallback === "blue" || fallback === "alpha") return fallback;
   return "none";
 }
 

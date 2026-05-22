@@ -370,7 +370,7 @@ No game engine is used.
   - zoom fade is computed once per frame and uploaded as `uDetailBlend`; the fragment shader returns before water/material/detail texture sampling when detail is inactive at the current zoom
   - detail is color-only for performance; it does not modify normals or cast shadows
   - detail is not suppressed by authored water masks; zoom-detail materials are applied before water material rendering, so visible water overlays detailed terrain instead of disabling the detail pass
-  - dev map mode exposes a `D` topic panel for live tuning four material slots, zoom fade, and water suppression
+  - dev map mode exposes a `D` topic panel for live tuning four material slots and zoom fade
 - Camera settings:
   - settings contract key is `camera`, persisted as optional `camera.json`
   - `zoomMin` / `zoomMax` control runtime camera clamp; default `zoomMax` is `128` for close inspection of zoom-detail materials
