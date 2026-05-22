@@ -1,4 +1,4 @@
-﻿# Crisp Material Transition Design
+# Crisp Material Transition Design
 
 ## Purpose
 
