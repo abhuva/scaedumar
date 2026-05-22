@@ -16,8 +16,8 @@ export function createPathfindingRuntimeBinding(deps) {
 
   const pathfindingPreviewRuntime = createPathfindingPreviewRuntime({
     movementWindowBounds: () => pathfindingCostModel.movementWindowBounds(),
-    computeMoveStepCost: (fromX, fromY, toX, toY) =>
-      pathfindingCostModel.computeMoveStepCost(fromX, fromY, toX, toY),
+    computeMoveStepCost: (fromX, fromY, toX, toY, moveCostContext = null) =>
+      pathfindingCostModel.computeMoveStepCost(fromX, fromY, toX, toY, moveCostContext),
     playerState: deps.playerState,
     getMovementField: () => movementField,
     setMovementField: (value) => {
@@ -36,8 +36,9 @@ export function createPathfindingRuntimeBinding(deps) {
     getGrayAt: (imageData, x, y, sourceWidth, sourceHeight) =>
       pathfindingCostModel.getGrayAt(imageData, x, y, sourceWidth, sourceHeight),
     movementWindowBounds: () => pathfindingCostModel.movementWindowBounds(),
-    computeMoveStepCost: (fromX, fromY, toX, toY) =>
-      pathfindingCostModel.computeMoveStepCost(fromX, fromY, toX, toY),
+    createMoveCostContext: () => pathfindingCostModel.createMoveCostContext(),
+    computeMoveStepCost: (fromX, fromY, toX, toY, moveCostContext = null) =>
+      pathfindingCostModel.computeMoveStepCost(fromX, fromY, toX, toY, moveCostContext),
     rebuildMovementField: () => pathfindingPreviewRuntime.rebuildMovementField(),
     extractPathTo: (pixelX, pixelY) => pathfindingPreviewRuntime.extractPathTo(pixelX, pixelY),
     refreshPathPreview: () => pathfindingPreviewRuntime.refreshPathPreview(),

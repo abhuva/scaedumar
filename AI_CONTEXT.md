@@ -165,6 +165,8 @@ No game engine is used.
 - Render resource/pass pipeline composition is now grouped behind `src/render/renderPipelineRuntime.js` instead of leaving renderer/pass assembly inline in `main.js`.
 - Swarm step/loop/overlay/lit-render composition is now grouped behind `src/gameplay/swarmRenderSetupRuntime.js` instead of leaving those setup blocks inline in `main.js`.
 - Movement-system player/movement snapshot store-sync ownership is now extracted to `src/gameplay/movementStoreSyncRuntime.js` instead of remaining as inline gameplay-store mutation closures in `main.js`.
+- Movement-system lifecycle hooks (`onMovementStarted`, `onStepStarted`, `onStepCompleted`, `onQueueCompleted`, `onMovementCanceled`) are now available so higher-level gameplay activities can own behavior while movement remains the generic step executor.
+- Gathering activity groundwork now lives in `src/gameplay/gatheringActivityRuntime.js` with store sync through `src/gameplay/activityStoreSyncRuntime.js`: starting gathering forces game time to `1x`, controls movement through repeated single-step queues, rolls a placeholder 5% plant chance on newly visited cells, and forces time back to `1x` when stopped.
 - Time/cycle-hour UI and lighting-params setup are now grouped behind `src/sim/timeLightingSetupRuntime.js` instead of leaving that setup block inline in `main.js`.
 - Interaction UI sync helpers are now grouped behind `src/ui/interactionUiSyncRuntime.js`, and command/controller paths no longer directly write:
   - `pointLightLiveUpdateToggle.checked` in `registerMainCommands.js`
@@ -474,8 +476,8 @@ No game engine is used.
   - simulation time running in integration steps
   - average hawk kill interval (ticks), computed from accumulated hawk kill events
 - Mode behavior:
-  - `gameplay`: hides dev topic menus and workspace switching; only `PF`
-    and `Exit` remain available on the left dock.
+  - `gameplay`: hides dev topic menus and workspace switching; `PF`,
+    `GA` (gathering), and `Exit` remain available on the left dock.
   - `dev`: exposes the full current toolset.
   - `lighting`: left click adds/selects point lights.
   - `pathfinding`: hover shows live path preview from player; left click moves player instantly to clicked cell.
@@ -518,7 +520,26 @@ No game engine is used.
     be chosen through `PF`
   - active movement shows a right-side ETA panel with an explicit cancel button;
     ordinary map/UI clicks do not cancel the current movement queue
+  - queued travel starts at the `1x` time preset (`0.01` h/s) and resets back
+    to `1x` when the queue completes or is canceled.
   - player is loaded from `<mapFolder>/npc.json` and drawn as a 0.5-map-pixel circle
+- Gathering activity:
+  - `GA` starts/stops automated gathering as an exclusive activity.
+  - while active, other map actions and interaction-mode changes are blocked until gathering is canceled.
+  - the player wanders by repeated one-step movement queues chosen from valid neighboring cells inside the activity radius.
+  - candidate movement uses the same terrain movement cost model as pathfinding/travel; invalid slope-cutoff steps are rejected.
+  - lower-cost candidates are weighted higher, recently visited cells are avoided first and allowed only as fallback.
+  - gathering radius comes from `playerState.stats.gatherRadius` / `gameplay.player.stats.gatherRadius`, default `30`.
+  - entering a newly visited cell rolls a placeholder 5% plant chance and updates the activity panel stats.
+  - active gathering draws a map-space radius circle around the activity origin.
+  - starting and stopping/canceling gathering forces time speed to the `1x` preset (`0.01` h/s), while the player may change speed during the activity.
+- Inspect activity:
+  - gameplay-only `I` dock button starts an exclusive non-movement activity.
+  - active inspect uses the shared activity panel with a cancel button.
+  - moving the cursor over terrain updates map pixel `x/y`, sampled height, and sampled slope.
+  - the button is hidden outside gameplay mode.
+- Gameplay camera helper:
+  - gameplay-only `P` dock button centers the camera on the player and sets zoom to `35`.
 - Cursor light mode on:
   - mouse movement updates live point-light position on terrain
   - optional overlay gizmo shows live cursor-light radius preview

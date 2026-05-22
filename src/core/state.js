@@ -11,6 +11,9 @@ const DEFAULT_WEATHER_STATE = {
 export const DEFAULT_GAMEPLAY_PLAYER = {
   pixelX: 0,
   pixelY: 0,
+  stats: {
+    gatherRadius: 30,
+  },
 };
 
 export const DEFAULT_CURSOR_LIGHT_COLOR_HEX = "#ff9b2f";
@@ -49,6 +52,22 @@ export const DEFAULT_GAMEPLAY_MOVEMENT = {
   ticksRemaining: 0,
   currentStepCost: 0,
   totalTicksRemaining: 0,
+};
+
+export const DEFAULT_GAMEPLAY_ACTIVITY = {
+  active: false,
+  type: "none",
+  originX: 0,
+  originY: 0,
+  radius: 0,
+  stepsTaken: 0,
+  visitedCount: 0,
+  foundCount: 0,
+  lastMessage: "",
+  inspectX: null,
+  inspectY: null,
+  inspectHeight: null,
+  inspectSlope: null,
 };
 
 export const DEFAULT_GAMEPLAY_POINT_LIGHTS = {
@@ -129,6 +148,7 @@ export function createInitialState() {
       pointLights: { ...DEFAULT_GAMEPLAY_POINT_LIGHTS },
       swarm: { ...DEFAULT_GAMEPLAY_SWARM },
       movement: { ...DEFAULT_GAMEPLAY_MOVEMENT },
+      activity: { ...DEFAULT_GAMEPLAY_ACTIVITY },
     },
     ui: {
       cycleHour: DEFAULT_CYCLE_HOUR,

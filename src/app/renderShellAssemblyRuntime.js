@@ -24,6 +24,7 @@ export function createRenderShellAssemblyRuntime(deps) {
       getCursorLightSnapshot: deps.getCursorLightSnapshot,
       cursorLightState: deps.cursorLightState,
       movePreviewState: deps.movePreviewState,
+      getActivitySnapshot: deps.getActivitySnapshot,
       playerState: deps.playerState,
       drawSwarmUnlitOverlay: deps.drawSwarmUnlitOverlay,
       drawSwarmGizmos: deps.drawSwarmGizmos,

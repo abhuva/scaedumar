@@ -68,6 +68,9 @@ Build a self-contained prototype for top-down terrain rendering from Gaea-export
   - Preferred command: `npm run lint:md`.
   - Full lint command: `npm run lint`.
   - If unavailable, explicitly state in the commit/PR notes that markdown lint was not run due to missing tool.
+- Markdown prose style:
+  - Do not hard-wrap prose to a fixed line length; `MD013` is intentionally disabled.
+  - Let paragraphs flow naturally unless existing local formatting or readability clearly benefits from manual line breaks.
 
 
 ## Map Conventions (Current Prototype)

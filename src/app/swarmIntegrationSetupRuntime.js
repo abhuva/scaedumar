@@ -36,6 +36,7 @@ export function createSwarmIntegrationSetupRuntime(deps) {
     playerState: deps.interactionContext.playerState,
     getCurrentPathMetrics: deps.interactionContext.getCurrentPathMetrics,
     getMovementSnapshot: deps.interactionContext.getMovementSnapshot,
+    getActivitySnapshot: deps.interactionContext.getActivitySnapshot,
     getMovementEtaSeconds: deps.interactionContext.getMovementEtaSeconds,
     getFrameDebugInfo: deps.interactionContext.getFrameDebugInfo,
     getDetailDebugInfo: deps.interactionContext.getDetailDebugInfo,
@@ -46,8 +47,10 @@ export function createSwarmIntegrationSetupRuntime(deps) {
     playerInfoEl: deps.interactionContext.playerInfoEl,
     pathInfoEl: deps.interactionContext.pathInfoEl,
     movementStatusPanelEl: deps.interactionContext.movementStatusPanelEl,
+    movementStatusTitleEl: deps.interactionContext.movementStatusTitleEl,
     movementStatusEtaEl: deps.interactionContext.movementStatusEtaEl,
     movementStatusDetailEl: deps.interactionContext.movementStatusDetailEl,
+    movementCancelBtn: deps.interactionContext.movementCancelBtn,
   });
 
   const interactionModeBinding = {

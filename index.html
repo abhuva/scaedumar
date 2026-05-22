@@ -49,6 +49,9 @@
     <nav class="topic-dock" aria-label="Map tool topics">
       <button id="dockLightingModeToggle" class="mode-btn" type="button" title="Lighting Mode" aria-label="Lighting mode toggle">LM</button>
       <button id="dockPathfindingModeToggle" class="mode-btn" type="button" title="Pathfinding Mode" aria-label="Pathfinding mode toggle">PF</button>
+      <button id="dockGatheringActivityBtn" class="mode-btn gameplay-only-action" type="button" title="Start Gathering" aria-label="Start gathering activity">GA</button>
+      <button id="dockInspectActivityBtn" class="mode-btn gameplay-only-action" type="button" title="Inspect Terrain" aria-label="Inspect terrain activity">I</button>
+      <button id="dockShowPlayerBtn" class="mode-btn gameplay-only-action" type="button" title="Show Player" aria-label="Center camera on player">P</button>
       <button id="dockExitToTitleBtn" class="mode-btn shell-exit-btn" type="button" title="Exit to title screen" aria-label="Exit to title screen">Exit</button>
       <button class="topic-btn" type="button" data-topic="map" title="Load Map" aria-label="Load map">M</button>
       <button class="topic-btn" type="button" data-topic="interaction" title="Interaction" aria-label="Interaction settings">I</button>
@@ -1244,7 +1247,7 @@
       <p><span>Avg Hawk Kill Time</span><strong id="swarmStatsAvgHawkKillValue">--</strong></p>
     </aside>
     <aside id="movementStatusPanel" class="movement-status-panel hidden" aria-live="polite">
-      <h2>Player Moving</h2>
+      <h2 id="movementStatusTitle">Player Moving</h2>
       <p id="movementStatusEta">Estimated arrival: --</p>
       <p id="movementStatusDetail">Path: --</p>
       <button id="movementCancelBtn" class="movement-cancel-btn" type="button">Cancel Travel</button>

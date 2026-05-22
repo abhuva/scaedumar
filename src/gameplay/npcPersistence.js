@@ -1,4 +1,17 @@
 export function createNpcPersistence(deps) {
+  function normalizePlayerStats(rawStats) {
+    const defaults = deps.defaultPlayer.stats || {};
+    const data = rawStats && typeof rawStats === "object" ? rawStats : {};
+    const gatherRadius = Number.isFinite(Number(data.gatherRadius))
+      ? deps.clamp(Math.round(Number(data.gatherRadius)), 1, 300)
+      : Number(defaults.gatherRadius) || 30;
+    return {
+      ...defaults,
+      ...data,
+      gatherRadius,
+    };
+  }
+
   function serializeNpcState() {
     return {
       version: 1,
@@ -6,6 +19,7 @@ export function createNpcPersistence(deps) {
       pixelX: deps.playerState.pixelX,
       pixelY: deps.playerState.pixelY,
       color: deps.playerState.color,
+      stats: normalizePlayerStats(deps.playerState.stats),
     };
   }
 
@@ -22,6 +36,7 @@ export function createNpcPersistence(deps) {
       color,
       pixelX: deps.clamp(Math.round(pixelX), 0, Math.max(0, deps.splatSize.width - 1)),
       pixelY: deps.clamp(Math.round(pixelY), 0, Math.max(0, deps.splatSize.height - 1)),
+      stats: normalizePlayerStats(data.stats),
     };
   }
 
@@ -29,6 +44,7 @@ export function createNpcPersistence(deps) {
     const player = parseNpcPlayer(rawData);
     deps.playerState.charID = player.charID;
     deps.playerState.color = player.color;
+    deps.playerState.stats = { ...player.stats };
     deps.setPlayerPosition(player.pixelX, player.pixelY);
     deps.syncPlayerStateToStore();
   }

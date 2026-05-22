@@ -8,6 +8,11 @@ export function registerInteractionCommands(commandBus, deps) {
     return Boolean(snapshot && snapshot.active);
   }
 
+  function isActivityActive() {
+    if (typeof deps.isActivityActive !== "function") return false;
+    return deps.isActivityActive();
+  }
+
   function syncPlayerToStore() {
     deps.syncPlayerStateToStore();
   }
@@ -24,11 +29,56 @@ export function registerInteractionCommands(commandBus, deps) {
   }
 
   commandBus.register("core/interaction/setMode", (command) => {
+    if (isActivityActive()) {
+      deps.setStatus("Stop the current activity before changing interaction mode.");
+      return;
+    }
     deps.setInteractionMode(command.mode);
   });
 
   commandBus.register("core/movement/cancel", () => {
+    if (isActivityActive() && typeof deps.cancelActivity === "function") {
+      deps.cancelActivity();
+      return;
+    }
     cancelMovementFromCommand();
+  });
+
+  commandBus.register("core/activity/startGathering", () => {
+    if (typeof deps.startGatheringActivity !== "function") return;
+    const result = deps.startGatheringActivity();
+    if (!result || result.ok) {
+      deps.setInteractionMode("none");
+      deps.movePreviewState.hoverPixel = null;
+      deps.movePreviewState.pathPixels = [];
+      deps.requestOverlayDraw();
+      return;
+    }
+    deps.setStatus(result.reason || "Unable to start gathering.");
+  });
+
+  commandBus.register("core/activity/startInspect", () => {
+    if (typeof deps.startInspectActivity !== "function") return;
+    const result = deps.startInspectActivity();
+    if (!result || result.ok) {
+      deps.setInteractionMode("none");
+      deps.movePreviewState.hoverPixel = null;
+      deps.movePreviewState.pathPixels = [];
+      deps.requestOverlayDraw();
+      return;
+    }
+    deps.setStatus(result.reason || "Unable to start inspect.");
+  });
+
+  commandBus.register("core/activity/updateInspectAt", (command) => {
+    if (typeof deps.updateInspectActivityAt !== "function") return;
+    deps.updateInspectActivityAt(command.x, command.y);
+  });
+
+  commandBus.register("core/activity/cancel", () => {
+    if (typeof deps.cancelActivity === "function") {
+      deps.cancelActivity();
+    }
   });
 
   commandBus.register("core/interaction/clickMapPixel", (command) => {
@@ -36,6 +86,12 @@ export function registerInteractionCommands(commandBus, deps) {
       x: Number(command.x),
       y: Number(command.y),
     };
+
+    if (isActivityActive()) {
+      deps.setStatus("Stop the current activity before starting another action.");
+      deps.requestOverlayDraw();
+      return;
+    }
 
     if (deps.getInteractionMode() === "lighting") {
       const existing = deps.findPointLightAtPixel(pixel.x, pixel.y);

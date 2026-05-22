@@ -6,7 +6,7 @@ export function bindCanvasControls(deps) {
 
   function isUiTarget(target) {
     if (!target || typeof target.closest !== "function") return false;
-    return Boolean(target.closest(".topic-dock, .topic-panel, .swarm-stats-panel"));
+    return Boolean(target.closest(".topic-dock, .topic-panel, .swarm-stats-panel, .movement-status-panel"));
   }
 
   function shouldRouteFallbackToCanvas(event, options = {}) {
@@ -21,6 +21,9 @@ export function bindCanvasControls(deps) {
     deps.updateSwarmCursorFromPointer(clientX, clientY);
     deps.updateCursorLightFromPointer(clientX, clientY);
     deps.updatePathPreviewFromPointer(clientX, clientY);
+    if (typeof deps.updateInspectFromPointer === "function") {
+      deps.updateInspectFromPointer(clientX, clientY);
+    }
     if (!deps.isMiddleDragging()) {
       if (deps.isCursorLightEnabled() || deps.getInteractionMode() === "pathfinding" || deps.isSwarmEnabled?.()) {
         deps.requestOverlayDraw();

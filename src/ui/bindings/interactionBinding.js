@@ -1,5 +1,9 @@
 export function bindInteractionAndCycleControls(deps) {
   deps.dockLightingModeToggle.addEventListener("click", () => {
+    if (typeof deps.isActivityActive === "function" && deps.isActivityActive()) {
+      deps.setStatus("Stop the current activity before changing interaction mode.");
+      return;
+    }
     if (typeof deps.canUseInteractionMode === "function" && !deps.canUseInteractionMode("lighting")) {
       deps.setStatus("Lighting mode is unavailable in current runtime mode.");
       return;
@@ -19,6 +23,10 @@ export function bindInteractionAndCycleControls(deps) {
   });
 
   deps.dockPathfindingModeToggle.addEventListener("click", () => {
+    if (typeof deps.isActivityActive === "function" && deps.isActivityActive()) {
+      deps.setStatus("Stop the current activity before changing interaction mode.");
+      return;
+    }
     if (typeof deps.canUseInteractionMode === "function" && !deps.canUseInteractionMode("pathfinding")) {
       deps.setStatus("Pathfinding mode is unavailable in current runtime mode.");
       return;
@@ -37,6 +45,32 @@ export function bindInteractionAndCycleControls(deps) {
     deps.rebuildMovementField();
     deps.setStatus("Pathfinding mode enabled: hover for path preview, click to move player.");
   });
+
+  if (deps.dockGatheringActivityBtn) {
+    deps.dockGatheringActivityBtn.addEventListener("click", () => {
+      if (typeof deps.isActivityActive === "function" && deps.isActivityActive()) {
+        deps.dispatchCoreCommand({ type: "core/activity/cancel" });
+        return;
+      }
+      deps.dispatchCoreCommand({ type: "core/activity/startGathering" });
+    });
+  }
+
+  if (deps.dockInspectActivityBtn) {
+    deps.dockInspectActivityBtn.addEventListener("click", () => {
+      if (typeof deps.isActivityActive === "function" && deps.isActivityActive()) {
+        deps.dispatchCoreCommand({ type: "core/activity/cancel" });
+        return;
+      }
+      deps.dispatchCoreCommand({ type: "core/activity/startInspect" });
+    });
+  }
+
+  if (deps.dockShowPlayerBtn) {
+    deps.dockShowPlayerBtn.addEventListener("click", () => {
+      deps.dispatchCoreCommand({ type: "core/player/show" });
+    });
+  }
 
   deps.cycleHourInput.addEventListener("pointerdown", () => {
     deps.dispatchCoreCommand({ type: "core/time/setHourScrubbing", scrubbing: true });
@@ -92,7 +126,11 @@ export function bindInteractionAndCycleControls(deps) {
 
   if (deps.movementCancelBtn) {
     deps.movementCancelBtn.addEventListener("click", () => {
-      deps.dispatchCoreCommand({ type: "core/movement/cancel" });
+      if (typeof deps.isActivityActive === "function" && deps.isActivityActive()) {
+        deps.dispatchCoreCommand({ type: "core/activity/cancel" });
+      } else {
+        deps.dispatchCoreCommand({ type: "core/movement/cancel" });
+      }
     });
   }
 }

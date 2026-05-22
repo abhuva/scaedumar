@@ -23,6 +23,9 @@ export function createPlayerRuntimeBinding(deps) {
         pixelX: deps.playerState.pixelX,
         pixelY: deps.playerState.pixelY,
         color: deps.playerState.color,
+        stats: {
+          ...(deps.playerState.stats || {}),
+        },
       },
     });
   }

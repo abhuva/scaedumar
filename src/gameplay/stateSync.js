@@ -26,6 +26,10 @@ export function syncPlayerState(deps) {
         ...prev.gameplay.player,
         pixelX: deps.playerState.pixelX,
         pixelY: deps.playerState.pixelY,
+        stats: {
+          ...(prev.gameplay && prev.gameplay.player && prev.gameplay.player.stats ? prev.gameplay.player.stats : {}),
+          ...(deps.playerState.stats || {}),
+        },
       },
     },
   }));
@@ -241,6 +245,19 @@ export function patchMovementState(deps) {
       ...prev.gameplay,
       movement: {
         ...(prev.gameplay && prev.gameplay.movement ? prev.gameplay.movement : {}),
+        ...(deps.patch || {}),
+      },
+    },
+  }));
+}
+
+export function patchActivityState(deps) {
+  deps.store.update((prev) => ({
+    ...prev,
+    gameplay: {
+      ...prev.gameplay,
+      activity: {
+        ...(prev.gameplay && prev.gameplay.activity ? prev.gameplay.activity : {}),
         ...(deps.patch || {}),
       },
     },

@@ -159,6 +159,14 @@ body.runtime-gameplay .workspace-switcher {
   display: none;
 }
 
+.topic-dock .gameplay-only-action {
+  display: none;
+}
+
+body.runtime-gameplay .topic-dock .gameplay-only-action {
+  display: block;
+}
+
 .game-time-diorama {
   --time-sky-top: #6ca7c9;
   --time-sky-mid: #99c6d4;
