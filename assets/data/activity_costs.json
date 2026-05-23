@@ -1,0 +1,97 @@
+{
+  "movement.step": {
+    "effects": {
+      "nutrition": -0.015,
+      "hydration": -0.025,
+      "fatigue": 0.035
+    },
+    "scales": {
+      "movementCost": {
+        "weight": 1.0,
+        "baseline": 1.0
+      },
+      "load": {
+        "weight": 0.6,
+        "baseline": 0
+      }
+    },
+    "multiplier": {
+      "min": 0.25,
+      "max": 4
+    }
+  },
+  "gathering.search": {
+    "effects": {
+      "nutrition": -0.005,
+      "hydration": -0.008,
+      "fatigue": 0.012
+    },
+    "scales": {
+      "activityIntensity": {
+        "weight": 1.0,
+        "baseline": 1.0
+      },
+      "load": {
+        "weight": 0.15,
+        "baseline": 0
+      }
+    },
+    "multiplier": {
+      "min": 0.25,
+      "max": 4
+    }
+  },
+  "gather_water.search": {
+    "effects": {
+      "nutrition": -0.002,
+      "hydration": -0.004,
+      "fatigue": 0.01
+    },
+    "scales": {
+      "activityIntensity": {
+        "weight": 1.0,
+        "baseline": 1.0
+      },
+      "load": {
+        "weight": 0.15,
+        "baseline": 0
+      }
+    },
+    "multiplier": {
+      "min": 0.25,
+      "max": 4
+    }
+  },
+  "rest.tick": {
+    "effects": {
+      "fatigue": -0.25
+    },
+    "scales": {
+      "activityIntensity": {
+        "weight": 1.0,
+        "baseline": 1.0
+      }
+    },
+    "multiplier": {
+      "min": 0.25,
+      "max": 4
+    }
+  },
+  "idle.tick": {
+    "effects": {
+      "nutrition": -0.004,
+      "hydration": -0.006,
+      "fatigue": 0
+    },
+    "scales": {
+      "activityIntensity": {
+        "weight": 1.0,
+        "baseline": 1.0
+      }
+    },
+    "multiplier": {
+      "min": 0.25,
+      "max": 4
+    }
+  }
+}

@@ -64,6 +64,7 @@ export function createMapLifecycleRuntime(deps) {
     applyDetailSettings: deps.applyDetailSettings,
     applyCameraSettings: deps.applyCameraSettings,
     applyAudioSettings: deps.applyAudioSettings,
+    applyResourceDebugSettings: deps.applyResourceDebugSettings,
     applySwarmData: deps.applySwarmData,
     applyLoadedNpc: deps.applyLoadedNpc,
     getFileFromFolderSelection: deps.getFileFromFolderSelection,
@@ -83,6 +84,8 @@ export function createMapLifecycleRuntime(deps) {
     resetMapRuntimeStateAfterImages: () => getMapRuntimeState().resetMapRuntimeStateAfterImages(),
     rebuildMovementField: deps.rebuildMovementField,
     setStatus: deps.setStatus,
+    getRequiredGameplayMapFiles: deps.getRequiredGameplayMapFiles,
+    onMapLoaded: deps.onMapLoaded,
   });
 
   const mapDataSaveRuntime = createMapDataSaveRuntime({
@@ -96,6 +99,7 @@ export function createMapLifecycleRuntime(deps) {
     serializeDetailSettings: deps.serializeDetailSettings,
     serializeCameraSettings: deps.serializeCameraSettings,
     serializeAudioSettings: deps.serializeAudioSettings,
+    serializeResourceDebugSettings: deps.serializeResourceDebugSettings,
     serializeSwarmData: deps.serializeSwarmData,
     serializeNpcState: deps.serializeNpcState,
     normalizeMapFolderPath: deps.normalizeMapFolderPath,

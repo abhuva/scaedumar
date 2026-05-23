@@ -11,6 +11,7 @@ export function createMapDataSaveController(deps) {
       "detail.json": `${JSON.stringify(deps.serializeDetailSettings(), null, 2)}\n`,
       "camera.json": `${JSON.stringify(deps.serializeCameraSettings(), null, 2)}\n`,
       "audio.json": `${JSON.stringify(deps.serializeAudioSettings(), null, 2)}\n`,
+      "resource_debug.json": `${JSON.stringify(deps.serializeResourceDebugSettings(), null, 2)}\n`,
       "swarm.json": `${JSON.stringify(deps.serializeSwarmData(), null, 2)}\n`,
       "npc.json": `${JSON.stringify(deps.serializeNpcState(), null, 2)}\n`,
     };

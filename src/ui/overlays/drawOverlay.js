@@ -1,3 +1,5 @@
+import { drawResourceContourOverlay } from "./resourceContourOverlay.js";
+
 export function createOverlayDrawer(deps) {
   return function drawOverlay() {
     deps.overlayCtx.clearRect(0, 0, deps.overlayCanvas.width, deps.overlayCanvas.height);
@@ -79,6 +81,22 @@ export function createOverlayDrawer(deps) {
     }
 
     const activitySnapshot = typeof deps.getActivitySnapshot === "function" ? deps.getActivitySnapshot() : null;
+    if (activitySnapshot && activitySnapshot.active && activitySnapshot.type === "inspect") {
+      const contour = typeof deps.getResourceContourOverlaySnapshot === "function"
+        ? deps.getResourceContourOverlaySnapshot()
+        : null;
+      if (contour) {
+        drawResourceContourOverlay({
+          ctx: deps.overlayCtx,
+          imageData: contour.imageData,
+          search: contour.search,
+          sampleKnowledge: contour.sampleKnowledge,
+          mapPixelToWorld: deps.mapPixelToWorld,
+          worldToScreen: deps.worldToScreen,
+        });
+      }
+    }
+
     if (activitySnapshot && activitySnapshot.active && activitySnapshot.type === "gathering") {
       const radius = Math.max(0, Number(activitySnapshot.radius) || 0);
       const centerWorld = deps.mapPixelToWorld(activitySnapshot.originX, activitySnapshot.originY);
@@ -91,6 +109,27 @@ export function createOverlayDrawer(deps) {
       deps.overlayCtx.strokeStyle = "rgba(180, 126, 71, 0.85)";
       deps.overlayCtx.lineWidth = 2;
       deps.overlayCtx.stroke();
+    }
+
+    const bundles = typeof deps.getInventoryBundles === "function" ? deps.getInventoryBundles() : [];
+    for (const bundle of bundles) {
+      const centerWorld = deps.mapPixelToWorld(bundle.pixelX, bundle.pixelY);
+      const centerScreen = deps.worldToScreen(centerWorld);
+      const edgeWorld = { x: centerWorld.x + worldPerMapPixel * 1.2, y: centerWorld.y };
+      const edgeScreen = deps.worldToScreen(edgeWorld);
+      const screenRadius = Math.max(4, Math.hypot(edgeScreen.x - centerScreen.x, edgeScreen.y - centerScreen.y));
+      deps.overlayCtx.beginPath();
+      deps.overlayCtx.arc(centerScreen.x, centerScreen.y, screenRadius, 0, Math.PI * 2);
+      deps.overlayCtx.fillStyle = "rgba(168, 111, 49, 0.82)";
+      deps.overlayCtx.fill();
+      deps.overlayCtx.strokeStyle = "rgba(255, 221, 150, 0.92)";
+      deps.overlayCtx.lineWidth = 1.5;
+      deps.overlayCtx.stroke();
+      deps.overlayCtx.fillStyle = "rgba(20, 14, 8, 0.95)";
+      deps.overlayCtx.font = "700 10px sans-serif";
+      deps.overlayCtx.textAlign = "center";
+      deps.overlayCtx.textBaseline = "middle";
+      deps.overlayCtx.fillText("B", centerScreen.x, centerScreen.y);
     }
 
     drawMapDot(deps.playerState.pixelX, deps.playerState.pixelY, deps.playerState.color);

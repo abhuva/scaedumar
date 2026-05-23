@@ -122,6 +122,78 @@ test("movement cancel command is a no-op when travel is inactive", () => {
   assert.equal(deps.calls.status, "");
 });
 
+test("movement cancel command cancels pathfinding planning when no travel is active", () => {
+  const commandBus = createCommandBus();
+  let mode = "pathfinding";
+  const deps = createDeps({
+    getInteractionMode: () => mode,
+    setInteractionMode: (nextMode) => {
+      mode = nextMode;
+    },
+    movePreviewState: {
+      hoverPixel: { x: 8, y: 9 },
+      pathPixels: [{ x: 2, y: 3 }, { x: 8, y: 9 }],
+    },
+  });
+  registerInteractionCommands(commandBus, deps);
+
+  commandBus.dispatch({ type: "core/movement/cancel" });
+
+  assert.equal(mode, "none");
+  assert.equal(deps.movePreviewState.hoverPixel, null);
+  assert.deepEqual(deps.movePreviewState.pathPixels, []);
+  assert.equal(deps.calls.requestOverlayDraw, 1);
+  assert.equal(deps.calls.status, "Travel planning canceled.");
+});
+
+test("pathfinding click starts explicit travel after queuing movement", () => {
+  const commandBus = createCommandBus();
+  let travelStarted = 0;
+  const deps = createDeps({
+    getInteractionMode: () => "pathfinding",
+    extractPathTo: () => [{ x: 2, y: 3 }, { x: 8, y: 9 }],
+    replaceMovementQueue: () => true,
+    startTravelActivity: () => {
+      travelStarted += 1;
+      return { ok: true };
+    },
+  });
+  registerInteractionCommands(commandBus, deps);
+
+  commandBus.dispatch({ type: "core/interaction/clickMapPixel", x: 8, y: 9 });
+
+  assert.equal(travelStarted, 1);
+  assert.equal(deps.calls.requestOverlayDraw, 1);
+});
+
+test("start gather water command clears map preview on success", () => {
+  const commandBus = createCommandBus();
+  let mode = "pathfinding";
+  let waterStarts = 0;
+  const deps = createDeps({
+    setInteractionMode: (nextMode) => {
+      mode = nextMode;
+    },
+    startGatherWaterActivity: () => {
+      waterStarts += 1;
+      return { ok: true };
+    },
+    movePreviewState: {
+      hoverPixel: { x: 8, y: 9 },
+      pathPixels: [{ x: 2, y: 3 }, { x: 8, y: 9 }],
+    },
+  });
+  registerInteractionCommands(commandBus, deps);
+
+  commandBus.dispatch({ type: "core/activity/startGatherWater" });
+
+  assert.equal(waterStarts, 1);
+  assert.equal(mode, "none");
+  assert.equal(deps.movePreviewState.hoverPixel, null);
+  assert.deepEqual(deps.movePreviewState.pathPixels, []);
+  assert.equal(deps.calls.requestOverlayDraw, 1);
+});
+
 test("dev no-mode map clicks keep the existing teleport test behavior", () => {
   const commandBus = createCommandBus();
   const deps = createDeps({

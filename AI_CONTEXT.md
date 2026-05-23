@@ -166,7 +166,9 @@ No game engine is used.
 - Swarm step/loop/overlay/lit-render composition is now grouped behind `src/gameplay/swarmRenderSetupRuntime.js` instead of leaving those setup blocks inline in `main.js`.
 - Movement-system player/movement snapshot store-sync ownership is now extracted to `src/gameplay/movementStoreSyncRuntime.js` instead of remaining as inline gameplay-store mutation closures in `main.js`.
 - Movement-system lifecycle hooks (`onMovementStarted`, `onStepStarted`, `onStepCompleted`, `onQueueCompleted`, `onMovementCanceled`) are now available so higher-level gameplay activities can own behavior while movement remains the generic step executor.
-- Gathering activity groundwork now lives in `src/gameplay/gatheringActivityRuntime.js` with store sync through `src/gameplay/activityStoreSyncRuntime.js`: starting gathering forces game time to `1x`, controls movement through repeated single-step queues, rolls a placeholder 5% plant chance on newly visited cells, and forces time back to `1x` when stopped.
+- Player activity ownership now lives in `src/gameplay/playerActivityRuntime.js`; `src/gameplay/gatheringActivityRuntime.js` is only a compatibility re-export. Activity metadata lives in `assets/data/activities.json` and is loaded by `src/gameplay/activityRegistry.js`. The activity director always has an `idle` fallback, applies baseline upkeep on processed simulation ticks, and layers explicit activities such as travel, gathering, inspect, and rest on top.
+- Condition consequences are data-driven from `assets/data/condition_effects.json`, loaded by `src/gameplay/conditionEffectRegistry.js`, and resolved by `src/gameplay/conditionEffectRuntime.js`. Active effects expose UI-ready status snapshots plus modifiers for activity/movement cost resolution; only the strongest effect per category is active.
+- Travel preview estimation lives in `src/gameplay/travelEstimateRuntime.js`; while PF mode is active and no travel is committed, the existing side panel shows `Plan Travel` with destination, steps, projected ticks/time, estimated nutrition/hydration/fatigue cost, active condition modifier labels, and new/worsened projected condition-effect warnings. Estimates resolve the same movement/upkeep cost keys used by committed travel and include `idle.tick` upkeep over projected travel ticks.
 - Time/cycle-hour UI and lighting-params setup are now grouped behind `src/sim/timeLightingSetupRuntime.js` instead of leaving that setup block inline in `main.js`.
 - Interaction UI sync helpers are now grouped behind `src/ui/interactionUiSyncRuntime.js`, and command/controller paths no longer directly write:
   - `pointLightLiveUpdateToggle.checked` in `registerMainCommands.js`
@@ -254,6 +256,7 @@ No game engine is used.
   - `slope.png`
   - `water.png`
   - optional `flow.png` (`R/G = signed XY direction by default`, neutral `128/128`)
+  - optional `wetness.png` (`R` channel drives map-authored wetness for resource search)
 - Optional sidecar JSON files in each candidate folder:
   - `pointlights.json`
   - `lighting.json`
@@ -265,6 +268,7 @@ No game engine is used.
   - `detail.json`
   - `camera.json`
   - `audio.json`
+  - `resource_debug.json`
   - `swarm.json`
   - `npc.json`
 - `Load Map` topic supports loading by folder path or folder picker (map bundle semantics)
@@ -524,21 +528,61 @@ No game engine is used.
     ordinary map/UI clicks do not cancel the current movement queue
   - queued travel starts at the `1x` time preset (`0.01` h/s) and resets back
     to `1x` when the queue completes or is canceled.
+  - accepted PF movement now starts an explicit `travel` activity; movement remains the generic step executor, while activity state owns route intent, cancellation, and completion messaging.
+  - while PF destination selection is active, the right-side activity panel shows travel planning estimates for the hovered path before any cost is paid.
   - player is loaded from `<mapFolder>/npc.json` and drawn as a 0.5-map-pixel circle
-- Gathering activity:
-  - `GA` starts/stops automated gathering as an exclusive activity.
+- Gathering/resource-search activities:
+  - `G` starts/stops automated gathering as an exclusive activity.
+  - `W` starts/stops water gathering as an exclusive activity.
   - while active, other map actions and interaction-mode changes are blocked until gathering is canceled.
   - the player wanders by repeated one-step movement queues chosen from valid neighboring cells inside the activity radius.
   - candidate movement uses the same terrain movement cost model as pathfinding/travel; invalid slope-cutoff steps are rejected.
   - lower-cost candidates are weighted higher, recently visited cells are avoided first and allowed only as fallback.
   - gathering radius comes from `playerState.stats.gatherRadius` / `gameplay.player.stats.gatherRadius`, default `30`.
-  - entering a newly visited cell rolls a placeholder 5% plant chance and updates the activity panel stats.
+  - entering a newly visited cell rolls a placeholder 5% plant chance, updates the activity panel stats, and writes one random placeholder item (`berries`, `medicinal_herb`, or `plant_fiber`) into the player inventory when capacity allows.
+  - water gathering uses `assets/data/resource_search.json` through `src/gameplay/resourceSearchRegistry.js` and `src/gameplay/resourceSearchRuntime.js`.
+  - the current `water` resource search samples optional map-local `wetness.png` from the red channel, applies data-driven threshold/curve/chance tuning, and biases wandering candidates toward wetter samples.
+  - if a resource search references a missing gameplay map, map load reports a warning and the missing-map resource chance is disabled instead of using baseline chance.
+  - `src/gameplay/resourceDiscoveryRuntime.js` owns low-resolution discovered-knowledge masks for resource perception; water currently uses a tunable `256x256` discovery grid and movement reveal radius from `assets/data/resource_search.json`.
+  - every completed movement step reveals discovered wetness around the player, currently radius `30` map pixels for water.
+  - inspect mode displays wetness contour lines through the overlay canvas only where the water discovery mask is known; contour drawing samples full-resolution `wetness.png` while the low-resolution discovery mask only gates visibility.
+  - wetness contour output is cached as a map-sized transparent raster overlay; it rebuilds only when inspect starts or Resource Debug controls explicitly invalidate the view. Ordinary redraws blit the cached contour image, and travel-driven discovery updates do not rebuild active contour geometry.
+  - Resource Debug can switch between `Marching Lines` (default; five marching-squares contour bands rasterized once) and `Raster Bands` (direct grayscale-threshold pixel processing).
+  - Inspect activity panel has `W/H/S` buttons to choose the displayed discovered-knowledge layer: wetness from `wetness.png`, height from `height.png`, or slope from `slope.png`.
+  - gameplay and dev modes expose an `RD` Resource Debug topic panel for map-local resource perception tuning. Discovery grid/reveal radius are shared for the water-knowledge mask, while render mode, tint color, contour sample step, knowledge gate, line width, band width, and five band enabled/threshold settings are stored separately for `wetness`, `height`, and `slope`.
+  - `Save All` persists Resource Debug tuning to map-local `resource_debug.json`, and map load applies that sidecar when present or falls back to data defaults.
+  - successful water search currently adds the stackable `water_skin` item from `assets/data/items.json` to the player inventory; using that item restores hydration via the item effect rather than directly from the search activity.
   - active gathering draws a map-space radius circle around the activity origin.
   - starting and stopping/canceling gathering forces time speed to the `1x` preset (`0.01` h/s), while the player may change speed during the activity.
+- Gameplay inventory/container slice:
+  - static starter item definitions live in `assets/data/items.json`; `src/gameplay/itemRegistry.js` only loads/normalizes that data.
+  - pure stack/capacity operations live in `src/gameplay/containerModel.js` and enforce both weight and bulk.
+  - runtime inventory ownership lives in `src/gameplay/inventoryRuntime.js`; the player starts with `player_pack` (`25` weight, `40` bulk).
+  - gameplay mode exposes an `In` HUD action button that opens a lightweight inventory panel backed by `src/ui/inventoryPanelRuntime.js`.
+  - the inventory panel shows selected item description and per-unit weight/bulk/tags; player condition has moved to the bottom gameplay HUD.
+  - selecting a carried stack and pressing `Drop Bundle` creates a map-space bundle/container at the player position.
+  - bundle markers are always drawn on the overlay for now; nearby bundles can be used to move selected stacks between the player pack and bundle.
+  - selected carried `berries` can be eaten from the inventory panel; one item is consumed and player nutrition/hydration are increased.
+- Player condition slice:
+  - runtime condition ownership lives in `src/gameplay/conditionRuntime.js` with store sync through `src/gameplay/conditionStoreSyncRuntime.js`.
+  - current mutable condition values are `nutrition`, `hydration`, `fatigue`, and derived load ratios (`loadWeight`, `loadBulk`, `load`).
+  - `load` is derived from the current player inventory capacity snapshot and updates whenever the inventory runtime syncs.
+  - gameplay mode has a bottom HUD (`src/ui/gameplayHudRuntime.js`) with compact condition bars and action slots for PF, gathering, water gathering, inspect, rest, and inventory.
+  - activity metadata, HUD labels, cancel/complete labels, and activity cost-key references live in `assets/data/activities.json`.
+  - condition warning thresholds live in `assets/data/condition_thresholds.json` and are normalized by `src/gameplay/conditionThresholdRegistry.js`; warning/critical HUD states use amber/red bar outlines.
+  - activity/condition pressure is data-driven from `assets/data/activity_costs.json`; `src/gameplay/activityCostRegistry.js` loads/normalizes the data and `src/gameplay/activityEffectRuntime.js` resolves scaled effects.
+  - condition consequences live in `assets/data/condition_effects.json`; hydration can increase fatigue gain, nutrition can reduce rest recovery, fatigue can increase movement cost, and load exposes a `Burdened` explanation for existing load penalties.
+  - the bottom gameplay HUD includes a compact status-effect strip above the condition bars; hover/focus on a badge shows a tooltip with description, mechanical effect, and remedy text.
+  - `idle.tick` is the baseline upkeep cost of being alive and is applied by `src/gameplay/playerActivityRuntime.js` on every processed movement-time simulation tick, even while an explicit activity is active.
+  - movement and activity work are separate cost events: `movement.step` applies on each completed movement step, while `gathering.search` / `gather_water.search` apply from the activity after a search movement step.
+  - `movement.step` currently scales by terrain movement cost and inventory load; search work costs currently scale by activity intensity and inventory load.
+  - rest is an exclusive activity started from the gameplay HUD; it uses `rest.tick` only for fatigue recovery while `idle.tick` continues to own nutrition/hydration upkeep, and stops automatically when fatigue reaches the low threshold.
+  - the design note for this model lives in `docs/ACTIVITY_MODEL.md`.
 - Inspect activity:
   - gameplay-only `I` dock button starts an exclusive non-movement activity.
   - active inspect uses the shared activity panel with a cancel button.
-  - moving the cursor over terrain updates map pixel `x/y`, sampled height, and sampled slope.
+  - moving the cursor over terrain updates map pixel `x/y`, sampled height, sampled slope, wetness, water-search chance, and local knowledge percentage.
+  - while inspecting, discovered wetness is rendered as map-space contour lines instead of terrain tinting.
   - the button is hidden outside gameplay mode.
 - Gameplay camera helper:
   - gameplay-only `P` dock button centers the camera on the player and sets zoom to `35`.

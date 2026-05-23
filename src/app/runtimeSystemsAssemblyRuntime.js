@@ -2,6 +2,7 @@ export function createRuntimeSystemsAssemblyRuntime(deps) {
   return {
     scheduler: deps.scheduler,
     movementSystem: deps.movementSystem,
+    activitySystem: deps.activitySystem,
     getState: deps.getState,
     clamp: deps.clamp,
     wrapHour: deps.wrapHour,

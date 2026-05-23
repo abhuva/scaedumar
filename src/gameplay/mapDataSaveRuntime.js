@@ -12,6 +12,7 @@ export function createMapDataSaveRuntime(deps) {
     serializeDetailSettings: deps.serializeDetailSettings,
     serializeCameraSettings: deps.serializeCameraSettings,
     serializeAudioSettings: deps.serializeAudioSettings,
+    serializeResourceDebugSettings: deps.serializeResourceDebugSettings,
     serializeSwarmData: deps.serializeSwarmData,
     serializeNpcState: deps.serializeNpcState,
     normalizeMapFolderPath: deps.normalizeMapFolderPath,

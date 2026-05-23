@@ -1,0 +1,23 @@
+{
+  "nutrition": {
+    "direction": "lowBad",
+    "warning": 35,
+    "critical": 18
+  },
+  "hydration": {
+    "direction": "lowBad",
+    "warning": 35,
+    "critical": 18
+  },
+  "fatigue": {
+    "direction": "highBad",
+    "warning": 65,
+    "critical": 82
+  },
+  "load": {
+    "direction": "highBad",
+    "warning": 0.65,
+    "critical": 0.85,
+    "scale": 1
+  }
+}

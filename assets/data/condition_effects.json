@@ -1,0 +1,147 @@
+{
+  "thirsty": {
+    "id": "thirsty",
+    "category": "hydration",
+    "stat": "hydration",
+    "mode": "low",
+    "threshold": 30,
+    "priority": 10,
+    "label": "Thirsty",
+    "icon": "H2O",
+    "severity": "warning",
+    "description": "Hydration is low.",
+    "effectsText": [
+      "Fatigue gain +10%."
+    ],
+    "remedyText": [
+      "Drink water when available."
+    ],
+    "modifiers": {
+      "fatigueGainMultiplier": 1.1
+    }
+  },
+  "dehydrated": {
+    "id": "dehydrated",
+    "category": "hydration",
+    "stat": "hydration",
+    "mode": "low",
+    "threshold": 10,
+    "priority": 20,
+    "label": "Dehydrated",
+    "icon": "H2O",
+    "severity": "critical",
+    "description": "Hydration is critically low.",
+    "effectsText": [
+      "Fatigue gain +25%."
+    ],
+    "remedyText": [
+      "Drink water as soon as possible."
+    ],
+    "modifiers": {
+      "fatigueGainMultiplier": 1.25
+    }
+  },
+  "hungry": {
+    "id": "hungry",
+    "category": "nutrition",
+    "stat": "nutrition",
+    "mode": "low",
+    "threshold": 30,
+    "priority": 10,
+    "label": "Hungry",
+    "icon": "N",
+    "severity": "warning",
+    "description": "Nutrition is low.",
+    "effectsText": [
+      "Rest recovery -10%."
+    ],
+    "remedyText": [
+      "Eat food."
+    ],
+    "modifiers": {
+      "recoveryMultiplier": 0.9
+    }
+  },
+  "starving": {
+    "id": "starving",
+    "category": "nutrition",
+    "stat": "nutrition",
+    "mode": "low",
+    "threshold": 10,
+    "priority": 20,
+    "label": "Starving",
+    "icon": "N",
+    "severity": "critical",
+    "description": "Nutrition is critically low.",
+    "effectsText": [
+      "Rest recovery -30%."
+    ],
+    "remedyText": [
+      "Eat food immediately."
+    ],
+    "modifiers": {
+      "recoveryMultiplier": 0.7
+    }
+  },
+  "tired": {
+    "id": "tired",
+    "category": "fatigue",
+    "stat": "fatigue",
+    "mode": "high",
+    "threshold": 70,
+    "priority": 10,
+    "label": "Tired",
+    "icon": "F",
+    "severity": "warning",
+    "description": "Fatigue is high.",
+    "effectsText": [
+      "Movement cost +10%."
+    ],
+    "remedyText": [
+      "Rest to recover fatigue."
+    ],
+    "modifiers": {
+      "movementCostMultiplier": 1.1
+    }
+  },
+  "exhausted": {
+    "id": "exhausted",
+    "category": "fatigue",
+    "stat": "fatigue",
+    "mode": "high",
+    "threshold": 90,
+    "priority": 20,
+    "label": "Exhausted",
+    "icon": "F",
+    "severity": "critical",
+    "description": "Fatigue is critically high.",
+    "effectsText": [
+      "Movement cost +25%."
+    ],
+    "remedyText": [
+      "Stop and rest."
+    ],
+    "modifiers": {
+      "movementCostMultiplier": 1.25
+    }
+  },
+  "burdened": {
+    "id": "burdened",
+    "category": "load",
+    "stat": "load",
+    "mode": "high",
+    "threshold": 0.8,
+    "priority": 10,
+    "label": "Burdened",
+    "icon": "L",
+    "severity": "warning",
+    "description": "Your pack is heavily loaded.",
+    "effectsText": [
+      "Load already increases movement and work costs."
+    ],
+    "remedyText": [
+      "Drop items or move supplies to a bundle."
+    ],
+    "modifiers": {}
+  }
+}

@@ -102,7 +102,33 @@ import { createEntityStore } from "./gameplay/entityStore.js";
 import { createMovementSystem } from "./gameplay/movementSystem.js";
 import { createMovementStoreSyncRuntime } from "./gameplay/movementStoreSyncRuntime.js";
 import { createActivityStoreSyncRuntime } from "./gameplay/activityStoreSyncRuntime.js";
-import { createGatheringActivityRuntime } from "./gameplay/gatheringActivityRuntime.js";
+import { createInventoryStoreSyncRuntime } from "./gameplay/inventoryStoreSyncRuntime.js";
+import { createConditionStoreSyncRuntime } from "./gameplay/conditionStoreSyncRuntime.js";
+import { createPlayerActivityRuntime } from "./gameplay/playerActivityRuntime.js";
+import { createInventoryRuntime } from "./gameplay/inventoryRuntime.js";
+import { createConditionRuntime } from "./gameplay/conditionRuntime.js";
+import { loadActivityDefinitions } from "./gameplay/activityRegistry.js";
+import { loadActivityCosts } from "./gameplay/activityCostRegistry.js";
+import { createActivityEffectRuntime } from "./gameplay/activityEffectRuntime.js";
+import { loadConditionThresholds } from "./gameplay/conditionThresholdRegistry.js";
+import { loadConditionEffects } from "./gameplay/conditionEffectRegistry.js";
+import {
+  applyConditionEffectModifiers,
+  compareConditionEffectSnapshots,
+  createConditionEffectRuntime,
+  resolveConditionEffects,
+} from "./gameplay/conditionEffectRuntime.js";
+import { loadResourceSearches } from "./gameplay/resourceSearchRegistry.js";
+import { createResourceSearchRuntime } from "./gameplay/resourceSearchRuntime.js";
+import { createResourceDiscoveryRuntime } from "./gameplay/resourceDiscoveryRuntime.js";
+import {
+  createDefaultResourceDebugSettings,
+  getResourceDebugBandColors,
+  normalizeResourceDebugSettings,
+  serializeResourceDebugSettings,
+} from "./gameplay/resourceDebugSettings.js";
+import { createTravelEstimateRuntime } from "./gameplay/travelEstimateRuntime.js";
+import { loadItemDefinitions } from "./gameplay/itemRegistry.js";
 import { createLightInteractionRuntimeBinding } from "./gameplay/lightInteractionRuntimeBinding.js";
 import { createMapSupportRuntime } from "./gameplay/mapSupportRuntime.js";
 import { parsePointLightsPayload, serializePointLightsPayload } from "./gameplay/pointLightsPersistence.js";
@@ -155,7 +181,28 @@ import { createWorkspaceRuntime } from "./ui/workspaceRuntime.js";
 import { createGameTimeDioramaRuntime } from "./ui/gameTimeDioramaRuntime.js";
 import { createDetailPanelRuntime } from "./ui/detailPanelRuntime.js";
 import { createModulePresetRuntime } from "./ui/modulePresetRuntime.js";
+import { createInventoryPanelRuntime } from "./ui/inventoryPanelRuntime.js";
+import { createResourceDebugPanelRuntime } from "./ui/resourceDebugPanelRuntime.js";
+import { createGameplayHudRuntime } from "./ui/gameplayHudRuntime.js";
 
+const ITEM_DEFINITIONS = await loadItemDefinitions();
+const ACTIVITY_DEFINITIONS = await loadActivityDefinitions();
+const ACTIVITY_COSTS = await loadActivityCosts();
+const CONDITION_THRESHOLDS = await loadConditionThresholds();
+const CONDITION_EFFECTS = await loadConditionEffects();
+const RESOURCE_SEARCHES = await loadResourceSearches();
+const DEFAULT_RESOURCE_DEBUG_SETTINGS = createDefaultResourceDebugSettings(RESOURCE_SEARCHES, "water");
+let resourceDebugSettings = normalizeResourceDebugSettings(null, DEFAULT_RESOURCE_DEBUG_SETTINGS);
+
+function getActivityCostKey(activityId, costRole, fallback) {
+  const definition = ACTIVITY_DEFINITIONS[activityId];
+  const costKeys = definition && definition.costKeys && typeof definition.costKeys === "object"
+    ? definition.costKeys
+    : null;
+  return costKeys && typeof costKeys[costRole] === "string" && costKeys[costRole]
+    ? costKeys[costRole]
+    : fallback;
+}
 const runtimeCore = createRuntimeCore();
 const dispatchCoreCommand = createCoreCommandDispatch(runtimeCore);
 const entityStore = createEntityStore();
@@ -201,6 +248,74 @@ const dockPathfindingModeToggle = getRequiredElementById("dockPathfindingModeTog
 const dockGatheringActivityBtn = getRequiredElementById("dockGatheringActivityBtn");
 const dockInspectActivityBtn = getRequiredElementById("dockInspectActivityBtn");
 const dockShowPlayerBtn = getRequiredElementById("dockShowPlayerBtn");
+const dockInventoryBtn = getRequiredElementById("dockInventoryBtn");
+const gameplayHudEl = getRequiredElementById("gameplayHud");
+const conditionEffectStripEl = getRequiredElementById("conditionEffectStrip");
+const conditionEffectTooltipEl = getRequiredElementById("conditionEffectTooltip");
+const hudPathfindingBtn = getRequiredElementById("hudPathfindingBtn");
+const hudGatheringBtn = getRequiredElementById("hudGatheringBtn");
+const hudGatherWaterBtn = getRequiredElementById("hudGatherWaterBtn");
+const hudInspectBtn = getRequiredElementById("hudInspectBtn");
+const hudRestBtn = getRequiredElementById("hudRestBtn");
+const hudInventoryBtn = getRequiredElementById("hudInventoryBtn");
+const hudShowPlayerBtn = getRequiredElementById("hudShowPlayerBtn");
+const resourceDebugLayerInput = getRequiredElementById("resourceDebugLayer");
+const resourceDebugRenderModeInput = getRequiredElementById("resourceDebugRenderMode");
+const resourceDebugTintColorInput = getRequiredElementById("resourceDebugTintColor");
+const resourceDebugDiscoveryGridInput = getRequiredElementById("resourceDebugDiscoveryGrid");
+const resourceDebugDiscoveryGridValue = getRequiredElementById("resourceDebugDiscoveryGridValue");
+const resourceDebugRevealRadiusInput = getRequiredElementById("resourceDebugRevealRadius");
+const resourceDebugRevealRadiusValue = getRequiredElementById("resourceDebugRevealRadiusValue");
+const resourceDebugSampleStepInput = getRequiredElementById("resourceDebugSampleStep");
+const resourceDebugSampleStepValue = getRequiredElementById("resourceDebugSampleStepValue");
+const resourceDebugKnowledgeThresholdInput = getRequiredElementById("resourceDebugKnowledgeThreshold");
+const resourceDebugKnowledgeThresholdValue = getRequiredElementById("resourceDebugKnowledgeThresholdValue");
+const resourceDebugLineWidthInput = getRequiredElementById("resourceDebugLineWidth");
+const resourceDebugLineWidthValue = getRequiredElementById("resourceDebugLineWidthValue");
+const resourceDebugBandWidthInput = getRequiredElementById("resourceDebugBandWidth");
+const resourceDebugBandWidthValue = getRequiredElementById("resourceDebugBandWidthValue");
+const resourceDebugBand1Input = getRequiredElementById("resourceDebugBand1");
+const resourceDebugBand1Value = getRequiredElementById("resourceDebugBand1Value");
+const resourceDebugBand1EnabledInput = getRequiredElementById("resourceDebugBand1Enabled");
+const resourceDebugBand2Input = getRequiredElementById("resourceDebugBand2");
+const resourceDebugBand2Value = getRequiredElementById("resourceDebugBand2Value");
+const resourceDebugBand2EnabledInput = getRequiredElementById("resourceDebugBand2Enabled");
+const resourceDebugBand3Input = getRequiredElementById("resourceDebugBand3");
+const resourceDebugBand3Value = getRequiredElementById("resourceDebugBand3Value");
+const resourceDebugBand3EnabledInput = getRequiredElementById("resourceDebugBand3Enabled");
+const resourceDebugBand4Input = getRequiredElementById("resourceDebugBand4");
+const resourceDebugBand4Value = getRequiredElementById("resourceDebugBand4Value");
+const resourceDebugBand4EnabledInput = getRequiredElementById("resourceDebugBand4Enabled");
+const resourceDebugBand5Input = getRequiredElementById("resourceDebugBand5");
+const resourceDebugBand5Value = getRequiredElementById("resourceDebugBand5Value");
+const resourceDebugBand5EnabledInput = getRequiredElementById("resourceDebugBand5Enabled");
+const resourceDebugCoverAllBtn = getRequiredElementById("resourceDebugCoverAllBtn");
+const resourceDebugUncoverAllBtn = getRequiredElementById("resourceDebugUncoverAllBtn");
+const inspectLayerControlsEl = getRequiredElementById("inspectLayerControls");
+const inspectWetnessLayerBtn = getRequiredElementById("inspectWetnessLayerBtn");
+const inspectHeightLayerBtn = getRequiredElementById("inspectHeightLayerBtn");
+const inspectSlopeLayerBtn = getRequiredElementById("inspectSlopeLayerBtn");
+const conditionStatEls = {
+  nutrition: gameplayHudEl.querySelector('[data-condition-stat="nutrition"]'),
+  hydration: gameplayHudEl.querySelector('[data-condition-stat="hydration"]'),
+  fatigue: gameplayHudEl.querySelector('[data-condition-stat="fatigue"]'),
+  load: gameplayHudEl.querySelector('[data-condition-stat="load"]'),
+};
+const inventoryPanelEl = getRequiredElementById("inventoryPanel");
+const inventoryCloseBtn = getRequiredElementById("inventoryCloseBtn");
+const inventoryPlayerCapacityEl = getRequiredElementById("inventoryPlayerCapacity");
+const inventoryOpenCapacityEl = getRequiredElementById("inventoryOpenCapacity");
+const inventoryOpenTitleEl = getRequiredElementById("inventoryOpenTitle");
+const inventoryOpenHintEl = getRequiredElementById("inventoryOpenHint");
+const inventoryPlayerListEl = getRequiredElementById("inventoryPlayerList");
+const inventoryOpenListEl = getRequiredElementById("inventoryOpenList");
+const inventorySelectedNameEl = getRequiredElementById("inventorySelectedName");
+const inventorySelectedDescriptionEl = getRequiredElementById("inventorySelectedDescription");
+const inventorySelectedStatsEl = getRequiredElementById("inventorySelectedStats");
+const inventoryUseBtn = getRequiredElementById("inventoryUseBtn");
+const inventoryDropBundleBtn = getRequiredElementById("inventoryDropBundleBtn");
+const inventoryMoveToBundleBtn = getRequiredElementById("inventoryMoveToBundleBtn");
+const inventoryMoveToPlayerBtn = getRequiredElementById("inventoryMoveToPlayerBtn");
 const pathfindingRangeInput = getRequiredElementById("pathfindingRange");
 const pathfindingRangeValue = getRequiredElementById("pathfindingRangeValue");
 const pathWeightSlopeInput = getRequiredElementById("pathWeightSlope");
@@ -652,6 +767,9 @@ const mapSupportRuntime = createMapSupportRuntime(createMapSupportAssemblyRuntim
     if (waterParticleTrailRuntime) {
       waterParticleTrailRuntime.clear();
     }
+  },
+  setWetnessImageData: (value) => {
+    wetnessImageData = value;
   },
   setFlowImageData: (value) => {
     flowImageData = value;
@@ -1981,6 +2099,7 @@ let normalsImageData = null;
 let heightImageData = null;
 let slopeImageData = null;
 let waterImageData = null;
+let wetnessImageData = null;
 let flowImageData = null;
 waterParticleTrailRuntime = createWaterParticleTrailRuntime({
   gl,
@@ -2143,6 +2262,9 @@ initializeDefaultMapImagesRuntime({
   setWaterImageData: (value) => {
     waterImageData = value;
   },
+  setWetnessImageData: (value) => {
+    wetnessImageData = value;
+  },
 });
 
 const interactionDefaults = DEFAULT_INTERACTION_SETTINGS;
@@ -2299,6 +2421,7 @@ const updateCursorLightHeightOffsetLabel = (...args) => lightLabelRuntime.update
   applyDetailSettings: (...args) => applyDetailSettings(...args),
   applyCameraSettings: (...args) => applyCameraSettings(...args),
   applyAudioSettings: (...args) => applyAudioSettings(...args),
+  applyResourceDebugSettings: (...args) => applyResourceDebugSettingsRuntime(...args),
   applySwarmSettings: (...args) => applySwarmSettings(...args),
   reseedSwarmAgents: (...args) => reseedSwarmAgents(...args),
   getSwarmSettings: (...args) => getSwarmSettings(...args),
@@ -2311,6 +2434,16 @@ const updateCursorLightHeightOffsetLabel = (...args) => lightLabelRuntime.update
   loadImageFromFile,
   applyMapImages,
   rebuildMovementField,
+  getRequiredGameplayMapFiles: () => {
+    const names = Object.values(RESOURCE_SEARCHES)
+      .map((search) => search && search.map ? `${search.map}.png` : "")
+      .filter(Boolean);
+    return [...new Set(names)];
+  },
+  onMapLoaded: () => {
+    resourceDiscoveryRuntime?.reset();
+    resourceDiscoveryRuntime?.revealMovement("water", playerState.pixelX, playerState.pixelY);
+  },
   serializeLightingSettings: (...args) => serializeLightingSettings(...args),
   serializeInteractionSettings: (...args) => serializeInteractionSettings(...args),
   serializeFogSettings: (...args) => serializeFogSettings(...args),
@@ -2320,6 +2453,7 @@ const updateCursorLightHeightOffsetLabel = (...args) => lightLabelRuntime.update
   serializeDetailSettings: (...args) => serializeDetailSettings(...args),
   serializeCameraSettings: (...args) => serializeCameraSettings(...args),
   serializeAudioSettings: (...args) => serializeAudioSettings(...args),
+  serializeResourceDebugSettings: () => serializeResourceDebugSettingsRuntime(),
   serializeSwarmData: (...args) => serializeSwarmData(...args),
   serializeNpcState: (...args) => serializeNpcStateFromBinding(...args),
   confirm: (text) => window.confirm(text),
@@ -2492,14 +2626,163 @@ const movementStoreSyncRuntime = createMovementStoreSyncRuntime({
 const activityStoreSyncRuntime = createActivityStoreSyncRuntime({
   store: runtimeCore.store,
 });
-let gatheringActivityRuntime = null;
+const inventoryStoreSyncRuntime = createInventoryStoreSyncRuntime({
+  store: runtimeCore.store,
+});
+const conditionStoreSyncRuntime = createConditionStoreSyncRuntime({
+  store: runtimeCore.store,
+});
+let playerActivityRuntime = null;
+let inventoryPanelRuntime = null;
+let activityEffectRuntime = null;
+let conditionEffectRuntime = null;
+let travelEstimateRuntime = null;
+let resourceSearchRuntime = null;
+let resourceDiscoveryRuntime = null;
+let gameplayHudRuntime = null;
+let resourceDebugPanelRuntime = null;
+let resourceContourOverlayVersion = 0;
+let inspectOverlayLayer = "wetness";
+
+function invalidateResourceContourOverlay() {
+  resourceContourOverlayVersion += 1;
+}
+
+function getResourceDebugLayerSettings(layer = inspectOverlayLayer) {
+  const layerId = layer === "height" || layer === "slope" ? layer : "wetness";
+  return resourceDebugSettings.layers[layerId] || resourceDebugSettings.layers.wetness;
+}
+
+function syncResourceDebugPanel() {
+  resourceDebugPanelRuntime?.sync();
+}
+
+function resetWaterDiscoveryForDebugConfig() {
+  resourceDiscoveryRuntime?.reset("water");
+  resourceDiscoveryRuntime?.revealMovement("water", playerState.pixelX, playerState.pixelY);
+}
+
+function normalizeAndApplyResourceDebugSettings(nextSettings, options = {}) {
+  const previousGridSize = resourceDebugSettings.discovery.gridSize;
+  const previousRevealRadius = resourceDebugSettings.discovery.movementRevealRadius;
+  resourceDebugSettings = normalizeResourceDebugSettings(nextSettings, DEFAULT_RESOURCE_DEBUG_SETTINGS);
+  inspectOverlayLayer = resourceDebugSettings.activeLayer;
+  const gridChanged = resourceDebugSettings.discovery.gridSize !== previousGridSize;
+  const revealRadiusChanged = resourceDebugSettings.discovery.movementRevealRadius !== previousRevealRadius;
+  if (options.resetDiscovery || gridChanged || revealRadiusChanged) {
+    resetWaterDiscoveryForDebugConfig();
+  }
+  syncResourceDebugPanel();
+  setInspectOverlayLayer(resourceDebugSettings.activeLayer, { preserveSettings: true });
+}
+
+function serializeResourceDebugSettingsRuntime() {
+  return serializeResourceDebugSettings(resourceDebugSettings, DEFAULT_RESOURCE_DEBUG_SETTINGS);
+}
+
+function applyResourceDebugSettingsRuntime(rawData) {
+  normalizeAndApplyResourceDebugSettings(rawData, { resetDiscovery: true });
+}
+
+function setInspectOverlayLayer(layer) {
+  inspectOverlayLayer = layer === "height" || layer === "slope" ? layer : "wetness";
+  resourceDebugSettings = normalizeResourceDebugSettings({
+    ...resourceDebugSettings,
+    activeLayer: inspectOverlayLayer,
+  }, DEFAULT_RESOURCE_DEBUG_SETTINGS);
+  for (const [buttonLayer, button] of [
+    ["wetness", inspectWetnessLayerBtn],
+    ["height", inspectHeightLayerBtn],
+    ["slope", inspectSlopeLayerBtn],
+  ]) {
+    button.classList.toggle("active", buttonLayer === inspectOverlayLayer);
+    button.setAttribute("aria-pressed", buttonLayer === inspectOverlayLayer ? "true" : "false");
+  }
+  syncResourceDebugPanel();
+  invalidateResourceContourOverlay();
+  overlayDirtyRuntime.requestOverlayDraw();
+}
 
 function getActivitySnapshot() {
-  if (gatheringActivityRuntime) {
-    return gatheringActivityRuntime.getSnapshot();
+  if (playerActivityRuntime) {
+    return playerActivityRuntime.getSnapshot();
   }
   const state = runtimeCore.store.getState();
   return state && state.gameplay ? state.gameplay.activity || null : null;
+}
+
+function getInspectResourceReadings(pixelX, pixelY) {
+  const resourceId = "water";
+  const search = resourceSearchRuntime?.getSearch(resourceId);
+  if (!search) return [];
+  const value = resourceSearchRuntime.sample(resourceId, pixelX, pixelY);
+  const chance = resourceSearchRuntime.chance(resourceId, pixelX, pixelY);
+  const knowledge = resourceDiscoveryRuntime?.sampleKnowledge(resourceId, pixelX, pixelY) || 0;
+  return [{
+    resourceId,
+    label: search.id === "water" ? "Water" : search.id,
+    map: search.map,
+    value,
+    chance,
+    knowledge,
+  }];
+}
+
+function getResourceDiscoveryConfig(resourceId) {
+  if (resourceId !== "water") {
+    const search = resourceSearchRuntime?.getSearch(resourceId);
+    return search && search.discovery ? search.discovery : null;
+  }
+  return {
+    gridSize: resourceDebugSettings.discovery.gridSize,
+    movementRevealRadius: resourceDebugSettings.discovery.movementRevealRadius,
+  };
+}
+
+function getResourceOverlayConfig(search) {
+  if (!search || search.id !== "water") return search;
+  const layerSettings = getResourceDebugLayerSettings(inspectOverlayLayer);
+  const enabledBands = Array.isArray(layerSettings.bands)
+    ? layerSettings.bands
+      .map((band, index) => ({ ...band, color: getResourceDebugBandColors(layerSettings)[index] }))
+      .filter((band) => band && band.enabled !== false && Number.isFinite(Number(band.threshold)))
+      .sort((a, b) => Number(a.threshold) - Number(b.threshold))
+    : [];
+  return {
+    ...search,
+    overlay: {
+      ...(search.overlay || {}),
+      type: "contour",
+      enabledInInspect: true,
+      renderMode: layerSettings.renderMode,
+      sampleStep: layerSettings.sampleStep,
+      knowledgeThreshold: layerSettings.knowledgeThreshold,
+      lineWidth: layerSettings.lineWidth,
+      bandWidth: layerSettings.bandWidth,
+      thresholds: enabledBands.map((band) => Number(band.threshold)),
+      colors: enabledBands.map((band) => band.color),
+    },
+  };
+}
+
+function getResourceContourOverlaySnapshot() {
+  const activity = getActivitySnapshot();
+  if (!activity || !activity.active || activity.type !== "inspect") return null;
+  const resourceId = "water";
+  const search = resourceSearchRuntime?.getSearch(resourceId);
+  if (!search || !search.overlay || search.overlay.type !== "contour") return null;
+  const imageData = inspectOverlayLayer === "height"
+    ? heightImageData
+    : (inspectOverlayLayer === "slope" ? slopeImageData : wetnessImageData);
+  if (!imageData) return null;
+  return {
+    resourceId,
+    search: getResourceOverlayConfig(search),
+    imageData,
+    overlayLayer: inspectOverlayLayer,
+    contourVersion: resourceContourOverlayVersion,
+    sampleKnowledge: (id, x, y) => resourceDiscoveryRuntime?.sampleKnowledge(id, x, y) || 0,
+  };
 }
 
 function sampleInspectGray(imageData, pixelX, pixelY) {
@@ -2514,7 +2797,7 @@ function setActivityTimeSpeed1x() {
 }
 
 function updateInspectFromPointer(clientX, clientY) {
-  if (!gatheringActivityRuntime || !gatheringActivityRuntime.isInspectActive()) return;
+  if (!playerActivityRuntime || !playerActivityRuntime.isInspectActive()) return;
   const ndc = clientToNdc(clientX, clientY);
   const world = worldFromNdc(ndc);
   const uv = worldToUv(world);
@@ -2528,40 +2811,51 @@ function updateInspectFromPointer(clientX, clientY) {
 }
 
 
-function formatMovementEta(seconds) {
-  if (seconds === Number.POSITIVE_INFINITY) return "paused";
-  const safeSeconds = Math.max(0, Math.ceil(Number(seconds)));
-  if (!Number.isFinite(safeSeconds)) return "--";
-  const hours = Math.floor(safeSeconds / 3600);
-  const minutes = Math.floor((safeSeconds % 3600) / 60);
-  const remainingSeconds = safeSeconds % 60;
-  if (hours > 0) {
-    return `${hours}h ${minutes.toString().padStart(2, "0")}m ${remainingSeconds.toString().padStart(2, "0")}s`;
-  }
-  return `${minutes}m ${remainingSeconds.toString().padStart(2, "0")}s`;
+function formatMovementDuration(hoursValue) {
+  const safeHours = Number(hoursValue);
+  if (!Number.isFinite(safeHours)) return "--";
+  const totalMinutes = Math.max(0, Math.round(safeHours * 60));
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return `${hours}:${minutes.toString().padStart(2, "0")}`;
 }
 
-function getMovementEtaSeconds(movementSnapshot) {
+function getMovementDurationHours(movementSnapshot) {
   const state = runtimeCore.store.getState();
   const timeState = state && state.systems ? state.systems.time || {} : {};
-  const cycleSpeed = Number(timeState.cycleSpeedHoursPerSec);
-  if (!Number.isFinite(cycleSpeed) || cycleSpeed <= 0) return Number.POSITIVE_INFINITY;
   const simTickHours = normalizeSimTickHours(timeState.simTickHours);
   const totalTicks = Math.max(0, Number(movementSnapshot && movementSnapshot.totalTicksRemaining) || 0);
-  return (totalTicks * simTickHours) / cycleSpeed;
+  return totalTicks * simTickHours;
 }
 
 function updateMovementStatusPanel(movementSnapshot) {
   const activitySnapshot = getActivitySnapshot();
   if (activitySnapshot && activitySnapshot.active) {
     if (activitySnapshot.type === "inspect") {
+      inspectLayerControlsEl.classList.remove("hidden");
       const height = Number(activitySnapshot.inspectHeight);
       const slope = Number(activitySnapshot.inspectSlope);
+      const resourceReadings = Array.isArray(activitySnapshot.inspectResources)
+        ? activitySnapshot.inspectResources
+        : [];
+      const waterReading = resourceReadings.find((reading) => reading && reading.resourceId === "water") || null;
+      const wetness = Number(waterReading && waterReading.value);
+      const chance = Number(waterReading && waterReading.chance);
+      const knowledge = Number(waterReading && waterReading.knowledge);
       movementStatusTitleEl.textContent = "Inspect Terrain";
       movementStatusEtaEl.textContent = `Position: ${activitySnapshot.inspectX ?? "--"}, ${activitySnapshot.inspectY ?? "--"}`;
-      movementStatusDetailEl.textContent = `Height: ${Number.isFinite(height) ? height.toFixed(3) : "--"} | Slope: ${Number.isFinite(slope) ? `${(slope * 90).toFixed(1)} deg` : "--"}`;
+      movementStatusDetailEl.textContent = `Height: ${Number.isFinite(height) ? height.toFixed(3) : "--"} | Slope: ${Number.isFinite(slope) ? `${(slope * 90).toFixed(1)} deg` : "--"}${waterReading ? `\nWater: wetness ${Number.isFinite(wetness) ? wetness.toFixed(2) : "--"} | chance ${Number.isFinite(chance) ? `${Math.round(chance * 100)}%` : "--"} | known ${Number.isFinite(knowledge) ? `${Math.round(knowledge * 100)}%` : "--"}` : ""}`;
       movementCancelBtn.textContent = "Stop Inspect";
+    } else if (activitySnapshot.type === "rest") {
+      inspectLayerControlsEl.classList.add("hidden");
+      const condition = conditionRuntime ? conditionRuntime.getSnapshot() : null;
+      const fatigue = Number(condition && condition.fatigue);
+      movementStatusTitleEl.textContent = "Resting";
+      movementStatusEtaEl.textContent = "Recovering fatigue";
+      movementStatusDetailEl.textContent = `Ticks: ${activitySnapshot.stepsTaken} | Fatigue: ${Number.isFinite(fatigue) ? fatigue.toFixed(1) : "--"}`;
+      movementCancelBtn.textContent = "Stop Rest";
     } else {
+      inspectLayerControlsEl.classList.add("hidden");
       movementStatusTitleEl.textContent = activitySnapshot.type === "gathering" ? "Gathering" : "Activity";
       movementStatusEtaEl.textContent = `Radius: ${Math.max(0, Math.round(Number(activitySnapshot.radius) || 0))}`;
       movementStatusDetailEl.textContent = `Steps: ${activitySnapshot.stepsTaken} | Visited: ${activitySnapshot.visitedCount} | Plants: ${activitySnapshot.foundCount}`;
@@ -2572,12 +2866,14 @@ function updateMovementStatusPanel(movementSnapshot) {
   }
   if (!movementSnapshot || !movementSnapshot.active) {
     movementStatusPanelEl.classList.add("hidden");
+    inspectLayerControlsEl.classList.add("hidden");
     return;
   }
+  inspectLayerControlsEl.classList.add("hidden");
   const remainingTicks = Math.max(0, Math.round(Number(movementSnapshot.totalTicksRemaining || 0)));
   const stepIndex = Math.max(0, Math.round(Number(movementSnapshot.currentStepIndex || 0))) + 1;
   const queueLength = Math.max(0, Math.round(Number(movementSnapshot.queueLength || 0)));
-  movementStatusEtaEl.textContent = `Estimated arrival: ${formatMovementEta(getMovementEtaSeconds(movementSnapshot))}`;
+  movementStatusEtaEl.textContent = `Travel time remaining: ${formatMovementDuration(getMovementDurationHours(movementSnapshot))}`;
   movementStatusDetailEl.textContent = `Path: step ${stepIndex}/${queueLength}, ${remainingTicks} ticks remaining`;
   movementStatusPanelEl.classList.remove("hidden");
 }
@@ -2595,23 +2891,200 @@ const movementSystem = createMovementSystem(createMovementAssemblyRuntime({
   setPlayerSnapshot: movementStoreSyncRuntime.setPlayerSnapshot,
   setMovementSnapshot: movementStoreSyncRuntime.setMovementSnapshot,
   onMovementSnapshot: updateMovementStatusPanel,
-  onStepCompleted: (...args) => gatheringActivityRuntime?.onStepCompleted(...args),
+  onStepCompleted: (step, snapshot) => {
+    const conditionModifiers = conditionEffectRuntime?.getModifiers() || {};
+    activityEffectRuntime?.apply(getActivityCostKey("travel", "movement", "movement.step"), {
+      movementCost: Math.max(0, Number(step && step.cost) || 0)
+        * (Number(conditionModifiers.movementCostMultiplier) || 1),
+      load: conditionRuntime?.getSnapshot().load || 0,
+      conditionModifiers,
+    });
+    playerActivityRuntime?.onStepCompleted(step, snapshot);
+    resourceDiscoveryRuntime?.revealMovement("water", step && step.toX, step && step.toY);
+    inventoryRuntime?.sync();
+  },
   onQueueCompleted: (...args) => {
-    const activityWasActive = Boolean(gatheringActivityRuntime?.isActivityActive());
-    gatheringActivityRuntime?.onQueueCompleted(...args);
+    const activityWasActive = Boolean(playerActivityRuntime?.isActivityActive());
+    playerActivityRuntime?.onQueueCompleted(...args);
     if (!activityWasActive) {
       setActivityTimeSpeed1x();
     }
   },
   onMovementCanceled: (...args) => {
-    const activityWasActive = Boolean(gatheringActivityRuntime?.isActivityActive());
-    gatheringActivityRuntime?.onMovementCanceled(...args);
+    const activityWasActive = Boolean(playerActivityRuntime?.isActivityActive());
+    playerActivityRuntime?.onMovementCanceled(...args);
     if (!activityWasActive) {
       setActivityTimeSpeed1x();
     }
   },
 }));
-gatheringActivityRuntime = createGatheringActivityRuntime({
+const conditionRuntime = createConditionRuntime({
+  setConditionSnapshot: conditionStoreSyncRuntime.setConditionSnapshot,
+  onConditionSnapshot: () => {
+    conditionEffectRuntime?.sync();
+    inventoryPanelRuntime?.sync();
+    gameplayHudRuntime?.sync();
+  },
+});
+conditionEffectRuntime = createConditionEffectRuntime({
+  conditionEffects: CONDITION_EFFECTS,
+  getConditionSnapshot: () => conditionRuntime.getSnapshot(),
+  onConditionEffectsSnapshot: (snapshot) => {
+    conditionStoreSyncRuntime.setConditionSnapshot({
+      activeEffects: snapshot.activeEffects,
+      modifiers: snapshot.modifiers,
+    });
+    gameplayHudRuntime?.sync();
+  },
+  setStatus,
+});
+activityEffectRuntime = createActivityEffectRuntime({
+  activityCosts: ACTIVITY_COSTS,
+  applyConditionEffectModifiers,
+  applyConditionEffects: (effects) => conditionRuntime.applyEffects(effects),
+});
+travelEstimateRuntime = createTravelEstimateRuntime({
+  movePreviewState,
+  computeMoveStepCost,
+  getMoveCostContext,
+  resolveActivityEffects: (activityType, context) => activityEffectRuntime.resolve(activityType, context),
+  getMovementCostKey: () => getActivityCostKey("travel", "movement", "movement.step"),
+  getUpkeepCostKey: () => getActivityCostKey("idle", "upkeep", "idle.tick"),
+  getConditionSnapshot: () => conditionRuntime.getSnapshot(),
+  getConditionEffectsSnapshot: () => conditionEffectRuntime.getSnapshot(),
+  getProjectedConditionWarnings: (projectedCondition) => {
+    const current = conditionEffectRuntime.getSnapshot();
+    const projected = resolveConditionEffects(CONDITION_EFFECTS, projectedCondition || {});
+    return compareConditionEffectSnapshots(current.activeEffects, projected.activeEffects);
+  },
+  getTimeState: () => {
+    const state = runtimeCore.store.getState();
+    return state && state.systems ? state.systems.time || {} : {};
+  },
+});
+resourceSearchRuntime = createResourceSearchRuntime({
+  resourceSearches: RESOURCE_SEARCHES,
+  getResourceMapImageData: (mapName) => {
+    if (mapName === "wetness") return wetnessImageData;
+    if (mapName === "water") return waterImageData;
+    return null;
+  },
+});
+resourceDiscoveryRuntime = createResourceDiscoveryRuntime({
+  resourceSearches: RESOURCE_SEARCHES,
+  getMapWidth: () => splatSize.width,
+  getMapHeight: () => splatSize.height,
+  getDiscoveryConfig: getResourceDiscoveryConfig,
+  onChange: () => overlayDirtyRuntime.requestOverlayDraw(),
+});
+resourceDebugPanelRuntime = createResourceDebugPanelRuntime({
+  layerInput: resourceDebugLayerInput,
+  renderModeInput: resourceDebugRenderModeInput,
+  tintColorInput: resourceDebugTintColorInput,
+  discoveryGridInput: resourceDebugDiscoveryGridInput,
+  discoveryGridValue: resourceDebugDiscoveryGridValue,
+  revealRadiusInput: resourceDebugRevealRadiusInput,
+  revealRadiusValue: resourceDebugRevealRadiusValue,
+  sampleStepInput: resourceDebugSampleStepInput,
+  sampleStepValue: resourceDebugSampleStepValue,
+  knowledgeThresholdInput: resourceDebugKnowledgeThresholdInput,
+  knowledgeThresholdValue: resourceDebugKnowledgeThresholdValue,
+  lineWidthInput: resourceDebugLineWidthInput,
+  lineWidthValue: resourceDebugLineWidthValue,
+  bandWidthInput: resourceDebugBandWidthInput,
+  bandWidthValue: resourceDebugBandWidthValue,
+  band1Input: resourceDebugBand1Input,
+  band1Value: resourceDebugBand1Value,
+  band1EnabledInput: resourceDebugBand1EnabledInput,
+  band2Input: resourceDebugBand2Input,
+  band2Value: resourceDebugBand2Value,
+  band2EnabledInput: resourceDebugBand2EnabledInput,
+  band3Input: resourceDebugBand3Input,
+  band3Value: resourceDebugBand3Value,
+  band3EnabledInput: resourceDebugBand3EnabledInput,
+  band4Input: resourceDebugBand4Input,
+  band4Value: resourceDebugBand4Value,
+  band4EnabledInput: resourceDebugBand4EnabledInput,
+  band5Input: resourceDebugBand5Input,
+  band5Value: resourceDebugBand5Value,
+  band5EnabledInput: resourceDebugBand5EnabledInput,
+  coverAllBtn: resourceDebugCoverAllBtn,
+  uncoverAllBtn: resourceDebugUncoverAllBtn,
+  getSettings: () => resourceDebugSettings,
+  setActiveLayer: (layer) => setInspectOverlayLayer(layer),
+  updateDiscovery: (patch) => {
+    normalizeAndApplyResourceDebugSettings({
+      ...resourceDebugSettings,
+      discovery: {
+        ...resourceDebugSettings.discovery,
+        ...patch,
+      },
+    });
+  },
+  updateActiveLayer: (patch) => {
+    const activeLayer = inspectOverlayLayer;
+    normalizeAndApplyResourceDebugSettings({
+      ...resourceDebugSettings,
+      layers: {
+        ...resourceDebugSettings.layers,
+        [activeLayer]: {
+          ...getResourceDebugLayerSettings(activeLayer),
+          ...patch,
+        },
+      },
+    });
+  },
+  updateActiveBand: (index, patch) => {
+    const activeLayer = inspectOverlayLayer;
+    const layerSettings = getResourceDebugLayerSettings(activeLayer);
+    const bands = Array.isArray(layerSettings.bands) ? layerSettings.bands.map((band) => ({ ...band })) : [];
+    bands[index] = {
+      ...(bands[index] || {}),
+      ...patch,
+    };
+    normalizeAndApplyResourceDebugSettings({
+      ...resourceDebugSettings,
+      layers: {
+        ...resourceDebugSettings.layers,
+        [activeLayer]: {
+          ...layerSettings,
+          bands,
+        },
+      },
+    });
+  },
+  fillDiscovery: (value) => {
+    resourceDiscoveryRuntime.fill("water", value);
+    invalidateResourceContourOverlay();
+    overlayDirtyRuntime.requestOverlayDraw();
+    setStatus(value >= 1 ? "Wetness discovery debug: uncovered full map." : "Wetness discovery debug: covered full map.");
+  },
+});
+for (const [layer, button] of [
+  ["wetness", inspectWetnessLayerBtn],
+  ["height", inspectHeightLayerBtn],
+  ["slope", inspectSlopeLayerBtn],
+]) {
+  button.addEventListener("click", () => setInspectOverlayLayer(layer));
+}
+setInspectOverlayLayer("wetness");
+const inventoryRuntime = createInventoryRuntime({
+  playerState,
+  entityStore,
+  itemRegistry: ITEM_DEFINITIONS,
+  setInventorySnapshot: inventoryStoreSyncRuntime.setInventorySnapshot,
+  onInventorySnapshot: (snapshot) => {
+    conditionRuntime.updateLoadFromCapacity(snapshot.playerCapacity);
+    inventoryPanelRuntime?.sync(snapshot);
+  },
+  applyItemUse: ({ effects }) => {
+    conditionRuntime.applyEffects(effects || {});
+    return { ok: true };
+  },
+  requestOverlayDraw: () => overlayDirtyRuntime.requestOverlayDraw(),
+});
+playerActivityRuntime = createPlayerActivityRuntime({
+  activityDefinitions: ACTIVITY_DEFINITIONS,
   playerState,
   getMapWidth: () => splatSize.width,
   getMapHeight: () => splatSize.height,
@@ -2619,16 +3092,130 @@ gatheringActivityRuntime = createGatheringActivityRuntime({
   getMoveCostContext,
   sampleHeight: (pixelX, pixelY) => sampleInspectGray(heightImageData, pixelX, pixelY),
   sampleSlope: (pixelX, pixelY) => sampleInspectGray(slopeImageData, pixelX, pixelY),
+  getInspectResourceReadings,
+  getResourceValue: (resourceId, pixelX, pixelY) => resourceSearchRuntime.sample(resourceId, pixelX, pixelY),
+  getResourceSearchChance: (resourceId, pixelX, pixelY) => resourceSearchRuntime.chance(resourceId, pixelX, pixelY),
+  getResourceMovementBias: (resourceId, pixelX, pixelY) => resourceSearchRuntime.movementBias(resourceId, pixelX, pixelY),
   getMovementSnapshot: () => movementSystem.getSnapshot(),
   replaceMovementQueue: (pathPixels, options = {}) =>
     movementSystem.replaceQueue(pathPixels, runtimeCore.store.getState().systems.time.simTickHours, options),
   cancelMovementQueue: () => movementSystem.cancelQueue(),
   setCycleSpeed: (cycleSpeed) => dispatchCoreCommand({ type: "core/time/setCycleSpeed", cycleSpeed }),
   setActivitySnapshot: activityStoreSyncRuntime.setActivitySnapshot,
-  onActivitySnapshot: () => updateMovementStatusPanel(movementSystem.getSnapshot()),
+  onActivitySnapshot: () => {
+    updateMovementStatusPanel(movementSystem.getSnapshot());
+    gameplayHudRuntime?.sync();
+  },
+  onGatheringSearch: () => {
+    const conditionModifiers = conditionEffectRuntime?.getModifiers() || {};
+    activityEffectRuntime.apply(getActivityCostKey("gathering", "work", "gathering.search"), {
+      activityIntensity: 1 * (Number(conditionModifiers.activityCostMultiplier) || 1),
+      load: conditionRuntime.getSnapshot().load || 0,
+      conditionModifiers,
+    });
+  },
+  onResourceSearch: ({ activityType }) => {
+    const conditionModifiers = conditionEffectRuntime?.getModifiers() || {};
+    activityEffectRuntime.apply(getActivityCostKey(activityType, "work", `${activityType}.search`), {
+      activityIntensity: 1 * (Number(conditionModifiers.activityCostMultiplier) || 1),
+      load: conditionRuntime.getSnapshot().load || 0,
+      conditionModifiers,
+    });
+  },
+  onUpkeepTick: () => {
+    const conditionModifiers = conditionEffectRuntime?.getModifiers() || {};
+    activityEffectRuntime.apply(getActivityCostKey("idle", "upkeep", "idle.tick"), {
+      activityIntensity: 1,
+      conditionModifiers,
+    });
+  },
+  onRestTick: () => {
+    const conditionModifiers = conditionEffectRuntime?.getModifiers() || {};
+    activityEffectRuntime.apply(getActivityCostKey("rest", "recovery", "rest.tick"), {
+      activityIntensity: 1,
+      conditionModifiers,
+    });
+  },
+  getConditionSnapshot: () => conditionRuntime.getSnapshot(),
+  onGatheringFound: (reward) => {
+    const result = inventoryRuntime.addToPlayer(reward.itemId, reward.quantity || 1);
+    const item = ITEM_DEFINITIONS[reward.itemId];
+    if (!result.ok) {
+      setStatus(`Could not carry ${item ? item.name : reward.itemId}: ${result.reason}`);
+      return { ok: false, itemName: item ? item.name : reward.itemId };
+    }
+    return { ok: true, itemName: item ? item.name : reward.itemId };
+  },
+  onResourceFound: ({ resourceId }) => {
+    const reward = resourceSearchRuntime.getReward(resourceId);
+    if (!reward || reward.type !== "item" || !reward.itemId) {
+      return { ok: false, itemName: resourceId };
+    }
+    const result = inventoryRuntime.addToPlayer(reward.itemId, reward.quantity || 1);
+    const item = ITEM_DEFINITIONS[reward.itemId];
+    const itemName = item ? item.name : reward.itemId;
+    if (!result.ok) {
+      setStatus(`Could not carry ${itemName}: ${result.reason}`);
+      return { ok: false, itemName };
+    }
+    return { ok: true, itemName };
+  },
   requestOverlayDraw: () => overlayDirtyRuntime.requestOverlayDraw(),
   setStatus,
 });
+inventoryPanelRuntime = createInventoryPanelRuntime({
+  document,
+  itemRegistry: ITEM_DEFINITIONS,
+  panelEl: inventoryPanelEl,
+  toggleBtn: dockInventoryBtn,
+  closeBtn: inventoryCloseBtn,
+  playerCapacityEl: inventoryPlayerCapacityEl,
+  openCapacityEl: inventoryOpenCapacityEl,
+  openTitleEl: inventoryOpenTitleEl,
+  openHintEl: inventoryOpenHintEl,
+  playerListEl: inventoryPlayerListEl,
+  openListEl: inventoryOpenListEl,
+  selectedNameEl: inventorySelectedNameEl,
+  selectedDescriptionEl: inventorySelectedDescriptionEl,
+  selectedStatsEl: inventorySelectedStatsEl,
+  useBtn: inventoryUseBtn,
+  dropBundleBtn: inventoryDropBundleBtn,
+  moveToBundleBtn: inventoryMoveToBundleBtn,
+  moveToPlayerBtn: inventoryMoveToPlayerBtn,
+  getInventorySnapshot: () => inventoryRuntime.getSnapshot(),
+  getConditionSnapshot: () => conditionRuntime.getSnapshot(),
+  selectInventoryStack: (containerId, slotIndex) => inventoryRuntime.selectStack(containerId, slotIndex),
+  useSelectedItem: () => inventoryRuntime.useSelectedItem(),
+  dropSelectedBundle: () => inventoryRuntime.dropSelectedBundle(),
+  moveSelectedToOpenContainer: () => inventoryRuntime.moveSelectedToOpenContainer(),
+  moveSelectedToPlayer: () => inventoryRuntime.moveSelectedToPlayer(),
+  setStatus,
+});
+gameplayHudRuntime = createGameplayHudRuntime({
+  document,
+  activityDefinitions: ACTIVITY_DEFINITIONS,
+  statEls: conditionStatEls,
+  conditionThresholds: CONDITION_THRESHOLDS,
+  conditionEffectStripEl,
+  conditionEffectTooltipEl,
+  pathfindingBtn: hudPathfindingBtn,
+  gatheringBtn: hudGatheringBtn,
+  gatherWaterBtn: hudGatherWaterBtn,
+  inspectBtn: hudInspectBtn,
+  restBtn: hudRestBtn,
+  inventoryBtn: hudInventoryBtn,
+  showPlayerBtn: hudShowPlayerBtn,
+  dispatchCoreCommand,
+  getInteractionMode: () => getInteractionModeSnapshot(),
+  isActivityActive: () => playerActivityRuntime.isActivityActive(),
+  getActivitySnapshot,
+  rebuildMovementField,
+  getConditionSnapshot: () => conditionRuntime.getSnapshot(),
+  getConditionEffectsSnapshot: () => conditionEffectRuntime.getSnapshot(),
+  toggleInventory: () => inventoryPanelRuntime.setVisible(!inventoryPanelRuntime.isVisible()),
+  setStatus,
+});
+inventoryRuntime.sync();
 registerMainSettingsContracts(runtimeCore.settingsRegistry, {
   serializeLighting: serializeLightingSettingsCompat,
   applyLighting: applyLightingSettingsCompat,
@@ -2752,11 +3339,20 @@ registerMainCommands(runtimeCore.commandBus, createMainCommandAssemblyRuntime({
   },
   cancelMovementQueue: () => movementSystem.cancelQueue(),
   getMovementStateSnapshot: () => movementSystem.getSnapshot(),
-  startGatheringActivity: () => gatheringActivityRuntime.startGathering(),
-  startInspectActivity: () => gatheringActivityRuntime.startInspect(),
-  updateInspectActivityAt: (pixelX, pixelY) => gatheringActivityRuntime.updateInspectAtPixel(pixelX, pixelY),
-  cancelActivity: () => gatheringActivityRuntime.cancelActivity(),
-  isActivityActive: () => gatheringActivityRuntime.isActivityActive(),
+  startGatheringActivity: () => playerActivityRuntime.startGathering(),
+  startGatherWaterActivity: () => playerActivityRuntime.startGatherWater(),
+  startTravelActivity: () => playerActivityRuntime.startTravel(),
+  startInspectActivity: () => {
+    const result = playerActivityRuntime.startInspect();
+    if (result && result.ok) {
+      invalidateResourceContourOverlay();
+    }
+    return result;
+  },
+  startRestActivity: () => playerActivityRuntime.startRest(),
+  updateInspectActivityAt: (pixelX, pixelY) => playerActivityRuntime.updateInspectAtPixel(pixelX, pixelY),
+  cancelActivity: () => playerActivityRuntime.cancelActivity(),
+  isActivityActive: () => playerActivityRuntime.isActivityActive(),
   rebuildMovementField,
   getPathfindingStateSnapshot: (...args) => getPathfindingStateSnapshot(...args),
   syncPathfindingSettingsUi,
@@ -2870,6 +3466,7 @@ runtimeCore.store.subscribe((nextState) => {
 setupRuntimeSystems(createRuntimeSystemsAssemblyRuntime({
   scheduler: runtimeCore.scheduler,
   movementSystem,
+  activitySystem: playerActivityRuntime,
   getState: () => runtimeCore.store.getState(),
   clamp,
   wrapHour,
@@ -3300,9 +3897,11 @@ const swarmIntegrationSetupRuntime = createSwarmIntegrationSetupRuntime(
     getSwarmCursorMode,
     playerState,
       getCurrentPathMetrics,
+      getTravelPreviewEstimate: () => travelEstimateRuntime.getEstimate(),
+      getInteractionMode: () => getInteractionModeSnapshot(),
       getMovementSnapshot: () => movementSystem.getSnapshot(),
       getActivitySnapshot,
-      getMovementEtaSeconds,
+      getMovementDurationHours,
       getFrameDebugInfo,
       getDetailDebugInfo,
       frameInfoEl,
@@ -3316,6 +3915,7 @@ const swarmIntegrationSetupRuntime = createSwarmIntegrationSetupRuntime(
     movementStatusEtaEl,
     movementStatusDetailEl,
     movementCancelBtn,
+    inspectLayerControlsEl,
     applyInteractionMode,
     canUseInteractionInCurrentMode,
     syncInteractionModeUi: interactionModeUiRuntime.syncInteractionModeUi,
@@ -3549,6 +4149,9 @@ const renderShellSetupRuntime = createRenderShellSetupRuntime(createRenderShellA
   getCursorLightSnapshot,
   cursorLightState,
   movePreviewState,
+  getActivitySnapshot,
+  getResourceContourOverlaySnapshot,
+  getInventoryBundles: () => inventoryRuntime.listBundles(),
   playerState,
   drawSwarmUnlitOverlay,
   drawSwarmGizmos,
@@ -3704,7 +4307,7 @@ runAppShellLifecycleRuntime(createAppShellLifecycleAssemblyRuntime({
     cycleSpeedInput,
     cycleHourInput,
     simTickHoursInput,
-    isActivityActive: () => gatheringActivityRuntime.isActivityActive(),
+    isActivityActive: () => playerActivityRuntime.isActivityActive(),
     canUseInteractionMode: canUseInteractionInCurrentMode,
     rebuildMovementField,
     cursorLightModeToggle,

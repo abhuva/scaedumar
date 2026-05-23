@@ -6,7 +6,7 @@ export function bindCanvasControls(deps) {
 
   function isUiTarget(target) {
     if (!target || typeof target.closest !== "function") return false;
-    return Boolean(target.closest(".topic-dock, .topic-panel, .swarm-stats-panel, .movement-status-panel"));
+    return Boolean(target.closest(".topic-dock, .topic-panel, .swarm-stats-panel, .movement-status-panel, .inventory-panel, .gameplay-hud"));
   }
 
   function shouldRouteFallbackToCanvas(event, options = {}) {

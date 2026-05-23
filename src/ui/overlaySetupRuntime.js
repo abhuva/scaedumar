@@ -26,6 +26,8 @@ export function createOverlaySetupRuntime(deps) {
     cursorLightState: deps.cursorLightState,
     movePreviewState: deps.movePreviewState,
     getActivitySnapshot: deps.getActivitySnapshot,
+    getResourceContourOverlaySnapshot: deps.getResourceContourOverlaySnapshot,
+    getInventoryBundles: deps.getInventoryBundles,
     playerState: deps.playerState,
     isSwarmEnabled: deps.isSwarmEnabled,
     getSwarmSettings: deps.getSwarmSettings,

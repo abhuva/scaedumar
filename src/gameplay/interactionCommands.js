@@ -18,7 +18,16 @@ export function registerInteractionCommands(commandBus, deps) {
   }
 
   function cancelMovementFromCommand() {
-    if (!isMovementActive()) return;
+    if (!isMovementActive()) {
+      if (deps.getInteractionMode() === "pathfinding") {
+        deps.setInteractionMode("none");
+        deps.movePreviewState.hoverPixel = null;
+        deps.movePreviewState.pathPixels = [];
+        deps.setStatus("Travel planning canceled.");
+        deps.requestOverlayDraw();
+      }
+      return;
+    }
     if (typeof deps.cancelMovementQueue !== "function") return;
     deps.cancelMovementQueue();
     deps.movePreviewState.hoverPixel = null;
@@ -57,6 +66,19 @@ export function registerInteractionCommands(commandBus, deps) {
     deps.setStatus(result.reason || "Unable to start gathering.");
   });
 
+  commandBus.register("core/activity/startGatherWater", () => {
+    if (typeof deps.startGatherWaterActivity !== "function") return;
+    const result = deps.startGatherWaterActivity();
+    if (!result || result.ok) {
+      deps.setInteractionMode("none");
+      deps.movePreviewState.hoverPixel = null;
+      deps.movePreviewState.pathPixels = [];
+      deps.requestOverlayDraw();
+      return;
+    }
+    deps.setStatus(result.reason || "Unable to start water gathering.");
+  });
+
   commandBus.register("core/activity/startInspect", () => {
     if (typeof deps.startInspectActivity !== "function") return;
     const result = deps.startInspectActivity();
@@ -68,6 +90,19 @@ export function registerInteractionCommands(commandBus, deps) {
       return;
     }
     deps.setStatus(result.reason || "Unable to start inspect.");
+  });
+
+  commandBus.register("core/activity/startRest", () => {
+    if (typeof deps.startRestActivity !== "function") return;
+    const result = deps.startRestActivity();
+    if (!result || result.ok) {
+      deps.setInteractionMode("none");
+      deps.movePreviewState.hoverPixel = null;
+      deps.movePreviewState.pathPixels = [];
+      deps.requestOverlayDraw();
+      return;
+    }
+    deps.setStatus(result.reason || "Unable to start rest.");
   });
 
   commandBus.register("core/activity/updateInspectAt", (command) => {
@@ -119,6 +154,12 @@ export function registerInteractionCommands(commandBus, deps) {
           deps.setStatus("Unable to queue movement for selected path.");
           deps.requestOverlayDraw();
           return;
+        }
+      }
+      if (typeof deps.startTravelActivity === "function") {
+        const result = deps.startTravelActivity();
+        if (result && !result.ok) {
+          deps.setStatus(result.reason || "Unable to start travel.");
         }
       }
       deps.setInteractionMode("none");
