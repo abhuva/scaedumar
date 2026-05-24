@@ -37,6 +37,26 @@ test("event bus snapshots listeners during emit", () => {
   assert.deepEqual(calls, ["first", "second", "first"]);
 });
 
+test("event bus continues when one listener throws", () => {
+  const bus = createEventBus();
+  const calls = [];
+  const originalError = console.error;
+  console.error = () => {};
+  try {
+    bus.on("runtime:test", () => {
+      throw new Error("listener failed");
+    });
+    bus.on("runtime:test", () => {
+      calls.push("second");
+    });
+
+    assert.equal(bus.emit("runtime:test"), 2);
+    assert.deepEqual(calls, ["second"]);
+  } finally {
+    console.error = originalError;
+  }
+});
+
 test("event bus rejects invalid subscriptions", () => {
   const bus = createEventBus();
   assert.throws(() => bus.on("", () => {}), /event type/);

@@ -29,7 +29,6 @@ function makeDeps(overrides = {}) {
     movementStatusTitleEl: makeElement(),
     movementStatusEtaEl: makeElement(),
     movementStatusDetailEl: makeElement(),
-    movementCancelBtn: makeElement(),
     movementActionBtn: makeElement(),
     playerInfoEl: makeElement(),
     pathInfoEl: makeElement(),

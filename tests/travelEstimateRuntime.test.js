@@ -47,7 +47,9 @@ test("estimateTravelPath combines movement step cost and upkeep cost", () => {
   assert.equal(estimate.projectedCondition.nutrition.toFixed(1), "3.6");
   assert.equal(estimate.projectedCondition.hydration.toFixed(1), "7.2");
   assert.equal(estimate.projectedCondition.fatigue, 4);
-  assert.deepEqual(estimate.projectedWarnings.map((warning) => warning.label), ["Projected hydration 7.199999999999999"]);
+  assert.equal(estimate.projectedWarnings[0].label.startsWith("Projected hydration "), true);
+  const projectedHydration = Number(estimate.projectedWarnings[0].label.match(/Projected hydration ([\d.-]+)/)?.[1]);
+  assert.equal(Math.abs(projectedHydration - 7.2) < 1e-9, true);
   assert.deepEqual(estimate.effects, {
     nutrition: -6.4,
     hydration: -12.8,

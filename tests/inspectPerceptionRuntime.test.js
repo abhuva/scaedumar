@@ -15,8 +15,26 @@ test("inspect perception normalizes overlay layer helpers", () => {
   assert.equal(getInspectOverlayDebugLayer("plants"), "plants");
   assert.equal(getInspectOverlayDebugLayer("unknown"), "water");
   assert.equal(getInspectOverlayResourceId("plants"), "plants");
-  assert.equal(getInspectOverlayResourceId("height"), "water");
+  assert.equal(getInspectOverlayResourceId("height"), null);
   assert.equal(getInspectOverlayDisplayLabel("slope"), "Slope");
+});
+
+test("inspect perception non-resource layers only notify debug owners", () => {
+  const calls = [];
+  const runtime = createInspectPerceptionRuntime({
+    onResourceLayerSelected: (resourceId) => calls.push(["resource", resourceId]),
+    revealResourceKnowledge: (resourceId) => calls.push(["reveal", resourceId]),
+    onDebugLayerSelected: (layer) => calls.push(["debug", layer]),
+    syncDebugPanel: () => calls.push(["sync"]),
+    onChanged: (payload) => calls.push(["changed", payload.layer, payload.reason]),
+  });
+
+  assert.equal(runtime.setLayer("height"), "height");
+  assert.deepEqual(calls, [
+    ["debug", "height"],
+    ["sync"],
+    ["changed", "height", "layer-changed"],
+  ]);
 });
 
 test("inspect perception toggles, samples cursor, and emits changes", () => {
