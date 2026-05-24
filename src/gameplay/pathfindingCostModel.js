@@ -26,6 +26,11 @@ export function createPathfindingCostModel(deps) {
     };
   }
 
+  function pathfindingRangeRadius() {
+    const size = deps.getPathfindingStateSnapshot().range;
+    return Math.max(0, Number(size) || 0) / 2;
+  }
+
   function createMoveCostContext() {
     return {
       pathfindingSnapshot: deps.getPathfindingStateSnapshot(),
@@ -62,6 +67,7 @@ export function createPathfindingCostModel(deps) {
   return {
     getGrayAt,
     movementWindowBounds,
+    pathfindingRangeRadius,
     createMoveCostContext,
     computeMoveStepCost,
   };

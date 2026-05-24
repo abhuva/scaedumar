@@ -148,9 +148,10 @@ export function createTravelEstimateRuntime(deps = {}) {
       ? deps.getConditionEffectsSnapshot()
       : {};
     const timeState = typeof deps.getTimeState === "function" ? deps.getTimeState() : {};
+    const travelPlanning = deps.getTravelPlanningSnapshot();
     return estimateTravelPath({
-      pathPixels: deps.movePreviewState && deps.movePreviewState.pathPixels,
-      hoverPixel: deps.movePreviewState && deps.movePreviewState.hoverPixel,
+      pathPixels: travelPlanning.pathPixels,
+      hoverPixel: travelPlanning.hoverPixel,
       computeMoveStepCost: deps.computeMoveStepCost,
       resolveActivityEffects: deps.resolveActivityEffects,
       movementCostKey: typeof deps.getMovementCostKey === "function" ? deps.getMovementCostKey() : "movement.step",

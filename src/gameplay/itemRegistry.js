@@ -16,6 +16,7 @@ function normalizeItemDefinition(raw, fallbackId) {
     description: typeof raw.description === "string" ? raw.description : "",
     stackable: raw.stackable !== false,
     maxStack: Math.max(1, Math.round(finite(raw.maxStack, 1))),
+    keepWhenEmpty: raw.keepWhenEmpty === true,
     weight: Math.max(0, finite(raw.weight, 0)),
     bulk: Math.max(0, finite(raw.bulk, 0)),
     tags: Array.isArray(raw.tags) ? raw.tags.filter((tag) => typeof tag === "string") : [],

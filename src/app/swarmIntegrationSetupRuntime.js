@@ -39,6 +39,7 @@ export function createSwarmIntegrationSetupRuntime(deps) {
     getInteractionMode: deps.interactionContext.getInteractionMode,
     getMovementSnapshot: deps.interactionContext.getMovementSnapshot,
     getActivitySnapshot: deps.interactionContext.getActivitySnapshot,
+    getInspectSnapshot: deps.interactionContext.getInspectSnapshot,
     getMovementDurationHours: deps.interactionContext.getMovementDurationHours,
     getFrameDebugInfo: deps.interactionContext.getFrameDebugInfo,
     getDetailDebugInfo: deps.interactionContext.getDetailDebugInfo,
@@ -52,7 +53,15 @@ export function createSwarmIntegrationSetupRuntime(deps) {
     movementStatusTitleEl: deps.interactionContext.movementStatusTitleEl,
     movementStatusEtaEl: deps.interactionContext.movementStatusEtaEl,
     movementStatusDetailEl: deps.interactionContext.movementStatusDetailEl,
+    movementActionBtn: deps.interactionContext.movementActionBtn,
     movementCancelBtn: deps.interactionContext.movementCancelBtn,
+    inspectStatusPanelEl: deps.interactionContext.inspectStatusPanelEl,
+    inspectStatusTitleEl: deps.interactionContext.inspectStatusTitleEl,
+    inspectStatusEtaEl: deps.interactionContext.inspectStatusEtaEl,
+    inspectStatusDetailEl: deps.interactionContext.inspectStatusDetailEl,
+    inspectResourceRowEl: deps.interactionContext.inspectResourceRowEl,
+    inspectResourceLabelEl: deps.interactionContext.inspectResourceLabelEl,
+    inspectResourceBarFillEl: deps.interactionContext.inspectResourceBarFillEl,
     inspectLayerControlsEl: deps.interactionContext.inspectLayerControlsEl,
   });
 
@@ -62,7 +71,7 @@ export function createSwarmIntegrationSetupRuntime(deps) {
         {
           canUseInteractionInCurrentMode: deps.interactionContext.canUseInteractionInCurrentMode,
           syncInteractionModeUi: deps.interactionContext.syncInteractionModeUi,
-          movePreviewState: deps.interactionContext.movePreviewState,
+          travelPlanningRuntime: deps.interactionContext.travelPlanningRuntime,
           store: deps.interactionContext.store,
           requestOverlayDraw: deps.interactionContext.requestOverlayDraw,
         },

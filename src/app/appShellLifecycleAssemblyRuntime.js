@@ -64,6 +64,7 @@ export function createAppShellLifecycleAssemblyRuntime(deps) {
       initialMode: deps.initialMode,
       isTauriRuntime: deps.isTauriRuntime,
       invokeTauri: deps.invokeTauri,
+      startNewGame: deps.startNewGame,
       dispatchCoreCommand: deps.dispatchCoreCommand,
       setActiveTopic: deps.setActiveTopic,
       updateModeCapabilitiesUi: deps.updateModeCapabilitiesUi,

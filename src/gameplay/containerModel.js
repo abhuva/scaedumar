@@ -107,7 +107,7 @@ export function addItemStack(container, itemId, quantity, itemRegistry) {
   return { ok: true, container: next };
 }
 
-export function removeItemStack(container, slotIndex, quantity) {
+export function removeItemStack(container, slotIndex, quantity, options = {}) {
   const next = createContainer(container);
   const index = Math.floor(finite(slotIndex, -1));
   if (index < 0 || index >= next.slots.length) {
@@ -124,7 +124,11 @@ export function removeItemStack(container, slotIndex, quantity) {
   };
   slot.quantity = normalizeQuantity(slot.quantity) - safeQuantity;
   if (slot.quantity <= 0) {
-    next.slots.splice(index, 1);
+    if (options.keepEmpty) {
+      slot.quantity = 0;
+    } else {
+      next.slots.splice(index, 1);
+    }
   }
   return { ok: true, container: next, removed };
 }

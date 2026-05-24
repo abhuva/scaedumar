@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "defaults": {
+    "gridSize": 128,
+    "initialStock": 255,
+    "initialKnownStock": 0,
+    "depleteAmount": 50,
+    "neighborDepleteAmount": 25,
+    "depleteRadius": 1,
+    "depleteOn": "success",
+    "replenishIntervalTicks": 500,
+    "replenishAmount": 1
+  },
+  "resources": {
+    "water": {
+      "replenishIntervalTicks": 50,
+      "replenishAmount": 250
+    }
+  }
+}

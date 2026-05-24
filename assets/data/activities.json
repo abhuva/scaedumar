@@ -37,7 +37,8 @@
       "work": "gathering.search",
       "movement": "movement.step",
       "upkeep": "idle.tick"
-    }
+    },
+    "resourceSearch": "plants"
   },
   "gather_water": {
     "id": "gather_water",
@@ -64,6 +65,19 @@
     "exclusive": true,
     "command": "core/activity/startInspect",
     "cancelLabel": "Inspect canceled.",
+    "costKeys": {
+      "upkeep": "idle.tick"
+    }
+  },
+  "scout": {
+    "id": "scout",
+    "label": "Scout",
+    "buttonLabel": "SC",
+    "title": "Scout",
+    "panel": true,
+    "exclusive": true,
+    "command": "core/activity/startScout",
+    "cancelLabel": "Scout canceled.",
     "costKeys": {
       "upkeep": "idle.tick"
     }

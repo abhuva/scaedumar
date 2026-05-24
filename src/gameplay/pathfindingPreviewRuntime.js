@@ -37,10 +37,52 @@ class MinHeap {
 }
 
 export function createPathfindingPreviewRuntime(deps) {
+  function getTravelPlanningRuntime() {
+    if (!deps.travelPlanningRuntime) {
+      throw new Error("pathfindingPreviewRuntime requires travelPlanningRuntime");
+    }
+    return deps.travelPlanningRuntime;
+  }
+
+  function getHoverPixel() {
+    return getTravelPlanningRuntime().getHoverPixel();
+  }
+
+  function getPathPixels() {
+    return getTravelPlanningRuntime().getPathPixels();
+  }
+
+  function hasHoverPath() {
+    return getTravelPlanningRuntime().hasHoverPath();
+  }
+
+  function isHoverPixel(pixel) {
+    return getTravelPlanningRuntime().isHoverPixel(pixel);
+  }
+
+  function clearPreview(reason = "path-preview-cleared") {
+    getTravelPlanningRuntime().setHoverPath(null, [], reason);
+  }
+
+  function setHoverPath(pixel, pathPixels, reason = "path-preview") {
+    getTravelPlanningRuntime().setHoverPath(pixel, pathPixels, reason);
+  }
+
+  function isInsidePathfindingRange(pixelX, pixelY) {
+    const radius = typeof deps.getPathfindingRangeRadius === "function"
+      ? Math.max(0, Number(deps.getPathfindingRangeRadius()) || 0)
+      : Number.POSITIVE_INFINITY;
+    if (!Number.isFinite(radius)) return true;
+    const dx = Number(pixelX) - Number(deps.playerState.pixelX);
+    const dy = Number(pixelY) - Number(deps.playerState.pixelY);
+    return (dx * dx + dy * dy) <= radius * radius;
+  }
+
   function extractPathTo(pixelX, pixelY) {
     const movementField = deps.getMovementField();
     if (!movementField) return [];
     if (pixelX < movementField.minX || pixelX > movementField.maxX || pixelY < movementField.minY || pixelY > movementField.maxY) return [];
+    if (!isInsidePathfindingRange(pixelX, pixelY)) return [];
     const indexOf = (x, y) => (y - movementField.minY) * movementField.width + (x - movementField.minX);
     const indexToPixel = (idx) => ({
       x: movementField.minX + (idx % movementField.width),
@@ -63,13 +105,16 @@ export function createPathfindingPreviewRuntime(deps) {
   }
 
   function refreshPathPreview() {
-    if (deps.getInteractionModeSnapshot() !== "pathfinding" || !deps.movePreviewState.hoverPixel) {
-      deps.movePreviewState.pathPixels = [];
-      deps.requestOverlayDraw();
+    const hover = getHoverPixel();
+    if (deps.getInteractionModeSnapshot() !== "pathfinding" || !hover) {
+      setHoverPath(null, [], "path-preview-empty");
       return;
     }
-    deps.movePreviewState.pathPixels = extractPathTo(deps.movePreviewState.hoverPixel.x, deps.movePreviewState.hoverPixel.y);
-    deps.requestOverlayDraw();
+    setHoverPath(
+      hover,
+      extractPathTo(hover.x, hover.y),
+      "path-preview-refreshed",
+    );
   }
 
   function rebuildMovementField() {
@@ -78,7 +123,7 @@ export function createPathfindingPreviewRuntime(deps) {
     const height = bounds.maxY - bounds.minY + 1;
     if (width <= 0 || height <= 0) {
       deps.setMovementField(null);
-      deps.movePreviewState.pathPixels = [];
+      setHoverPath(null, [], "movement-field-empty");
       return;
     }
 
@@ -115,6 +160,7 @@ export function createPathfindingPreviewRuntime(deps) {
         const nx = current.x + dir.dx;
         const ny = current.y + dir.dy;
         if (nx < bounds.minX || nx > bounds.maxX || ny < bounds.minY || ny > bounds.maxY) continue;
+        if (!isInsidePathfindingRange(nx, ny)) continue;
         const nIdx = indexOf(nx, ny);
         const stepCost = deps.computeMoveStepCost(current.x, current.y, nx, ny, moveCostContext);
         if (!Number.isFinite(stepCost)) continue;
@@ -139,41 +185,37 @@ export function createPathfindingPreviewRuntime(deps) {
 
   function updatePathPreviewFromPointer(clientX, clientY) {
     if (deps.getInteractionModeSnapshot() !== "pathfinding") {
-      deps.movePreviewState.hoverPixel = null;
-      deps.movePreviewState.pathPixels = [];
+      clearPreview("pointer-not-pathfinding");
       return;
     }
     const ndc = deps.clientToNdc(clientX, clientY);
     const world = deps.worldFromNdc(ndc);
     const uv = deps.worldToUv(world);
     if (uv.x < 0 || uv.x > 1 || uv.y < 0 || uv.y > 1) {
-      deps.movePreviewState.hoverPixel = null;
-      deps.movePreviewState.pathPixels = [];
-      deps.requestOverlayDraw();
+      clearPreview("pointer-outside-map");
       return;
     }
     const pixel = deps.uvToMapPixelIndex(uv);
-    if (
-      deps.movePreviewState.hoverPixel
-      && deps.movePreviewState.hoverPixel.x === pixel.x
-      && deps.movePreviewState.hoverPixel.y === pixel.y
-    ) {
+    if (isHoverPixel(pixel)) {
       return;
     }
-    deps.movePreviewState.hoverPixel = { x: pixel.x, y: pixel.y };
+    getTravelPlanningRuntime().setHoverPath(pixel, getPathPixels(), "path-hover", { emit: false });
     refreshPathPreview();
   }
 
   function getCurrentPathMetrics() {
     const movementField = deps.getMovementField();
-    if (!movementField || !deps.movePreviewState.hoverPixel || deps.movePreviewState.pathPixels.length === 0) return null;
-    const targetX = deps.movePreviewState.hoverPixel.x;
-    const targetY = deps.movePreviewState.hoverPixel.y;
+    if (!movementField || !hasHoverPath()) return null;
+    const hover = getHoverPixel();
+    const pathPixels = getPathPixels();
+    if (!hover || pathPixels.length === 0) return null;
+    const targetX = hover.x;
+    const targetY = hover.y;
     if (targetX < movementField.minX || targetX > movementField.maxX || targetY < movementField.minY || targetY > movementField.maxY) return null;
     const idx = (targetY - movementField.minY) * movementField.width + (targetX - movementField.minX);
     const totalCost = movementField.dist[idx];
     if (!Number.isFinite(totalCost)) return null;
-    const nodeCount = deps.movePreviewState.pathPixels.length;
+    const nodeCount = pathPixels.length;
     if (nodeCount <= 0) return null;
     const steps = Math.max(0, nodeCount - 1);
     return {

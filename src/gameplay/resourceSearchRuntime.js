@@ -38,6 +38,21 @@ export function computeResourceMovementBias(search, value) {
   return 1 + clamp01(value) * finite(search.movementBias, 0);
 }
 
+export function chooseWeightedLootEntry(entries, random = Math.random) {
+  const candidates = Array.isArray(entries) ? entries : [];
+  let total = 0;
+  for (const entry of candidates) {
+    total += Math.max(0, finite(entry && entry.weight, 0));
+  }
+  if (total <= 0) return null;
+  let pick = (typeof random === "function" ? random() : Math.random()) * total;
+  for (const entry of candidates) {
+    pick -= Math.max(0, finite(entry && entry.weight, 0));
+    if (pick <= 0) return { ...entry };
+  }
+  return candidates.length ? { ...candidates[candidates.length - 1] } : null;
+}
+
 export function createResourceSearchRuntime(deps = {}) {
   const searches = deps.resourceSearches || {};
 
@@ -67,13 +82,19 @@ export function createResourceSearchRuntime(deps = {}) {
     const search = getSearch(resourceId);
     if (!search) return 0;
     if (!hasMap(resourceId)) return 0;
-    return computeResourceSearchChance(search, sample(resourceId, x, y));
+    const stockFactor = typeof deps.getResourceStockFactor === "function"
+      ? clamp01(deps.getResourceStockFactor(resourceId, x, y))
+      : 1;
+    return computeResourceSearchChance(search, sample(resourceId, x, y)) * stockFactor;
   }
 
   function movementBias(resourceId, x, y) {
     const search = getSearch(resourceId);
     if (!search) return 1;
-    return computeResourceMovementBias(search, sample(resourceId, x, y));
+    const stockFactor = typeof deps.getResourceStockFactor === "function"
+      ? clamp01(deps.getResourceStockFactor(resourceId, x, y))
+      : 1;
+    return computeResourceMovementBias(search, sample(resourceId, x, y) * stockFactor);
   }
 
   function getReward(resourceId) {
@@ -81,8 +102,60 @@ export function createResourceSearchRuntime(deps = {}) {
     return search && search.reward ? { ...search.reward } : null;
   }
 
+  function getRewardBand(reward, x, y) {
+    if (!reward || reward.type !== "lootTable") return 0;
+    if (!reward.bandMap) return Math.max(0, Math.min(255, Math.round(finite(reward.defaultBand, 0))));
+    const imageData = typeof deps.getResourceMapImageData === "function"
+      ? deps.getResourceMapImageData(reward.bandMap)
+      : null;
+    if (!imageData) return Math.max(0, Math.min(255, Math.round(finite(reward.defaultBand, 0))));
+    return Math.max(0, Math.min(255, Math.round(sampleResourceMapValue(imageData, x, y, reward.bandChannel) * 255)));
+  }
+
+  function resolveReward(resourceId, x, y, options = {}) {
+    const search = getSearch(resourceId);
+    const reward = search && search.reward ? search.reward : null;
+    if (!reward) return null;
+    if (reward.type === "item") {
+      return { ...reward };
+    }
+    if (reward.type === "fillContainer") {
+      const sampleValue = reward.scaleBy === "chance" ? chance(resourceId, x, y) : sample(resourceId, x, y);
+      const t = clamp01(sampleValue);
+      const minQuantity = Math.max(1, Math.round(finite(reward.minQuantity, 1)));
+      const maxQuantity = Math.max(minQuantity, Math.round(finite(reward.maxQuantity, minQuantity)));
+      const quantity = Math.max(minQuantity, Math.min(maxQuantity, Math.round(minQuantity + (maxQuantity - minQuantity) * t)));
+      return {
+        type: "fillContainer",
+        tag: reward.tag,
+        quantity,
+      };
+    }
+    if (reward.type === "lootTable") {
+      const band = getRewardBand(reward, x, y);
+      const bands = reward.bands || {};
+      const entries = bands[String(band)] || bands[String(reward.defaultBand)] || [];
+      const entry = chooseWeightedLootEntry(entries, options.random || deps.random || Math.random);
+      if (!entry) return null;
+      return {
+        type: "item",
+        itemId: entry.itemId,
+        quantity: entry.quantity,
+        band,
+      };
+    }
+    return null;
+  }
+
   function getRequiredMapNames() {
-    return [...new Set(Object.values(searches).map((search) => search.map).filter(Boolean))];
+    const names = [];
+    for (const search of Object.values(searches)) {
+      if (search && search.map) names.push(search.map);
+      if (search && search.reward && search.reward.type === "lootTable" && search.reward.bandMap) {
+        names.push(search.reward.bandMap);
+      }
+    }
+    return [...new Set(names.filter(Boolean))];
   }
 
   return {
@@ -92,6 +165,7 @@ export function createResourceSearchRuntime(deps = {}) {
     chance,
     movementBias,
     getReward,
+    resolveReward,
     getRequiredMapNames,
   };
 }

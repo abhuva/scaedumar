@@ -21,10 +21,30 @@ export function createInfoPanelRuntime(deps) {
     deps.movementStatusPanelEl.classList.toggle("hidden", !visible);
   }
 
+  function setScoutActionLayout(active) {
+    if (!deps.movementStatusPanelEl) return;
+    deps.movementStatusPanelEl.classList.toggle("scout-action-panel", active);
+  }
+
+  function clamp01(value) {
+    const safe = Number(value);
+    return Number.isFinite(safe) ? Math.max(0, Math.min(1, safe)) : 0;
+  }
+
   function formatSigned(value) {
     const number = Number(value);
     if (!Number.isFinite(number) || Math.abs(number) < 0.0005) return "0.00";
     return `${number > 0 ? "+" : ""}${number.toFixed(2)}`;
+  }
+
+  function setCancelVisible(visible) {
+    if (!deps.movementCancelBtn) return;
+    deps.movementCancelBtn.classList.toggle("hidden", !visible);
+  }
+
+  function formatPct(value) {
+    const safe = Number(value);
+    return Number.isFinite(safe) ? `${Math.round(safe * 100)}%` : "--";
   }
 
   function updateTravelPreviewPanel() {
@@ -32,6 +52,7 @@ export function createInfoPanelRuntime(deps) {
       ? deps.getTravelPreviewEstimate()
       : null;
     setMovementPanelVisible(true);
+    setCancelVisible(false);
     if (deps.movementStatusTitleEl) {
       deps.movementStatusTitleEl.textContent = "Plan Travel";
     }
@@ -39,54 +60,106 @@ export function createInfoPanelRuntime(deps) {
       if (deps.movementStatusEtaEl) {
         deps.movementStatusEtaEl.textContent = "Hover a reachable destination.";
       }
-      if (deps.movementStatusDetailEl) {
-        deps.movementStatusDetailEl.textContent = "No cost paid until you click to confirm.";
-      }
-      if (deps.movementCancelBtn) {
-        deps.movementCancelBtn.textContent = "Cancel Planning";
-      }
+      if (deps.movementStatusDetailEl) deps.movementStatusDetailEl.textContent = "";
       return;
     }
     if (!estimate.reachable) {
-      const destination = estimate.destination
-        ? `${estimate.destination.x}, ${estimate.destination.y}`
-        : "--";
+      if (deps.movementStatusTitleEl) {
+        deps.movementStatusTitleEl.textContent = "Plan Travel";
+      }
       if (deps.movementStatusEtaEl) {
-        deps.movementStatusEtaEl.textContent = `Destination: ${destination}`;
+        deps.movementStatusEtaEl.textContent = "No reachable path";
       }
       if (deps.movementStatusDetailEl) {
-        deps.movementStatusDetailEl.textContent = estimate.message || "No reachable path.";
-      }
-      if (deps.movementCancelBtn) {
-        deps.movementCancelBtn.textContent = "Cancel Planning";
+        deps.movementStatusDetailEl.textContent = "";
       }
       return;
     }
 
     const duration = formatGameDuration(estimate.durationHours);
-    const destination = `${estimate.destination.x}, ${estimate.destination.y}`;
+    if (deps.movementStatusTitleEl) {
+      deps.movementStatusTitleEl.textContent = `Plan Travel: est. ${duration} hours`;
+    }
+    const warningText = Array.isArray(estimate.projectedWarnings) && estimate.projectedWarnings.length
+      ? `Predicted: ${estimate.projectedWarnings.map((warning) => warning.label).join(", ")}`
+      : "";
     if (deps.movementStatusEtaEl) {
-      deps.movementStatusEtaEl.textContent = `Destination: ${destination} | Travel time: ${duration} / ${estimate.ticks} ticks`;
+      deps.movementStatusEtaEl.textContent = warningText;
     }
     if (deps.movementStatusDetailEl) {
-      const effects = estimate.effects || {};
-      const modifierText = Array.isArray(estimate.modifiers) && estimate.modifiers.length
-        ? `\nModifiers: ${estimate.modifiers.map((modifier) => modifier.label).join(", ")}`
-        : "";
-      const warningText = Array.isArray(estimate.projectedWarnings) && estimate.projectedWarnings.length
-        ? `\nWarning: ${estimate.projectedWarnings.map((warning) => warning.label).join(", ")}`
-        : "";
-      deps.movementStatusDetailEl.textContent = [
-        `Steps: ${estimate.steps} | Avg cost: ${Number(estimate.avgPerStep || 0).toFixed(2)}`,
-        `Cost: N ${formatSigned(effects.nutrition)} | H ${formatSigned(effects.hydration)} | F ${formatSigned(effects.fatigue)}`,
-      ].join("\n") + modifierText + warningText;
+      deps.movementStatusDetailEl.textContent = "";
     }
-    if (deps.movementCancelBtn) {
-      deps.movementCancelBtn.textContent = "Cancel Planning";
+  }
+
+  function isInspectFocused(inspectSnapshot, activitySnapshot) {
+    if (!inspectSnapshot || !inspectSnapshot.enabled) return false;
+    if (!activitySnapshot || !activitySnapshot.active) return true;
+    return activitySnapshot.type !== "rest" && activitySnapshot.type !== "scout";
+  }
+
+  function getInspectLayerLabel(layer) {
+    if (layer === "plants") return "Plants";
+    if (layer === "height") return "Height";
+    if (layer === "slope") return "Slope";
+    return "Water";
+  }
+
+  function getInspectLayerValue(inspectSnapshot) {
+    const layer = inspectSnapshot && inspectSnapshot.layer;
+    if (layer === "height") return clamp01(inspectSnapshot.inspectHeight);
+    if (layer === "slope") return clamp01(inspectSnapshot.inspectSlope);
+    const resourceId = layer === "plants" ? "plants" : "water";
+    const readings = Array.isArray(inspectSnapshot && inspectSnapshot.inspectResources)
+      ? inspectSnapshot.inspectResources
+      : [];
+    const reading = readings.find((item) => item && item.resourceId === resourceId);
+    if (!reading) return 0;
+    const stockMode = inspectSnapshot.stockOverlayMode || "known";
+    const stock = stockMode === "live"
+      ? Number(reading.stock)
+      : (stockMode === "none" ? 1 : Number(reading.knownStock));
+    return clamp01(Number(reading.value) * Number(reading.knowledge) * (Number.isFinite(stock) ? stock : 0));
+  }
+
+  function updateInspectPanel(activitySnapshot) {
+    const inspect = typeof deps.getInspectSnapshot === "function" ? deps.getInspectSnapshot() : null;
+    const focused = isInspectFocused(inspect, activitySnapshot);
+    if (deps.inspectStatusPanelEl) {
+      deps.inspectStatusPanelEl.classList.toggle("inspect-disabled", !focused);
+    }
+    if (deps.inspectLayerControlsEl) {
+      deps.inspectLayerControlsEl.classList.remove("hidden");
+      for (const button of deps.inspectLayerControlsEl.querySelectorAll("button")) {
+        button.disabled = !focused;
+      }
+    }
+    if (!inspect) return;
+    if (deps.inspectStatusTitleEl) deps.inspectStatusTitleEl.textContent = "Inspect:";
+    if (deps.inspectStatusEtaEl) deps.inspectStatusEtaEl.textContent = "";
+    if (deps.inspectResourceRowEl) {
+      deps.inspectResourceRowEl.classList.toggle("hidden", !focused);
+    }
+    if (focused) {
+      if (deps.inspectResourceLabelEl) deps.inspectResourceLabelEl.textContent = getInspectLayerLabel(inspect.layer);
+      if (deps.inspectResourceBarFillEl) deps.inspectResourceBarFillEl.style.width = `${Math.round(getInspectLayerValue(inspect) * 100)}%`;
+    } else if (deps.inspectResourceBarFillEl) {
+      deps.inspectResourceBarFillEl.style.width = "0%";
+    }
+    if (deps.inspectStatusDetailEl) {
+      deps.inspectStatusDetailEl.textContent = focused
+        ? `${getInspectLayerLabel(inspect.layer)} ${Math.round(getInspectLayerValue(inspect) * 100)}%`
+        : "Inspect focus off.";
     }
   }
 
   function updateMovementPanel(movementSnapshot, activitySnapshot) {
+    setScoutActionLayout(false);
+    if (deps.movementActionBtn) {
+      deps.movementActionBtn.classList.add("hidden");
+      deps.movementActionBtn.disabled = true;
+    }
+    setCancelVisible(false);
+    updateInspectPanel(activitySnapshot);
     if (activitySnapshot && activitySnapshot.active) {
       setMovementPanelVisible(true);
       if (deps.movementStatusTitleEl) {
@@ -99,54 +172,18 @@ export function createInfoPanelRuntime(deps) {
               : (activitySnapshot.type === "travel" ? "Travel" : (activitySnapshot.label || "Activity"))));
       }
       if (activitySnapshot.type === "travel") {
-        if (deps.inspectLayerControlsEl) deps.inspectLayerControlsEl.classList.add("hidden");
         const durationHours = typeof deps.getMovementDurationHours === "function"
           ? deps.getMovementDurationHours(movementSnapshot)
           : null;
-        const remainingTicks = Math.max(0, Math.round(Number(movementSnapshot && movementSnapshot.totalTicksRemaining || 0)));
-        const stepIndex = Math.max(0, Math.round(Number(movementSnapshot && movementSnapshot.currentStepIndex || 0))) + 1;
-        const queueLength = Math.max(0, Math.round(Number(movementSnapshot && movementSnapshot.queueLength || 0)));
         if (deps.movementStatusEtaEl) {
-          deps.movementStatusEtaEl.textContent = `Travel time remaining: ${durationHours == null ? "--" : formatGameDuration(durationHours)}`;
+          deps.movementStatusEtaEl.textContent = `Travel time: ${durationHours == null ? "--" : `${formatGameDuration(durationHours)} hours`}`;
         }
         if (deps.movementStatusDetailEl) {
-          deps.movementStatusDetailEl.textContent = `Path: step ${stepIndex}/${queueLength}, ${remainingTicks} ticks remaining`;
-        }
-        if (deps.movementCancelBtn) {
-          deps.movementCancelBtn.textContent = "Cancel Travel";
-        }
-        return;
-      }
-      if (activitySnapshot.type === "inspect") {
-        if (deps.inspectLayerControlsEl) deps.inspectLayerControlsEl.classList.remove("hidden");
-        const x = activitySnapshot.inspectX == null ? "--" : Math.round(Number(activitySnapshot.inspectX));
-        const y = activitySnapshot.inspectY == null ? "--" : Math.round(Number(activitySnapshot.inspectY));
-        const height = Number(activitySnapshot.inspectHeight);
-        const slope = Number(activitySnapshot.inspectSlope);
-        const resourceReadings = Array.isArray(activitySnapshot.inspectResources)
-          ? activitySnapshot.inspectResources
-          : [];
-        const waterReading = resourceReadings.find((reading) => reading && reading.resourceId === "water") || null;
-        if (deps.movementStatusEtaEl) {
-          deps.movementStatusEtaEl.textContent = `Position: ${x}, ${y}`;
-        }
-        if (deps.movementStatusDetailEl) {
-          const terrainText = `Height: ${Number.isFinite(height) ? height.toFixed(3) : "--"} | Slope: ${Number.isFinite(slope) ? `${(slope * 90).toFixed(1)} deg` : "--"}`;
-          const wetness = Number(waterReading && waterReading.value);
-          const chance = Number(waterReading && waterReading.chance);
-          const knowledge = Number(waterReading && waterReading.knowledge);
-          const waterText = waterReading
-            ? `\nWater: wetness ${Number.isFinite(wetness) ? wetness.toFixed(2) : "--"} | chance ${Number.isFinite(chance) ? `${Math.round(chance * 100)}%` : "--"} | known ${Number.isFinite(knowledge) ? `${Math.round(knowledge * 100)}%` : "--"}`
-            : "";
-          deps.movementStatusDetailEl.textContent = terrainText + waterText;
-        }
-        if (deps.movementCancelBtn) {
-          deps.movementCancelBtn.textContent = "Stop Inspect";
+          deps.movementStatusDetailEl.textContent = "";
         }
         return;
       }
       if (activitySnapshot.type === "rest") {
-        if (deps.inspectLayerControlsEl) deps.inspectLayerControlsEl.classList.add("hidden");
         if (deps.movementStatusEtaEl) {
           deps.movementStatusEtaEl.textContent = "Recovering fatigue";
         }
@@ -159,24 +196,45 @@ export function createInfoPanelRuntime(deps) {
         }
         return;
       }
+      if (activitySnapshot.type === "scout") {
+        const phase = activitySnapshot.scoutPhase === "possessed" ? "possessed" : "scanning";
+        const candidateIndex = Math.round(Number(activitySnapshot.scoutCandidateIndex));
+        const disconnectReason = typeof activitySnapshot.scoutDisconnectReason === "string"
+          ? activitySnapshot.scoutDisconnectReason
+          : "";
+        if (deps.movementStatusTitleEl) {
+          deps.movementStatusTitleEl.textContent = phase === "possessed" ? "Bird Scout" : "Scouting";
+        }
+        if (deps.movementStatusEtaEl) {
+          deps.movementStatusEtaEl.textContent = phase === "possessed"
+            ? "Bird possessed"
+            : (candidateIndex >= 0 ? "Bird is within reach" : "Listening");
+        }
+        if (deps.movementStatusDetailEl) {
+          deps.movementStatusDetailEl.textContent = phase === "possessed"
+            ? ""
+            : disconnectReason;
+        }
+        if (deps.movementActionBtn) {
+          setScoutActionLayout(phase !== "possessed");
+          deps.movementActionBtn.textContent = "POS";
+          deps.movementActionBtn.title = "Possess Bird";
+          deps.movementActionBtn.setAttribute("aria-label", "Possess bird");
+          deps.movementActionBtn.disabled = phase === "possessed" || candidateIndex < 0;
+          deps.movementActionBtn.classList.toggle("hidden", phase === "possessed");
+        }
+        return;
+      }
       if (deps.movementStatusEtaEl) {
-        if (deps.inspectLayerControlsEl) deps.inspectLayerControlsEl.classList.add("hidden");
         if (activitySnapshot.resourceId) {
-          const value = Number(activitySnapshot.lastResourceValue);
-          const chance = Number(activitySnapshot.lastSearchChance);
-          deps.movementStatusEtaEl.textContent = `Radius: ${Math.max(0, Math.round(Number(activitySnapshot.radius) || 0))} | Wetness: ${Number.isFinite(value) ? value.toFixed(2) : "--"} | Chance: ${Number.isFinite(chance) ? `${Math.round(chance * 100)}%` : "--"}`;
+          deps.movementStatusEtaEl.textContent = "";
         } else {
-          deps.movementStatusEtaEl.textContent = `Radius: ${Math.max(0, Math.round(Number(activitySnapshot.radius) || 0))}`;
+          deps.movementStatusEtaEl.textContent = "";
         }
       }
       if (deps.movementStatusDetailEl) {
-        const steps = Math.max(0, Math.round(Number(activitySnapshot.stepsTaken) || 0));
-        const visited = Math.max(0, Math.round(Number(activitySnapshot.visitedCount) || 0));
         const found = Math.max(0, Math.round(Number(activitySnapshot.foundCount) || 0));
-        deps.movementStatusDetailEl.textContent = `Steps: ${steps} | Visited: ${visited} | Found: ${found}`;
-      }
-      if (deps.movementCancelBtn) {
-        deps.movementCancelBtn.textContent = activitySnapshot.type === "gathering" ? "Stop Gathering" : "Stop Activity";
+        deps.movementStatusDetailEl.textContent = found > 0 ? `Found: ${found}` : "";
       }
       return;
     }
@@ -186,28 +244,20 @@ export function createInfoPanelRuntime(deps) {
         return;
       }
       setMovementPanelVisible(false);
-      if (deps.inspectLayerControlsEl) deps.inspectLayerControlsEl.classList.add("hidden");
       return;
     }
-    if (deps.inspectLayerControlsEl) deps.inspectLayerControlsEl.classList.add("hidden");
     if (deps.movementStatusTitleEl) {
       deps.movementStatusTitleEl.textContent = "Player Moving";
     }
     const durationHours = typeof deps.getMovementDurationHours === "function"
       ? deps.getMovementDurationHours(movementSnapshot)
       : null;
-    const remainingTicks = Math.max(0, Math.round(Number(movementSnapshot.totalTicksRemaining || 0)));
-    const stepIndex = Math.max(0, Math.round(Number(movementSnapshot.currentStepIndex || 0))) + 1;
-    const queueLength = Math.max(0, Math.round(Number(movementSnapshot.queueLength || 0)));
     if (deps.movementStatusEtaEl) {
       const durationLabel = durationHours == null ? "--" : formatGameDuration(durationHours);
-      deps.movementStatusEtaEl.textContent = `Travel time remaining: ${durationLabel}`;
+      deps.movementStatusEtaEl.textContent = `Travel time: ${durationLabel} hours`;
     }
     if (deps.movementStatusDetailEl) {
-      deps.movementStatusDetailEl.textContent = `Path: step ${stepIndex}/${queueLength}, ${remainingTicks} ticks remaining`;
-    }
-    if (deps.movementCancelBtn) {
-      deps.movementCancelBtn.textContent = "Cancel Travel";
+      deps.movementStatusDetailEl.textContent = "";
     }
     setMovementPanelVisible(true);
   }

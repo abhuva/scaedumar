@@ -1,6 +1,6 @@
 export function createMapLoader(deps) {
   function sidecarStatusText(prefix, loaded) {
-    return `${prefix} | pointlights: ${loaded.pointLights ? "yes" : "no"} | lighting: ${loaded.lighting ? "yes" : "no"} | interaction: ${loaded.interaction ? "yes" : "no"} | fog: ${loaded.fog ? "yes" : "no"} | clouds: ${loaded.clouds ? "yes" : "no"} | waterfx: ${loaded.waterFx ? "yes" : "no"} | watertrails: ${loaded.waterTrails ? "yes" : "default"} | detail: ${loaded.detail ? "yes" : "default"} | camera: ${loaded.camera ? "yes" : "default"} | resource-debug: ${loaded.resourceDebug ? "yes" : "default"} | swarm: ${loaded.swarm ? "yes" : "default"} | npc: ${loaded.npc ? "yes" : "default"}`;
+    return `${prefix} | pointlights: ${loaded.pointLights ? "yes" : "no"} | lighting: ${loaded.lighting ? "yes" : "no"} | interaction: ${loaded.interaction ? "yes" : "no"} | fog: ${loaded.fog ? "yes" : "no"} | clouds: ${loaded.clouds ? "yes" : "no"} | waterfx: ${loaded.waterFx ? "yes" : "no"} | watertrails: ${loaded.waterTrails ? "yes" : "default"} | detail: ${loaded.detail ? "yes" : "default"} | camera: ${loaded.camera ? "yes" : "default"} | resource-debug: ${loaded.resourceDebug ? "yes" : "default"} | resource-stock: ${loaded.resourceStock ? "yes" : "default"} | swarm: ${loaded.swarm ? "yes" : "default"} | npc: ${loaded.npc ? "yes" : "default"}`;
   }
 
   function appendMissingGameplayMapWarning(status, availableFiles) {

@@ -11,6 +11,18 @@ function getSearchConfig(searches, resourceId) {
   return searches && searches[resourceId] ? searches[resourceId] : null;
 }
 
+function getRevealRadiusMultiplier(deps, resourceId) {
+  const multiplier = typeof deps.getRevealRadiusMultiplier === "function"
+    ? deps.getRevealRadiusMultiplier(resourceId)
+    : 1;
+  return Math.max(0, finite(multiplier, 1));
+}
+
+function getRevealFalloff(deps, resourceId) {
+  const configured = typeof deps.getDiscoveryConfig === "function" ? deps.getDiscoveryConfig(resourceId) : null;
+  return Math.max(0, Math.min(8, finite(configured && configured.revealFalloff, 0)));
+}
+
 function createMask(searches, resourceId, mapWidth, mapHeight, discoveryOverride = null) {
   const search = getSearchConfig(searches, resourceId);
   const discovery = discoveryOverride || (search && search.discovery) || {};
@@ -35,6 +47,7 @@ export function createResourceDiscoveryRuntime(deps = {}) {
   const searches = deps.resourceSearches || {};
   const masks = new Map();
   const versions = new Map();
+  const decayTickRemainders = new Map();
 
   function bumpVersion(resourceId = "") {
     const id = String(resourceId || "*");
@@ -86,10 +99,11 @@ export function createResourceDiscoveryRuntime(deps = {}) {
   function revealCircle(resourceId, centerX, centerY, radius, strength = 1) {
     const mask = getMask(resourceId);
     if (!mask) return false;
-    const safeRadius = Math.max(0, finite(radius, 0));
+    const safeRadius = Math.max(0, finite(radius, 0) * getRevealRadiusMultiplier(deps, resourceId));
     if (safeRadius <= 0) return false;
     const safeStrength = Math.max(0, Math.min(1, finite(strength, 1)));
     if (safeStrength <= 0) return false;
+    const falloff = getRevealFalloff(deps, resourceId);
     const mapX = clamp(finite(centerX, 0), 0, mask.mapWidth - 1);
     const mapY = clamp(finite(centerY, 0), 0, mask.mapHeight - 1);
     const minGridX = Math.round(clamp(Math.floor(((mapX - safeRadius) / mask.mapWidth) * mask.width), 0, mask.width - 1));
@@ -97,7 +111,9 @@ export function createResourceDiscoveryRuntime(deps = {}) {
     const minGridY = Math.round(clamp(Math.floor(((mapY - safeRadius) / mask.mapHeight) * mask.height), 0, mask.height - 1));
     const maxGridY = Math.round(clamp(Math.ceil(((mapY + safeRadius) / mask.mapHeight) * mask.height), 0, mask.height - 1));
     const radiusSq = safeRadius * safeRadius;
-    const value = Math.round(safeStrength * 255);
+    const hardValue = Math.round(safeStrength * 255);
+    const centerGridX = clamp(Math.floor((mapX / mask.mapWidth) * mask.width), 0, mask.width - 1);
+    const centerGridY = clamp(Math.floor((mapY / mask.mapHeight) * mask.height), 0, mask.height - 1);
     let changed = false;
 
     for (let gy = minGridY; gy <= maxGridY; gy++) {
@@ -106,7 +122,14 @@ export function createResourceDiscoveryRuntime(deps = {}) {
         const sampleX = ((gx + 0.5) / mask.width) * mask.mapWidth;
         const dx = sampleX - mapX;
         const dy = sampleY - mapY;
-        if (dx * dx + dy * dy > radiusSq) continue;
+        const distSq = dx * dx + dy * dy;
+        if (distSq > radiusSq) continue;
+        const value = gx === centerGridX && gy === centerGridY
+          ? hardValue
+          : falloff <= 0
+          ? hardValue
+          : Math.round(safeStrength * Math.pow(Math.max(0, 1 - Math.sqrt(distSq) / safeRadius), falloff) * 255);
+        if (value <= 0) continue;
         const index = gy * mask.width + gx;
         if (index < 0 || index >= mask.cells.length) continue;
         if (mask.cells[index] >= value) continue;
@@ -140,7 +163,12 @@ export function createResourceDiscoveryRuntime(deps = {}) {
       mapWidth: mask.mapWidth,
       mapHeight: mask.mapHeight,
       cells: mask.cells,
+      version: getVersion(resourceId),
     };
+  }
+
+  function getVersion(resourceId) {
+    return (versions.get(String(resourceId || "*")) || 0) + (versions.get("*") || 0);
   }
 
   function revealMovement(resourceId, x, y) {
@@ -162,13 +190,68 @@ export function createResourceDiscoveryRuntime(deps = {}) {
     return true;
   }
 
+  function decay(resourceId, amount) {
+    const id = String(resourceId || "");
+    const mask = masks.get(id);
+    if (!mask) return false;
+    const byteAmount = Math.max(0, Math.min(255, Math.round(finite(amount, 0))));
+    if (byteAmount <= 0) return false;
+    let changed = false;
+    for (let i = 0; i < mask.cells.length; i++) {
+      const current = mask.cells[i];
+      if (current <= 0) continue;
+      mask.cells[i] = Math.max(0, current - byteAmount);
+      changed = true;
+    }
+    if (changed) {
+      bumpVersion(id);
+      if (typeof deps.onChange === "function") {
+        deps.onChange();
+      }
+    }
+    return changed;
+  }
+
+  function getDecayConfig(resourceId) {
+    const config = typeof deps.getDecayConfig === "function" ? deps.getDecayConfig(resourceId) : null;
+    const decayConfig = config && typeof config === "object" ? config : {};
+    return {
+      enabled: decayConfig.enabled === true,
+      intervalTicks: Math.max(1, Math.round(finite(decayConfig.intervalTicks, 500))),
+      amount: Math.max(0, Math.min(255, finite(decayConfig.amount, 1))),
+    };
+  }
+
+  function update(ctx = {}) {
+    const ticks = Math.max(0, Math.round(finite(ctx.time && ctx.time.ticksProcessed, 0)));
+    if (ticks <= 0) return;
+    const resourceIds = new Set([
+      ...Object.keys(searches),
+      ...masks.keys(),
+    ]);
+    for (const resourceId of resourceIds) {
+      const config = getDecayConfig(resourceId);
+      if (!config.enabled || config.amount <= 0) continue;
+      const previous = decayTickRemainders.get(resourceId) || 0;
+      const total = previous + ticks;
+      const decaySteps = Math.floor(total / config.intervalTicks);
+      decayTickRemainders.set(resourceId, total - decaySteps * config.intervalTicks);
+      if (decaySteps <= 0) continue;
+      decay(resourceId, config.amount * decaySteps);
+    }
+  }
+
   return {
+    name: "resource-discovery-runtime",
     reset,
     revealCircle,
     revealMovement,
+    resolveRevealRadius: (resourceId, radius) => Math.max(0, finite(radius, 0) * getRevealRadiusMultiplier(deps, resourceId)),
     fill,
+    decay,
     sampleKnowledge,
     getSnapshot,
-    getVersion: (resourceId) => (versions.get(String(resourceId || "*")) || 0) + (versions.get("*") || 0),
+    getVersion,
+    update,
   };
 }

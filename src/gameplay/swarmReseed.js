@@ -10,6 +10,7 @@ export function createSwarmReseeder(deps) {
     const variation = settings.variationStrengthPct * 0.01;
     const width = Math.max(1, deps.splatSize.width);
     const height = Math.max(1, deps.splatSize.height);
+    deps.swarmState.nextAgentId = 1;
     for (let i = 0; i < deps.swarmState.count; i++) {
       let spawnX = 0;
       let spawnY = 0;
@@ -36,6 +37,7 @@ export function createSwarmReseeder(deps) {
       deps.swarmState.vx[i] = Math.cos(angle) * speed;
       deps.swarmState.vy[i] = Math.sin(angle) * speed;
       deps.swarmState.vz[i] = (Math.random() * 2 - 1) * speed * 0.2;
+      deps.swarmState.agentId[i] = deps.swarmState.nextAgentId++;
       deps.swarmState.speedScale[i] = 1 + (Math.random() * 2 - 1) * variation;
       deps.swarmState.steerScale[i] = 1 + (Math.random() * 2 - 1) * variation;
       deps.swarmState.isResting[i] = 0;

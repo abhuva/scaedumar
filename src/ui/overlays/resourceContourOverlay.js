@@ -47,6 +47,7 @@ function getContourSegments(cell, threshold) {
 
 function makeCacheKey(input, imageData, search, overlay, thresholds, step, knowledgeThreshold) {
   const version = input.contourVersion == null ? 0 : input.contourVersion;
+  const stockVersion = input.stockVersion == null ? 0 : input.stockVersion;
   return [
     search.id,
     search.map,
@@ -55,6 +56,7 @@ function makeCacheKey(input, imageData, search, overlay, thresholds, step, knowl
     imageData.width,
     imageData.height,
     version,
+    stockVersion,
     overlay.renderMode === "marching" ? "marching" : "raster",
     step,
     knowledgeThreshold.toFixed(4),
@@ -89,6 +91,7 @@ function getCachedContourGroups(input, imageData, search, overlay, thresholds, s
   }
 
   const sampleKnowledge = typeof input.sampleKnowledge === "function" ? input.sampleKnowledge : () => 0;
+  const sampleStockFactor = typeof input.sampleStockFactor === "function" ? input.sampleStockFactor : () => 1;
   const maxX = Math.max(1, imageData.width - 1);
   const maxY = Math.max(1, imageData.height - 1);
   const groups = thresholds.map((threshold, thresholdIndex) => ({
@@ -112,10 +115,10 @@ function getCachedContourGroups(input, imageData, search, overlay, thresholds, s
         y0: y,
         x1,
         y1,
-        tl: sampleResourceMapValue(imageData, x, y, search.channel),
-        tr: sampleResourceMapValue(imageData, x1, y, search.channel),
-        br: sampleResourceMapValue(imageData, x1, y1, search.channel),
-        bl: sampleResourceMapValue(imageData, x, y1, search.channel),
+        tl: sampleResourceMapValue(imageData, x, y, search.channel) * sampleStockFactor(search.id, x, y),
+        tr: sampleResourceMapValue(imageData, x1, y, search.channel) * sampleStockFactor(search.id, x1, y),
+        br: sampleResourceMapValue(imageData, x1, y1, search.channel) * sampleStockFactor(search.id, x1, y1),
+        bl: sampleResourceMapValue(imageData, x, y1, search.channel) * sampleStockFactor(search.id, x, y1),
       };
       for (const group of groups) {
         const segments = getContourSegments(cell, group.threshold);
@@ -134,8 +137,8 @@ function getCachedContourGroups(input, imageData, search, overlay, thresholds, s
 }
 
 function createCanvas(width, height) {
-  if (typeof OffscreenCanvas === "function") {
-    return new OffscreenCanvas(width, height);
+  if (typeof globalThis.OffscreenCanvas === "function") {
+    return new globalThis.OffscreenCanvas(width, height);
   }
   if (typeof document !== "undefined" && typeof document.createElement === "function") {
     const canvas = document.createElement("canvas");
@@ -194,6 +197,7 @@ function getCachedBandRaster(input, imageData, search, overlay, thresholds, step
   }
 
   const sampleKnowledge = typeof input.sampleKnowledge === "function" ? input.sampleKnowledge : () => 0;
+  const sampleStockFactor = typeof input.sampleStockFactor === "function" ? input.sampleStockFactor : () => 1;
   const canvas = createCanvas(imageData.width, imageData.height);
   if (!canvas) return null;
   const ctx = canvas.getContext("2d");
@@ -208,7 +212,7 @@ function getCachedBandRaster(input, imageData, search, overlay, thresholds, step
   for (let y = 0; y < imageData.height; y++) {
     for (let x = 0; x < imageData.width; x++) {
       if (sampleKnowledge(search.id, x, y) < knowledgeThreshold) continue;
-      const wetness = sampleResourceMapValue(imageData, x, y, search.channel);
+      const wetness = sampleResourceMapValue(imageData, x, y, search.channel) * sampleStockFactor(search.id, x, y);
       let bestIndex = -1;
       let bestAlpha = 0;
       for (let i = 0; i < thresholds.length; i++) {

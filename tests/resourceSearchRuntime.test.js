@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import { normalizeResourceSearches } from "../src/gameplay/resourceSearchRegistry.js";
 import {
+  chooseWeightedLootEntry,
   computeResourceMovementBias,
   computeResourceSearchChance,
   createResourceSearchRuntime,
@@ -74,4 +75,113 @@ test("resource runtime disables chance when configured map is missing", () => {
 
   assert.equal(runtime.hasMap("water"), false);
   assert.equal(runtime.chance("water", 0, 0), 0);
+});
+
+test("resource runtime scales chance and movement bias by current stock", () => {
+  const resourceSearches = normalizeResourceSearches({
+    water: {
+      map: "wetness",
+      channel: "r",
+      threshold: 0,
+      baseChance: 0,
+      chanceScale: 1,
+      maxChance: 1,
+      movementBias: 2,
+    },
+  });
+  const imageData = {
+    width: 1,
+    height: 1,
+    data: new Uint8ClampedArray([255, 0, 0, 255]),
+  };
+  const runtime = createResourceSearchRuntime({
+    resourceSearches,
+    getResourceMapImageData: () => imageData,
+    getResourceStockFactor: () => 0.5,
+  });
+
+  assert.equal(runtime.chance("water", 0, 0), 0.5);
+  assert.equal(runtime.movementBias("water", 0, 0), 2);
+});
+
+test("chooseWeightedLootEntry selects from summed positive weights", () => {
+  const entry = chooseWeightedLootEntry([
+    { itemId: "berries", quantity: 1, weight: 5 },
+    { itemId: "medicinal_herb", quantity: 1, weight: 3 },
+    { itemId: "plant_fiber", quantity: 1, weight: 2 },
+  ], () => 0.6);
+
+  assert.equal(entry.itemId, "medicinal_herb");
+});
+
+test("resource runtime resolves banded loot table rewards", () => {
+  const resourceSearches = normalizeResourceSearches({
+    plants: {
+      map: "wetness",
+      channel: "r",
+      threshold: 0,
+      baseChance: 0,
+      chanceScale: 1,
+      maxChance: 1,
+      reward: {
+        type: "lootTable",
+        defaultBand: 0,
+        bands: {
+          0: [
+            { itemId: "berries", quantity: 1, weight: 5 },
+            { itemId: "medicinal_herb", quantity: 1, weight: 3 },
+          ],
+        },
+      },
+    },
+  });
+  const runtime = createResourceSearchRuntime({
+    resourceSearches,
+    getResourceMapImageData: () => ({
+      width: 1,
+      height: 1,
+      data: new Uint8ClampedArray([255, 0, 0, 255]),
+    }),
+  });
+
+  const reward = runtime.resolveReward("plants", 0, 0, { random: () => 0.8 });
+  assert.deepEqual(reward, {
+    type: "item",
+    itemId: "medicinal_herb",
+    quantity: 1,
+    band: 0,
+  });
+});
+
+test("resource runtime resolves fill-container reward quantity from resource value", () => {
+  const resourceSearches = normalizeResourceSearches({
+    water: {
+      map: "wetness",
+      channel: "r",
+      threshold: 0,
+      baseChance: 0,
+      chanceScale: 1,
+      maxChance: 1,
+      reward: {
+        type: "fillContainer",
+        tag: "water_container",
+        minQuantity: 1,
+        maxQuantity: 5,
+      },
+    },
+  });
+  const runtime = createResourceSearchRuntime({
+    resourceSearches,
+    getResourceMapImageData: () => ({
+      width: 1,
+      height: 1,
+      data: new Uint8ClampedArray([128, 0, 0, 255]),
+    }),
+  });
+
+  assert.deepEqual(runtime.resolveReward("water", 0, 0), {
+    type: "fillContainer",
+    tag: "water_container",
+    quantity: 3,
+  });
 });

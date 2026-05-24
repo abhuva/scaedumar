@@ -7,9 +7,11 @@ export {
   ACTIVITY_REST,
   ACTIVITY_TIME_SPEED_1X,
   ACTIVITY_TRAVEL,
-  buildGatheringMoveCandidates,
-  chooseWeightedGatheringCandidate,
-  chooseWeightedGatheringReward,
   createGatheringActivityRuntime,
   createPlayerActivityRuntime,
 } from "./playerActivityRuntime.js";
+
+export {
+  buildGatheringMoveCandidates,
+  chooseWeightedGatheringCandidate,
+} from "./playerResourceSearchActivityRuntime.js";

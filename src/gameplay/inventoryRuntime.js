@@ -1,5 +1,6 @@
 import {
   addItemStack,
+  canContainerAccept,
   createContainer,
   getContainerCapacity,
   moveItemStack,
@@ -59,6 +60,16 @@ export function createInventoryRuntime(deps = {}) {
     maxWeight: 25,
     maxBulk: 40,
   }));
+
+  if (Array.isArray(deps.startingItems)) {
+    const playerContainer = runtime.containers.get(PLAYER_CONTAINER_ID);
+    for (const stack of deps.startingItems) {
+      const itemId = stack && typeof stack.itemId === "string" ? stack.itemId : "";
+      const quantity = Math.max(0, Math.floor(finite(stack && stack.quantity, 0)));
+      if (!itemId || !itemRegistry[itemId]) continue;
+      playerContainer.slots.push({ itemId, quantity });
+    }
+  }
 
   function getContainer(containerId) {
     const container = runtime.containers.get(containerId);
@@ -138,7 +149,9 @@ export function createInventoryRuntime(deps = {}) {
       slotIndex: selected.slotIndex,
       stack: clone(stack),
       item: item ? clone(item) : null,
-      canUse: selected.containerId === PLAYER_CONTAINER_ID && Boolean(item && item.use),
+      canUse: selected.containerId === PLAYER_CONTAINER_ID
+        && Boolean(item && item.use)
+        && Math.floor(finite(stack.quantity, 0)) > 0,
     };
   }
 
@@ -180,6 +193,55 @@ export function createInventoryRuntime(deps = {}) {
     setContainer(result.container);
     sync();
     return result;
+  }
+
+  function fillTaggedPlayerContainer(tag, quantity) {
+    const safeTag = typeof tag === "string" ? tag : "";
+    const safeQuantity = Math.max(0, Math.floor(finite(quantity, 0)));
+    if (!safeTag || safeQuantity <= 0) {
+      return { ok: false, reason: "Invalid fill request.", filled: 0 };
+    }
+    const container = runtime.containers.get(PLAYER_CONTAINER_ID);
+    const next = createContainer(container);
+    let remaining = safeQuantity;
+    let filled = 0;
+    let targetName = "";
+    for (const slot of next.slots) {
+      const item = itemRegistry[slot.itemId];
+      if (!item || !Array.isArray(item.tags) || !item.tags.includes(safeTag)) continue;
+      const maxStack = Math.max(1, Math.floor(finite(item.maxStack, 1)));
+      const current = Math.max(0, Math.floor(finite(slot.quantity, 0)));
+      const room = Math.max(0, maxStack - current);
+      if (room <= 0) continue;
+      let moved = Math.min(room, remaining);
+      while (moved > 0 && !canContainerAccept(next, slot.itemId, moved, itemRegistry).ok) {
+        moved -= 1;
+      }
+      if (moved <= 0) continue;
+      slot.quantity = current + moved;
+      remaining -= moved;
+      filled += moved;
+      targetName = item.name || slot.itemId;
+      if (remaining <= 0) break;
+    }
+    if (filled <= 0) {
+      const hasContainer = next.slots.some((slot) => {
+        const item = itemRegistry[slot.itemId];
+        return item && Array.isArray(item.tags) && item.tags.includes(safeTag);
+      });
+      return {
+        ok: false,
+        reason: hasContainer ? "No container capacity." : "No matching container.",
+        filled: 0,
+      };
+    }
+    setContainer(next);
+    sync();
+    return {
+      ok: true,
+      filled,
+      itemName: targetName || safeTag,
+    };
   }
 
   function selectStack(containerId, slotIndex) {
@@ -286,6 +348,9 @@ export function createInventoryRuntime(deps = {}) {
     if (!slot || !item) {
       return { ok: false, reason: "Selected stack no longer exists." };
     }
+    if (Math.floor(finite(slot.quantity, 0)) <= 0) {
+      return { ok: false, reason: `${item.name || slot.itemId} is empty.` };
+    }
     if (!item.use) {
       return { ok: false, reason: `${item.name || slot.itemId} cannot be used yet.` };
     }
@@ -299,7 +364,7 @@ export function createInventoryRuntime(deps = {}) {
         return useResult;
       }
     }
-    const removed = removeItemStack(source, selected.slotIndex, 1);
+    const removed = removeItemStack(source, selected.slotIndex, 1, { keepEmpty: item.keepWhenEmpty });
     if (!removed.ok) return removed;
     setContainer(removed.container);
     const nextSource = runtime.containers.get(PLAYER_CONTAINER_ID);
@@ -322,6 +387,7 @@ export function createInventoryRuntime(deps = {}) {
     listBundles,
     getNearbyBundle,
     addToPlayer,
+    fillTaggedPlayerContainer,
     selectStack,
     clearSelection,
     dropSelectedBundle,

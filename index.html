@@ -26,31 +26,12 @@
     </nav>
 
     <div id="mapWorkspace" class="workspace-root active" data-workspace-panel="map">
-    <section id="gameTimeDiorama" class="game-time-diorama" aria-label="Game time">
-      <div class="time-diorama-scene" aria-hidden="true">
-        <div class="time-diorama-sky">
-          <span id="gameTimeSun" class="time-diorama-sun"></span>
-          <span id="gameTimeMoon" class="time-diorama-moon"></span>
-          <span class="time-diorama-star star-a"></span>
-          <span class="time-diorama-star star-b"></span>
-          <span class="time-diorama-star star-c"></span>
-        </div>
-        <div class="time-diorama-ridge ridge-back"></div>
-        <div class="time-diorama-ridge ridge-front"></div>
-      </div>
-      <div class="time-speed-grid" aria-label="Time speed">
-        <button class="time-speed-btn" type="button" data-speed-preset="1x" aria-pressed="false">1x</button>
-        <button class="time-speed-btn" type="button" data-speed-preset="5x" aria-pressed="false">5x</button>
-        <button class="time-speed-btn" type="button" data-speed-preset="20x" aria-pressed="false">20x</button>
-        <button class="time-speed-btn" type="button" data-speed-preset="100x" aria-pressed="false">100x</button>
-      </div>
-    </section>
-
     <nav class="topic-dock" aria-label="Map tool topics">
       <button id="dockLightingModeToggle" class="mode-btn" type="button" title="Lighting Mode" aria-label="Lighting mode toggle">LM</button>
       <button id="dockPathfindingModeToggle" class="mode-btn" type="button" title="Pathfinding Mode" aria-label="Pathfinding mode toggle">PF</button>
       <button id="dockGatheringActivityBtn" class="mode-btn gameplay-only-action" type="button" title="Start Gathering" aria-label="Start gathering activity">GA</button>
       <button id="dockInspectActivityBtn" class="mode-btn gameplay-only-action" type="button" title="Inspect Terrain" aria-label="Inspect terrain activity">I</button>
+      <button id="dockScoutActivityBtn" class="mode-btn gameplay-only-action" type="button" title="Scout" aria-label="Scout activity">SC</button>
       <button id="dockShowPlayerBtn" class="mode-btn gameplay-only-action" type="button" title="Show Player" aria-label="Center camera on player">P</button>
       <button id="dockInventoryBtn" class="mode-btn gameplay-only-action" type="button" title="Inventory" aria-label="Open inventory">INV</button>
       <button id="dockExitToTitleBtn" class="mode-btn shell-exit-btn" type="button" title="Exit to title screen" aria-label="Exit to title screen">Exit</button>
@@ -1258,10 +1239,19 @@
 
         <section class="topic-card" data-topic="resource-debug" data-title="Resource Debug">
           <p class="panel-note">Map-local tuning controls for testing discovered terrain overlays during gameplay.</p>
+          <div class="panel-actions">
+            <button id="resourceDebugSaveBtn" class="row-action-btn" type="button">Save RD Settings</button>
+          </div>
+          <div class="rd-tabs" role="tablist" aria-label="Resource Debug sections">
+            <button id="resourceDebugOverlayTab" class="rd-tab active" type="button" data-rd-tab="overlay" aria-pressed="true">Overlay</button>
+            <button id="resourceDebugStockTab" class="rd-tab" type="button" data-rd-tab="stock" aria-pressed="false">Stock</button>
+          </div>
+          <div id="resourceDebugOverlayPanel" class="rd-tab-panel active" data-rd-panel="overlay">
           <div class="row">
-            <label for="resourceDebugLayer">Layer</label>
+            <label for="resourceDebugLayer">Overlay</label>
             <select id="resourceDebugLayer">
-              <option value="wetness" selected>Wetness</option>
+              <option value="water" selected>Water</option>
+              <option value="plants">Plants</option>
               <option value="height">Height</option>
               <option value="slope">Slope</option>
             </select>
@@ -1291,6 +1281,42 @@
             <div class="inline-control">
               <input id="resourceDebugRevealRadius" type="range" min="0" max="160" step="1" value="30" />
               <span id="resourceDebugRevealRadiusValue">30</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="resourceDebugRevealFalloff">Reveal Falloff</label>
+            <div class="inline-control">
+              <input id="resourceDebugRevealFalloff" type="range" min="0" max="4" step="0.05" value="0" />
+              <span id="resourceDebugRevealFalloffValue">0.00</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="resourceDebugDecayEnabled">Decay</label>
+            <div class="inline-control">
+              <input id="resourceDebugDecayEnabled" type="checkbox" checked aria-label="Enable discovery decay" />
+              <span>enabled</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="resourceDebugDecayInterval">Decay Ticks</label>
+            <div class="inline-control">
+              <input id="resourceDebugDecayInterval" type="range" min="1" max="5000" step="1" value="500" />
+              <span id="resourceDebugDecayIntervalValue">500</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="resourceDebugDecayAmount">Decay Amount</label>
+            <div class="inline-control">
+              <input id="resourceDebugDecayAmount" type="range" min="0" max="32" step="1" value="1" />
+              <span id="resourceDebugDecayAmountValue">1</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="resourceDebugShowMaskOverlay">Show Discovery</label>
+            <div class="inline-control">
+              <input id="resourceDebugShowMaskOverlay" type="checkbox" aria-label="Show full discovery mask overlay" />
+              <input id="resourceDebugMaskOverlayOpacity" type="range" min="0" max="1" step="0.05" value="0.45" />
+              <span id="resourceDebugMaskOverlayOpacityValue">0.45</span>
             </div>
           </div>
           <div class="row">
@@ -1367,6 +1393,86 @@
             <div class="inline-control">
               <button id="resourceDebugCoverAllBtn" class="row-action-btn" type="button">Cover All</button>
               <button id="resourceDebugUncoverAllBtn" class="row-action-btn" type="button">Uncover All</button>
+            </div>
+          </div>
+          </div>
+          <div id="resourceDebugStockPanel" class="rd-tab-panel" data-rd-panel="stock">
+            <p class="panel-note">Runtime-only resource stock controls. Stock affects actual search chance; known stock affects player-facing overlays.</p>
+            <div class="row">
+              <label for="resourceStockResource">Resource</label>
+              <select id="resourceStockResource">
+                <option value="water" selected>Water</option>
+                <option value="plants">Plants</option>
+              </select>
+            </div>
+            <div class="row">
+              <label for="resourceStockOverlayMode">Overlay Stock</label>
+              <select id="resourceStockOverlayMode">
+                <option value="known" selected>Known</option>
+                <option value="live">Live</option>
+                <option value="none">Ignore</option>
+              </select>
+            </div>
+            <div class="row">
+              <label for="resourceStockGridSize">Grid Size</label>
+              <div class="inline-control">
+                <input id="resourceStockGridSize" type="range" min="32" max="512" step="32" value="128" />
+                <span id="resourceStockGridSizeValue">128</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="resourceStockDepleteAmount">Deplete Center</label>
+              <div class="inline-control">
+                <input id="resourceStockDepleteAmount" type="range" min="0" max="255" step="1" value="50" />
+                <span id="resourceStockDepleteAmountValue">50</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="resourceStockNeighborDepleteAmount">Deplete Neighbor</label>
+              <div class="inline-control">
+                <input id="resourceStockNeighborDepleteAmount" type="range" min="0" max="255" step="1" value="25" />
+                <span id="resourceStockNeighborDepleteAmountValue">25</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="resourceStockDepleteRadius">Deplete Radius</label>
+              <div class="inline-control">
+                <input id="resourceStockDepleteRadius" type="range" min="0" max="4" step="1" value="1" />
+                <span id="resourceStockDepleteRadiusValue">1</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="resourceStockReplenishInterval">Regen Ticks</label>
+              <div class="inline-control">
+                <input id="resourceStockReplenishInterval" type="range" min="1" max="5000" step="1" value="50" />
+                <span id="resourceStockReplenishIntervalValue">50</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="resourceStockReplenishAmount">Regen Amount</label>
+              <div class="inline-control">
+                <input id="resourceStockReplenishAmount" type="range" min="0" max="255" step="1" value="250" />
+                <span id="resourceStockReplenishAmountValue">250</span>
+              </div>
+            </div>
+            <div class="row">
+              <label>At Player</label>
+              <p id="resourceStockReadout" class="panel-note">Stock: -- | Known: -- | Chance: --</p>
+            </div>
+            <div class="row">
+              <label>Debug Actions</label>
+              <div class="inline-control">
+                <button id="resourceStockDepleteHereBtn" class="row-action-btn" type="button">Deplete Here</button>
+                <button id="resourceStockRevealHereBtn" class="row-action-btn" type="button">Reveal Here</button>
+              </div>
+            </div>
+            <div class="row">
+              <label>Fill</label>
+              <div class="inline-control">
+                <button id="resourceStockFillFullBtn" class="row-action-btn" type="button">Full</button>
+                <button id="resourceStockFillEmptyBtn" class="row-action-btn" type="button">Empty</button>
+                <button id="resourceStockResetBtn" class="row-action-btn" type="button">Reset</button>
+              </div>
             </div>
           </div>
         </section>
@@ -1453,45 +1559,86 @@
     </aside>
     <section id="gameplayHud" class="gameplay-hud" aria-label="Gameplay HUD">
       <div id="conditionEffectStrip" class="condition-effect-strip hidden" aria-label="Active condition effects"></div>
+      <div class="inspect-toggle-slot" aria-label="Perception toggle">
+        <button id="hudInspectBtn" class="hud-action-btn hud-inspect-toggle" type="button" title="Toggle Inspect" aria-pressed="false">I</button>
+      </div>
       <div id="conditionEffectTooltip" class="condition-effect-tooltip hidden" role="tooltip"></div>
       <div class="gameplay-condition-bars" aria-label="Condition">
         <article class="condition-bar" data-condition-stat="nutrition">
-          <div class="condition-bar-label"><span>Nutrition</span><strong data-condition-value>--</strong></div>
-          <div class="condition-bar-track"><span data-condition-fill></span></div>
+          <div class="condition-bar-label"><span>Nutrition</span></div>
+          <div class="condition-bar-track"><span data-condition-fill></span><span data-condition-projection></span></div>
         </article>
         <article class="condition-bar" data-condition-stat="hydration">
-          <div class="condition-bar-label"><span>Hydration</span><strong data-condition-value>--</strong></div>
-          <div class="condition-bar-track"><span data-condition-fill></span></div>
+          <div class="condition-bar-label"><span>Hydration</span></div>
+          <div class="condition-bar-track"><span data-condition-fill></span><span data-condition-projection></span></div>
         </article>
         <article class="condition-bar" data-condition-stat="fatigue">
-          <div class="condition-bar-label"><span>Fatigue</span><strong data-condition-value>--</strong></div>
-          <div class="condition-bar-track"><span data-condition-fill></span></div>
+          <div class="condition-bar-label"><span>Fatigue</span></div>
+          <div class="condition-bar-track"><span data-condition-fill></span><span data-condition-projection></span></div>
         </article>
         <article class="condition-bar" data-condition-stat="load">
-          <div class="condition-bar-label"><span>Load</span><strong data-condition-value>--</strong></div>
-          <div class="condition-bar-track"><span data-condition-fill></span></div>
+          <div class="condition-bar-label"><span>Load</span></div>
+          <div class="condition-bar-track"><span data-condition-fill></span><span data-condition-projection></span></div>
         </article>
       </div>
+      <section id="gameTimeDiorama" class="game-time-diorama" aria-label="Game time">
+        <div class="time-speed-grid" aria-label="Time speed">
+          <button class="time-speed-btn" type="button" data-speed-preset="0x" aria-pressed="false">0x</button>
+          <button class="time-speed-btn" type="button" data-speed-preset="1x" aria-pressed="false">1x</button>
+          <button class="time-speed-btn" type="button" data-speed-preset="5x" aria-pressed="false">5x</button>
+          <button class="time-speed-btn" type="button" data-speed-preset="20x" aria-pressed="false">20x</button>
+          <button class="time-speed-btn" type="button" data-speed-preset="100x" aria-pressed="false">100x</button>
+        </div>
+        <div class="time-diorama-scene" aria-hidden="true">
+          <div class="time-diorama-sky">
+            <span id="gameTimeSun" class="time-diorama-sun"></span>
+            <span id="gameTimeMoon" class="time-diorama-moon"></span>
+            <span class="time-diorama-star star-a"></span>
+            <span class="time-diorama-star star-b"></span>
+            <span class="time-diorama-star star-c"></span>
+          </div>
+          <div class="time-diorama-ridge ridge-back"></div>
+          <div class="time-diorama-ridge ridge-front"></div>
+        </div>
+      </section>
       <div class="gameplay-action-slots" aria-label="Activities">
-        <button id="hudPathfindingBtn" class="hud-action-btn" type="button">PF</button>
-        <button id="hudGatheringBtn" class="hud-action-btn" type="button" title="Gather">G</button>
-        <button id="hudGatherWaterBtn" class="hud-action-btn" type="button" title="Gather Water">W</button>
-        <button id="hudInspectBtn" class="hud-action-btn" type="button" title="Inspect">I</button>
-        <button id="hudRestBtn" class="hud-action-btn" type="button" title="Rest">R</button>
-        <button id="hudInventoryBtn" class="hud-action-btn" type="button" title="Inventory">In</button>
-        <button id="hudShowPlayerBtn" class="hud-action-btn" type="button" title="Center camera on player">P</button>
+        <div class="gameplay-utility-actions" aria-label="Utility actions">
+          <button id="hudInventoryBtn" class="hud-action-btn" type="button" title="Inventory">In</button>
+          <button id="hudShowPlayerBtn" class="hud-action-btn" type="button" title="Center camera on player">P</button>
+        </div>
+        <div class="gameplay-action-divider" aria-hidden="true"></div>
+        <div class="gameplay-primary-actions" aria-label="Primary activities">
+          <button id="hudPathfindingBtn" class="hud-action-btn" type="button">PF</button>
+          <button id="hudGatheringBtn" class="hud-action-btn" type="button" title="Gather">G</button>
+          <button id="hudGatherWaterBtn" class="hud-action-btn" type="button" title="Gather Water">W</button>
+          <button id="hudScoutBtn" class="hud-action-btn" type="button" title="Scout">SC</button>
+          <button id="hudRestBtn" class="hud-action-btn" type="button" title="Rest">R</button>
+        </div>
       </div>
     </section>
+    <aside id="inspectStatusPanel" class="inspect-status-panel" aria-live="polite">
+      <div class="inspect-panel-header">
+        <h2 id="inspectStatusTitle">Inspect:</h2>
+        <div id="inspectLayerControls" class="inspect-layer-controls" aria-label="Inspect overlay layer">
+        <button id="inspectWetnessLayerBtn" class="inspect-layer-btn" type="button" title="Water availability overlay">W</button>
+        <button id="inspectPlantsLayerBtn" class="inspect-layer-btn" type="button" title="Plant availability overlay">P</button>
+        <button id="inspectHeightLayerBtn" class="inspect-layer-btn" type="button" title="Height overlay">H</button>
+        <button id="inspectSlopeLayerBtn" class="inspect-layer-btn" type="button" title="Slope overlay">S</button>
+        </div>
+      </div>
+      <p id="inspectStatusEta" class="sr-only"></p>
+      <div id="inspectResourceRow" class="inspect-resource-row hidden">
+        <span id="inspectResourceLabel">Water</span>
+        <span class="inspect-resource-bar" aria-hidden="true"><span id="inspectResourceBarFill"></span></span>
+      </div>
+      <p id="inspectStatusDetail" class="sr-only">Base perception active.</p>
+    </aside>
     <aside id="movementStatusPanel" class="movement-status-panel hidden" aria-live="polite">
       <h2 id="movementStatusTitle">Player Moving</h2>
       <p id="movementStatusEta">Estimated arrival: --</p>
-      <div id="inspectLayerControls" class="inspect-layer-controls hidden" aria-label="Inspect overlay layer">
-        <button id="inspectWetnessLayerBtn" class="inspect-layer-btn active" type="button" title="Wetness overlay">W</button>
-        <button id="inspectHeightLayerBtn" class="inspect-layer-btn" type="button" title="Height overlay">H</button>
-        <button id="inspectSlopeLayerBtn" class="inspect-layer-btn" type="button" title="Slope overlay">S</button>
-      </div>
       <p id="movementStatusDetail">Path: --</p>
-      <button id="movementCancelBtn" class="movement-cancel-btn" type="button">Cancel Travel</button>
+      <button id="movementActionBtn" class="movement-action-btn hidden" type="button">Possess Bird</button>
+      <button id="movementCancelBtn" class="movement-cancel-btn hidden" type="button">Activity Control</button>
     </aside>
     <aside id="inventoryPanel" class="inventory-panel hidden" aria-label="Inventory">
       <div class="inventory-panel-header">

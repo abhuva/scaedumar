@@ -43,16 +43,17 @@
     "id": "water_skin",
     "name": "Waterskin",
     "icon": "assets/items/water_skin.png",
-    "description": "A small carried supply of drinkable water.",
+    "description": "A refillable carried water container. Each filled portion restores a small amount of hydration.",
     "stackable": true,
-    "maxStack": 5,
-    "weight": 1,
-    "bulk": 0.8,
-    "tags": ["water", "drink"],
+    "maxStack": 40,
+    "keepWhenEmpty": true,
+    "weight": 0.25,
+    "bulk": 0.02,
+    "tags": ["water", "drink", "water_container"],
     "use": {
       "label": "Drink",
       "effects": {
-        "hydration": 18
+        "hydration": 5
       }
     }
   },

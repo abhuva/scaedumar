@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { registerInteractionCommands } from "../src/gameplay/interactionCommands.js";
+import { createTravelPlanningRuntime } from "../src/gameplay/travelPlanningRuntime.js";
 
 function createCommandBus() {
   const handlers = new Map();
@@ -20,6 +21,11 @@ function createDeps(overrides = {}) {
     requestOverlayDraw: 0,
     status: "",
   };
+  const travelPlanningRuntime = createTravelPlanningRuntime({
+    onChange: () => {
+      calls.requestOverlayDraw += 1;
+    },
+  });
   return {
     calls,
     getInteractionMode: () => "none",
@@ -31,10 +37,7 @@ function createDeps(overrides = {}) {
     requestOverlayDraw: () => {
       calls.requestOverlayDraw += 1;
     },
-    movePreviewState: {
-      hoverPixel: null,
-      pathPixels: [],
-    },
+    travelPlanningRuntime,
     extractPathTo: () => [],
     replaceMovementQueue: () => false,
     setInteractionMode: () => {},
@@ -94,18 +97,15 @@ test("movement cancel command cancels active travel explicitly", () => {
   const commandBus = createCommandBus();
   const deps = createDeps({
     getMovementStateSnapshot: () => ({ active: true }),
-    movePreviewState: {
-      hoverPixel: { x: 8, y: 9 },
-      pathPixels: [{ x: 2, y: 3 }, { x: 8, y: 9 }],
-    },
   });
+  deps.travelPlanningRuntime.setHoverPath({ x: 8, y: 9 }, [{ x: 2, y: 3 }, { x: 8, y: 9 }], "seed", { emit: false });
   registerInteractionCommands(commandBus, deps);
 
   commandBus.dispatch({ type: "core/movement/cancel" });
 
   assert.equal(deps.calls.cancelMovementQueue, 1);
-  assert.equal(deps.movePreviewState.hoverPixel, null);
-  assert.deepEqual(deps.movePreviewState.pathPixels, []);
+  assert.equal(deps.travelPlanningRuntime.getSnapshot().hoverPixel, null);
+  assert.deepEqual(deps.travelPlanningRuntime.getSnapshot().pathPixels, []);
   assert.equal(deps.calls.requestOverlayDraw, 1);
   assert.equal(deps.calls.status, "Movement canceled at (2, 3).");
 });
@@ -130,18 +130,15 @@ test("movement cancel command cancels pathfinding planning when no travel is act
     setInteractionMode: (nextMode) => {
       mode = nextMode;
     },
-    movePreviewState: {
-      hoverPixel: { x: 8, y: 9 },
-      pathPixels: [{ x: 2, y: 3 }, { x: 8, y: 9 }],
-    },
   });
+  deps.travelPlanningRuntime.setHoverPath({ x: 8, y: 9 }, [{ x: 2, y: 3 }, { x: 8, y: 9 }], "seed", { emit: false });
   registerInteractionCommands(commandBus, deps);
 
   commandBus.dispatch({ type: "core/movement/cancel" });
 
   assert.equal(mode, "none");
-  assert.equal(deps.movePreviewState.hoverPixel, null);
-  assert.deepEqual(deps.movePreviewState.pathPixels, []);
+  assert.equal(deps.travelPlanningRuntime.getSnapshot().hoverPixel, null);
+  assert.deepEqual(deps.travelPlanningRuntime.getSnapshot().pathPixels, []);
   assert.equal(deps.calls.requestOverlayDraw, 1);
   assert.equal(deps.calls.status, "Travel planning canceled.");
 });
@@ -178,19 +175,16 @@ test("start gather water command clears map preview on success", () => {
       waterStarts += 1;
       return { ok: true };
     },
-    movePreviewState: {
-      hoverPixel: { x: 8, y: 9 },
-      pathPixels: [{ x: 2, y: 3 }, { x: 8, y: 9 }],
-    },
   });
+  deps.travelPlanningRuntime.setHoverPath({ x: 8, y: 9 }, [{ x: 2, y: 3 }, { x: 8, y: 9 }], "seed", { emit: false });
   registerInteractionCommands(commandBus, deps);
 
   commandBus.dispatch({ type: "core/activity/startGatherWater" });
 
   assert.equal(waterStarts, 1);
   assert.equal(mode, "none");
-  assert.equal(deps.movePreviewState.hoverPixel, null);
-  assert.deepEqual(deps.movePreviewState.pathPixels, []);
+  assert.equal(deps.travelPlanningRuntime.getSnapshot().hoverPixel, null);
+  assert.deepEqual(deps.travelPlanningRuntime.getSnapshot().pathPixels, []);
   assert.equal(deps.calls.requestOverlayDraw, 1);
 });
 

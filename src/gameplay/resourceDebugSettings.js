@@ -1,4 +1,4 @@
-export const RESOURCE_DEBUG_LAYERS = ["wetness", "height", "slope"];
+export const RESOURCE_DEBUG_LAYERS = ["water", "plants", "height", "slope"];
 
 const FALLBACK_BANDS = [0.2, 0.35, 0.5, 0.65, 0.8];
 const FALLBACK_WETNESS_COLORS = [
@@ -34,12 +34,22 @@ function clamp(value, min, max, fallback = min) {
 }
 
 function normalizeLayerId(layer) {
-  return RESOURCE_DEBUG_LAYERS.includes(layer) ? layer : "wetness";
+  if (layer === "wetness") return "water";
+  return RESOURCE_DEBUG_LAYERS.includes(layer) ? layer : "water";
 }
 
 function defaultColorsForLayer(layer, overlay) {
   if (layer === "height") return FALLBACK_HEIGHT_COLORS;
   if (layer === "slope") return FALLBACK_SLOPE_COLORS;
+  if (layer === "plants") {
+    return [
+      "rgba(91, 180, 96, 0.34)",
+      "rgba(104, 198, 111, 0.44)",
+      "rgba(125, 220, 132, 0.58)",
+      "rgba(157, 235, 149, 0.70)",
+      "rgba(198, 251, 186, 0.82)",
+    ];
+  }
   const overlayColors = overlay && Array.isArray(overlay.colors) ? overlay.colors.filter(Boolean) : [];
   return overlayColors.length ? overlayColors : FALLBACK_WETNESS_COLORS;
 }
@@ -80,6 +90,15 @@ function normalizeBand(rawBand, fallbackThreshold) {
   };
 }
 
+function normalizeDecaySettings(rawDecay, fallbackDecay = {}) {
+  const source = rawDecay && typeof rawDecay === "object" ? rawDecay : {};
+  return {
+    enabled: source.enabled == null ? fallbackDecay.enabled !== false : source.enabled !== false,
+    intervalTicks: Math.max(1, Math.round(clamp(source.intervalTicks, 1, 1000000, fallbackDecay.intervalTicks || 500))),
+    amount: clamp(source.amount, 0, 255, fallbackDecay.amount || 1),
+  };
+}
+
 function createDefaultLayerSettings(layer, overlay = {}) {
   const thresholds = Array.isArray(overlay.thresholds) && overlay.thresholds.length
     ? overlay.thresholds
@@ -114,9 +133,12 @@ function normalizeLayerSettings(rawLayer, fallbackLayer) {
   };
 }
 
-export function createDefaultResourceDebugSettings(resourceSearches = {}, resourceId = "water") {
+export function createDefaultResourceDebugSettings(resourceSearches = {}, resourceId = "water", discoverySettings = {}) {
   const search = resourceSearches[resourceId] || {};
   const discovery = search.discovery || {};
+  const mapSettings = discoverySettings.maps && discoverySettings.maps[resourceId]
+    ? discoverySettings.maps[resourceId]
+    : {};
   const overlay = search.overlay || {};
   const layers = {};
   for (const layer of RESOURCE_DEBUG_LAYERS) {
@@ -124,10 +146,14 @@ export function createDefaultResourceDebugSettings(resourceSearches = {}, resour
   }
   return {
     version: 1,
-    activeLayer: "wetness",
+    activeLayer: "water",
     discovery: {
       gridSize: Math.round(clamp(discovery.gridSize, 8, 2048, 256)),
       movementRevealRadius: clamp(discovery.movementRevealRadius, 0, 4096, 30),
+      revealFalloff: clamp(discovery.revealFalloff, 0, 8, 0),
+      showMaskOverlay: false,
+      maskOverlayOpacity: 0.45,
+      decay: normalizeDecaySettings(mapSettings.decay, { intervalTicks: 500, amount: 1 }),
     },
     layers,
   };
@@ -138,9 +164,10 @@ export function normalizeResourceDebugSettings(rawSettings, fallbackSettings) {
   const source = rawSettings && typeof rawSettings === "object" ? rawSettings : {};
   const rawDiscovery = source.discovery && typeof source.discovery === "object" ? source.discovery : {};
   const rawLayers = source.layers && typeof source.layers === "object" ? source.layers : {};
+  const legacyWetnessLayer = rawLayers.wetness && typeof rawLayers.wetness === "object" ? rawLayers.wetness : null;
   const layers = {};
   for (const layer of RESOURCE_DEBUG_LAYERS) {
-    layers[layer] = normalizeLayerSettings(rawLayers[layer], fallback.layers[layer]);
+    layers[layer] = normalizeLayerSettings(rawLayers[layer] || (layer === "water" ? legacyWetnessLayer : null), fallback.layers[layer]);
   }
   return {
     version: 1,
@@ -148,13 +175,24 @@ export function normalizeResourceDebugSettings(rawSettings, fallbackSettings) {
     discovery: {
       gridSize: Math.round(clamp(rawDiscovery.gridSize, 8, 2048, fallback.discovery.gridSize)),
       movementRevealRadius: clamp(rawDiscovery.movementRevealRadius, 0, 4096, fallback.discovery.movementRevealRadius),
+      revealFalloff: clamp(rawDiscovery.revealFalloff, 0, 8, fallback.discovery.revealFalloff),
+      showMaskOverlay: rawDiscovery.showMaskOverlay === true,
+      maskOverlayOpacity: clamp(rawDiscovery.maskOverlayOpacity, 0, 1, fallback.discovery.maskOverlayOpacity),
+      decay: normalizeDecaySettings(rawDiscovery.decay, fallback.discovery.decay),
     },
     layers,
   };
 }
 
 export function serializeResourceDebugSettings(settings, fallbackSettings) {
-  return normalizeResourceDebugSettings(settings, fallbackSettings);
+  const serialized = normalizeResourceDebugSettings(settings, fallbackSettings);
+  return {
+    ...serialized,
+    discovery: {
+      ...serialized.discovery,
+      showMaskOverlay: false,
+    },
+  };
 }
 
 export function getResourceDebugBandColors(layerSettings) {

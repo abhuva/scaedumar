@@ -5,15 +5,59 @@ function finite(value, fallback = 0) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function normalizeLootEntry(rawEntry) {
+  if (!rawEntry || typeof rawEntry !== "object") return null;
+  const itemId = typeof rawEntry.itemId === "string" ? rawEntry.itemId : "";
+  if (!itemId) return null;
+  return {
+    itemId,
+    quantity: Math.max(1, Math.round(finite(rawEntry.quantity, 1))),
+    weight: Math.max(0, finite(rawEntry.weight, 1)),
+  };
+}
+
+function normalizeLootBands(rawBands) {
+  const output = {};
+  if (!rawBands || typeof rawBands !== "object") return output;
+  for (const [band, entries] of Object.entries(rawBands)) {
+    if (!Array.isArray(entries)) continue;
+    const normalizedEntries = entries.map(normalizeLootEntry).filter((entry) => entry && entry.weight > 0);
+    if (!normalizedEntries.length) continue;
+    output[String(Math.max(0, Math.min(255, Math.round(finite(band, 0)))))] = normalizedEntries;
+  }
+  return output;
+}
+
 function normalizeReward(rawReward) {
   if (!rawReward || typeof rawReward !== "object") return null;
-  const type = rawReward.type === "item" ? "item" : "";
-  if (!type) return null;
-  return {
-    type,
-    itemId: typeof rawReward.itemId === "string" ? rawReward.itemId : "",
-    quantity: Math.max(1, Math.round(finite(rawReward.quantity, 1))),
-  };
+  if (rawReward.type === "item") {
+    return {
+      type: "item",
+      itemId: typeof rawReward.itemId === "string" ? rawReward.itemId : "",
+      quantity: Math.max(1, Math.round(finite(rawReward.quantity, 1))),
+    };
+  }
+  if (rawReward.type === "fillContainer") {
+    const minQuantity = Math.max(1, Math.round(finite(rawReward.minQuantity, 1)));
+    const maxQuantity = Math.max(minQuantity, Math.round(finite(rawReward.maxQuantity, minQuantity)));
+    return {
+      type: "fillContainer",
+      tag: typeof rawReward.tag === "string" && rawReward.tag ? rawReward.tag : "water_container",
+      minQuantity,
+      maxQuantity,
+      scaleBy: rawReward.scaleBy === "chance" ? "chance" : "value",
+    };
+  }
+  if (rawReward.type === "lootTable") {
+    return {
+      type: "lootTable",
+      defaultBand: Math.max(0, Math.min(255, Math.round(finite(rawReward.defaultBand, 0)))),
+      bandMap: typeof rawReward.bandMap === "string" ? rawReward.bandMap : "",
+      bandChannel: ["r", "g", "b", "a"].includes(rawReward.bandChannel) ? rawReward.bandChannel : "r",
+      bands: normalizeLootBands(rawReward.bands),
+    };
+  }
+  return null;
 }
 
 function normalizeDiscovery(rawDiscovery) {
@@ -21,6 +65,7 @@ function normalizeDiscovery(rawDiscovery) {
   return {
     gridSize: Math.max(8, Math.min(2048, Math.round(finite(source.gridSize, 256)))),
     movementRevealRadius: Math.max(0, finite(source.movementRevealRadius, 30)),
+    revealFalloff: Math.max(0, Math.min(8, finite(source.revealFalloff, 0))),
   };
 }
 
@@ -84,7 +129,7 @@ export async function loadResourceSearches(options = {}) {
     throw new Error("Cannot load resource searches: fetch is unavailable.");
   }
   const url = options.url || DEFAULT_RESOURCE_SEARCH_URL;
-  const response = await fetchFn(url);
+  const response = await fetchFn(url, { cache: "no-store" });
   if (!response || !response.ok) {
     const status = response ? `${response.status} ${response.statusText || ""}`.trim() : "no response";
     throw new Error(`Failed to load resource searches from ${url}: ${status}`);

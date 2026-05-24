@@ -15,6 +15,7 @@ export function createMapLoadingRuntime(deps) {
     applyCameraSettings: deps.applyCameraSettings,
     applyAudioSettings: deps.applyAudioSettings,
     applyResourceDebugSettings: deps.applyResourceDebugSettings,
+    applyResourceStockSettings: deps.applyResourceStockSettings,
     applySwarmData: deps.applySwarmData,
     applyLoadedNpc: deps.applyLoadedNpc,
     getFileFromFolderSelection: deps.getFileFromFolderSelection,

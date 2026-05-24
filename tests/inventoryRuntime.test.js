@@ -98,3 +98,58 @@ test("inventory runtime does not consume item when use effect is rejected", () =
     { itemId: "berries", quantity: 1 },
   ]);
 });
+
+test("inventory runtime keeps empty refillable waterskin and fills by tag", () => {
+  const effects = [];
+  const runtime = createInventoryRuntime({
+    playerState: { pixelX: 0, pixelY: 0 },
+    itemRegistry: TEST_ITEM_DEFINITIONS,
+    startingItems: [{ itemId: "water_skin", quantity: 1 }],
+    applyItemUse: (payload) => {
+      effects.push(payload.effects);
+      return { ok: true };
+    },
+    requestOverlayDraw: () => {},
+  });
+
+  runtime.selectStack(PLAYER_CONTAINER_ID, 0);
+  const used = runtime.useSelectedItem();
+  assert.equal(used.ok, true);
+  assert.deepEqual(effects, [TEST_ITEM_DEFINITIONS.water_skin.use.effects]);
+  assert.deepEqual(runtime.getSnapshot().playerContainer.slots, [
+    { itemId: "water_skin", quantity: 0 },
+  ]);
+  const emptyUse = runtime.useSelectedItem();
+  assert.equal(emptyUse.ok, false);
+  assert.equal(emptyUse.reason, "Waterskin is empty.");
+
+  const filled = runtime.fillTaggedPlayerContainer("water_container", 5);
+  assert.equal(filled.ok, true);
+  assert.equal(filled.filled, 5);
+  assert.deepEqual(runtime.getSnapshot().playerContainer.slots, [
+    { itemId: "water_skin", quantity: 5 },
+  ]);
+});
+
+test("inventory runtime caps container filling by remaining capacity", () => {
+  const runtime = createInventoryRuntime({
+    playerState: { pixelX: 0, pixelY: 0 },
+    itemRegistry: {
+      ...TEST_ITEM_DEFINITIONS,
+      water_skin: {
+        ...TEST_ITEM_DEFINITIONS.water_skin,
+        weight: 30,
+      },
+    },
+    startingItems: [{ itemId: "water_skin", quantity: 0 }],
+    requestOverlayDraw: () => {},
+  });
+
+  const filled = runtime.fillTaggedPlayerContainer("water_container", 5);
+
+  assert.equal(filled.ok, false);
+  assert.equal(filled.filled, 0);
+  assert.deepEqual(runtime.getSnapshot().playerContainer.slots, [
+    { itemId: "water_skin", quantity: 0 },
+  ]);
+});

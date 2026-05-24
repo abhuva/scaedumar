@@ -147,6 +147,13 @@ export function createMapSidecarLoader(deps) {
         onErrorLabel: `Failed to load resource_debug.json from ${folder}`,
       },
       {
+        key: "resourceStock",
+        loadJson: loadOptionalUrlJson(jsonPath("resource_stock.json")),
+        applyFn: (rawData) => deps.applyResourceStockSettings(rawData),
+        onAbsentOrFailed: () => deps.applyResourceStockSettings(null),
+        onErrorLabel: `Failed to load resource_stock.json from ${folder}`,
+      },
+      {
         key: "swarm",
         loadJson: loadOptionalUrlJson(jsonPath("swarm.json")),
         applyFn: (rawData) => deps.applySwarmData(rawData),
@@ -243,6 +250,13 @@ export function createMapSidecarLoader(deps) {
         applyFn: (rawData) => deps.applyResourceDebugSettings(rawData),
         onAbsentOrFailed: () => deps.applyResourceDebugSettings(null),
         onErrorLabel: "Failed to parse resource_debug.json from selected folder",
+      },
+      {
+        key: "resourceStock",
+        loadJson: loadOptionalFileJson("resource_stock.json"),
+        applyFn: (rawData) => deps.applyResourceStockSettings(rawData),
+        onAbsentOrFailed: () => deps.applyResourceStockSettings(null),
+        onErrorLabel: "Failed to parse resource_stock.json from selected folder",
       },
       {
         key: "swarm",

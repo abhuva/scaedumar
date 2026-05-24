@@ -1,9 +1,11 @@
 import { drawResourceContourOverlay } from "./resourceContourOverlay.js";
+import { drawDiscoveryMaskOverlay } from "./discoveryMaskOverlay.js";
 
 export function createOverlayDrawer(deps) {
   return function drawOverlay() {
     deps.overlayCtx.clearRect(0, 0, deps.overlayCanvas.width, deps.overlayCanvas.height);
     const worldPerMapPixel = deps.getMapAspect() / deps.splatSize.width;
+    const travelPlanning = deps.getTravelPlanningSnapshot();
 
     if (deps.getInteractionMode() === "lighting") {
       const lightEditDraft = deps.getLightEditDraft();
@@ -74,14 +76,70 @@ export function createOverlayDrawer(deps) {
       deps.overlayCtx.fill();
     };
 
-    if (deps.getInteractionMode() === "pathfinding" && deps.movePreviewState.pathPixels.length > 0) {
-      for (const node of deps.movePreviewState.pathPixels) {
+    const drawMapCircle = (pixelX, pixelY, radiusMapPx, color, lineWidth = 2) => {
+      const radius = Math.max(0, Number(radiusMapPx) || 0);
+      if (radius <= 0) return;
+      const centerWorld = deps.mapPixelToWorld(pixelX, pixelY);
+      const centerScreen = deps.worldToScreen(centerWorld);
+      const edgeWorld = { x: centerWorld.x + worldPerMapPixel * radius, y: centerWorld.y };
+      const edgeScreen = deps.worldToScreen(edgeWorld);
+      const screenRadius = Math.max(1, Math.hypot(edgeScreen.x - centerScreen.x, edgeScreen.y - centerScreen.y));
+      deps.overlayCtx.beginPath();
+      deps.overlayCtx.arc(centerScreen.x, centerScreen.y, screenRadius, 0, Math.PI * 2);
+      deps.overlayCtx.strokeStyle = color;
+      deps.overlayCtx.lineWidth = lineWidth;
+      deps.overlayCtx.stroke();
+    };
+
+    if (deps.getInteractionMode() === "pathfinding") {
+      const pathfinding = typeof deps.getPathfindingStateSnapshot === "function"
+        ? deps.getPathfindingStateSnapshot()
+        : null;
+      const origin = travelPlanning.rangeOriginPixel || deps.playerState;
+      const radius = Math.max(0, Number(travelPlanning.rangeRadius) || (Number(pathfinding && pathfinding.range) || 0) / 2);
+      drawMapCircle(origin.x ?? origin.pixelX, origin.y ?? origin.pixelY, radius, "rgba(180, 126, 71, 0.85)", 2);
+    }
+
+    if (travelPlanning.committedRangeOriginPixel) {
+      drawMapCircle(
+        travelPlanning.committedRangeOriginPixel.x,
+        travelPlanning.committedRangeOriginPixel.y,
+        travelPlanning.committedRangeRadius,
+        "rgba(180, 126, 71, 0.62)",
+        2,
+      );
+    }
+
+    if (Array.isArray(travelPlanning.committedPathPixels) && travelPlanning.committedPathPixels.length > 0) {
+      for (const node of travelPlanning.committedPathPixels) {
+        drawMapDot(node.x, node.y, "rgba(166, 179, 184, 0.58)");
+      }
+    }
+
+    if (deps.getInteractionMode() === "pathfinding" && Array.isArray(travelPlanning.pathPixels) && travelPlanning.pathPixels.length > 0) {
+      for (const node of travelPlanning.pathPixels) {
         drawMapDot(node.x, node.y, "rgba(112, 214, 255, 0.9)");
       }
     }
 
+    const discoveryMaskOverlay = typeof deps.getDiscoveryMaskOverlaySnapshot === "function"
+      ? deps.getDiscoveryMaskOverlaySnapshot()
+      : null;
+    if (discoveryMaskOverlay) {
+      drawDiscoveryMaskOverlay({
+        ctx: deps.overlayCtx,
+        snapshot: discoveryMaskOverlay,
+        mapPixelToWorld: deps.mapPixelToWorld,
+        worldToScreen: deps.worldToScreen,
+      });
+    }
+
     const activitySnapshot = typeof deps.getActivitySnapshot === "function" ? deps.getActivitySnapshot() : null;
-    if (activitySnapshot && activitySnapshot.active && activitySnapshot.type === "inspect") {
+    const inspectSnapshot = typeof deps.getInspectSnapshot === "function" ? deps.getInspectSnapshot() : null;
+    const inspectBlocked = activitySnapshot
+      && activitySnapshot.active
+      && (activitySnapshot.type === "rest" || activitySnapshot.type === "scout");
+    if (inspectSnapshot && inspectSnapshot.enabled && !inspectBlocked) {
       const contour = typeof deps.getResourceContourOverlaySnapshot === "function"
         ? deps.getResourceContourOverlaySnapshot()
         : null;
@@ -90,25 +148,24 @@ export function createOverlayDrawer(deps) {
           ctx: deps.overlayCtx,
           imageData: contour.imageData,
           search: contour.search,
+          contourVersion: contour.contourVersion,
+          stockVersion: contour.stockVersion,
           sampleKnowledge: contour.sampleKnowledge,
+          sampleStockFactor: contour.sampleStockFactor,
           mapPixelToWorld: deps.mapPixelToWorld,
           worldToScreen: deps.worldToScreen,
         });
       }
     }
 
-    if (activitySnapshot && activitySnapshot.active && activitySnapshot.type === "gathering") {
+    if (activitySnapshot && activitySnapshot.active && (activitySnapshot.type === "gathering" || activitySnapshot.resourceId)) {
       const radius = Math.max(0, Number(activitySnapshot.radius) || 0);
-      const centerWorld = deps.mapPixelToWorld(activitySnapshot.originX, activitySnapshot.originY);
-      const centerScreen = deps.worldToScreen(centerWorld);
-      const edgeWorld = { x: centerWorld.x + worldPerMapPixel * radius, y: centerWorld.y };
-      const edgeScreen = deps.worldToScreen(edgeWorld);
-      const screenRadius = Math.max(1, Math.hypot(edgeScreen.x - centerScreen.x, edgeScreen.y - centerScreen.y));
-      deps.overlayCtx.beginPath();
-      deps.overlayCtx.arc(centerScreen.x, centerScreen.y, screenRadius, 0, Math.PI * 2);
-      deps.overlayCtx.strokeStyle = "rgba(180, 126, 71, 0.85)";
-      deps.overlayCtx.lineWidth = 2;
-      deps.overlayCtx.stroke();
+      drawMapCircle(activitySnapshot.originX, activitySnapshot.originY, radius, "rgba(180, 126, 71, 0.85)", 2);
+    }
+
+    if (activitySnapshot && activitySnapshot.active && activitySnapshot.type === "scout") {
+      const radius = Math.max(0, Number(activitySnapshot.scoutScanRadius) || 0);
+      drawMapCircle(deps.playerState.pixelX, deps.playerState.pixelY, radius, "rgba(180, 126, 71, 0.85)", 2);
     }
 
     const bundles = typeof deps.getInventoryBundles === "function" ? deps.getInventoryBundles() : [];

@@ -45,23 +45,23 @@ Behavior is still implemented by runtime systems, but the manifest is the source
 - `idle`: default hidden activity. Applies general upkeep while time advances.
 - `travel`: explicit activity started by queued pathfinding movement. Each completed movement step applies locomotion cost based on terrain and load.
 - `gathering`: explicit activity with a side panel. It drives movement through nearby single-step queues and applies a small search/work cost when a search step completes.
-- `gather_water`: explicit activity with a side panel. It uses the same nearby movement loop as gathering, but rolls against a map-driven resource-search model and produces a carried water item when successful.
-- `inspect`: explicit activity with a side panel. It samples terrain under the cursor and currently has no survival cost.
+- `gather_water`: explicit activity with a side panel. It uses the same nearby movement loop as gathering, rolls against a map-driven resource-search model, and fills carried items tagged `water_container` when successful.
+- `inspect`: secondary perception toggle. It is not a primary/exclusive activity; it enables focused overlay/readout behavior while the always-visible inspect HUD continues to show base terrain perception.
+- `scout`: explicit animal-possession activity. It scans for a reachable bird, exposes a compact possess action in the side panel, then tracks possessed-bird lifecycle and discovery reveal while possessed.
 - `rest`: explicit activity with a side panel. It reduces fatigue while general upkeep still drains nutrition and hydration.
 
 `travel` owns route intent, cancellation, and completion messaging. The movement system still owns step execution and does not know why movement was requested.
 
-Pathfinding selection is treated as travel planning, not committed travel. While `PF` mode is active, the side panel shows a `Plan Travel` preview for the hovered destination. The estimate includes:
+Pathfinding selection is treated as travel planning, not committed travel. While `PF` mode is active, the side panel shows a compact `Plan Travel: est. x hours` preview for the hovered destination. The full estimate model includes:
 
 - destination
 - path steps
 - projected movement ticks
 - estimated real-time duration at the current time speed
 - projected nutrition, hydration, and fatigue change
-- active condition modifiers affecting the estimate
 - newly introduced or worsened condition effects after travel
 
-No cost is paid until the player clicks to confirm travel.
+The side panel only shows unreachable-path or projected-effect warnings. The bottom condition bars show projected nutrition, hydration, and fatigue cost as red/green overlays. No cost is paid until the player clicks to confirm travel.
 
 ## Cost Data
 
@@ -96,7 +96,7 @@ Resource search is for activities that try to find a concrete resource in the wo
 - The wetness value is read from the red channel.
 - The search definition owns threshold, curve, base chance, chance scale, max chance, and movement weighting.
 - The search definition also owns initial discovery/overlay tuning for the player-facing wetness readout.
-- A successful roll awards the configured reward item, currently `water_skin`.
+- A successful roll resolves the configured reward. Water fills carried items tagged `water_container`; plants use a weighted loot table.
 
 The probability model is intentionally separated from the source image. `wetness.png` should describe environmental wetness. `resource_search.json` decides how that map becomes a gameplay chance. This keeps map authoring and survival tuning independent.
 
@@ -112,27 +112,26 @@ Resource discovery is separate from resource search.
 - Resource discovery stores what the player has learned.
 - Resource visualization is gated by discovered knowledge.
 
-The first discovery mask is for water/wetness and is owned by:
+Resource discovery masks are owned by:
 
 ```txt
 src/gameplay/resourceDiscoveryRuntime.js
 ```
 
-The discovery mask is intentionally low resolution and tunable from `assets/data/resource_search.json`. For the current `1024x1024` map, the water search starts with a `256x256` knowledge grid. Each completed movement step reveals a configurable circle around the player, currently radius `30` map pixels.
+Discovery masks are intentionally low resolution and tunable from `assets/data/resource_search.json` plus map-local `resource_debug.json`. For the current `1024x1024` map, water and plants start with a `256x256` knowledge grid. Each completed movement step reveals a configurable circle around the player, currently radius `30` map pixels.
 
-Inspect mode displays wetness contours only where the water discovery mask is known. The contour overlay samples the full-resolution `wetness.png`; the low-resolution discovery mask only gates visibility. This keeps the real resource model precise while letting player knowledge remain coarse and skill-scalable.
+The reveal brush is grayscale. `Reveal Falloff = 0` preserves the original hard full-white reveal circle; `1` gives linear falloff from center to edge; larger values tighten the falloff toward the center. The center cell remains full strength so the current player or possessed-bird position is clearly known.
 
-The current inspect panel also shows a local readout:
+Inspect mode displays resource contours only where the matching discovery mask is known. Resource overlays sample the full-resolution authored suitability map; the low-resolution discovery mask only gates visibility. This keeps the real resource model precise while letting player knowledge remain coarse and skill-scalable.
 
-- wetness value
-- water-find chance
-- knowledge percentage
+The gameplay inspect HUD is always visible in the fixed side stack. With inspect focus off, overlay buttons are disabled and no resource bar is shown. With inspect focus on, `W/P/H/S` buttons become active, the selected discovered-knowledge layer can draw an overlay, and the HUD shows one compact resource/terrain bar for the selected layer.
 
-This readout is exact for current tuning/debugging. Later player skill can make the same readings fuzzier or more precise without changing the underlying search model.
+The player-facing inspect HUD uses what the player knows. Resource bars multiply the authored availability by discovered knowledge and known stock. The Resource Debug controls can override this for testing by switching stock overlay mode to live or ignore-stock behavior.
 
 For tuning, the `RD` Resource Debug topic panel exposes map-local controls in gameplay and dev modes:
 
 - discovery grid size
+- discovery reveal falloff (`0` keeps the original hard full-white brush; `1` is linear falloff)
 - movement reveal radius
 - active display layer
 - render mode per layer
@@ -143,24 +142,35 @@ For tuning, the `RD` Resource Debug topic panel exposes map-local controls in ga
 - five contour bands per layer, each with enabled state and threshold
 - cover all / uncover all discovery mask actions
 
-Discovery settings are shared across the current water-knowledge mask. Visual settings are separated per displayed layer (`wetness`, `height`, `slope`) so each map can use different thresholds and tint colors. `Save All` persists this tuning to map-local `resource_debug.json`.
+Discovery settings are shared across the current resource-knowledge masks. Visual settings are separated per displayed overlay (`water`, `plants`, `height`, `slope`) so each map can use different thresholds and tint colors. Legacy `wetness` sidecar settings are migrated to the `water` overlay. `Save All` persists this tuning to map-local `resource_debug.json`.
 
 Wetness contours are cached as a map-sized transparent raster overlay. Resource Debug can switch between two runtime render modes:
 
 - `Marching Lines`: default. Builds five contour bands using marching-squares line construction, then rasterizes those lines once.
 - `Raster Bands`: processes the selected grayscale source directly and writes pixels whose value is close to a configured band threshold.
 
-Both modes rebuild only when inspect starts or when Resource Debug controls explicitly invalidate the contour view. Ordinary overlay redraws, camera pans, zooms, and travel-driven discovery updates only blit the cached contour image into the current camera transform.
+Both modes rebuild only when the inspect toggle is active and the selected resource/debug settings, discovery mask, or stock field version changes. Ordinary overlay redraws, camera pans, and zooms only blit the cached contour image into the current camera transform.
 
-Inspect mode can switch the contoured knowledge layer from the activity panel:
+Inspect is a gameplay perception toggle, not an exclusive activity. Pressing `I` enables focused inspection while travel, gathering, or water gathering can continue in the primary activity panel. The cursor-driven close-inspect behavior remains: moving the cursor over terrain updates the sampled pixel, height, slope, and resource readings. When focus is off, or before a cursor sample exists, the HUD samples the player position. Inspect focus and overlays are unavailable during activities that should block perception, currently rest and scout.
 
-- `W`: wetness from `wetness.png`
+Primary activities are mutually exclusive: `PF`, `G`, `W`, `SC`, and `R` represent the current main intent. Clicking a different primary activity switches immediately by canceling the current primary activity and starting the new one; clicking the active primary activity cancels it. Inventory and camera-centering are utility actions, not activities.
+
+Inspect focus can switch the contoured knowledge layer from the inspect HUD:
+
+- `W`: water availability, currently sourced from `wetness.png`
+- `P`: plant availability using the current plant resource search map
 - `H`: height from `height.png`
 - `S`: slope from `slope.png`
 
-All three layers use the same discovered-knowledge gate for now. This models the current fog-of-war as gathered knowledge rather than pure map visibility.
+Resource layers use the matching discovered-knowledge gate and selected stock overlay mode. Height and slope still use the shared discovery presentation path for now. This models the current fog-of-war as gathered knowledge rather than pure map visibility.
 
 `resource_debug.json` is deliberately a sidecar even though the controls are debug-facing. The data affects how gathered terrain knowledge is communicated during gameplay, and it needs to be saved per map while the presentation model is still being tuned.
+
+Temporary resource depletion and replenishment are documented separately in:
+
+```txt
+docs/RESOURCE_STOCK_MODEL.md
+```
 
 `water_skin` is an inventory item defined in:
 
@@ -168,7 +178,7 @@ All three layers use the same discovered-knowledge gate for now. This models the
 assets/data/items.json
 ```
 
-Using a found water item to recover hydration is an item effect. Finding water does not directly refill hydration, which keeps recovery and resource acquisition as separate systems.
+The current prototype treats the waterskin stack quantity as fill level. A waterskin can hold up to `40` water portions, remains in inventory at `0`, and drinking consumes one portion for `1` hydration. Finding water fills an existing water-container item instead of directly restoring hydration or creating a new waterskin.
 
 ## Condition Consequences
 
@@ -205,7 +215,8 @@ The bottom gameplay HUD keeps condition bars minimal and adds a compact status-e
 
 The current runtime ownership is:
 
-- `src/gameplay/playerActivityRuntime.js`: activity director. Owns explicit activity state, idle fallback, side-panel snapshots, and per-tick upkeep dispatch.
+- `src/gameplay/playerActivityRuntime.js`: activity facade. Owns public activity API composition, side-panel snapshots, movement lifecycle routing, and shared stop/cancel cleanup.
+- `src/gameplay/playerActivityUpkeepRuntime.js`: owns processed movement-tick normalization and generic upkeep dispatch for the activity facade.
 - `src/gameplay/gatheringActivityRuntime.js`: compatibility re-export for older imports/tests.
 - `src/gameplay/activityRegistry.js`: loads and normalizes `assets/data/activities.json`.
 - `src/gameplay/resourceSearchRegistry.js`: loads and normalizes `assets/data/resource_search.json`.
@@ -218,13 +229,25 @@ The current runtime ownership is:
 - `src/gameplay/conditionEffectRuntime.js`: resolves active condition effects, combines modifiers, emits transition status messages, and exposes UI-ready effect snapshots.
 - `src/gameplay/travelEstimateRuntime.js`: estimates travel preview cost by walking the current preview path and resolving the same movement/upkeep cost keys used by committed travel.
 
-The activity director receives processed movement-time ticks from the scheduler. For every processed tick it applies `idle.tick`, regardless of whether the visible activity is idle, gathering, inspect, or rest. Explicit activities may add their own effects on top.
+The activity facade receives processed movement-time ticks from the scheduler and routes them through `playerActivityUpkeepRuntime`. For every processed tick the upkeep controller applies `idle.tick`, regardless of whether the visible activity is idle, gathering, inspect, or rest. Explicit activities may add their own effects on top.
 
-Movement cost is intentionally charged from movement completion hooks, not from the activity director's time tick. This lets any future activity ask for movement without duplicating locomotion rules. PF click-to-move starts `travel` after a movement queue is accepted; gathering uses silent one-step movement queues and remains the explicit activity.
+Movement cost is intentionally charged from movement completion hooks, not from the activity facade's time tick. This lets any future activity ask for movement without duplicating locomotion rules. PF click-to-move starts `travel` after a movement queue is accepted; gathering uses silent one-step movement queues and remains the explicit activity.
 
 Resource search follows the same movement rule. `gather_water` asks for movement, movement pays locomotion cost, then the activity pays its own search/work cost and rolls for the resource at the reached cell.
 
-Movement completion also reveals resource knowledge around the player. This is intentionally independent from the activity type, so normal travel, gathering, and future activities all uncover the same surveyed wetness layer as the player moves.
+Movement completion also reveals resource knowledge around the player. This is intentionally independent from the activity type, so normal travel, gathering, and future activities all uncover surveyed resource layers as the player moves.
+
+Scout possession is a second discovery producer. While a bird is possessed, the scout activity reveals resource discovery masks around that bird, using canonical swarm simulation coordinates for discovery and interpolation only for camera smoothing. Discovery reveal should not depend on camera-follow or overlay-render state.
+
+Current implementation note: the scout possession bridge still lives in `src/main.js`, where it resolves stable swarm `agentId` values, reveals discovery, and updates the camera. This is acceptable for the prototype, but it is a weak ownership boundary. If scout/discovery behavior grows, extract a small `scoutPossessionRuntime` or `scoutDiscoveryRuntime` that owns:
+
+- stable bird identity resolution after swarm remove-swap operations
+- converting possessed-bird simulation position into discovery reveals
+- reporting scout bird position/effective reveal radius back to `playerActivityRuntime`
+- keeping camera-follow interpolation separate from discovery-mask mutation
+- forcing overlay invalidation/redraw when possession changes discovered knowledge or moves the camera
+
+The desired dependency direction is: swarm state and activity state feed a scout-discovery producer, `resourceDiscoveryRuntime` owns mask mutation/versioning, and overlay/camera systems consume the resulting state. Avoid putting discovery mutation inside render-only helpers.
 
 Travel preview estimation uses the same per-step terrain cost model as movement queue creation. It also adds baseline `idle.tick` upkeep for the projected tick count, because travel consumes simulation time before each step completes.
 

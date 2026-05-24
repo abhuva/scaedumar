@@ -17,32 +17,103 @@ export function registerInteractionCommands(commandBus, deps) {
     deps.syncPlayerStateToStore();
   }
 
+  function notifyTravelPlanningChanged(reason) {
+    if (typeof deps.emitTravelPlanningChanged === "function") {
+      deps.emitTravelPlanningChanged({ reason });
+      return;
+    }
+    deps.requestOverlayDraw();
+  }
+
+  function getTravelPlanningRuntime() {
+    if (!deps.travelPlanningRuntime) {
+      throw new Error("interactionCommands requires travelPlanningRuntime");
+    }
+    return deps.travelPlanningRuntime;
+  }
+
+  function clearTravelPlanning(reason) {
+    getTravelPlanningRuntime().clearAll(reason);
+  }
+
+  function clearTravelPreview(reason) {
+    getTravelPlanningRuntime().clearPreview(reason);
+  }
+
+  function startTravelPlanningRange(reason) {
+    const pathfinding = typeof deps.getPathfindingStateSnapshot === "function"
+      ? deps.getPathfindingStateSnapshot()
+      : null;
+    const origin = {
+      x: deps.playerState.pixelX,
+      y: deps.playerState.pixelY,
+    };
+    getTravelPlanningRuntime().startPathfinding(origin, pathfinding, reason);
+  }
+
+  function clearTravelPlanningRange(reason) {
+    getTravelPlanningRuntime().clearRange(reason);
+  }
+
+  function setTravelHoverPath(pixel, pathPixels, reason) {
+    return getTravelPlanningRuntime().setHoverPath(pixel, pathPixels, reason, { emit: false });
+  }
+
+  function commitTravelHoverPath(pixel, reason) {
+    getTravelPlanningRuntime().commitCurrentPath(pixel, deps.playerState, reason, { emit: false });
+  }
+
+  function updateTravelRangeRadius(radius, reason) {
+    getTravelPlanningRuntime().updateRangeRadius(radius, reason, { emit: false });
+  }
+
+  function stopPrimaryForSwitch() {
+    if (isActivityActive() && typeof deps.cancelActivity === "function") {
+      deps.cancelActivity();
+    }
+  }
+
+  function clearPlanningPreview() {
+    deps.setInteractionMode("none");
+    clearTravelPlanning("planning-cleared");
+  }
+
+  function startPrimaryActivity(startFn, fallbackReason) {
+    stopPrimaryForSwitch();
+    const result = startFn();
+    if (!result || result.ok) {
+      clearPlanningPreview();
+      return;
+    }
+    deps.setStatus(result.reason || fallbackReason);
+  }
+
   function cancelMovementFromCommand() {
     if (!isMovementActive()) {
       if (deps.getInteractionMode() === "pathfinding") {
         deps.setInteractionMode("none");
-        deps.movePreviewState.hoverPixel = null;
-        deps.movePreviewState.pathPixels = [];
+        clearTravelPlanning("planning-canceled");
         deps.setStatus("Travel planning canceled.");
-        deps.requestOverlayDraw();
       }
       return;
     }
     if (typeof deps.cancelMovementQueue !== "function") return;
     deps.cancelMovementQueue();
-    deps.movePreviewState.hoverPixel = null;
-    deps.movePreviewState.pathPixels = [];
+    clearTravelPlanning("movement-canceled");
     deps.setStatus(`Movement canceled at (${deps.playerState.pixelX}, ${deps.playerState.pixelY}).`);
     syncPlayerToStore();
-    deps.requestOverlayDraw();
   }
 
   commandBus.register("core/interaction/setMode", (command) => {
-    if (isActivityActive()) {
-      deps.setStatus("Stop the current activity before changing interaction mode.");
-      return;
+    if (command.mode === "pathfinding") {
+      stopPrimaryForSwitch();
     }
     deps.setInteractionMode(command.mode);
+    if (deps.getInteractionMode() === "pathfinding") {
+      startTravelPlanningRange("mode-changed");
+    } else {
+      clearTravelPlanningRange("mode-changed");
+    }
   });
 
   commandBus.register("core/movement/cancel", () => {
@@ -55,54 +126,42 @@ export function registerInteractionCommands(commandBus, deps) {
 
   commandBus.register("core/activity/startGathering", () => {
     if (typeof deps.startGatheringActivity !== "function") return;
-    const result = deps.startGatheringActivity();
-    if (!result || result.ok) {
-      deps.setInteractionMode("none");
-      deps.movePreviewState.hoverPixel = null;
-      deps.movePreviewState.pathPixels = [];
-      deps.requestOverlayDraw();
-      return;
-    }
-    deps.setStatus(result.reason || "Unable to start gathering.");
+    startPrimaryActivity(deps.startGatheringActivity, "Unable to start gathering.");
   });
 
   commandBus.register("core/activity/startGatherWater", () => {
     if (typeof deps.startGatherWaterActivity !== "function") return;
-    const result = deps.startGatherWaterActivity();
-    if (!result || result.ok) {
-      deps.setInteractionMode("none");
-      deps.movePreviewState.hoverPixel = null;
-      deps.movePreviewState.pathPixels = [];
-      deps.requestOverlayDraw();
-      return;
-    }
-    deps.setStatus(result.reason || "Unable to start water gathering.");
+    startPrimaryActivity(deps.startGatherWaterActivity, "Unable to start water gathering.");
   });
 
   commandBus.register("core/activity/startInspect", () => {
     if (typeof deps.startInspectActivity !== "function") return;
     const result = deps.startInspectActivity();
     if (!result || result.ok) {
-      deps.setInteractionMode("none");
-      deps.movePreviewState.hoverPixel = null;
-      deps.movePreviewState.pathPixels = [];
       deps.requestOverlayDraw();
       return;
     }
     deps.setStatus(result.reason || "Unable to start inspect.");
   });
 
-  commandBus.register("core/activity/startRest", () => {
-    if (typeof deps.startRestActivity !== "function") return;
-    const result = deps.startRestActivity();
+  commandBus.register("core/activity/startScout", () => {
+    if (typeof deps.startScoutActivity !== "function") return;
+    startPrimaryActivity(deps.startScoutActivity, "Unable to start scout.");
+  });
+
+  commandBus.register("core/activity/possessScoutBird", () => {
+    if (typeof deps.possessScoutBird !== "function") return;
+    const result = deps.possessScoutBird();
     if (!result || result.ok) {
-      deps.setInteractionMode("none");
-      deps.movePreviewState.hoverPixel = null;
-      deps.movePreviewState.pathPixels = [];
       deps.requestOverlayDraw();
       return;
     }
-    deps.setStatus(result.reason || "Unable to start rest.");
+    deps.setStatus(result.reason || "Unable to possess bird.");
+  });
+
+  commandBus.register("core/activity/startRest", () => {
+    if (typeof deps.startRestActivity !== "function") return;
+    startPrimaryActivity(deps.startRestActivity, "Unable to start rest.");
   });
 
   commandBus.register("core/activity/updateInspectAt", (command) => {
@@ -141,20 +200,20 @@ export function registerInteractionCommands(commandBus, deps) {
     }
 
     if (deps.getInteractionMode() === "pathfinding") {
-      deps.movePreviewState.hoverPixel = { x: pixel.x, y: pixel.y };
-      deps.movePreviewState.pathPixels = deps.extractPathTo(pixel.x, pixel.y);
-      if (!deps.movePreviewState.pathPixels.length) {
+      const pathPixels = setTravelHoverPath(pixel, deps.extractPathTo(pixel.x, pixel.y), "path-hover");
+      if (!pathPixels.length) {
         deps.setStatus("No reachable preview path at clicked cell.");
-        deps.requestOverlayDraw();
+        notifyTravelPlanningChanged("unreachable-click");
         return;
       }
       if (typeof deps.replaceMovementQueue === "function") {
-        const replaced = deps.replaceMovementQueue(deps.movePreviewState.pathPixels);
+        const replaced = deps.replaceMovementQueue(pathPixels);
         if (!replaced) {
           deps.setStatus("Unable to queue movement for selected path.");
-          deps.requestOverlayDraw();
+          notifyTravelPlanningChanged("queue-failed");
           return;
         }
+        commitTravelHoverPath(pixel, "travel-committed");
       }
       if (typeof deps.startTravelActivity === "function") {
         const result = deps.startTravelActivity();
@@ -163,19 +222,15 @@ export function registerInteractionCommands(commandBus, deps) {
         }
       }
       deps.setInteractionMode("none");
-      deps.movePreviewState.hoverPixel = null;
-      deps.movePreviewState.pathPixels = [];
+      clearTravelPreview("travel-committed");
       syncPlayerToStore();
-      deps.requestOverlayDraw();
       return;
     }
 
     const runtimeMode = typeof deps.getRuntimeMode === "function" ? deps.getRuntimeMode() : RUNTIME_MODE_DEV;
     if (runtimeMode === RUNTIME_MODE_GAMEPLAY) {
-      deps.movePreviewState.hoverPixel = null;
-      deps.movePreviewState.pathPixels = [];
+      clearTravelPreview("gameplay-no-mode-click");
       deps.setStatus("Use PF to choose a destination.");
-      deps.requestOverlayDraw();
       return;
     }
 
@@ -185,10 +240,8 @@ export function registerInteractionCommands(commandBus, deps) {
     }
     syncPlayerToStore();
     deps.rebuildMovementField();
-    deps.movePreviewState.hoverPixel = null;
-    deps.movePreviewState.pathPixels = [];
+    clearTravelPlanning("dev-player-moved");
     deps.setStatus(`Player moved to (${deps.playerState.pixelX}, ${deps.playerState.pixelY})`);
-    deps.requestOverlayDraw();
   });
 
   function syncPathfindingStateToStore() {
@@ -208,7 +261,11 @@ export function registerInteractionCommands(commandBus, deps) {
       updatePathfindingStoreField({ [field]: value });
       deps.syncPathfindingSettingsUi();
       if (deps.getInteractionMode() === "pathfinding") {
+        if (field === "range") {
+          updateTravelRangeRadius(Math.max(0, value) / 2, "pathfinding-setting");
+        }
         deps.rebuildMovementField();
+        notifyTravelPlanningChanged("pathfinding-setting");
       }
       syncPathfindingStateToStore();
     });

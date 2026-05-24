@@ -9,6 +9,7 @@ export function createSwarmAgentStateMutator(deps) {
     deps.swarmState.vx = new Float32Array(count);
     deps.swarmState.vy = new Float32Array(count);
     deps.swarmState.vz = new Float32Array(count);
+    deps.swarmState.agentId = new Uint32Array(count);
     deps.swarmState.speedScale = new Float32Array(count);
     deps.swarmState.steerScale = new Float32Array(count);
     deps.swarmState.isResting = new Uint8Array(count);
@@ -45,6 +46,7 @@ export function createSwarmAgentStateMutator(deps) {
       deps.swarmState.vx[removeIndex] = deps.swarmState.vx[lastIndex];
       deps.swarmState.vy[removeIndex] = deps.swarmState.vy[lastIndex];
       deps.swarmState.vz[removeIndex] = deps.swarmState.vz[lastIndex];
+      deps.swarmState.agentId[removeIndex] = deps.swarmState.agentId[lastIndex];
       deps.swarmState.speedScale[removeIndex] = deps.swarmState.speedScale[lastIndex];
       deps.swarmState.steerScale[removeIndex] = deps.swarmState.steerScale[lastIndex];
       deps.swarmState.isResting[removeIndex] = deps.swarmState.isResting[lastIndex];
@@ -93,6 +95,7 @@ export function createSwarmAgentStateMutator(deps) {
     const nextVx = new Float32Array(newCount);
     const nextVy = new Float32Array(newCount);
     const nextVz = new Float32Array(newCount);
+    const nextAgentId = new Uint32Array(newCount);
     const nextSpeedScale = new Float32Array(newCount);
     const nextSteerScale = new Float32Array(newCount);
     const nextIsResting = new Uint8Array(newCount);
@@ -107,6 +110,7 @@ export function createSwarmAgentStateMutator(deps) {
       nextVx.set(deps.swarmState.vx);
       nextVy.set(deps.swarmState.vy);
       nextVz.set(deps.swarmState.vz);
+      nextAgentId.set(deps.swarmState.agentId);
       nextSpeedScale.set(deps.swarmState.speedScale);
       nextSteerScale.set(deps.swarmState.steerScale);
       nextIsResting.set(deps.swarmState.isResting);
@@ -121,6 +125,10 @@ export function createSwarmAgentStateMutator(deps) {
     nextVx[oldCount] = Number(agent.vx) || 0;
     nextVy[oldCount] = Number(agent.vy) || 0;
     nextVz[oldCount] = Number(agent.vz) || 0;
+    nextAgentId[oldCount] = Number.isFinite(Number(agent.agentId)) && Number(agent.agentId) > 0
+      ? Math.round(Number(agent.agentId))
+      : deps.swarmState.nextAgentId++;
+    deps.swarmState.nextAgentId = Math.max(deps.swarmState.nextAgentId, nextAgentId[oldCount] + 1);
     nextSpeedScale[oldCount] = Number.isFinite(Number(agent.speedScale)) ? Number(agent.speedScale) : 1;
     nextSteerScale[oldCount] = Number.isFinite(Number(agent.steerScale)) ? Number(agent.steerScale) : 1;
     nextIsResting[oldCount] = Number(agent.isResting) ? 1 : 0;
@@ -135,6 +143,7 @@ export function createSwarmAgentStateMutator(deps) {
     deps.swarmState.vx = nextVx;
     deps.swarmState.vy = nextVy;
     deps.swarmState.vz = nextVz;
+    deps.swarmState.agentId = nextAgentId;
     deps.swarmState.speedScale = nextSpeedScale;
     deps.swarmState.steerScale = nextSteerScale;
     deps.swarmState.isResting = nextIsResting;

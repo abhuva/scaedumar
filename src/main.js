@@ -11,6 +11,8 @@ import {
 import { createSettingsCoreSetupRuntime } from "./core/settingsCoreSetupRuntime.js";
 import { setupRuntimeSystems } from "./core/runtimeSystemSetup.js";
 import { createSystemStoreSyncRuntime } from "./core/systemStoreSyncRuntime.js";
+import { createEventBus, RuntimeEvents } from "./core/eventBus.js";
+import { registerRuntimeEventHandlers } from "./core/runtimeEventHandlers.js";
 import { createSwarmIntegrationSetupRuntime } from "./app/swarmIntegrationSetupRuntime.js";
 import { createSwarmIntegrationAssemblyRuntime } from "./app/swarmIntegrationAssemblyRuntime.js";
 import { createAppShellLifecycleAssemblyRuntime } from "./app/appShellLifecycleAssemblyRuntime.js";
@@ -119,8 +121,17 @@ import {
   resolveConditionEffects,
 } from "./gameplay/conditionEffectRuntime.js";
 import { loadResourceSearches } from "./gameplay/resourceSearchRegistry.js";
-import { createResourceSearchRuntime } from "./gameplay/resourceSearchRuntime.js";
+import { computeResourceSearchChance, createResourceSearchRuntime } from "./gameplay/resourceSearchRuntime.js";
+import { loadResourceStockSettings } from "./gameplay/resourceStockRegistry.js";
+import { createResourceStockRuntime } from "./gameplay/resourceStockRuntime.js";
 import { createResourceDiscoveryRuntime } from "./gameplay/resourceDiscoveryRuntime.js";
+import {
+  createInspectPerceptionRuntime,
+  getInspectOverlayDebugLayer,
+  getInspectOverlayDisplayLabel,
+  getInspectOverlayResourceId,
+} from "./gameplay/inspectPerceptionRuntime.js";
+import { loadDiscoverySettings } from "./gameplay/discoverySettingsRegistry.js";
 import {
   createDefaultResourceDebugSettings,
   getResourceDebugBandColors,
@@ -128,6 +139,7 @@ import {
   serializeResourceDebugSettings,
 } from "./gameplay/resourceDebugSettings.js";
 import { createTravelEstimateRuntime } from "./gameplay/travelEstimateRuntime.js";
+import { createTravelPlanningRuntime } from "./gameplay/travelPlanningRuntime.js";
 import { loadItemDefinitions } from "./gameplay/itemRegistry.js";
 import { createLightInteractionRuntimeBinding } from "./gameplay/lightInteractionRuntimeBinding.js";
 import { createMapSupportRuntime } from "./gameplay/mapSupportRuntime.js";
@@ -191,7 +203,9 @@ const ACTIVITY_COSTS = await loadActivityCosts();
 const CONDITION_THRESHOLDS = await loadConditionThresholds();
 const CONDITION_EFFECTS = await loadConditionEffects();
 const RESOURCE_SEARCHES = await loadResourceSearches();
-const DEFAULT_RESOURCE_DEBUG_SETTINGS = createDefaultResourceDebugSettings(RESOURCE_SEARCHES, "water");
+const RESOURCE_STOCK_SETTINGS = await loadResourceStockSettings({ resourceIds: Object.keys(RESOURCE_SEARCHES) });
+const DISCOVERY_SETTINGS = await loadDiscoverySettings();
+const DEFAULT_RESOURCE_DEBUG_SETTINGS = createDefaultResourceDebugSettings(RESOURCE_SEARCHES, "water", DISCOVERY_SETTINGS);
 let resourceDebugSettings = normalizeResourceDebugSettings(null, DEFAULT_RESOURCE_DEBUG_SETTINGS);
 
 function getActivityCostKey(activityId, costRole, fallback) {
@@ -205,6 +219,7 @@ function getActivityCostKey(activityId, costRole, fallback) {
 }
 const runtimeCore = createRuntimeCore();
 const dispatchCoreCommand = createCoreCommandDispatch(runtimeCore);
+const eventBus = createEventBus();
 const entityStore = createEntityStore();
 
 const bodyEl = document.body;
@@ -238,7 +253,15 @@ const movementStatusPanelEl = getRequiredElementById("movementStatusPanel");
 const movementStatusTitleEl = getRequiredElementById("movementStatusTitle");
 const movementStatusEtaEl = getRequiredElementById("movementStatusEta");
 const movementStatusDetailEl = getRequiredElementById("movementStatusDetail");
+const movementActionBtn = getRequiredElementById("movementActionBtn");
 const movementCancelBtn = getRequiredElementById("movementCancelBtn");
+const inspectStatusPanelEl = getRequiredElementById("inspectStatusPanel");
+const inspectStatusTitleEl = getRequiredElementById("inspectStatusTitle");
+const inspectStatusEtaEl = getRequiredElementById("inspectStatusEta");
+const inspectStatusDetailEl = getRequiredElementById("inspectStatusDetail");
+const inspectResourceRowEl = getRequiredElementById("inspectResourceRow");
+const inspectResourceLabelEl = getRequiredElementById("inspectResourceLabel");
+const inspectResourceBarFillEl = getRequiredElementById("inspectResourceBarFill");
 const mapPathInput = getRequiredElementById("mapPathInput");
 const mapPathLoadBtn = getRequiredElementById("mapPathLoadBtn");
 const mapFolderInput = getRequiredElementById("mapFolderInput");
@@ -247,6 +270,7 @@ const dockLightingModeToggle = getRequiredElementById("dockLightingModeToggle");
 const dockPathfindingModeToggle = getRequiredElementById("dockPathfindingModeToggle");
 const dockGatheringActivityBtn = getRequiredElementById("dockGatheringActivityBtn");
 const dockInspectActivityBtn = getRequiredElementById("dockInspectActivityBtn");
+const dockScoutActivityBtn = getRequiredElementById("dockScoutActivityBtn");
 const dockShowPlayerBtn = getRequiredElementById("dockShowPlayerBtn");
 const dockInventoryBtn = getRequiredElementById("dockInventoryBtn");
 const gameplayHudEl = getRequiredElementById("gameplayHud");
@@ -256,9 +280,12 @@ const hudPathfindingBtn = getRequiredElementById("hudPathfindingBtn");
 const hudGatheringBtn = getRequiredElementById("hudGatheringBtn");
 const hudGatherWaterBtn = getRequiredElementById("hudGatherWaterBtn");
 const hudInspectBtn = getRequiredElementById("hudInspectBtn");
+const hudScoutBtn = getRequiredElementById("hudScoutBtn");
 const hudRestBtn = getRequiredElementById("hudRestBtn");
 const hudInventoryBtn = getRequiredElementById("hudInventoryBtn");
 const hudShowPlayerBtn = getRequiredElementById("hudShowPlayerBtn");
+const resourceDebugTabButtons = getRequiredElements(".rd-tab");
+const resourceDebugTabPanels = getRequiredElements(".rd-tab-panel");
 const resourceDebugLayerInput = getRequiredElementById("resourceDebugLayer");
 const resourceDebugRenderModeInput = getRequiredElementById("resourceDebugRenderMode");
 const resourceDebugTintColorInput = getRequiredElementById("resourceDebugTintColor");
@@ -266,6 +293,16 @@ const resourceDebugDiscoveryGridInput = getRequiredElementById("resourceDebugDis
 const resourceDebugDiscoveryGridValue = getRequiredElementById("resourceDebugDiscoveryGridValue");
 const resourceDebugRevealRadiusInput = getRequiredElementById("resourceDebugRevealRadius");
 const resourceDebugRevealRadiusValue = getRequiredElementById("resourceDebugRevealRadiusValue");
+const resourceDebugRevealFalloffInput = getRequiredElementById("resourceDebugRevealFalloff");
+const resourceDebugRevealFalloffValue = getRequiredElementById("resourceDebugRevealFalloffValue");
+const resourceDebugDecayEnabledInput = getRequiredElementById("resourceDebugDecayEnabled");
+const resourceDebugDecayIntervalInput = getRequiredElementById("resourceDebugDecayInterval");
+const resourceDebugDecayIntervalValue = getRequiredElementById("resourceDebugDecayIntervalValue");
+const resourceDebugDecayAmountInput = getRequiredElementById("resourceDebugDecayAmount");
+const resourceDebugDecayAmountValue = getRequiredElementById("resourceDebugDecayAmountValue");
+const resourceDebugShowMaskOverlayInput = getRequiredElementById("resourceDebugShowMaskOverlay");
+const resourceDebugMaskOverlayOpacityInput = getRequiredElementById("resourceDebugMaskOverlayOpacity");
+const resourceDebugMaskOverlayOpacityValue = getRequiredElementById("resourceDebugMaskOverlayOpacityValue");
 const resourceDebugSampleStepInput = getRequiredElementById("resourceDebugSampleStep");
 const resourceDebugSampleStepValue = getRequiredElementById("resourceDebugSampleStepValue");
 const resourceDebugKnowledgeThresholdInput = getRequiredElementById("resourceDebugKnowledgeThreshold");
@@ -289,10 +326,32 @@ const resourceDebugBand4EnabledInput = getRequiredElementById("resourceDebugBand
 const resourceDebugBand5Input = getRequiredElementById("resourceDebugBand5");
 const resourceDebugBand5Value = getRequiredElementById("resourceDebugBand5Value");
 const resourceDebugBand5EnabledInput = getRequiredElementById("resourceDebugBand5Enabled");
+const resourceDebugSaveBtn = getRequiredElementById("resourceDebugSaveBtn");
 const resourceDebugCoverAllBtn = getRequiredElementById("resourceDebugCoverAllBtn");
 const resourceDebugUncoverAllBtn = getRequiredElementById("resourceDebugUncoverAllBtn");
+const resourceStockResourceInput = getRequiredElementById("resourceStockResource");
+const resourceStockOverlayModeInput = getRequiredElementById("resourceStockOverlayMode");
+const resourceStockGridSizeInput = getRequiredElementById("resourceStockGridSize");
+const resourceStockGridSizeValue = getRequiredElementById("resourceStockGridSizeValue");
+const resourceStockDepleteAmountInput = getRequiredElementById("resourceStockDepleteAmount");
+const resourceStockDepleteAmountValue = getRequiredElementById("resourceStockDepleteAmountValue");
+const resourceStockNeighborDepleteAmountInput = getRequiredElementById("resourceStockNeighborDepleteAmount");
+const resourceStockNeighborDepleteAmountValue = getRequiredElementById("resourceStockNeighborDepleteAmountValue");
+const resourceStockDepleteRadiusInput = getRequiredElementById("resourceStockDepleteRadius");
+const resourceStockDepleteRadiusValue = getRequiredElementById("resourceStockDepleteRadiusValue");
+const resourceStockReplenishIntervalInput = getRequiredElementById("resourceStockReplenishInterval");
+const resourceStockReplenishIntervalValue = getRequiredElementById("resourceStockReplenishIntervalValue");
+const resourceStockReplenishAmountInput = getRequiredElementById("resourceStockReplenishAmount");
+const resourceStockReplenishAmountValue = getRequiredElementById("resourceStockReplenishAmountValue");
+const resourceStockReadout = getRequiredElementById("resourceStockReadout");
+const resourceStockDepleteHereBtn = getRequiredElementById("resourceStockDepleteHereBtn");
+const resourceStockRevealHereBtn = getRequiredElementById("resourceStockRevealHereBtn");
+const resourceStockFillFullBtn = getRequiredElementById("resourceStockFillFullBtn");
+const resourceStockFillEmptyBtn = getRequiredElementById("resourceStockFillEmptyBtn");
+const resourceStockResetBtn = getRequiredElementById("resourceStockResetBtn");
 const inspectLayerControlsEl = getRequiredElementById("inspectLayerControls");
 const inspectWetnessLayerBtn = getRequiredElementById("inspectWetnessLayerBtn");
+const inspectPlantsLayerBtn = getRequiredElementById("inspectPlantsLayerBtn");
 const inspectHeightLayerBtn = getRequiredElementById("inspectHeightLayerBtn");
 const inspectSlopeLayerBtn = getRequiredElementById("inspectSlopeLayerBtn");
 const conditionStatEls = {
@@ -2056,7 +2115,6 @@ const {
   pointLightBakeCtx,
   defaultPlayer: DEFAULT_PLAYER,
   playerState,
-  movePreviewState,
   swarmState,
   swarmRenderState,
   swarmCursorState,
@@ -2422,6 +2480,7 @@ const updateCursorLightHeightOffsetLabel = (...args) => lightLabelRuntime.update
   applyCameraSettings: (...args) => applyCameraSettings(...args),
   applyAudioSettings: (...args) => applyAudioSettings(...args),
   applyResourceDebugSettings: (...args) => applyResourceDebugSettingsRuntime(...args),
+  applyResourceStockSettings: (...args) => applyResourceStockSettingsRuntime(...args),
   applySwarmSettings: (...args) => applySwarmSettings(...args),
   reseedSwarmAgents: (...args) => reseedSwarmAgents(...args),
   getSwarmSettings: (...args) => getSwarmSettings(...args),
@@ -2442,7 +2501,9 @@ const updateCursorLightHeightOffsetLabel = (...args) => lightLabelRuntime.update
   },
   onMapLoaded: () => {
     resourceDiscoveryRuntime?.reset();
-    resourceDiscoveryRuntime?.revealMovement("water", playerState.pixelX, playerState.pixelY);
+    for (const resourceId of getResourceSearchIds()) {
+      revealResourceMovementKnowledge(resourceId, playerState.pixelX, playerState.pixelY);
+    }
   },
   serializeLightingSettings: (...args) => serializeLightingSettings(...args),
   serializeInteractionSettings: (...args) => serializeInteractionSettings(...args),
@@ -2454,6 +2515,7 @@ const updateCursorLightHeightOffsetLabel = (...args) => lightLabelRuntime.update
   serializeCameraSettings: (...args) => serializeCameraSettings(...args),
   serializeAudioSettings: (...args) => serializeAudioSettings(...args),
   serializeResourceDebugSettings: () => serializeResourceDebugSettingsRuntime(),
+  serializeResourceStockSettings: () => serializeResourceStockSettingsRuntime(),
   serializeSwarmData: (...args) => serializeSwarmData(...args),
   serializeNpcState: (...args) => serializeNpcStateFromBinding(...args),
   confirm: (text) => window.confirm(text),
@@ -2637,43 +2699,85 @@ let inventoryPanelRuntime = null;
 let activityEffectRuntime = null;
 let conditionEffectRuntime = null;
 let travelEstimateRuntime = null;
+let travelPlanningRuntime = null;
 let resourceSearchRuntime = null;
+let resourceStockRuntime = null;
 let resourceDiscoveryRuntime = null;
 let gameplayHudRuntime = null;
 let resourceDebugPanelRuntime = null;
+let inspectPerceptionRuntime = null;
 let resourceContourOverlayVersion = 0;
-let inspectOverlayLayer = "wetness";
+let resourceStockOverlayMode = "known";
+let resourceDebugOverlayResourceId = "water";
 
 function invalidateResourceContourOverlay() {
   resourceContourOverlayVersion += 1;
 }
 
-function getResourceDebugLayerSettings(layer = inspectOverlayLayer) {
-  const layerId = layer === "height" || layer === "slope" ? layer : "wetness";
-  return resourceDebugSettings.layers[layerId] || resourceDebugSettings.layers.wetness;
+function emitActivityChanged(payload = {}) {
+  eventBus.emit(RuntimeEvents.ACTIVITY_CHANGED, payload);
+}
+
+function emitInspectChanged(payload = {}) {
+  eventBus.emit(RuntimeEvents.INSPECT_CHANGED, payload);
+}
+
+function emitResourceDiscoveryChanged(payload = {}) {
+  eventBus.emit(RuntimeEvents.RESOURCE_DISCOVERY_CHANGED, payload);
+}
+
+function emitResourceStockChanged(payload = {}) {
+  eventBus.emit(RuntimeEvents.RESOURCE_STOCK_CHANGED, payload);
+}
+
+function emitTravelPlanningChanged(payload = {}) {
+  eventBus.emit(RuntimeEvents.TRAVEL_PLANNING_CHANGED, payload);
+}
+
+travelPlanningRuntime = createTravelPlanningRuntime({
+  onChange: emitTravelPlanningChanged,
+});
+
+function getResourceContourCacheVersion(resourceId) {
+  const discoveryVersion = typeof resourceDiscoveryRuntime?.getVersion === "function"
+    ? resourceDiscoveryRuntime.getVersion(resourceId)
+    : 0;
+  const stockVersion = typeof resourceStockRuntime?.getVersion === "function"
+    ? resourceStockRuntime.getVersion(resourceId)
+    : 0;
+  return `${resourceContourOverlayVersion}:${discoveryVersion}:${stockVersion}`;
+}
+
+function getResourceDebugLayerSettings(layer = getInspectOverlayLayer()) {
+  const layerId = layer === "plants" || layer === "height" || layer === "slope" ? layer : "water";
+  return resourceDebugSettings.layers[layerId] || resourceDebugSettings.layers.water;
 }
 
 function syncResourceDebugPanel() {
   resourceDebugPanelRuntime?.sync();
 }
 
-function resetWaterDiscoveryForDebugConfig() {
-  resourceDiscoveryRuntime?.reset("water");
-  resourceDiscoveryRuntime?.revealMovement("water", playerState.pixelX, playerState.pixelY);
+function resetDebugResourceDiscoveryForConfig() {
+  resourceDiscoveryRuntime?.reset(resourceDebugOverlayResourceId);
+  for (const resourceId of getResourceSearchIds()) {
+    revealResourceMovementKnowledge(resourceId, playerState.pixelX, playerState.pixelY);
+  }
 }
 
 function normalizeAndApplyResourceDebugSettings(nextSettings, options = {}) {
   const previousGridSize = resourceDebugSettings.discovery.gridSize;
   const previousRevealRadius = resourceDebugSettings.discovery.movementRevealRadius;
+  const previousRevealFalloff = resourceDebugSettings.discovery.revealFalloff;
   resourceDebugSettings = normalizeResourceDebugSettings(nextSettings, DEFAULT_RESOURCE_DEBUG_SETTINGS);
-  inspectOverlayLayer = resourceDebugSettings.activeLayer;
   const gridChanged = resourceDebugSettings.discovery.gridSize !== previousGridSize;
   const revealRadiusChanged = resourceDebugSettings.discovery.movementRevealRadius !== previousRevealRadius;
-  if (options.resetDiscovery || gridChanged || revealRadiusChanged) {
-    resetWaterDiscoveryForDebugConfig();
+  const revealFalloffChanged = resourceDebugSettings.discovery.revealFalloff !== previousRevealFalloff;
+  if (options.resetDiscovery || gridChanged || revealRadiusChanged || revealFalloffChanged) {
+    resetDebugResourceDiscoveryForConfig();
   }
   syncResourceDebugPanel();
-  setInspectOverlayLayer(resourceDebugSettings.activeLayer, { preserveSettings: true });
+  const currentLayer = getInspectOverlayLayer();
+  setInspectOverlayLayer(currentLayer === "none" ? "none" : currentLayer);
 }
 
 function serializeResourceDebugSettingsRuntime() {
@@ -2684,23 +2788,35 @@ function applyResourceDebugSettingsRuntime(rawData) {
   normalizeAndApplyResourceDebugSettings(rawData, { resetDiscovery: true });
 }
 
-function setInspectOverlayLayer(layer) {
-  inspectOverlayLayer = layer === "height" || layer === "slope" ? layer : "wetness";
-  resourceDebugSettings = normalizeResourceDebugSettings({
-    ...resourceDebugSettings,
-    activeLayer: inspectOverlayLayer,
-  }, DEFAULT_RESOURCE_DEBUG_SETTINGS);
-  for (const [buttonLayer, button] of [
-    ["wetness", inspectWetnessLayerBtn],
-    ["height", inspectHeightLayerBtn],
-    ["slope", inspectSlopeLayerBtn],
-  ]) {
-    button.classList.toggle("active", buttonLayer === inspectOverlayLayer);
-    button.setAttribute("aria-pressed", buttonLayer === inspectOverlayLayer ? "true" : "false");
+function serializeResourceStockSettingsRuntime() {
+  return resourceStockRuntime && typeof resourceStockRuntime.serializeSettings === "function"
+    ? resourceStockRuntime.serializeSettings()
+    : RESOURCE_STOCK_SETTINGS;
+}
+
+function applyResourceStockSettingsRuntime(rawData) {
+  if (resourceStockRuntime && typeof resourceStockRuntime.applySettings === "function") {
+    resourceStockRuntime.applySettings(rawData || RESOURCE_STOCK_SETTINGS);
+    emitResourceStockChanged({ resourceId: "*", reason: "settings-applied" });
   }
-  syncResourceDebugPanel();
-  invalidateResourceContourOverlay();
-  overlayDirtyRuntime.requestOverlayDraw();
+}
+
+function getResourceSearchIds() {
+  return Object.keys(RESOURCE_SEARCHES);
+}
+
+function getResourceDisplayLabel(resourceId) {
+  if (resourceId === "water") return "Water";
+  if (resourceId === "plants") return "Plants";
+  return resourceId;
+}
+
+function getInspectOverlayLayer() {
+  return inspectPerceptionRuntime?.getLayer() || "water";
+}
+
+function setInspectOverlayLayer(layer) {
+  return inspectPerceptionRuntime?.setLayer(layer);
 }
 
 function getActivitySnapshot() {
@@ -2712,36 +2828,197 @@ function getActivitySnapshot() {
 }
 
 function getInspectResourceReadings(pixelX, pixelY) {
-  const resourceId = "water";
-  const search = resourceSearchRuntime?.getSearch(resourceId);
-  if (!search) return [];
-  const value = resourceSearchRuntime.sample(resourceId, pixelX, pixelY);
-  const chance = resourceSearchRuntime.chance(resourceId, pixelX, pixelY);
-  const knowledge = resourceDiscoveryRuntime?.sampleKnowledge(resourceId, pixelX, pixelY) || 0;
-  return [{
-    resourceId,
-    label: search.id === "water" ? "Water" : search.id,
-    map: search.map,
-    value,
-    chance,
-    knowledge,
-  }];
+  return getResourceSearchIds()
+    .map((resourceId) => {
+      const search = resourceSearchRuntime?.getSearch(resourceId);
+      if (!search) return null;
+      const value = resourceSearchRuntime.sample(resourceId, pixelX, pixelY);
+      const baseChance = resourceSearchRuntime.hasMap(resourceId)
+        ? computeResourceSearchChance(search, value)
+        : 0;
+      const liveChance = resourceSearchRuntime.chance(resourceId, pixelX, pixelY);
+      const knowledge = resourceDiscoveryRuntime?.sampleKnowledge(resourceId, pixelX, pixelY) || 0;
+      const stock = resourceStockRuntime?.sampleFactor(resourceId, pixelX, pixelY) ?? 1;
+      const knownStock = resourceStockRuntime?.sampleKnownFactor(resourceId, pixelX, pixelY) ?? 0;
+      const knownChance = baseChance * knownStock;
+      return {
+        resourceId,
+        label: getResourceDisplayLabel(resourceId),
+        map: search.map,
+        value,
+        chance: knownChance,
+        knownChance,
+        liveChance,
+        baseChance,
+        knowledge,
+        stock,
+        knownStock,
+      };
+    })
+    .filter(Boolean);
 }
 
 function getResourceDiscoveryConfig(resourceId) {
-  if (resourceId !== "water") {
+  if (resourceId !== resourceDebugOverlayResourceId) {
     const search = resourceSearchRuntime?.getSearch(resourceId);
     return search && search.discovery ? search.discovery : null;
   }
   return {
     gridSize: resourceDebugSettings.discovery.gridSize,
     movementRevealRadius: resourceDebugSettings.discovery.movementRevealRadius,
+    revealFalloff: resourceDebugSettings.discovery.revealFalloff,
   };
 }
 
+function getResourceDiscoveryDecayConfig(resourceId) {
+  if (resourceId === resourceDebugOverlayResourceId) {
+    return resourceDebugSettings.discovery.decay;
+  }
+  return DISCOVERY_SETTINGS.maps && DISCOVERY_SETTINGS.maps[resourceId]
+    ? DISCOVERY_SETTINGS.maps[resourceId].decay
+    : null;
+}
+
+function isDiscoveryDaytime() {
+  const sun = sampleSunAtHour(cycleState.hour);
+  return Number(sun && sun.altitudeDeg) > 0;
+}
+
+function getDiscoveryRevealRadiusMultiplier() {
+  const timeSettings = DISCOVERY_SETTINGS.timeOfDay || {};
+  const multiplier = isDiscoveryDaytime()
+    ? timeSettings.dayRevealMultiplier
+    : timeSettings.nightRevealMultiplier;
+  return Math.max(0, Number.isFinite(Number(multiplier)) ? Number(multiplier) : 1);
+}
+
+function resolveDiscoveryRevealRadius(resourceId, radius) {
+  if (!resourceDiscoveryRuntime || typeof resourceDiscoveryRuntime.resolveRevealRadius !== "function") {
+    return Math.max(0, Number(radius) || 0);
+  }
+  return resourceDiscoveryRuntime.resolveRevealRadius(resourceId, radius);
+}
+
+function getResourceMovementRevealRadius(resourceId) {
+  const search = resourceSearchRuntime?.getSearch(resourceId);
+  const configured = getResourceDiscoveryConfig(resourceId);
+  const discovery = configured || (search && search.discovery) || {};
+  return Number.isFinite(Number(discovery.movementRevealRadius)) ? Number(discovery.movementRevealRadius) : 30;
+}
+
+function revealResourceMovementKnowledge(resourceId, x, y) {
+  const discoveryChanged = resourceDiscoveryRuntime?.revealMovement(resourceId, x, y) === true;
+  const stockChanged = resourceStockRuntime?.revealKnown(resourceId, x, y, resolveDiscoveryRevealRadius(
+    resourceId,
+    getResourceMovementRevealRadius(resourceId),
+  )) === true;
+  return discoveryChanged || stockChanged;
+}
+
+function refreshPlayerLocalResourceKnowledgeForTicks(ctx = {}) {
+  const ticks = Math.max(0, Math.round(Number(ctx.time && ctx.time.ticksProcessed) || 0));
+  if (ticks <= 0) return false;
+  let changed = false;
+  for (const resourceId of getResourceSearchIds()) {
+    changed = revealResourceMovementKnowledge(resourceId, playerState.pixelX, playerState.pixelY) || changed;
+  }
+  return changed;
+}
+
+function getResourceStockOverlayFactor(resourceId, x, y) {
+  if (resourceStockOverlayMode === "live") {
+    return resourceStockRuntime?.sampleFactor(resourceId, x, y) ?? 1;
+  }
+  if (resourceStockOverlayMode === "none") {
+    return 1;
+  }
+  return resourceStockRuntime?.sampleKnownFactor(resourceId, x, y) ?? 1;
+}
+
+function formatPct(value) {
+  const safe = Number(value);
+  return Number.isFinite(safe) ? `${Math.round(safe * 100)}%` : "--";
+}
+
+function formatInspectResourceReading(reading) {
+  if (!reading) return "";
+  const label = reading.label || getResourceDisplayLabel(reading.resourceId);
+  const value = Number(reading.value);
+  const chance = Number(reading.chance);
+  const knowledge = Number(reading.knowledge);
+  const stock = Number(reading.stock);
+  const knownStock = Number(reading.knownStock);
+  return `${label}: map ${Number.isFinite(value) ? value.toFixed(2) : "--"} | known chance ${formatPct(chance)} | known ${formatPct(knowledge)} | live stock ${formatPct(stock)} | known stock ${formatPct(knownStock)}`;
+}
+
+function formatInspectRuntimeDetails(compact = false) {
+  const inspect = getInspectSnapshot();
+  const height = Number(inspect.inspectHeight);
+  const slope = Number(inspect.inspectSlope);
+  const x = inspect.inspectX ?? "--";
+  const y = inspect.inspectY ?? "--";
+  const terrainText = `Inspect (${x}, ${y}) | H ${Number.isFinite(height) ? height.toFixed(3) : "--"} | S ${Number.isFinite(slope) ? `${(slope * 90).toFixed(1)} deg` : "--"}`;
+  if (compact) return terrainText;
+  const resourceText = inspect.inspectResources.map(formatInspectResourceReading).filter(Boolean).join("\n");
+  return terrainText + (resourceText ? `\n${resourceText}` : "");
+}
+
+function getInspectLayerBarValue(layer = getInspectOverlayLayer()) {
+  return inspectPerceptionRuntime?.getLayerBarValue(layer, resourceStockOverlayMode) || 0;
+}
+
+function isInspectBlockedByActivity(activitySnapshot) {
+  return Boolean(activitySnapshot && activitySnapshot.active && (activitySnapshot.type === "rest" || activitySnapshot.type === "scout"));
+}
+
+function updateInspectStatusPanel(activitySnapshot = getActivitySnapshot()) {
+  refreshInspectSample();
+  const inspect = getInspectSnapshot();
+  const layer = getInspectOverlayLayer();
+  const focused = inspect.enabled && !isInspectBlockedByActivity(activitySnapshot);
+  inspectStatusPanelEl.classList.toggle("inspect-disabled", !focused);
+  inspectLayerControlsEl.classList.remove("hidden");
+  for (const button of inspectLayerControlsEl.querySelectorAll("button")) {
+    button.disabled = !focused;
+  }
+  inspectStatusTitleEl.textContent = "Inspect:";
+  inspectStatusEtaEl.textContent = "";
+  inspectResourceRowEl.classList.toggle("hidden", !focused);
+  if (focused) {
+    const value = getInspectLayerBarValue(layer);
+    inspectResourceLabelEl.textContent = getInspectOverlayDisplayLabel(layer);
+    inspectResourceBarFillEl.style.width = `${Math.round(value * 100)}%`;
+    inspectStatusDetailEl.textContent = `${inspectResourceLabelEl.textContent}: ${Math.round(value * 100)}%`;
+  } else {
+    inspectResourceBarFillEl.style.width = "0%";
+    inspectStatusDetailEl.textContent = isInspectBlockedByActivity(activitySnapshot)
+      ? "Inspect focus unavailable during this activity."
+      : "Inspect focus off.";
+  }
+}
+
+function getResourceStockReadout(resourceId) {
+  const id = resourceId || "water";
+  const x = playerState.pixelX;
+  const y = playerState.pixelY;
+  const live = resourceStockRuntime?.sampleFactor(id, x, y);
+  const known = resourceStockRuntime?.sampleKnownFactor(id, x, y);
+  const liveChance = resourceSearchRuntime?.chance(id, x, y);
+  const baseValue = resourceSearchRuntime?.sample(id, x, y);
+  const search = resourceSearchRuntime?.getSearch(id);
+  const baseChance = search && resourceSearchRuntime?.hasMap(id)
+    ? computeResourceSearchChance(search, baseValue)
+    : 0;
+  const knownChance = baseChance * (Number.isFinite(Number(known)) ? Number(known) : 0);
+  const snapshot = resourceStockRuntime?.getSnapshot(id);
+  const grid = snapshot ? `${snapshot.width}x${snapshot.height}` : "--";
+  return `Stock: ${formatPct(live)} | Known: ${formatPct(known)} | Chance known/live/base: ${formatPct(knownChance)} / ${formatPct(liveChance)} / ${formatPct(baseChance)} | Map: ${formatPct(baseValue)} | Grid: ${grid}`;
+}
+
 function getResourceOverlayConfig(search) {
-  if (!search || search.id !== "water") return search;
-  const layerSettings = getResourceDebugLayerSettings(inspectOverlayLayer);
+  if (!search) return search;
+  const layer = getInspectOverlayLayer();
+  const layerSettings = getResourceDebugLayerSettings(getInspectOverlayDebugLayer(layer));
   const enabledBands = Array.isArray(layerSettings.bands)
     ? layerSettings.bands
       .map((band, index) => ({ ...band, color: getResourceDebugBandColors(layerSettings)[index] }))
@@ -2766,27 +3043,73 @@ function getResourceOverlayConfig(search) {
 }
 
 function getResourceContourOverlaySnapshot() {
+  const inspect = getInspectSnapshot();
+  if (!inspect || !inspect.enabled) return null;
   const activity = getActivitySnapshot();
-  if (!activity || !activity.active || activity.type !== "inspect") return null;
-  const resourceId = "water";
+  if (activity && activity.active && (activity.type === "rest" || activity.type === "scout")) return null;
+  const layer = getInspectOverlayLayer();
+  if (layer === "none") return null;
+  const resourceId = getInspectOverlayResourceId(layer);
   const search = resourceSearchRuntime?.getSearch(resourceId);
   if (!search || !search.overlay || search.overlay.type !== "contour") return null;
-  const imageData = inspectOverlayLayer === "height"
+  const imageData = layer === "height"
     ? heightImageData
-    : (inspectOverlayLayer === "slope" ? slopeImageData : wetnessImageData);
+    : (layer === "slope" ? slopeImageData : wetnessImageData);
   if (!imageData) return null;
   return {
     resourceId,
     search: getResourceOverlayConfig(search),
     imageData,
-    overlayLayer: inspectOverlayLayer,
-    contourVersion: resourceContourOverlayVersion,
+    overlayLayer: layer,
+    contourVersion: getResourceContourCacheVersion(resourceId),
+    stockVersion: resourceStockRuntime?.getVersion(resourceId) || 0,
     sampleKnowledge: (id, x, y) => resourceDiscoveryRuntime?.sampleKnowledge(id, x, y) || 0,
+    sampleStockFactor: getResourceStockOverlayFactor,
+  };
+}
+
+function getDiscoveryMaskOverlaySnapshot() {
+  if (resourceDebugSettings.discovery.showMaskOverlay !== true) return null;
+  const snapshot = resourceDiscoveryRuntime?.getSnapshot(resourceDebugOverlayResourceId);
+  if (!snapshot) return null;
+  return {
+    ...snapshot,
+    opacity: resourceDebugSettings.discovery.maskOverlayOpacity,
   };
 }
 
 function sampleInspectGray(imageData, pixelX, pixelY) {
-  return getGrayAt(imageData, pixelX, pixelY, splatSize.width, splatSize.height);
+  if (!imageData || !imageData.data) return 0;
+  const w = imageData.width || 1;
+  const h = imageData.height || 1;
+  const srcW = Math.max(1, Number(splatSize.width) || 1);
+  const srcH = Math.max(1, Number(splatSize.height) || 1);
+  const nx = (Number(pixelX) + 0.5) / srcW;
+  const ny = (Number(pixelY) + 0.5) / srcH;
+  const sx = clamp(Math.round(nx * w - 0.5), 0, Math.max(0, w - 1));
+  const sy = clamp(Math.round(ny * h - 0.5), 0, Math.max(0, h - 1));
+  return imageData.data[(sy * w + sx) * 4] / 255;
+}
+
+function refreshInspectSample() {
+  inspectPerceptionRuntime?.refreshSample();
+}
+
+function getInspectSnapshot() {
+  return inspectPerceptionRuntime?.getSnapshot({ stockOverlayMode: resourceStockOverlayMode }) || {
+    enabled: false,
+    layer: getInspectOverlayLayer(),
+    inspectX: null,
+    inspectY: null,
+    inspectHeight: null,
+    inspectSlope: null,
+    inspectResources: [],
+    stockOverlayMode: resourceStockOverlayMode,
+  };
+}
+
+function toggleInspectRuntime() {
+  return inspectPerceptionRuntime?.toggle() || { ok: false, reason: "Inspect runtime unavailable." };
 }
 
 function setActivityTimeSpeed1x() {
@@ -2797,19 +3120,25 @@ function setActivityTimeSpeed1x() {
 }
 
 function updateInspectFromPointer(clientX, clientY) {
-  if (!playerActivityRuntime || !playerActivityRuntime.isInspectActive()) return;
+  if (!inspectPerceptionRuntime?.isEnabled()) return;
   const ndc = clientToNdc(clientX, clientY);
   const world = worldFromNdc(ndc);
   const uv = worldToUv(world);
   if (uv.x < 0 || uv.x > 1 || uv.y < 0 || uv.y > 1) return;
   const pixel = uvToMapPixelIndex(uv);
-  dispatchCoreCommand({
-    type: "core/activity/updateInspectAt",
-    x: pixel.x,
-    y: pixel.y,
-  });
+  inspectPerceptionRuntime.updateFromMapPixel(pixel.x, pixel.y, "pointer");
 }
 
+function clearCommittedTravelPathPreview() {
+  travelPlanningRuntime.clearCommitted("committed-cleared");
+}
+
+function advanceCommittedTravelPathPreview() {
+  travelPlanningRuntime.advanceCommittedPathToPixel({
+    x: playerState.pixelX,
+    y: playerState.pixelY,
+  }, "committed-progress");
+}
 
 function formatMovementDuration(hoursValue) {
   const safeHours = Number(hoursValue);
@@ -2829,52 +3158,50 @@ function getMovementDurationHours(movementSnapshot) {
 }
 
 function updateMovementStatusPanel(movementSnapshot) {
+  movementActionBtn.classList.add("hidden");
+  movementActionBtn.disabled = true;
+  movementCancelBtn.classList.add("hidden");
   const activitySnapshot = getActivitySnapshot();
+  updateInspectStatusPanel(activitySnapshot);
   if (activitySnapshot && activitySnapshot.active) {
     if (activitySnapshot.type === "inspect") {
-      inspectLayerControlsEl.classList.remove("hidden");
-      const height = Number(activitySnapshot.inspectHeight);
-      const slope = Number(activitySnapshot.inspectSlope);
-      const resourceReadings = Array.isArray(activitySnapshot.inspectResources)
-        ? activitySnapshot.inspectResources
-        : [];
-      const waterReading = resourceReadings.find((reading) => reading && reading.resourceId === "water") || null;
-      const wetness = Number(waterReading && waterReading.value);
-      const chance = Number(waterReading && waterReading.chance);
-      const knowledge = Number(waterReading && waterReading.knowledge);
-      movementStatusTitleEl.textContent = "Inspect Terrain";
-      movementStatusEtaEl.textContent = `Position: ${activitySnapshot.inspectX ?? "--"}, ${activitySnapshot.inspectY ?? "--"}`;
-      movementStatusDetailEl.textContent = `Height: ${Number.isFinite(height) ? height.toFixed(3) : "--"} | Slope: ${Number.isFinite(slope) ? `${(slope * 90).toFixed(1)} deg` : "--"}${waterReading ? `\nWater: wetness ${Number.isFinite(wetness) ? wetness.toFixed(2) : "--"} | chance ${Number.isFinite(chance) ? `${Math.round(chance * 100)}%` : "--"} | known ${Number.isFinite(knowledge) ? `${Math.round(knowledge * 100)}%` : "--"}` : ""}`;
-      movementCancelBtn.textContent = "Stop Inspect";
+      movementStatusPanelEl.classList.add("hidden");
+      return;
+    } else if (activitySnapshot.type === "scout") {
+      const phase = activitySnapshot.scoutPhase === "possessed" ? "possessed" : "scanning";
+      const candidateIndex = Math.round(Number(activitySnapshot.scoutCandidateIndex));
+      const disconnectReason = typeof activitySnapshot.scoutDisconnectReason === "string"
+        ? activitySnapshot.scoutDisconnectReason
+        : "";
+      movementStatusTitleEl.textContent = phase === "possessed" ? "Bird Scout" : "Scouting";
+      movementStatusEtaEl.textContent = phase === "possessed"
+        ? "Bird possessed"
+        : (candidateIndex >= 0 ? "Bird is within reach" : "Listening");
+      movementStatusDetailEl.textContent = phase === "possessed"
+        ? ""
+        : disconnectReason;
+      movementActionBtn.textContent = "Possess Bird";
+      movementActionBtn.disabled = phase === "possessed" || candidateIndex < 0;
+      movementActionBtn.classList.toggle("hidden", phase === "possessed");
     } else if (activitySnapshot.type === "rest") {
-      inspectLayerControlsEl.classList.add("hidden");
-      const condition = conditionRuntime ? conditionRuntime.getSnapshot() : null;
-      const fatigue = Number(condition && condition.fatigue);
       movementStatusTitleEl.textContent = "Resting";
       movementStatusEtaEl.textContent = "Recovering fatigue";
-      movementStatusDetailEl.textContent = `Ticks: ${activitySnapshot.stepsTaken} | Fatigue: ${Number.isFinite(fatigue) ? fatigue.toFixed(1) : "--"}`;
-      movementCancelBtn.textContent = "Stop Rest";
+      movementStatusDetailEl.textContent = "";
     } else {
-      inspectLayerControlsEl.classList.add("hidden");
       movementStatusTitleEl.textContent = activitySnapshot.type === "gathering" ? "Gathering" : "Activity";
-      movementStatusEtaEl.textContent = `Radius: ${Math.max(0, Math.round(Number(activitySnapshot.radius) || 0))}`;
-      movementStatusDetailEl.textContent = `Steps: ${activitySnapshot.stepsTaken} | Visited: ${activitySnapshot.visitedCount} | Plants: ${activitySnapshot.foundCount}`;
-      movementCancelBtn.textContent = activitySnapshot.type === "gathering" ? "Stop Gathering" : "Stop Activity";
+      movementStatusEtaEl.textContent = "";
+      const found = Math.max(0, Math.round(Number(activitySnapshot.foundCount) || 0));
+      movementStatusDetailEl.textContent = found > 0 ? `Found: ${found}` : "";
     }
     movementStatusPanelEl.classList.remove("hidden");
     return;
   }
   if (!movementSnapshot || !movementSnapshot.active) {
     movementStatusPanelEl.classList.add("hidden");
-    inspectLayerControlsEl.classList.add("hidden");
     return;
   }
-  inspectLayerControlsEl.classList.add("hidden");
-  const remainingTicks = Math.max(0, Math.round(Number(movementSnapshot.totalTicksRemaining || 0)));
-  const stepIndex = Math.max(0, Math.round(Number(movementSnapshot.currentStepIndex || 0))) + 1;
-  const queueLength = Math.max(0, Math.round(Number(movementSnapshot.queueLength || 0)));
-  movementStatusEtaEl.textContent = `Travel time remaining: ${formatMovementDuration(getMovementDurationHours(movementSnapshot))}`;
-  movementStatusDetailEl.textContent = `Path: step ${stepIndex}/${queueLength}, ${remainingTicks} ticks remaining`;
+  movementStatusEtaEl.textContent = `Travel time: ${formatMovementDuration(getMovementDurationHours(movementSnapshot))} hours`;
+  movementStatusDetailEl.textContent = "";
   movementStatusPanelEl.classList.remove("hidden");
 }
 
@@ -2892,6 +3219,11 @@ const movementSystem = createMovementSystem(createMovementAssemblyRuntime({
   setMovementSnapshot: movementStoreSyncRuntime.setMovementSnapshot,
   onMovementSnapshot: updateMovementStatusPanel,
   onStepCompleted: (step, snapshot) => {
+    for (const resourceId of getResourceSearchIds()) {
+      revealResourceMovementKnowledge(resourceId, playerState.pixelX, playerState.pixelY);
+    }
+    emitInspectChanged({ reason: "movement-step" });
+    advanceCommittedTravelPathPreview();
     const conditionModifiers = conditionEffectRuntime?.getModifiers() || {};
     activityEffectRuntime?.apply(getActivityCostKey("travel", "movement", "movement.step"), {
       movementCost: Math.max(0, Number(step && step.cost) || 0)
@@ -2900,7 +3232,6 @@ const movementSystem = createMovementSystem(createMovementAssemblyRuntime({
       conditionModifiers,
     });
     playerActivityRuntime?.onStepCompleted(step, snapshot);
-    resourceDiscoveryRuntime?.revealMovement("water", step && step.toX, step && step.toY);
     inventoryRuntime?.sync();
   },
   onQueueCompleted: (...args) => {
@@ -2909,6 +3240,7 @@ const movementSystem = createMovementSystem(createMovementAssemblyRuntime({
     if (!activityWasActive) {
       setActivityTimeSpeed1x();
     }
+    clearCommittedTravelPathPreview();
   },
   onMovementCanceled: (...args) => {
     const activityWasActive = Boolean(playerActivityRuntime?.isActivityActive());
@@ -2916,8 +3248,17 @@ const movementSystem = createMovementSystem(createMovementAssemblyRuntime({
     if (!activityWasActive) {
       setActivityTimeSpeed1x();
     }
+    clearCommittedTravelPathPreview();
   },
 }));
+registerRuntimeEventHandlers(eventBus, {
+  invalidateResourceContourOverlay,
+  syncResourceStockPanel: () => resourceDebugPanelRuntime?.syncStock?.(),
+  refreshInspectSample,
+  syncGameplayHud: () => gameplayHudRuntime?.sync(),
+  updateMovementStatusPanel: () => updateMovementStatusPanel(movementSystem.getSnapshot()),
+  requestOverlayDraw: () => overlayDirtyRuntime.requestOverlayDraw(),
+});
 const conditionRuntime = createConditionRuntime({
   setConditionSnapshot: conditionStoreSyncRuntime.setConditionSnapshot,
   onConditionSnapshot: () => {
@@ -2944,7 +3285,7 @@ activityEffectRuntime = createActivityEffectRuntime({
   applyConditionEffects: (effects) => conditionRuntime.applyEffects(effects),
 });
 travelEstimateRuntime = createTravelEstimateRuntime({
-  movePreviewState,
+  getTravelPlanningSnapshot: () => travelPlanningRuntime.getSnapshot(),
   computeMoveStepCost,
   getMoveCostContext,
   resolveActivityEffects: (activityType, context) => activityEffectRuntime.resolve(activityType, context),
@@ -2962,6 +3303,15 @@ travelEstimateRuntime = createTravelEstimateRuntime({
     return state && state.systems ? state.systems.time || {} : {};
   },
 });
+resourceStockRuntime = createResourceStockRuntime({
+  resourceSearches: RESOURCE_SEARCHES,
+  resourceStockSettings: RESOURCE_STOCK_SETTINGS,
+  getMapWidth: () => splatSize.width,
+  getMapHeight: () => splatSize.height,
+  onChange: (resourceId = "*") => {
+    emitResourceStockChanged({ resourceId, reason: "runtime-change" });
+  },
+});
 resourceSearchRuntime = createResourceSearchRuntime({
   resourceSearches: RESOURCE_SEARCHES,
   getResourceMapImageData: (mapName) => {
@@ -2969,15 +3319,66 @@ resourceSearchRuntime = createResourceSearchRuntime({
     if (mapName === "water") return waterImageData;
     return null;
   },
+  getResourceStockFactor: (resourceId, x, y) => resourceStockRuntime?.sampleFactor(resourceId, x, y) ?? 1,
 });
 resourceDiscoveryRuntime = createResourceDiscoveryRuntime({
   resourceSearches: RESOURCE_SEARCHES,
   getMapWidth: () => splatSize.width,
   getMapHeight: () => splatSize.height,
   getDiscoveryConfig: getResourceDiscoveryConfig,
-  onChange: () => overlayDirtyRuntime.requestOverlayDraw(),
+  getDecayConfig: getResourceDiscoveryDecayConfig,
+  getRevealRadiusMultiplier: getDiscoveryRevealRadiusMultiplier,
+  onChange: () => {
+    emitResourceDiscoveryChanged({ resourceId: "*", reason: "runtime-change" });
+  },
 });
+inspectPerceptionRuntime = createInspectPerceptionRuntime({
+  initialLayer: "water",
+  getMapSize: () => splatSize,
+  getFallbackPixel: () => ({ x: playerState.pixelX, y: playerState.pixelY }),
+  sampleHeight: (pixelX, pixelY) => sampleInspectGray(heightImageData, pixelX, pixelY),
+  sampleSlope: (pixelX, pixelY) => sampleInspectGray(slopeImageData, pixelX, pixelY),
+  getResourceReadings: getInspectResourceReadings,
+  getLayerButtons: () => [
+    ["water", inspectWetnessLayerBtn],
+    ["plants", inspectPlantsLayerBtn],
+    ["height", inspectHeightLayerBtn],
+    ["slope", inspectSlopeLayerBtn],
+  ],
+  canEnable: () => !isInspectBlockedByActivity(getActivitySnapshot()),
+  getBlockedReason: () => "Inspect is unavailable during this activity.",
+  onResourceLayerSelected: (resourceId) => {
+    resourceDebugOverlayResourceId = resourceId;
+  },
+  revealResourceKnowledge: (resourceId) => {
+    revealResourceMovementKnowledge(resourceId, playerState.pixelX, playerState.pixelY);
+  },
+  onDebugLayerSelected: (debugLayer) => {
+    resourceDebugSettings = normalizeResourceDebugSettings({
+      ...resourceDebugSettings,
+      activeLayer: debugLayer,
+    }, DEFAULT_RESOURCE_DEBUG_SETTINGS);
+  },
+  syncDebugPanel: syncResourceDebugPanel,
+  onChanged: emitInspectChanged,
+  setStatus,
+});
+resourceStockResourceInput.textContent = "";
+for (const resourceId of Object.keys(RESOURCE_SEARCHES)) {
+  const option = document.createElement("option");
+  option.value = resourceId;
+  option.textContent = getResourceDisplayLabel(resourceId);
+  resourceStockResourceInput.appendChild(option);
+}
+if (!resourceStockResourceInput.value) {
+  const option = document.createElement("option");
+  option.value = "water";
+  option.textContent = "Water";
+  resourceStockResourceInput.appendChild(option);
+}
 resourceDebugPanelRuntime = createResourceDebugPanelRuntime({
+  tabButtons: resourceDebugTabButtons,
+  tabPanels: resourceDebugTabPanels,
   layerInput: resourceDebugLayerInput,
   renderModeInput: resourceDebugRenderModeInput,
   tintColorInput: resourceDebugTintColorInput,
@@ -2985,6 +3386,16 @@ resourceDebugPanelRuntime = createResourceDebugPanelRuntime({
   discoveryGridValue: resourceDebugDiscoveryGridValue,
   revealRadiusInput: resourceDebugRevealRadiusInput,
   revealRadiusValue: resourceDebugRevealRadiusValue,
+  revealFalloffInput: resourceDebugRevealFalloffInput,
+  revealFalloffValue: resourceDebugRevealFalloffValue,
+  decayEnabledInput: resourceDebugDecayEnabledInput,
+  decayIntervalInput: resourceDebugDecayIntervalInput,
+  decayIntervalValue: resourceDebugDecayIntervalValue,
+  decayAmountInput: resourceDebugDecayAmountInput,
+  decayAmountValue: resourceDebugDecayAmountValue,
+  showMaskOverlayInput: resourceDebugShowMaskOverlayInput,
+  maskOverlayOpacityInput: resourceDebugMaskOverlayOpacityInput,
+  maskOverlayOpacityValue: resourceDebugMaskOverlayOpacityValue,
   sampleStepInput: resourceDebugSampleStepInput,
   sampleStepValue: resourceDebugSampleStepValue,
   knowledgeThresholdInput: resourceDebugKnowledgeThresholdInput,
@@ -3008,9 +3419,59 @@ resourceDebugPanelRuntime = createResourceDebugPanelRuntime({
   band5Input: resourceDebugBand5Input,
   band5Value: resourceDebugBand5Value,
   band5EnabledInput: resourceDebugBand5EnabledInput,
+  saveSettingsBtn: resourceDebugSaveBtn,
   coverAllBtn: resourceDebugCoverAllBtn,
   uncoverAllBtn: resourceDebugUncoverAllBtn,
+  stockResourceInput: resourceStockResourceInput,
+  stockOverlayModeInput: resourceStockOverlayModeInput,
+  stockGridSizeInput: resourceStockGridSizeInput,
+  stockGridSizeValue: resourceStockGridSizeValue,
+  stockDepleteAmountInput: resourceStockDepleteAmountInput,
+  stockDepleteAmountValue: resourceStockDepleteAmountValue,
+  stockNeighborDepleteAmountInput: resourceStockNeighborDepleteAmountInput,
+  stockNeighborDepleteAmountValue: resourceStockNeighborDepleteAmountValue,
+  stockDepleteRadiusInput: resourceStockDepleteRadiusInput,
+  stockDepleteRadiusValue: resourceStockDepleteRadiusValue,
+  stockReplenishIntervalInput: resourceStockReplenishIntervalInput,
+  stockReplenishIntervalValue: resourceStockReplenishIntervalValue,
+  stockReplenishAmountInput: resourceStockReplenishAmountInput,
+  stockReplenishAmountValue: resourceStockReplenishAmountValue,
+  stockReadout: resourceStockReadout,
+  stockDepleteHereBtn: resourceStockDepleteHereBtn,
+  stockRevealHereBtn: resourceStockRevealHereBtn,
+  stockFillFullBtn: resourceStockFillFullBtn,
+  stockFillEmptyBtn: resourceStockFillEmptyBtn,
+  stockResetBtn: resourceStockResetBtn,
   getSettings: () => resourceDebugSettings,
+  getStockSettings: (resourceId) => resourceStockRuntime.getResourceSettings(resourceId),
+  updateStockSettings: (resourceId, patch) => {
+    resourceStockRuntime.updateResourceSettings(resourceId, patch);
+    setStatus(`Resource stock ${resourceId} settings updated.`);
+  },
+  getStockOverlayMode: () => resourceStockOverlayMode,
+  setStockOverlayMode: (mode) => {
+    resourceStockOverlayMode = mode === "live" || mode === "none" ? mode : "known";
+    emitResourceStockChanged({ resourceId: "*", reason: "overlay-mode" });
+    setStatus(`Resource stock overlay mode: ${resourceStockOverlayMode}.`);
+  },
+  getStockReadout: getResourceStockReadout,
+  depleteStockAtPlayer: (resourceId) => {
+    const changed = resourceStockRuntime.deplete(resourceId, playerState.pixelX, playerState.pixelY);
+    setStatus(changed ? `Depleted ${resourceId} stock at player.` : `No ${resourceId} stock changed at player.`);
+  },
+  revealStockAtPlayer: (resourceId) => {
+    revealResourceMovementKnowledge(resourceId, playerState.pixelX, playerState.pixelY);
+    setStatus(`Refreshed known ${resourceId} stock at player.`);
+  },
+  fillStock: (resourceId, value) => {
+    resourceStockRuntime.fill(resourceId, value, "both");
+    setStatus(`${resourceId} stock filled to ${value}.`);
+  },
+  resetStock: (resourceId) => {
+    resourceStockRuntime.reset(resourceId);
+    revealResourceMovementKnowledge(resourceId, playerState.pixelX, playerState.pixelY);
+    setStatus(`${resourceId} stock reset.`);
+  },
   setActiveLayer: (layer) => setInspectOverlayLayer(layer),
   updateDiscovery: (patch) => {
     normalizeAndApplyResourceDebugSettings({
@@ -3021,8 +3482,20 @@ resourceDebugPanelRuntime = createResourceDebugPanelRuntime({
       },
     });
   },
+  updateDiscoveryDecay: (patch) => {
+    normalizeAndApplyResourceDebugSettings({
+      ...resourceDebugSettings,
+      discovery: {
+        ...resourceDebugSettings.discovery,
+        decay: {
+          ...resourceDebugSettings.discovery.decay,
+          ...patch,
+        },
+      },
+    });
+  },
   updateActiveLayer: (patch) => {
-    const activeLayer = inspectOverlayLayer;
+    const activeLayer = resourceDebugSettings.activeLayer;
     normalizeAndApplyResourceDebugSettings({
       ...resourceDebugSettings,
       layers: {
@@ -3035,7 +3508,7 @@ resourceDebugPanelRuntime = createResourceDebugPanelRuntime({
     });
   },
   updateActiveBand: (index, patch) => {
-    const activeLayer = inspectOverlayLayer;
+    const activeLayer = resourceDebugSettings.activeLayer;
     const layerSettings = getResourceDebugLayerSettings(activeLayer);
     const bands = Array.isArray(layerSettings.bands) ? layerSettings.bands.map((band) => ({ ...band })) : [];
     bands[index] = {
@@ -3054,24 +3527,33 @@ resourceDebugPanelRuntime = createResourceDebugPanelRuntime({
     });
   },
   fillDiscovery: (value) => {
-    resourceDiscoveryRuntime.fill("water", value);
-    invalidateResourceContourOverlay();
-    overlayDirtyRuntime.requestOverlayDraw();
-    setStatus(value >= 1 ? "Wetness discovery debug: uncovered full map." : "Wetness discovery debug: covered full map.");
+    resourceDiscoveryRuntime.fill(resourceDebugOverlayResourceId, value);
+    resourceStockRuntime.fill(resourceDebugOverlayResourceId, value >= 1 ? 255 : 0, "known");
+    const overlayLabel = getInspectOverlayDisplayLabel(getInspectOverlayLayer());
+    const resourceLabel = getResourceDisplayLabel(resourceDebugOverlayResourceId);
+    const targetLabel = overlayLabel === resourceLabel ? overlayLabel : `${overlayLabel} (${resourceLabel} knowledge mask)`;
+    setStatus(value >= 1
+      ? `${targetLabel} discovery debug: uncovered full map and known stock.`
+      : `${targetLabel} discovery debug: covered full map and known stock.`);
   },
+  saveSettings: () => saveAllMapDataFiles(),
 });
 for (const [layer, button] of [
-  ["wetness", inspectWetnessLayerBtn],
+  ["water", inspectWetnessLayerBtn],
+  ["plants", inspectPlantsLayerBtn],
   ["height", inspectHeightLayerBtn],
   ["slope", inspectSlopeLayerBtn],
 ]) {
   button.addEventListener("click", () => setInspectOverlayLayer(layer));
 }
-setInspectOverlayLayer("wetness");
+setInspectOverlayLayer("water");
 const inventoryRuntime = createInventoryRuntime({
   playerState,
   entityStore,
   itemRegistry: ITEM_DEFINITIONS,
+  startingItems: [
+    { itemId: "water_skin", quantity: 10 },
+  ],
   setInventorySnapshot: inventoryStoreSyncRuntime.setInventorySnapshot,
   onInventorySnapshot: (snapshot) => {
     conditionRuntime.updateLoadFromCapacity(snapshot.playerCapacity);
@@ -3083,6 +3565,109 @@ const inventoryRuntime = createInventoryRuntime({
   },
   requestOverlayDraw: () => overlayDirtyRuntime.requestOverlayDraw(),
 });
+let scoutSpeedNormFiltered = Number.NaN;
+
+function findScoutBirdCandidate(centerX, centerY, radiusPx) {
+  if (!mainRuntimeStateBinding.isSwarmEnabled() || !swarmState || swarmState.count <= 0) return null;
+  const radius = Math.max(0, Number(radiusPx) || 0);
+  if (radius <= 0) return null;
+  const radiusSq = radius * radius;
+  let best = null;
+  for (let i = 0; i < swarmState.count; i++) {
+    const x = Number(swarmState.x[i]);
+    const y = Number(swarmState.y[i]);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+    const dx = x - centerX;
+    const dy = y - centerY;
+    const distSq = dx * dx + dy * dy;
+    if (distSq > radiusSq) continue;
+    if (!best || distSq < best.distSq) {
+      best = { index: i, x, y, distSq };
+    }
+  }
+  if (!best) return null;
+  return {
+    index: best.index,
+    agentId: swarmState.agentId && Number.isFinite(Number(swarmState.agentId[best.index]))
+      ? Math.round(Number(swarmState.agentId[best.index]))
+      : 0,
+    x: best.x,
+    y: best.y,
+    distance: Math.sqrt(best.distSq),
+  };
+}
+
+function findSwarmAgentIndexById(agentId) {
+  const id = Math.round(Number(agentId) || 0);
+  if (id <= 0 || !swarmState.agentId) return -1;
+  for (let i = 0; i < swarmState.count; i++) {
+    if (swarmState.agentId[i] === id) return i;
+  }
+  return -1;
+}
+
+function updatePossessedScoutBird(target) {
+  const agentId = Math.round(Number(target && target.agentId) || 0);
+  const fallbackIndex = Math.round(Number(target && target.index));
+  const index = agentId > 0 ? findSwarmAgentIndexById(agentId) : fallbackIndex;
+  const revealRadius = Number(target && target.revealRadius);
+  if (!mainRuntimeStateBinding.isSwarmEnabled() || !Number.isInteger(index) || index < 0 || index >= swarmState.count) {
+    return { valid: false };
+  }
+  const rawX = Number(swarmState.x[index]);
+  const rawY = Number(swarmState.y[index]);
+  if (!Number.isFinite(rawX) || !Number.isFinite(rawY)) {
+    return { valid: false };
+  }
+  let effectiveRevealRadius = 0;
+  for (const resourceId of getResourceSearchIds()) {
+    resourceDiscoveryRuntime?.revealCircle(resourceId, rawX, rawY, revealRadius, 1);
+    const resourceRevealRadius = resolveDiscoveryRevealRadius(resourceId, revealRadius);
+    resourceStockRuntime?.revealKnown(resourceId, rawX, rawY, resourceRevealRadius);
+    effectiveRevealRadius = Math.max(effectiveRevealRadius, resourceRevealRadius);
+  }
+  const cameraPos = writeInterpolatedSwarmAgentPos(index, {});
+  const cameraX = Number.isFinite(Number(cameraPos && cameraPos.x)) ? Number(cameraPos.x) : rawX;
+  const cameraY = Number.isFinite(Number(cameraPos && cameraPos.y)) ? Number(cameraPos.y) : rawY;
+  const world = mapCoordToWorld(cameraX, cameraY);
+  const camera = runtimeCore.store.getState().camera || {};
+  const scoutCamera = DISCOVERY_SETTINGS.scout?.camera || {};
+  let nextZoom = Number.isFinite(Number(camera.zoom)) ? Number(camera.zoom) : 35;
+  if (scoutCamera.speedZoomEnabled !== false) {
+    const speed = Math.hypot(Number(swarmState.vx[index]) || 0, Number(swarmState.vy[index]) || 0);
+    const speedNormRaw = clamp(speed / Math.max(1, Number(scoutCamera.speedForZoomOut) || 1), 0, 1);
+    const speedSmoothing = clamp(Number(scoutCamera.speedSmoothing), 0, 1);
+    const zoomSmoothing = clamp(Number(scoutCamera.zoomSmoothing), 0, 1);
+    scoutSpeedNormFiltered = Number.isFinite(scoutSpeedNormFiltered)
+      ? scoutSpeedNormFiltered + (speedNormRaw - scoutSpeedNormFiltered) * speedSmoothing
+      : speedNormRaw;
+    const zoomIn = clamp(Number(scoutCamera.zoomIn), getZoomMin(), getZoomMax());
+    const zoomOut = clamp(Number(scoutCamera.zoomOut), getZoomMin(), getZoomMax());
+    const targetZoom = zoomIn + (zoomOut - zoomIn) * scoutSpeedNormFiltered;
+    nextZoom = clamp(nextZoom + (targetZoom - nextZoom) * zoomSmoothing, getZoomMin(), getZoomMax());
+  }
+  dispatchCoreCommand({
+    type: "core/camera/setPose",
+    panX: world.x,
+    panY: world.y,
+    zoom: nextZoom,
+    requestOverlay: true,
+  });
+  return {
+    valid: true,
+    index,
+    agentId: swarmState.agentId && swarmState.agentId[index] ? swarmState.agentId[index] : agentId,
+    x: rawX,
+    y: rawY,
+    effectiveRevealRadius,
+  };
+}
+
+function restoreCameraAfterScout() {
+  scoutSpeedNormFiltered = Number.NaN;
+  dispatchCoreCommand({ type: "core/player/show" });
+}
+
 playerActivityRuntime = createPlayerActivityRuntime({
   activityDefinitions: ACTIVITY_DEFINITIONS,
   playerState,
@@ -3096,6 +3681,11 @@ playerActivityRuntime = createPlayerActivityRuntime({
   getResourceValue: (resourceId, pixelX, pixelY) => resourceSearchRuntime.sample(resourceId, pixelX, pixelY),
   getResourceSearchChance: (resourceId, pixelX, pixelY) => resourceSearchRuntime.chance(resourceId, pixelX, pixelY),
   getResourceMovementBias: (resourceId, pixelX, pixelY) => resourceSearchRuntime.movementBias(resourceId, pixelX, pixelY),
+  getScoutSettings: () => DISCOVERY_SETTINGS.scout,
+  resolveDiscoveryRevealRadius,
+  findScoutBirdCandidate,
+  updatePossessedScoutBird,
+  onScoutStopped: restoreCameraAfterScout,
   getMovementSnapshot: () => movementSystem.getSnapshot(),
   replaceMovementQueue: (pathPixels, options = {}) =>
     movementSystem.replaceQueue(pathPixels, runtimeCore.store.getState().systems.time.simTickHours, options),
@@ -3103,16 +3693,7 @@ playerActivityRuntime = createPlayerActivityRuntime({
   setCycleSpeed: (cycleSpeed) => dispatchCoreCommand({ type: "core/time/setCycleSpeed", cycleSpeed }),
   setActivitySnapshot: activityStoreSyncRuntime.setActivitySnapshot,
   onActivitySnapshot: () => {
-    updateMovementStatusPanel(movementSystem.getSnapshot());
-    gameplayHudRuntime?.sync();
-  },
-  onGatheringSearch: () => {
-    const conditionModifiers = conditionEffectRuntime?.getModifiers() || {};
-    activityEffectRuntime.apply(getActivityCostKey("gathering", "work", "gathering.search"), {
-      activityIntensity: 1 * (Number(conditionModifiers.activityCostMultiplier) || 1),
-      load: conditionRuntime.getSnapshot().load || 0,
-      conditionModifiers,
-    });
+    emitActivityChanged({ reason: "activity-snapshot" });
   },
   onResourceSearch: ({ activityType }) => {
     const conditionModifiers = conditionEffectRuntime?.getModifiers() || {};
@@ -3137,18 +3718,24 @@ playerActivityRuntime = createPlayerActivityRuntime({
     });
   },
   getConditionSnapshot: () => conditionRuntime.getSnapshot(),
-  onGatheringFound: (reward) => {
-    const result = inventoryRuntime.addToPlayer(reward.itemId, reward.quantity || 1);
-    const item = ITEM_DEFINITIONS[reward.itemId];
-    if (!result.ok) {
-      setStatus(`Could not carry ${item ? item.name : reward.itemId}: ${result.reason}`);
-      return { ok: false, itemName: item ? item.name : reward.itemId };
+  onResourceFound: ({ resourceId, x, y }) => {
+    const reward = resourceSearchRuntime.resolveReward(resourceId, x, y);
+    if (!reward) {
+      return { ok: false, itemName: resourceId };
     }
-    return { ok: true, itemName: item ? item.name : reward.itemId };
-  },
-  onResourceFound: ({ resourceId }) => {
-    const reward = resourceSearchRuntime.getReward(resourceId);
-    if (!reward || reward.type !== "item" || !reward.itemId) {
+    if (reward.type === "fillContainer") {
+      const result = inventoryRuntime.fillTaggedPlayerContainer(reward.tag, reward.quantity || 1);
+      if (!result.ok) {
+        setStatus(`Could not store ${resourceId}: ${result.reason}`);
+        return { ok: false, itemName: resourceId, reason: `Could not store ${getResourceDisplayLabel(resourceId).toLowerCase()}: ${result.reason}` };
+      }
+      resourceStockRuntime?.deplete(resourceId, x, y);
+      return {
+        ok: true,
+        itemName: `${result.filled} ${result.itemName} portion${result.filled === 1 ? "" : "s"}`,
+      };
+    }
+    if (reward.type !== "item" || !reward.itemId) {
       return { ok: false, itemName: resourceId };
     }
     const result = inventoryRuntime.addToPlayer(reward.itemId, reward.quantity || 1);
@@ -3156,8 +3743,9 @@ playerActivityRuntime = createPlayerActivityRuntime({
     const itemName = item ? item.name : reward.itemId;
     if (!result.ok) {
       setStatus(`Could not carry ${itemName}: ${result.reason}`);
-      return { ok: false, itemName };
+      return { ok: false, itemName, reason: `Could not carry ${itemName}: ${result.reason}` };
     }
+    resourceStockRuntime?.deplete(resourceId, x, y);
     return { ok: true, itemName };
   },
   requestOverlayDraw: () => overlayDirtyRuntime.requestOverlayDraw(),
@@ -3202,6 +3790,7 @@ gameplayHudRuntime = createGameplayHudRuntime({
   gatheringBtn: hudGatheringBtn,
   gatherWaterBtn: hudGatherWaterBtn,
   inspectBtn: hudInspectBtn,
+  scoutBtn: hudScoutBtn,
   restBtn: hudRestBtn,
   inventoryBtn: hudInventoryBtn,
   showPlayerBtn: hudShowPlayerBtn,
@@ -3209,6 +3798,8 @@ gameplayHudRuntime = createGameplayHudRuntime({
   getInteractionMode: () => getInteractionModeSnapshot(),
   isActivityActive: () => playerActivityRuntime.isActivityActive(),
   getActivitySnapshot,
+  getInspectSnapshot,
+  getTravelPreviewEstimate: () => travelEstimateRuntime.getEstimate(),
   rebuildMovementField,
   getConditionSnapshot: () => conditionRuntime.getSnapshot(),
   getConditionEffectsSnapshot: () => conditionEffectRuntime.getSnapshot(),
@@ -3290,7 +3881,7 @@ registerMainCommands(runtimeCore.commandBus, createMainCommandAssemblyRuntime({
   lastDragClient,
   cycleState,
   cursorLightState,
-  movePreviewState,
+  travelPlanningRuntime,
   getActivitySnapshot,
   playerState,
   swarmFollowState,
@@ -3315,6 +3906,7 @@ registerMainCommands(runtimeCore.commandBus, createMainCommandAssemblyRuntime({
   clearCursorLightPointerState: (...args) => clearCursorLightPointerState(...args),
   setInteractionMode: (...args) => setInteractionMode(...args),
   requestOverlayDraw: () => overlayDirtyRuntime.requestOverlayDraw(),
+  emitTravelPlanningChanged,
   updateCycleHourLabel,
   updateCursorLightModeUi,
   updateCursorLightStrengthLabel,
@@ -3342,15 +3934,20 @@ registerMainCommands(runtimeCore.commandBus, createMainCommandAssemblyRuntime({
   startGatheringActivity: () => playerActivityRuntime.startGathering(),
   startGatherWaterActivity: () => playerActivityRuntime.startGatherWater(),
   startTravelActivity: () => playerActivityRuntime.startTravel(),
-  startInspectActivity: () => {
-    const result = playerActivityRuntime.startInspect();
-    if (result && result.ok) {
-      invalidateResourceContourOverlay();
-    }
-    return result;
+  startInspectActivity: () => toggleInspectRuntime(),
+  startScoutActivity: () => {
+    stopSwarmFollow({ syncStore: true });
+    scoutSpeedNormFiltered = Number.NaN;
+    return playerActivityRuntime.startScout();
+  },
+  possessScoutBird: () => {
+    scoutSpeedNormFiltered = Number.NaN;
+    return playerActivityRuntime.possessScoutCandidate();
   },
   startRestActivity: () => playerActivityRuntime.startRest(),
-  updateInspectActivityAt: (pixelX, pixelY) => playerActivityRuntime.updateInspectAtPixel(pixelX, pixelY),
+  updateInspectActivityAt: (pixelX, pixelY) => {
+    return inspectPerceptionRuntime?.updateFromMapPixel(pixelX, pixelY, "command") || false;
+  },
   cancelActivity: () => playerActivityRuntime.cancelActivity(),
   isActivityActive: () => playerActivityRuntime.isActivityActive(),
   rebuildMovementField,
@@ -3901,6 +4498,7 @@ const swarmIntegrationSetupRuntime = createSwarmIntegrationSetupRuntime(
       getInteractionMode: () => getInteractionModeSnapshot(),
       getMovementSnapshot: () => movementSystem.getSnapshot(),
       getActivitySnapshot,
+      getInspectSnapshot,
       getMovementDurationHours,
       getFrameDebugInfo,
       getDetailDebugInfo,
@@ -3913,13 +4511,21 @@ const swarmIntegrationSetupRuntime = createSwarmIntegrationSetupRuntime(
     movementStatusPanelEl,
     movementStatusTitleEl,
     movementStatusEtaEl,
-    movementStatusDetailEl,
-    movementCancelBtn,
-    inspectLayerControlsEl,
+      movementStatusDetailEl,
+      movementActionBtn,
+      movementCancelBtn,
+      inspectStatusPanelEl,
+      inspectStatusTitleEl,
+      inspectStatusEtaEl,
+      inspectStatusDetailEl,
+      inspectResourceRowEl,
+      inspectResourceLabelEl,
+      inspectResourceBarFillEl,
+      inspectLayerControlsEl,
     applyInteractionMode,
     canUseInteractionInCurrentMode,
     syncInteractionModeUi: interactionModeUiRuntime.syncInteractionModeUi,
-    movePreviewState,
+    travelPlanningRuntime,
     store: runtimeCore.store,
     getCameraRuntimeBinding,
     playerRuntimeBinding,
@@ -3945,6 +4551,10 @@ const writeInterpolatedSwarmAgentPos = swarmLoopRuntime.writeInterpolatedSwarmAg
 const writeInterpolatedSwarmHawkPos = swarmLoopRuntime.writeInterpolatedSwarmHawkPos;
 const updateSwarm = swarmLoopRuntime.updateSwarm;
 const updateSwarmFollowCamera = swarmLoopRuntime.updateSwarmFollowCamera;
+function updateSwarmFollowAndScoutCamera(nowMs) {
+  updateSwarmFollowCamera();
+  playerActivityRuntime?.updateScout(nowMs);
+}
 
 function drawSwarmUnlitOverlay(settings) {
   swarmOverlayRuntime.drawSwarmUnlitOverlay(settings);
@@ -3991,7 +4601,7 @@ const interactionUiSetupRuntime = createInteractionUiSetupRuntime(createInteract
   getSlopeImageData: () => slopeImageData,
   getHeightImageData: () => heightImageData,
   getWaterImageData: () => waterImageData,
-  movePreviewState,
+  travelPlanningRuntime,
   getInteractionModeSnapshot,
   requestOverlayDraw: () => overlayDirtyRuntime.requestOverlayDraw(),
   uvToMapPixelIndex,
@@ -4140,6 +4750,7 @@ const renderShellSetupRuntime = createRenderShellSetupRuntime(createRenderShellA
   getMapAspect,
   splatSize,
   getInteractionMode: () => getInteractionModeSnapshot(),
+  getPathfindingStateSnapshot,
   getLightEditDraft,
   getPointLights: () => pointLights,
   isPointLightSelected,
@@ -4148,15 +4759,17 @@ const renderShellSetupRuntime = createRenderShellSetupRuntime(createRenderShellA
   clamp,
   getCursorLightSnapshot,
   cursorLightState,
-  movePreviewState,
+  getTravelPlanningSnapshot: () => travelPlanningRuntime.getSnapshot(),
   getActivitySnapshot,
+  getInspectSnapshot,
   getResourceContourOverlaySnapshot,
+  getDiscoveryMaskOverlaySnapshot,
   getInventoryBundles: () => inventoryRuntime.listBundles(),
   playerState,
   drawSwarmUnlitOverlay,
   drawSwarmGizmos,
   updateSwarm,
-  updateSwarmFollowCamera,
+  updateSwarmFollowCamera: updateSwarmFollowAndScoutCamera,
   computeFrameTiming,
   runtimeFrame: runtimeCore.frame,
   getCoreState: () => runtimeCore.store.getState(),
@@ -4165,7 +4778,12 @@ const renderShellSetupRuntime = createRenderShellSetupRuntime(createRenderShellA
   getCurrentTimeRoutingFromStoreOrDefaults,
   getRoutedSystemTime,
   getInterpolatedRoutedTimeSec,
-  schedulerUpdateAll: (ctx, state) => runtimeCore.scheduler.updateAll(ctx, state),
+  schedulerUpdateAll: (ctx, state) => {
+    runtimeCore.scheduler.updateAll(ctx, state);
+    resourceStockRuntime?.update(ctx, state);
+    resourceDiscoveryRuntime?.update(ctx, state);
+    refreshPlayerLocalResourceKnowledgeForTicks(ctx);
+  },
   computeLightingParams,
   getFrameUiRuntime,
   buildUniformInputState,
@@ -4231,7 +4849,7 @@ runAppShellLifecycleRuntime(createAppShellLifecycleAssemblyRuntime({
     uvToMapPixelIndex,
     swarmCursorState,
     cursorLightState,
-    movePreviewState,
+    travelPlanningRuntime,
     pathfindingRangeInput,
     pathWeightSlopeInput,
     pathWeightHeightInput,
@@ -4302,12 +4920,15 @@ runAppShellLifecycleRuntime(createAppShellLifecycleAssemblyRuntime({
     dockPathfindingModeToggle,
     dockGatheringActivityBtn,
     dockInspectActivityBtn,
+    dockScoutActivityBtn,
     dockShowPlayerBtn,
+    movementActionBtn,
     movementCancelBtn,
     cycleSpeedInput,
     cycleHourInput,
     simTickHoursInput,
     isActivityActive: () => playerActivityRuntime.isActivityActive(),
+    isInspectEnabled: () => inspectPerceptionRuntime?.isEnabled() === true,
     canUseInteractionMode: canUseInteractionInCurrentMode,
     rebuildMovementField,
     cursorLightModeToggle,
@@ -4540,6 +5161,7 @@ runAppShellLifecycleRuntime(createAppShellLifecycleAssemblyRuntime({
     slimeCanvas,
   }),
   tryAutoLoadDefaultMap,
+  startNewGame: () => mapLifecycleRuntime.loadMapFromPath(mapLifecycleRuntime.getCurrentMapFolderPath()),
   setStatus,
   setSwarmDefaults,
   normalizeSwarmHeightRangeInputs,
