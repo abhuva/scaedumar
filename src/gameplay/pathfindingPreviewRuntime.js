@@ -69,9 +69,11 @@ export function createPathfindingPreviewRuntime(deps) {
   }
 
   function isInsidePathfindingRange(pixelX, pixelY) {
-    const radius = typeof deps.getPathfindingRangeRadius === "function"
-      ? Math.max(0, Number(deps.getPathfindingRangeRadius()) || 0)
-      : Number.POSITIVE_INFINITY;
+    let radius = Number.POSITIVE_INFINITY;
+    if (typeof deps.getPathfindingRangeRadius === "function") {
+      const parsed = Number(deps.getPathfindingRangeRadius());
+      radius = Number.isFinite(parsed) ? Math.max(0, parsed) : Number.POSITIVE_INFINITY;
+    }
     if (!Number.isFinite(radius)) return true;
     const dx = Number(pixelX) - Number(deps.playerState.pixelX);
     const dy = Number(pixelY) - Number(deps.playerState.pixelY);

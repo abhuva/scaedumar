@@ -138,9 +138,11 @@ export function createResourceDiscoveryRuntime(deps = {}) {
       }
     }
 
-    if (changed && typeof deps.onChange === "function") {
+    if (changed) {
       bumpVersion(resourceId);
-      deps.onChange();
+      if (typeof deps.onChange === "function") {
+        deps.onChange();
+      }
     }
     return changed;
   }
@@ -168,7 +170,9 @@ export function createResourceDiscoveryRuntime(deps = {}) {
   }
 
   function getVersion(resourceId) {
-    return (versions.get(String(resourceId || "*")) || 0) + (versions.get("*") || 0);
+    const key = resourceId == null ? "*" : String(resourceId);
+    const ownVersion = versions.get(key) || 0;
+    return key === "*" ? ownVersion : ownVersion + (versions.get("*") || 0);
   }
 
   function revealMovement(resourceId, x, y) {

@@ -115,6 +115,7 @@ export function createResourceStockRuntime(deps = {}) {
     for (const key of Object.keys(configuredResources)) {
       delete configuredResources[key];
     }
+    resourceIds.clear();
     for (const [id, settings] of Object.entries(normalized.resources || {})) {
       configuredResources[id] = settings;
       resourceIds.add(id);
@@ -360,6 +361,7 @@ export function createResourceStockRuntime(deps = {}) {
   }
 
   function fill(resourceId, value, target = "stock") {
+    if (target !== "stock" && target !== "known" && target !== "both") return false;
     const field = getField(resourceId);
     if (!field) return false;
     const byte = clampByte(value);

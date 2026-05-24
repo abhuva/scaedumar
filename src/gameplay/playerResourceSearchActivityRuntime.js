@@ -31,7 +31,10 @@ export function chooseWeightedGatheringCandidate(input) {
   for (const candidate of candidates) {
     total += Math.max(0, finite(candidate.weight, 0));
   }
-  if (total <= 0) return candidates[0] || null;
+  if (total <= 0) {
+    const index = Math.min(candidates.length - 1, Math.floor(random() * candidates.length));
+    return candidates[index] || null;
+  }
   let pick = random() * total;
   for (const candidate of candidates) {
     pick -= Math.max(0, finite(candidate.weight, 0));

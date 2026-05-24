@@ -227,6 +227,7 @@ const titleScreenEl = getRequiredElementById("titleScreen");
 const titleNewGameBtn = getRequiredElementById("titleNewGameBtn");
 const titleDevModeBtn = getRequiredElementById("titleDevModeBtn");
 const titleQuitGameBtn = getRequiredElementById("titleQuitGameBtn");
+const titleStatusEl = getRequiredElementById("titleStatus");
 const dockExitToTitleBtn = getRequiredElementById("dockExitToTitleBtn");
 const canvas = getRequiredElementById("glCanvas");
 const overlayCanvas = getRequiredElementById("overlayCanvas");
@@ -241,7 +242,7 @@ const topicPanelTitleEl = getRequiredElementById("topicPanelTitle");
 const topicPanelCloseBtn = getRequiredElementById("topicPanelClose");
 const topicCards = getRequiredElements(".topic-card");
 const statusEl = getRequiredElementById("status");
-const statusRuntime = createStatusRuntime({ statusEl });
+const statusRuntime = createStatusRuntime({ statusEl, titleStatusEl });
 const cycleInfoEl = getRequiredElementById("cycleInfo");
 const frameInfoEl = getRequiredElementById("frameInfo");
 const frameProfileInfoEl = getRequiredElementById("frameProfileInfo");
@@ -254,7 +255,6 @@ const movementStatusTitleEl = getRequiredElementById("movementStatusTitle");
 const movementStatusEtaEl = getRequiredElementById("movementStatusEta");
 const movementStatusDetailEl = getRequiredElementById("movementStatusDetail");
 const movementActionBtn = getRequiredElementById("movementActionBtn");
-const movementCancelBtn = getRequiredElementById("movementCancelBtn");
 const inspectStatusPanelEl = getRequiredElementById("inspectStatusPanel");
 const inspectStatusTitleEl = getRequiredElementById("inspectStatusTitle");
 const inspectStatusEtaEl = getRequiredElementById("inspectStatusEta");
@@ -2232,8 +2232,10 @@ const POINT_LIGHT_BAKE_LIVE_SCALE = 0.5;
 const POINT_LIGHT_BAKE_DEBOUNCE_MS = 80;
 const SWARM_POINT_LIGHT_EDGE_MIN = 0.08;
 const overlayDirtyRuntime = createOverlayDirtyRuntime(true);
-const DEFAULT_MAP_FOLDER = "assets/Map 3/";
-const DEFAULT_MAP_FOLDER_CANDIDATES = ["assets/Map 3/", "assets/"];
+const DEFAULT_MAP_FOLDER = tauriInvoke ? "assets/Map3/" : "assets/Map 3/";
+const DEFAULT_MAP_FOLDER_CANDIDATES = tauriInvoke
+  ? ["assets/Map3/", "assets/Map 3/", "assets/"]
+  : ["assets/Map 3/", "assets/"];
 const playerRuntimeBinding = createPlayerRuntimeBinding({
   store: runtimeCore.store,
   playerState,
@@ -3160,7 +3162,6 @@ function getMovementDurationHours(movementSnapshot) {
 function updateMovementStatusPanel(movementSnapshot) {
   movementActionBtn.classList.add("hidden");
   movementActionBtn.disabled = true;
-  movementCancelBtn.classList.add("hidden");
   const activitySnapshot = getActivitySnapshot();
   updateInspectStatusPanel(activitySnapshot);
   if (activitySnapshot && activitySnapshot.active) {
@@ -3169,7 +3170,8 @@ function updateMovementStatusPanel(movementSnapshot) {
       return;
     } else if (activitySnapshot.type === "scout") {
       const phase = activitySnapshot.scoutPhase === "possessed" ? "possessed" : "scanning";
-      const candidateIndex = Math.round(Number(activitySnapshot.scoutCandidateIndex));
+      const rawCandidateIndex = Number(activitySnapshot.scoutCandidateIndex);
+      const candidateIndex = Number.isFinite(rawCandidateIndex) ? Math.round(rawCandidateIndex) : -1;
       const disconnectReason = typeof activitySnapshot.scoutDisconnectReason === "string"
         ? activitySnapshot.scoutDisconnectReason
         : "";
@@ -3226,8 +3228,7 @@ const movementSystem = createMovementSystem(createMovementAssemblyRuntime({
     advanceCommittedTravelPathPreview();
     const conditionModifiers = conditionEffectRuntime?.getModifiers() || {};
     activityEffectRuntime?.apply(getActivityCostKey("travel", "movement", "movement.step"), {
-      movementCost: Math.max(0, Number(step && step.cost) || 0)
-        * (Number(conditionModifiers.movementCostMultiplier) || 1),
+      movementCost: Math.max(0, Number(step && step.cost) || 0),
       load: conditionRuntime?.getSnapshot().load || 0,
       conditionModifiers,
     });
@@ -3698,7 +3699,7 @@ playerActivityRuntime = createPlayerActivityRuntime({
   onResourceSearch: ({ activityType }) => {
     const conditionModifiers = conditionEffectRuntime?.getModifiers() || {};
     activityEffectRuntime.apply(getActivityCostKey(activityType, "work", `${activityType}.search`), {
-      activityIntensity: 1 * (Number(conditionModifiers.activityCostMultiplier) || 1),
+      activityIntensity: 1,
       load: conditionRuntime.getSnapshot().load || 0,
       conditionModifiers,
     });
@@ -4510,10 +4511,9 @@ const swarmIntegrationSetupRuntime = createSwarmIntegrationSetupRuntime(
     pathInfoEl,
     movementStatusPanelEl,
     movementStatusTitleEl,
-    movementStatusEtaEl,
+      movementStatusEtaEl,
       movementStatusDetailEl,
       movementActionBtn,
-      movementCancelBtn,
       inspectStatusPanelEl,
       inspectStatusTitleEl,
       inspectStatusEtaEl,
@@ -4923,7 +4923,6 @@ runAppShellLifecycleRuntime(createAppShellLifecycleAssemblyRuntime({
     dockScoutActivityBtn,
     dockShowPlayerBtn,
     movementActionBtn,
-    movementCancelBtn,
     cycleSpeedInput,
     cycleHourInput,
     simTickHoursInput,
@@ -5161,7 +5160,10 @@ runAppShellLifecycleRuntime(createAppShellLifecycleAssemblyRuntime({
     slimeCanvas,
   }),
   tryAutoLoadDefaultMap,
-  startNewGame: () => mapLifecycleRuntime.loadMapFromPath(mapLifecycleRuntime.getCurrentMapFolderPath()),
+  startNewGame: async () => {
+    if (mapLifecycleRuntime.hasLoadedMap()) return;
+    await mapLifecycleRuntime.loadMapFromPath(mapLifecycleRuntime.getCurrentMapFolderPath());
+  },
   setStatus,
   setSwarmDefaults,
   normalizeSwarmHeightRangeInputs,

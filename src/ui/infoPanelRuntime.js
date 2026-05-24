@@ -37,11 +37,6 @@ export function createInfoPanelRuntime(deps) {
     return `${number > 0 ? "+" : ""}${number.toFixed(2)}`;
   }
 
-  function setCancelVisible(visible) {
-    if (!deps.movementCancelBtn) return;
-    deps.movementCancelBtn.classList.toggle("hidden", !visible);
-  }
-
   function formatPct(value) {
     const safe = Number(value);
     return Number.isFinite(safe) ? `${Math.round(safe * 100)}%` : "--";
@@ -52,7 +47,6 @@ export function createInfoPanelRuntime(deps) {
       ? deps.getTravelPreviewEstimate()
       : null;
     setMovementPanelVisible(true);
-    setCancelVisible(false);
     if (deps.movementStatusTitleEl) {
       deps.movementStatusTitleEl.textContent = "Plan Travel";
     }
@@ -158,7 +152,6 @@ export function createInfoPanelRuntime(deps) {
       deps.movementActionBtn.classList.add("hidden");
       deps.movementActionBtn.disabled = true;
     }
-    setCancelVisible(false);
     updateInspectPanel(activitySnapshot);
     if (activitySnapshot && activitySnapshot.active) {
       setMovementPanelVisible(true);
@@ -191,14 +184,12 @@ export function createInfoPanelRuntime(deps) {
           const steps = Math.max(0, Math.round(Number(activitySnapshot.stepsTaken) || 0));
           deps.movementStatusDetailEl.textContent = `Ticks: ${steps}`;
         }
-        if (deps.movementCancelBtn) {
-          deps.movementCancelBtn.textContent = "Stop Rest";
-        }
         return;
       }
       if (activitySnapshot.type === "scout") {
         const phase = activitySnapshot.scoutPhase === "possessed" ? "possessed" : "scanning";
-        const candidateIndex = Math.round(Number(activitySnapshot.scoutCandidateIndex));
+        const rawCandidateIndex = Number(activitySnapshot.scoutCandidateIndex);
+        const candidateIndex = Number.isFinite(rawCandidateIndex) ? Math.round(rawCandidateIndex) : -1;
         const disconnectReason = typeof activitySnapshot.scoutDisconnectReason === "string"
           ? activitySnapshot.scoutDisconnectReason
           : "";

@@ -18,7 +18,13 @@ export function createContainer(input = {}) {
     id: String(input.id || "container"),
     owner: String(input.owner || "world"),
     type: String(input.type || "generic"),
-    slots: Array.isArray(input.slots) ? clone(input.slots) : [],
+    slots: Array.isArray(input.slots)
+      ? input.slots.map((slot) => ({
+        ...(slot && typeof slot === "object" ? clone(slot) : {}),
+        itemId: slot && typeof slot.itemId === "string" ? slot.itemId : "",
+        quantity: normalizeQuantity(slot && slot.quantity),
+      }))
+      : [],
     maxWeight: Math.max(0, finite(input.maxWeight, 0)),
     maxBulk: Math.max(0, finite(input.maxBulk, 0)),
   };

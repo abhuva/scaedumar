@@ -16,7 +16,9 @@ export function getInspectOverlayDebugLayer(layer = "water") {
 }
 
 export function getInspectOverlayResourceId(layer = "water") {
-  return normalizeInspectOverlayLayer(layer) === "plants" ? "plants" : "water";
+  const normalized = normalizeInspectOverlayLayer(layer);
+  if (normalized === "water" || normalized === "plants") return normalized;
+  return null;
 }
 
 export function getInspectOverlayDisplayLabel(layer = "water") {
@@ -81,8 +83,10 @@ export function createInspectPerceptionRuntime(deps = {}) {
     state.layer = normalizeInspectOverlayLayer(layer);
     if (state.layer !== "none") {
       const resourceId = getResourceId(state.layer);
-      deps.onResourceLayerSelected?.(resourceId);
-      deps.revealResourceKnowledge?.(resourceId);
+      if (resourceId) {
+        deps.onResourceLayerSelected?.(resourceId);
+        deps.revealResourceKnowledge?.(resourceId);
+      }
       deps.onDebugLayerSelected?.(getInspectOverlayDebugLayer(state.layer));
     }
     syncLayerButtons();

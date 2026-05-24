@@ -56,8 +56,15 @@ export function drawDiscoveryMaskOverlay(input) {
   if (typeof input.mapPixelToWorld !== "function" || typeof input.worldToScreen !== "function") return;
   const raster = getMaskRaster(snapshot);
   if (!raster) return;
+  const mapWidth = Number.isFinite(Number(snapshot.mapWidth)) && Number(snapshot.mapWidth) > 0
+    ? Number(snapshot.mapWidth)
+    : Number(snapshot.width);
+  const mapHeight = Number.isFinite(Number(snapshot.mapHeight)) && Number(snapshot.mapHeight) > 0
+    ? Number(snapshot.mapHeight)
+    : Number(snapshot.height);
+  if (!Number.isFinite(mapWidth) || !Number.isFinite(mapHeight) || mapWidth <= 0 || mapHeight <= 0) return;
   const topLeft = input.worldToScreen(input.mapPixelToWorld(-0.5, -0.5));
-  const bottomRight = input.worldToScreen(input.mapPixelToWorld(snapshot.mapWidth - 0.5, snapshot.mapHeight - 0.5));
+  const bottomRight = input.worldToScreen(input.mapPixelToWorld(mapWidth - 0.5, mapHeight - 0.5));
   const dx = topLeft.x;
   const dy = topLeft.y;
   const dw = bottomRight.x - topLeft.x;

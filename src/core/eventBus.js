@@ -35,7 +35,11 @@ export function createEventBus() {
     if (!bucket || bucket.size === 0) return 0;
     const snapshot = [...bucket];
     for (const listener of snapshot) {
-      listener(payload);
+      try {
+        listener(payload);
+      } catch (error) {
+        console.error(`Event listener failed for ${type}:`, error);
+      }
     }
     return snapshot.length;
   }

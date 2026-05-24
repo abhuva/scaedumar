@@ -50,10 +50,14 @@ Each candidate folder should contain:
 - optional: `fog.json`
 - optional: `clouds.json`
 - optional: `waterfx.json`
+- optional: `watertrails.json`
 - optional: `detail.json`
 - optional: `camera.json`
 - optional: `audio.json`
 - optional but recommended: `npc.json`
+- optional: `swarm.json`
+- optional: `resource_debug.json`
+- optional: `resource_stock.json`
 
 If no candidate folder contains the required PNGs, the app starts with fallback textures. You can load a map by folder path or folder picker in the `Load Map` panel.
 

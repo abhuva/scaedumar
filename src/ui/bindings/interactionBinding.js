@@ -1,6 +1,8 @@
 export function bindInteractionAndCycleControls(deps) {
   function clearTravelPreview(reason) {
-    deps.travelPlanningRuntime.clearPreview(reason);
+    if (typeof deps?.travelPlanningRuntime?.clearPreview === "function") {
+      deps.travelPlanningRuntime.clearPreview(reason);
+    }
   }
 
   deps.dockLightingModeToggle.addEventListener("click", () => {
@@ -112,18 +114,6 @@ export function bindInteractionAndCycleControls(deps) {
     };
     deps.cycleSpeedInput.addEventListener("input", dispatchCycleSpeedChange);
     deps.cycleSpeedInput.addEventListener("change", dispatchCycleSpeedChange);
-  }
-
-  if (deps.movementCancelBtn) {
-    deps.movementCancelBtn.addEventListener("click", () => {
-      if (typeof deps.isActivityActive === "function" && deps.isActivityActive()) {
-        deps.dispatchCoreCommand({ type: "core/activity/cancel" });
-      } else if (typeof deps.isInspectEnabled === "function" && deps.isInspectEnabled()) {
-        deps.dispatchCoreCommand({ type: "core/activity/startInspect" });
-      } else {
-        deps.dispatchCoreCommand({ type: "core/movement/cancel" });
-      }
-    });
   }
 
   if (deps.movementActionBtn) {

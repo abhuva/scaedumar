@@ -31,9 +31,11 @@ function normalizeItemDefinition(raw, fallbackId) {
 }
 
 export function normalizeItemDefinitions(rawDefinitions) {
-  const output = {};
+  const output = Object.create(null);
   if (!rawDefinitions || typeof rawDefinitions !== "object") return output;
-  for (const [key, value] of Object.entries(rawDefinitions)) {
+  for (const key in rawDefinitions) {
+    if (!Object.prototype.hasOwnProperty.call(rawDefinitions, key)) continue;
+    const value = rawDefinitions[key];
     const normalized = normalizeItemDefinition(value, key);
     if (!normalized) continue;
     output[normalized.id] = normalized;
@@ -57,7 +59,7 @@ export async function loadItemDefinitions(options = {}) {
 
 export function getItemDefinition(itemId, registry) {
   if (!registry || !itemId || typeof itemId !== "string") return null;
-  return registry[itemId] || null;
+  return Object.prototype.hasOwnProperty.call(registry, itemId) ? registry[itemId] : null;
 }
 
 export function listItemDefinitions(registry) {

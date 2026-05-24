@@ -55,7 +55,7 @@ export async function loadActivityCosts(options = {}) {
     throw new Error("Cannot load activity costs: fetch is unavailable.");
   }
   const url = options.url || DEFAULT_ACTIVITY_COSTS_URL;
-  const response = await fetchFn(url);
+  const response = await fetchFn(url, { cache: "no-store" });
   if (!response || !response.ok) {
     const status = response ? `${response.status} ${response.statusText || ""}`.trim() : "no response";
     throw new Error(`Failed to load activity costs from ${url}: ${status}`);

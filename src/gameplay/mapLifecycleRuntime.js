@@ -6,6 +6,7 @@ import { createMapBootstrap } from "./mapBootstrap.js";
 export function createMapLifecycleRuntime(deps) {
   let currentMapFolderPath = deps.defaultMapFolder;
   let mapRuntimeState = null;
+  let hasLoadedMap = false;
 
   function getCurrentMapFolderPath() {
     return currentMapFolderPath;
@@ -89,6 +90,16 @@ export function createMapLifecycleRuntime(deps) {
     onMapLoaded: deps.onMapLoaded,
   });
 
+  async function loadMapFromPath(mapFolderPath) {
+    await mapLoadingRuntime.loadMapFromPath(mapFolderPath);
+    hasLoadedMap = true;
+  }
+
+  async function loadMapFromFolderSelection(fileList) {
+    await mapLoadingRuntime.loadMapFromFolderSelection(fileList);
+    hasLoadedMap = true;
+  }
+
   const mapDataSaveRuntime = createMapDataSaveRuntime({
     serializePointLights: deps.serializePointLights,
     serializeLightingSettings: deps.serializeLightingSettings,
@@ -118,7 +129,7 @@ export function createMapLifecycleRuntime(deps) {
 
   const mapBootstrap = createMapBootstrap({
     defaultMapFolderCandidates: deps.defaultMapFolderCandidates,
-    loadMapFromPath: (mapFolderPath) => mapLoadingRuntime.loadMapFromPath(mapFolderPath),
+    loadMapFromPath,
     setStatus: deps.setStatus,
   });
 
@@ -131,8 +142,9 @@ export function createMapLifecycleRuntime(deps) {
     createMapDataFileTexts: () => mapDataSaveRuntime.createMapDataFileTexts(),
     downloadTextFile: (fileName, text) => mapDataSaveRuntime.downloadTextFile(fileName, text),
     saveAllMapDataFiles: () => mapDataSaveRuntime.saveAllMapDataFiles(),
-    loadMapFromPath: (mapFolderPath) => mapLoadingRuntime.loadMapFromPath(mapFolderPath),
-    loadMapFromFolderSelection: (fileList) => mapLoadingRuntime.loadMapFromFolderSelection(fileList),
+    hasLoadedMap: () => hasLoadedMap,
+    loadMapFromPath,
+    loadMapFromFolderSelection,
     tryAutoLoadDefaultMap: () => mapBootstrap.tryAutoLoadDefaultMap(),
   };
 }

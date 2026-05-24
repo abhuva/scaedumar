@@ -57,7 +57,19 @@ Copy-Item index.html .tauri-dist\ -Force
 Copy-Item styles.css .tauri-dist\ -Force
 Copy-Item src .tauri-dist\src -Recurse -Force
 Copy-Item assets .tauri-dist\assets -Recurse -Force
+if (Test-Path ".tauri-dist\assets\Map 3") {
+  Copy-Item ".tauri-dist\assets\Map 3" .tauri-dist\assets\Map3 -Recurse -Force
+}
 ```
+
+Use `.\build-tauri.ps1 dev` or `.\build-tauri.ps1 build` for normal Tauri runs so this sync stays consistent.
+
+Tauri asset caveats:
+
+- Avoid spaces in packaged asset URLs used by the desktop default path. The source map folder is still `assets/Map 3`, but `.tauri-dist` must include the no-space alias `assets/Map3`, and Tauri defaults should prefer `assets/Map3/`.
+- Browser/default web testing can keep using `assets/Map 3/`; do not rename the source map folder casually because docs, save sidecars, and manual map loading may refer to it.
+- `src-tauri/tauri.conf.json` must keep `app.withGlobalTauri = true`; the title Quit button and desktop file commands rely on `window.__TAURI__.core.invoke`.
+- Startup/map-load errors must be visible on the title screen, not only in the hidden dev/status panel. This is required for diagnosing desktop load failures before entering dev or gameplay mode.
 
 ## Map Conventions
 

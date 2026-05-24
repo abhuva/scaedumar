@@ -5,7 +5,7 @@ The gameplay HUD uses fixed layout units. Do not size these panels from their cu
 ## Terms
 
 - `Player UI Height`: total height of the bottom-center player HUD.
-- `Player UI Row`: one third of `Player UI Height`.
+- `Player UI Row`: one-third of `Player UI Height`.
 - `Side Slot`: one half of `Player UI Height`, equal to 1.5 `Player UI Row`.
 - `Side Stack`: the right-side stack aligned to the player HUD.
 - `Top Side Slot`: activity / travel-planning info panel.

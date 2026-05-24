@@ -130,9 +130,10 @@ export function createGameplayHudRuntime(deps) {
       const button = ownerDocument.createElement("button");
       button.type = "button";
       button.className = `condition-effect-badge condition-${effect.severity === "critical" ? "critical" : "warning"}`;
-      button.textContent = effect.icon || effect.label.slice(0, 1).toUpperCase();
-      button.title = effect.label;
-      button.setAttribute("aria-label", effect.label);
+      const label = typeof effect.label === "string" && effect.label ? effect.label : (effect.id || "Effect");
+      button.textContent = effect.icon || label.slice(0, 1).toUpperCase();
+      button.title = label;
+      button.setAttribute("aria-label", label);
       button.addEventListener("mouseenter", () => renderTooltip(effect));
       button.addEventListener("focus", () => renderTooltip(effect));
       button.addEventListener("mouseleave", () => renderTooltip(null));
@@ -197,7 +198,7 @@ export function createGameplayHudRuntime(deps) {
     });
   }
 
-  deps.pathfindingBtn.addEventListener("click", () => {
+  deps.pathfindingBtn?.addEventListener("click", () => {
     if (deps.getInteractionMode() === "pathfinding") {
       deps.dispatchCoreCommand({ type: "core/interaction/setMode", mode: "none" });
       deps.setStatus("Pathfinding mode disabled.");
@@ -209,27 +210,27 @@ export function createGameplayHudRuntime(deps) {
     deps.setStatus("Pathfinding mode enabled: hover for path preview, click to move player.");
     sync();
   });
-  deps.gatheringBtn.addEventListener("click", () => {
+  deps.gatheringBtn?.addEventListener("click", () => {
     dispatchPrimaryActivity("gathering", "core/activity/startGathering");
   });
-  deps.gatherWaterBtn.addEventListener("click", () => {
+  deps.gatherWaterBtn?.addEventListener("click", () => {
     dispatchPrimaryActivity("gather_water", "core/activity/startGatherWater");
   });
-  deps.inspectBtn.addEventListener("click", () => {
+  deps.inspectBtn?.addEventListener("click", () => {
     deps.dispatchCoreCommand({
       type: "core/activity/startInspect",
     });
   });
-  deps.scoutBtn.addEventListener("click", () => {
+  deps.scoutBtn?.addEventListener("click", () => {
     dispatchPrimaryActivity("scout", "core/activity/startScout");
   });
-  deps.restBtn.addEventListener("click", () => {
+  deps.restBtn?.addEventListener("click", () => {
     dispatchPrimaryActivity("rest", "core/activity/startRest");
   });
-  deps.inventoryBtn.addEventListener("click", () => {
+  deps.inventoryBtn?.addEventListener("click", () => {
     deps.toggleInventory();
   });
-  deps.showPlayerBtn.addEventListener("click", () => {
+  deps.showPlayerBtn?.addEventListener("click", () => {
     deps.dispatchCoreCommand({ type: "core/player/show" });
   });
 

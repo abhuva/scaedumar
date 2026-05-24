@@ -113,6 +113,17 @@ body {
   cursor: not-allowed;
 }
 
+.title-status {
+  width: min(640px, 86vw);
+  min-height: 44px;
+  margin: -14px 0 0;
+  color: #d9e0d4;
+  font: 13px/1.35 var(--pixel-ui-font);
+  text-align: center;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.65);
+  overflow-wrap: anywhere;
+}
+
 .workspace-root {
   display: none;
 }
@@ -1050,27 +1061,8 @@ body.runtime-gameplay .inspect-status-panel {
   overflow: hidden;
   width: 1px;
   height: 1px;
-  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
   white-space: nowrap;
-}
-
-.movement-cancel-btn {
-  width: 100%;
-  margin-top: 10px;
-  border: 1px solid rgba(255, 143, 117, 0.52);
-  border-radius: 0;
-  background: rgba(78, 28, 22, 0.88);
-  color: #ffd8ce;
-  padding: 8px 10px;
-  font: inherit;
-  font-size: 12px;
-  font-weight: 900;
-  text-transform: uppercase;
-  cursor: pointer;
-}
-
-.movement-cancel-btn.hidden {
-  display: none;
 }
 
 .movement-action-btn {
@@ -1116,13 +1108,6 @@ body.runtime-gameplay .inspect-status-panel {
 .movement-action-btn:not(:disabled):focus-visible {
   border-color: rgba(210, 249, 255, 0.95);
   background: rgba(29, 89, 101, 0.95);
-  outline: none;
-}
-
-.movement-cancel-btn:hover,
-.movement-cancel-btn:focus-visible {
-  border-color: rgba(255, 190, 171, 0.9);
-  background: rgba(126, 45, 34, 0.95);
   outline: none;
 }
 
@@ -1273,10 +1258,10 @@ body.runtime-gameplay .gameplay-hud {
 .condition-bar.condition-critical {
   border-color: rgba(255, 91, 73, 0.95);
   box-shadow: 0 0 16px rgba(255, 75, 58, 0.34);
-  animation: conditionCriticalPulse 1.4s ease-in-out infinite;
+  animation: condition-critical-pulse 1.4s ease-in-out infinite;
 }
 
-@keyframes conditionCriticalPulse {
+@keyframes condition-critical-pulse {
   0%,
   100% {
     box-shadow: 0 0 12px rgba(255, 75, 58, 0.22);

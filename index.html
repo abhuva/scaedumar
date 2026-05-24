@@ -16,6 +16,7 @@
           <button id="titleDevModeBtn" class="title-action-btn" type="button">dev mode</button>
           <button id="titleQuitGameBtn" class="title-action-btn" type="button">quit game</button>
         </div>
+        <p id="titleStatus" class="title-status" aria-live="polite">Initializing...</p>
       </div>
     </section>
 
@@ -1243,10 +1244,10 @@
             <button id="resourceDebugSaveBtn" class="row-action-btn" type="button">Save RD Settings</button>
           </div>
           <div class="rd-tabs" role="tablist" aria-label="Resource Debug sections">
-            <button id="resourceDebugOverlayTab" class="rd-tab active" type="button" data-rd-tab="overlay" aria-pressed="true">Overlay</button>
-            <button id="resourceDebugStockTab" class="rd-tab" type="button" data-rd-tab="stock" aria-pressed="false">Stock</button>
+            <button id="resourceDebugOverlayTab" class="rd-tab active" type="button" role="tab" data-rd-tab="overlay" aria-selected="true" aria-controls="resourceDebugOverlayPanel" tabindex="0">Overlay</button>
+            <button id="resourceDebugStockTab" class="rd-tab" type="button" role="tab" data-rd-tab="stock" aria-selected="false" aria-controls="resourceDebugStockPanel" tabindex="-1">Stock</button>
           </div>
-          <div id="resourceDebugOverlayPanel" class="rd-tab-panel active" data-rd-panel="overlay">
+          <div id="resourceDebugOverlayPanel" class="rd-tab-panel active" role="tabpanel" data-rd-panel="overlay" aria-labelledby="resourceDebugOverlayTab" aria-hidden="false">
           <div class="row">
             <label for="resourceDebugLayer">Overlay</label>
             <select id="resourceDebugLayer">
@@ -1315,7 +1316,7 @@
             <label for="resourceDebugShowMaskOverlay">Show Discovery</label>
             <div class="inline-control">
               <input id="resourceDebugShowMaskOverlay" type="checkbox" aria-label="Show full discovery mask overlay" />
-              <input id="resourceDebugMaskOverlayOpacity" type="range" min="0" max="1" step="0.05" value="0.45" />
+              <input id="resourceDebugMaskOverlayOpacity" type="range" min="0" max="1" step="0.05" value="0.45" aria-label="Mask overlay opacity" />
               <span id="resourceDebugMaskOverlayOpacityValue">0.45</span>
             </div>
           </div>
@@ -1396,7 +1397,7 @@
             </div>
           </div>
           </div>
-          <div id="resourceDebugStockPanel" class="rd-tab-panel" data-rd-panel="stock">
+          <div id="resourceDebugStockPanel" class="rd-tab-panel" role="tabpanel" data-rd-panel="stock" aria-labelledby="resourceDebugStockTab" aria-hidden="true">
             <p class="panel-note">Runtime-only resource stock controls. Stock affects actual search chance; known stock affects player-facing overlays.</p>
             <div class="row">
               <label for="resourceStockResource">Resource</label>
@@ -1638,7 +1639,6 @@
       <p id="movementStatusEta">Estimated arrival: --</p>
       <p id="movementStatusDetail">Path: --</p>
       <button id="movementActionBtn" class="movement-action-btn hidden" type="button">Possess Bird</button>
-      <button id="movementCancelBtn" class="movement-cancel-btn hidden" type="button">Activity Control</button>
     </aside>
     <aside id="inventoryPanel" class="inventory-panel hidden" aria-label="Inventory">
       <div class="inventory-panel-header">

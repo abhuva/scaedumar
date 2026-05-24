@@ -133,7 +133,11 @@ export function createScoutActivityController(deps) {
     runtime.scoutBirdX = candidate && Number.isFinite(Number(candidate.x)) ? Number(candidate.x) : null;
     runtime.scoutBirdY = candidate && Number.isFinite(Number(candidate.y)) ? Number(candidate.y) : null;
     runtime.scoutEffectiveRevealRadius = resolveRevealRadius();
-    if (previous.candidateIndex < 0 && runtime.scoutCandidateIndex >= 0) {
+    if (
+      previous.candidateIndex < 0
+      && runtime.scoutCandidateIndex >= 0
+      && typeof deps.setActivitySpeed1x === "function"
+    ) {
       deps.setActivitySpeed1x();
     }
     runtime.lastMessage = runtime.scoutDisconnectReason || (runtime.scoutCandidateIndex >= 0

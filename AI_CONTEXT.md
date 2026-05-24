@@ -132,6 +132,10 @@ Gameplay HUD blocks use square corners and zero inter-block gap. The time dioram
 
 Map folder convention: `assets/<mapName>/`.
 
+Tauri packaging caveat: the source default map folder is `assets/Map 3/`, but Tauri/WebView asset URLs failed for packaged map images under a path containing a space. The desktop build therefore creates a packaged alias `.tauri-dist/assets/Map3` from `.tauri-dist/assets/Map 3` in `build-tauri.ps1`, and Tauri runtime defaults prefer `assets/Map3/`. Browser/runtime source assets can continue to use `assets/Map 3/`. If this area changes, keep the alias and Tauri default in sync rather than assuming URL escaping will fix the WebView path.
+
+Tauri runtime caveat: `src-tauri/tauri.conf.json` must enable `app.withGlobalTauri = true` so `window.__TAURI__.core.invoke` exists. The title Quit action and desktop file commands depend on this. Startup failures must be shown on the title screen because the normal status panel is hidden before entering dev/gameplay.
+
 Core texture names:
 
 - `splat.png`

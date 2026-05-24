@@ -54,7 +54,6 @@ export function createSwarmIntegrationSetupRuntime(deps) {
     movementStatusEtaEl: deps.interactionContext.movementStatusEtaEl,
     movementStatusDetailEl: deps.interactionContext.movementStatusDetailEl,
     movementActionBtn: deps.interactionContext.movementActionBtn,
-    movementCancelBtn: deps.interactionContext.movementCancelBtn,
     inspectStatusPanelEl: deps.interactionContext.inspectStatusPanelEl,
     inspectStatusTitleEl: deps.interactionContext.inspectStatusTitleEl,
     inspectStatusEtaEl: deps.interactionContext.inspectStatusEtaEl,

@@ -21,7 +21,9 @@ export function createMapLoader(deps) {
       }
     }
 
-    const jsonPath = (name) => (deps.isAbsoluteFsPath(folder) ? deps.joinFsPath(folder, name) : `${folder}/${name}`);
+    const jsonPath = (name) => (
+      deps.isAbsoluteFsPath(folder) ? deps.joinFsPath(folder, name) : deps.buildMapAssetPath(folder, name)
+    );
     async function loadOptionalImage(fileName) {
       try {
         return await deps.loadImageFromUrl(deps.buildMapAssetPath(folder, fileName));
@@ -30,15 +32,23 @@ export function createMapLoader(deps) {
       }
     }
 
-    const [splat, normals, height, slope, water, flow, wetness] = await Promise.all([
-      deps.loadImageFromUrl(deps.buildMapAssetPath(folder, "splat.png")),
-      deps.loadImageFromUrl(deps.buildMapAssetPath(folder, "normals.png")),
-      deps.loadImageFromUrl(deps.buildMapAssetPath(folder, "height.png")),
-      deps.loadImageFromUrl(deps.buildMapAssetPath(folder, "slope.png")),
-      deps.loadImageFromUrl(deps.buildMapAssetPath(folder, "water.png")),
-      loadOptionalImage("flow.png"),
-      loadOptionalImage("wetness.png"),
-    ]);
+    async function loadRequiredImage(fileName) {
+      try {
+        deps.setStatus(`Loading map ${folder}: ${fileName}...`);
+        return await deps.loadImageFromUrl(deps.buildMapAssetPath(folder, fileName));
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`Failed loading required map image ${fileName}: ${message}`, { cause: error });
+      }
+    }
+
+    const splat = await loadRequiredImage("splat.png");
+    const normals = await loadRequiredImage("normals.png");
+    const height = await loadRequiredImage("height.png");
+    const slope = await loadRequiredImage("slope.png");
+    const water = await loadRequiredImage("water.png");
+    const flow = await loadOptionalImage("flow.png");
+    const wetness = await loadOptionalImage("wetness.png");
 
     await deps.applyMapImages(splat, normals, height, slope, water, flow, wetness);
     deps.setCurrentMapFolderPath(folder);

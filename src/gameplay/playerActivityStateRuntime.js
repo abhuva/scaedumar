@@ -51,6 +51,7 @@ export function resetPlayerActivityState(runtime, idleType = "idle", lastMessage
   runtime.radius = 0;
   runtime.stepsTaken = 0;
   runtime.foundCount = 0;
+  runtime.ending = false;
   runtime.visitedCells.clear();
   runtime.recentCells = [];
   runtime.lastMessage = lastMessage;
@@ -85,6 +86,7 @@ export function startBaseActivityState(runtime, type, message, playerState) {
   runtime.radius = 0;
   runtime.stepsTaken = 0;
   runtime.foundCount = 0;
+  runtime.ending = false;
   runtime.visitedCells = new Set();
   runtime.recentCells = [];
   runtime.lastMessage = message;

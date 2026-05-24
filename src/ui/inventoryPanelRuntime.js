@@ -115,7 +115,9 @@ export function createInventoryPanelRuntime(deps) {
 
   function bindList(listEl) {
     listEl.addEventListener("click", (event) => {
-      const button = event.target.closest(".inventory-stack-btn");
+      const target = event.target;
+      if (!target || typeof target.closest !== "function") return;
+      const button = target.closest(".inventory-stack-btn");
       if (!button) return;
       deps.selectInventoryStack(button.dataset.containerId, Number(button.dataset.slotIndex));
     });

@@ -148,10 +148,12 @@ export function createTravelEstimateRuntime(deps = {}) {
       ? deps.getConditionEffectsSnapshot()
       : {};
     const timeState = typeof deps.getTimeState === "function" ? deps.getTimeState() : {};
-    const travelPlanning = deps.getTravelPlanningSnapshot();
+    const travelPlanning = typeof deps.getTravelPlanningSnapshot === "function"
+      ? deps.getTravelPlanningSnapshot()
+      : { pathPixels: [], hoverPixel: null };
     return estimateTravelPath({
-      pathPixels: travelPlanning.pathPixels,
-      hoverPixel: travelPlanning.hoverPixel,
+      pathPixels: Array.isArray(travelPlanning.pathPixels) ? travelPlanning.pathPixels : [],
+      hoverPixel: travelPlanning.hoverPixel || null,
       computeMoveStepCost: deps.computeMoveStepCost,
       resolveActivityEffects: deps.resolveActivityEffects,
       movementCostKey: typeof deps.getMovementCostKey === "function" ? deps.getMovementCostKey() : "movement.step",

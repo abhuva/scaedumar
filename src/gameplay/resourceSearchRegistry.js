@@ -31,9 +31,11 @@ function normalizeLootBands(rawBands) {
 function normalizeReward(rawReward) {
   if (!rawReward || typeof rawReward !== "object") return null;
   if (rawReward.type === "item") {
+    const itemId = typeof rawReward.itemId === "string" ? rawReward.itemId : "";
+    if (!itemId) return null;
     return {
       type: "item",
-      itemId: typeof rawReward.itemId === "string" ? rawReward.itemId : "",
+      itemId,
       quantity: Math.max(1, Math.round(finite(rawReward.quantity, 1))),
     };
   }

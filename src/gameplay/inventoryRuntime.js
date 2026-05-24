@@ -246,7 +246,7 @@ export function createInventoryRuntime(deps = {}) {
 
   function selectStack(containerId, slotIndex) {
     const container = runtime.containers.get(containerId);
-    if (!container || slotIndex < 0 || slotIndex >= container.slots.length) {
+    if (!container || !Number.isInteger(slotIndex) || slotIndex < 0 || slotIndex >= container.slots.length) {
       runtime.selected = null;
       sync();
       return { ok: false, reason: "Invalid selection." };

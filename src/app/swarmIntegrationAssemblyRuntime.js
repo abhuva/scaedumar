@@ -109,7 +109,6 @@ export function createSwarmIntegrationAssemblyRuntime(deps) {
       movementStatusEtaEl: deps.movementStatusEtaEl,
       movementStatusDetailEl: deps.movementStatusDetailEl,
       movementActionBtn: deps.movementActionBtn,
-      movementCancelBtn: deps.movementCancelBtn,
       inspectStatusPanelEl: deps.inspectStatusPanelEl,
       inspectStatusTitleEl: deps.inspectStatusTitleEl,
       inspectStatusEtaEl: deps.inspectStatusEtaEl,

@@ -1,5 +1,11 @@
 const DEFAULT_CYCLE_HOUR = 9.5;
 
+function cloneDefault(value) {
+  return typeof structuredClone === "function"
+    ? structuredClone(value)
+    : JSON.parse(JSON.stringify(value));
+}
+
 const DEFAULT_WEATHER_STATE = {
   type: "clear",
   intensity: 0,
@@ -191,9 +197,9 @@ export function createInitialState() {
       pointLights: { ...DEFAULT_GAMEPLAY_POINT_LIGHTS },
       swarm: { ...DEFAULT_GAMEPLAY_SWARM },
       movement: { ...DEFAULT_GAMEPLAY_MOVEMENT },
-      activity: { ...DEFAULT_GAMEPLAY_ACTIVITY },
-      inventory: { ...DEFAULT_GAMEPLAY_INVENTORY },
-      condition: { ...DEFAULT_GAMEPLAY_CONDITION },
+      activity: cloneDefault(DEFAULT_GAMEPLAY_ACTIVITY),
+      inventory: cloneDefault(DEFAULT_GAMEPLAY_INVENTORY),
+      condition: cloneDefault(DEFAULT_GAMEPLAY_CONDITION),
     },
     ui: {
       cycleHour: DEFAULT_CYCLE_HOUR,

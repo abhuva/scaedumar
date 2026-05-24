@@ -21,19 +21,20 @@ export function joinFsPath(folder, fileName) {
 export function buildMapAssetPath(folder, fileName) {
   const base = String(folder || "").replace(/[\\/]+$/, "");
   if (base.startsWith("file://")) {
-    return `${base}/${fileName}`;
+    return `${base}/${encodeURIComponent(fileName)}`;
   }
   if (isAbsoluteFsPath(base)) {
     const normalized = base.replace(/\\/g, "/");
     if (/^[a-zA-Z]:\//.test(normalized)) {
-      return `file:///${encodeURI(normalized)}/${fileName}`;
+      return `file:///${encodeURI(normalized)}/${encodeURIComponent(fileName)}`;
     }
     if (normalized.startsWith("//")) {
-      return `file:${encodeURI(normalized)}/${fileName}`;
+      return `file:${encodeURI(normalized)}/${encodeURIComponent(fileName)}`;
     }
-    return `file://${encodeURI(normalized)}/${fileName}`;
+    return `file://${encodeURI(normalized)}/${encodeURIComponent(fileName)}`;
   }
-  return `${base}/${fileName}`;
+  const relativePath = `${base}/${fileName}`;
+  return relativePath.startsWith(".") ? relativePath : `./${relativePath}`;
 }
 
 export function toAbsoluteFileUrl(path) {

@@ -81,7 +81,8 @@ export function createResourceDebugPanelRuntime(deps) {
 
   function syncStock() {
     const resourceId = deps.stockResourceInput ? deps.stockResourceInput.value : "water";
-    const stockSettings = typeof deps.getStockSettings === "function" ? deps.getStockSettings(resourceId) : {};
+    const rawStockSettings = typeof deps.getStockSettings === "function" ? deps.getStockSettings(resourceId) : {};
+    const stockSettings = rawStockSettings && typeof rawStockSettings === "object" ? rawStockSettings : {};
     for (const [key, input, valueEl, digits] of stockControls) {
       setRange(input, valueEl, stockSettings[key], digits);
     }
@@ -138,17 +139,38 @@ export function createResourceDebugPanelRuntime(deps) {
   stockControls.forEach(([key, input, valueEl, digits]) => bindStockRange(key, input, valueEl, digits));
 
   if (Array.isArray(deps.tabButtons) && Array.isArray(deps.tabPanels)) {
+    const selectTab = (tab, options = {}) => {
+      for (const item of deps.tabButtons) {
+        const active = item.dataset.rdTab === tab;
+        item.classList.toggle("active", active);
+        item.setAttribute("aria-selected", active ? "true" : "false");
+        item.setAttribute("tabindex", active ? "0" : "-1");
+      }
+      for (const panel of deps.tabPanels) {
+        const active = panel.dataset.rdPanel === tab;
+        panel.classList.toggle("active", active);
+        panel.setAttribute("aria-hidden", active ? "false" : "true");
+      }
+      if (options.focus) {
+        const activeButton = deps.tabButtons.find((button) => button.dataset.rdTab === tab);
+        activeButton?.focus?.();
+      }
+    };
     for (const button of deps.tabButtons) {
       button.addEventListener("click", () => {
-        const tab = button.dataset.rdTab || "overlay";
-        for (const item of deps.tabButtons) {
-          const active = item.dataset.rdTab === tab;
-          item.classList.toggle("active", active);
-          item.setAttribute("aria-pressed", active ? "true" : "false");
-        }
-        for (const panel of deps.tabPanels) {
-          panel.classList.toggle("active", panel.dataset.rdPanel === tab);
-        }
+        selectTab(button.dataset.rdTab || "overlay");
+      });
+      button.addEventListener("keydown", (event) => {
+        const currentIndex = deps.tabButtons.indexOf(button);
+        if (currentIndex < 0) return;
+        let nextIndex = currentIndex;
+        if (event.key === "ArrowRight") nextIndex = (currentIndex + 1) % deps.tabButtons.length;
+        else if (event.key === "ArrowLeft") nextIndex = (currentIndex - 1 + deps.tabButtons.length) % deps.tabButtons.length;
+        else if (event.key === "Home") nextIndex = 0;
+        else if (event.key === "End") nextIndex = deps.tabButtons.length - 1;
+        else return;
+        event.preventDefault();
+        selectTab(deps.tabButtons[nextIndex].dataset.rdTab || "overlay", { focus: true });
       });
     }
   }

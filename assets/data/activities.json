@@ -62,7 +62,7 @@
     "buttonLabel": "I",
     "title": "Inspect",
     "panel": true,
-    "exclusive": true,
+    "exclusive": false,
     "command": "core/activity/startInspect",
     "cancelLabel": "Inspect canceled.",
     "costKeys": {

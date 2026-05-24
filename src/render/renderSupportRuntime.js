@@ -49,23 +49,66 @@ export function createRenderSupportRuntime(deps) {
   function withImageCacheBust(url) {
     const text = String(url || "");
     if (!text || text.startsWith("data:") || text.startsWith("blob:")) return text;
+    if (
+      text.startsWith("assets/")
+      || text.startsWith("./assets/")
+      || text.startsWith("../assets/")
+      || text.startsWith("asset:")
+      || text.startsWith("file:")
+    ) {
+      return text;
+    }
     const separator = text.includes("?") ? "&" : "?";
     return `${text}${separator}terrainImageBust=${Date.now()}`;
   }
 
-  async function loadImageFromUrl(url) {
+  function getImageUrlCandidates(url) {
+    const primary = withImageCacheBust(url);
+    const candidates = [primary];
+    const noDot = primary.startsWith("./") ? primary.slice(2) : primary;
+    const rootRelative = noDot.startsWith("/") ? noDot : `/${noDot}`;
+    candidates.push(noDot, rootRelative);
+    for (const candidate of [...candidates]) {
+      if (!candidate.includes("%") && /\s/.test(candidate)) {
+        candidates.push(encodeURI(candidate));
+      }
+    }
+    return [...new Set(candidates)];
+  }
+
+  async function tryLoadImageFromUrl(url) {
     const image = new Image();
     image.decoding = "async";
-    image.src = withImageCacheBust(url);
+    const loaded = new Promise((resolve, reject) => {
+      image.onload = () => resolve();
+      image.onerror = () => reject(new Error("image load error"));
+      image.src = url;
+    });
+    const timeout = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error("image load timed out")), 10000);
+    });
     try {
-      await image.decode();
-    } catch (error) {
-      throw new Error(
-        `Failed to decode image from ${url}: ${error instanceof Error ? error.message : error}`,
-        { cause: error },
-      );
+      await Promise.race([loaded, timeout]);
+      if (typeof image.decode === "function") {
+        await image.decode();
+      }
+      return image;
+    } finally {
+      image.onload = null;
+      image.onerror = null;
     }
-    return image;
+  }
+
+  async function loadImageFromUrl(url) {
+    const errors = [];
+    for (const imageUrl of getImageUrlCandidates(url)) {
+      try {
+        return await tryLoadImageFromUrl(imageUrl);
+      } catch (error) {
+        errors.push(`${imageUrl}: ${error instanceof Error ? error.message : error}`);
+      }
+    }
+    throw new Error(`Failed to load image from ${url}: ${errors.join(" | ")}`);
   }
 
   async function loadImageFromFile(file) {

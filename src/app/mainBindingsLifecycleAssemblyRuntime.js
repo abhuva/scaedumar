@@ -95,7 +95,6 @@ export function createMainBindingsLifecycleAssemblyRuntime(deps) {
     cycleHourInput: deps.cycleHourInput,
     simTickHoursInput: deps.simTickHoursInput,
     movementActionBtn: deps.movementActionBtn,
-    movementCancelBtn: deps.movementCancelBtn,
     isActivityActive: deps.isActivityActive,
     isInspectEnabled: deps.isInspectEnabled,
     canUseInteractionMode: deps.canUseInteractionMode,
