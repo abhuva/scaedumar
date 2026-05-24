@@ -289,6 +289,10 @@ export function createMainBindingsAssemblyRuntime(deps) {
       schedulePointLightBake: deps.schedulePointLightBake,
       resize: deps.resize,
     },
+    desktopWindowBinding: {
+      windowEl: deps.windowEl,
+      setStatus: deps.setStatus,
+    },
     audioBinding: {
       commandBus: deps.commandBus,
       audioModeButtons: deps.audioModeButtons,

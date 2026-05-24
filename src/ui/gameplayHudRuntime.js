@@ -130,7 +130,8 @@ export function createGameplayHudRuntime(deps) {
       const button = ownerDocument.createElement("button");
       button.type = "button";
       button.className = `condition-effect-badge condition-${effect.severity === "critical" ? "critical" : "warning"}`;
-      const label = typeof effect.label === "string" && effect.label ? effect.label : (effect.id || "Effect");
+      const labelValue = typeof effect.label === "string" && effect.label ? effect.label : (effect.id || "Effect");
+      const label = String(labelValue || "Effect");
       button.textContent = effect.icon || label.slice(0, 1).toUpperCase();
       button.title = label;
       button.setAttribute("aria-label", label);

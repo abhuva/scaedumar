@@ -9,14 +9,21 @@ import {
 test("buildMapAssetPath preserves relative map folder segments for packaged assets", () => {
   assert.equal(
     buildMapAssetPath("assets/Map 3/", "splat.png"),
-    "./assets/Map 3/splat.png",
+    "./assets/Map%203/splat.png",
   );
 });
 
-test("buildMapAssetPath preserves relative sidecar paths through the same path path", () => {
+test("buildMapAssetPath preserves relative sidecar paths through the same path", () => {
   assert.equal(
     buildMapAssetPath("assets/Map 3", "resource_stock.json"),
-    "./assets/Map 3/resource_stock.json",
+    "./assets/Map%203/resource_stock.json",
+  );
+});
+
+test("buildMapAssetPath does not double-encode relative URL paths", () => {
+  assert.equal(
+    buildMapAssetPath("assets/Map%203", "resource debug.json"),
+    "./assets/Map%203/resource%20debug.json",
   );
 });
 

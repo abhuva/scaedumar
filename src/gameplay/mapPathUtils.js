@@ -18,6 +18,16 @@ export function joinFsPath(folder, fileName) {
   return `${base}/${fileName}`;
 }
 
+function encodeUrlPath(path) {
+  return String(path || "").split("/").map((segment) => {
+    try {
+      return encodeURIComponent(decodeURIComponent(segment));
+    } catch {
+      return encodeURIComponent(segment);
+    }
+  }).join("/");
+}
+
 export function buildMapAssetPath(folder, fileName) {
   const base = String(folder || "").replace(/[\\/]+$/, "");
   if (base.startsWith("file://")) {
@@ -34,7 +44,8 @@ export function buildMapAssetPath(folder, fileName) {
     return `file://${encodeURI(normalized)}/${encodeURIComponent(fileName)}`;
   }
   const relativePath = `${base}/${fileName}`;
-  return relativePath.startsWith(".") ? relativePath : `./${relativePath}`;
+  const urlPath = relativePath.startsWith(".") ? relativePath : `./${relativePath}`;
+  return encodeUrlPath(urlPath);
 }
 
 export function toAbsoluteFileUrl(path) {
