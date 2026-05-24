@@ -80,7 +80,7 @@ export function createMapImageRuntime(deps) {
     });
   }
 
-  async function applyMapImages(splatImage, normalsImage, heightImage, slopeImage, waterImage, flowImage = null) {
+  async function applyMapImages(splatImage, normalsImage, heightImage, slopeImage, waterImage, flowImage = null, wetnessImage = null) {
     deps.uploadImageToTexture(deps.getSplatTex(), splatImage);
     const sizeChanged = setSplatSizeFromImage(splatImage);
     deps.resetCamera();
@@ -102,6 +102,9 @@ export function createMapImageRuntime(deps) {
     deps.uploadImageToTexture(deps.getWaterTex(), waterImage);
     deps.setSlopeImageData(deps.extractImageData(slopeImage));
     deps.setWaterImageData(deps.extractImageData(waterImage));
+    if (typeof deps.setWetnessImageData === "function") {
+      deps.setWetnessImageData(wetnessImage ? deps.extractImageData(wetnessImage) : null);
+    }
     syncPointLightWorkerMapData();
     deps.syncMapStateToStore();
     deps.applyMapSizeChangeIfNeeded(sizeChanged);

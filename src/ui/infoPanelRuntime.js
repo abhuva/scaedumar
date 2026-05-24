@@ -7,17 +7,13 @@ export function createInfoPanelRuntime(deps) {
     lastUpdateMs: 0,
   };
 
-  function formatEta(seconds) {
-    if (seconds === Number.POSITIVE_INFINITY) return "paused";
-    const safeSeconds = Math.max(0, Math.ceil(Number(seconds)));
-    if (!Number.isFinite(safeSeconds)) return "--";
-    const hours = Math.floor(safeSeconds / 3600);
-    const minutes = Math.floor((safeSeconds % 3600) / 60);
-    const remainingSeconds = safeSeconds % 60;
-    if (hours > 0) {
-      return `${hours}h ${minutes.toString().padStart(2, "0")}m ${remainingSeconds.toString().padStart(2, "0")}s`;
-    }
-    return `${minutes}m ${remainingSeconds.toString().padStart(2, "0")}s`;
+  function formatGameDuration(hoursValue) {
+    const safeHours = Number(hoursValue);
+    if (!Number.isFinite(safeHours)) return "--";
+    const totalMinutes = Math.max(0, Math.round(safeHours * 60));
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return `${hours}:${minutes.toString().padStart(2, "0")}`;
   }
 
   function setMovementPanelVisible(visible) {
@@ -25,66 +21,234 @@ export function createInfoPanelRuntime(deps) {
     deps.movementStatusPanelEl.classList.toggle("hidden", !visible);
   }
 
+  function setScoutActionLayout(active) {
+    if (!deps.movementStatusPanelEl) return;
+    deps.movementStatusPanelEl.classList.toggle("scout-action-panel", active);
+  }
+
+  function clamp01(value) {
+    const safe = Number(value);
+    return Number.isFinite(safe) ? Math.max(0, Math.min(1, safe)) : 0;
+  }
+
+  function formatSigned(value) {
+    const number = Number(value);
+    if (!Number.isFinite(number) || Math.abs(number) < 0.0005) return "0.00";
+    return `${number > 0 ? "+" : ""}${number.toFixed(2)}`;
+  }
+
+  function formatPct(value) {
+    const safe = Number(value);
+    return Number.isFinite(safe) ? `${Math.round(safe * 100)}%` : "--";
+  }
+
+  function updateTravelPreviewPanel() {
+    const estimate = typeof deps.getTravelPreviewEstimate === "function"
+      ? deps.getTravelPreviewEstimate()
+      : null;
+    setMovementPanelVisible(true);
+    if (deps.movementStatusTitleEl) {
+      deps.movementStatusTitleEl.textContent = "Plan Travel";
+    }
+    if (!estimate || estimate.state === "empty") {
+      if (deps.movementStatusEtaEl) {
+        deps.movementStatusEtaEl.textContent = "Hover a reachable destination.";
+      }
+      if (deps.movementStatusDetailEl) deps.movementStatusDetailEl.textContent = "";
+      return;
+    }
+    if (!estimate.reachable) {
+      if (deps.movementStatusTitleEl) {
+        deps.movementStatusTitleEl.textContent = "Plan Travel";
+      }
+      if (deps.movementStatusEtaEl) {
+        deps.movementStatusEtaEl.textContent = "No reachable path";
+      }
+      if (deps.movementStatusDetailEl) {
+        deps.movementStatusDetailEl.textContent = "";
+      }
+      return;
+    }
+
+    const duration = formatGameDuration(estimate.durationHours);
+    if (deps.movementStatusTitleEl) {
+      deps.movementStatusTitleEl.textContent = `Plan Travel: est. ${duration} hours`;
+    }
+    const warningText = Array.isArray(estimate.projectedWarnings) && estimate.projectedWarnings.length
+      ? `Predicted: ${estimate.projectedWarnings.map((warning) => warning.label).join(", ")}`
+      : "";
+    if (deps.movementStatusEtaEl) {
+      deps.movementStatusEtaEl.textContent = warningText;
+    }
+    if (deps.movementStatusDetailEl) {
+      deps.movementStatusDetailEl.textContent = "";
+    }
+  }
+
+  function isInspectFocused(inspectSnapshot, activitySnapshot) {
+    if (!inspectSnapshot || !inspectSnapshot.enabled) return false;
+    if (!activitySnapshot || !activitySnapshot.active) return true;
+    return activitySnapshot.type !== "rest" && activitySnapshot.type !== "scout";
+  }
+
+  function getInspectLayerLabel(layer) {
+    if (layer === "plants") return "Plants";
+    if (layer === "height") return "Height";
+    if (layer === "slope") return "Slope";
+    return "Water";
+  }
+
+  function getInspectLayerValue(inspectSnapshot) {
+    const layer = inspectSnapshot && inspectSnapshot.layer;
+    if (layer === "height") return clamp01(inspectSnapshot.inspectHeight);
+    if (layer === "slope") return clamp01(inspectSnapshot.inspectSlope);
+    const resourceId = layer === "plants" ? "plants" : "water";
+    const readings = Array.isArray(inspectSnapshot && inspectSnapshot.inspectResources)
+      ? inspectSnapshot.inspectResources
+      : [];
+    const reading = readings.find((item) => item && item.resourceId === resourceId);
+    if (!reading) return 0;
+    const stockMode = inspectSnapshot.stockOverlayMode || "known";
+    const stock = stockMode === "live"
+      ? Number(reading.stock)
+      : (stockMode === "none" ? 1 : Number(reading.knownStock));
+    return clamp01(Number(reading.value) * Number(reading.knowledge) * (Number.isFinite(stock) ? stock : 0));
+  }
+
+  function updateInspectPanel(activitySnapshot) {
+    const inspect = typeof deps.getInspectSnapshot === "function" ? deps.getInspectSnapshot() : null;
+    const focused = isInspectFocused(inspect, activitySnapshot);
+    if (deps.inspectStatusPanelEl) {
+      deps.inspectStatusPanelEl.classList.toggle("inspect-disabled", !focused);
+    }
+    if (deps.inspectLayerControlsEl) {
+      deps.inspectLayerControlsEl.classList.remove("hidden");
+      for (const button of deps.inspectLayerControlsEl.querySelectorAll("button")) {
+        button.disabled = !focused;
+      }
+    }
+    if (!inspect) return;
+    if (deps.inspectStatusTitleEl) deps.inspectStatusTitleEl.textContent = "Inspect:";
+    if (deps.inspectStatusEtaEl) deps.inspectStatusEtaEl.textContent = "";
+    if (deps.inspectResourceRowEl) {
+      deps.inspectResourceRowEl.classList.toggle("hidden", !focused);
+    }
+    if (focused) {
+      if (deps.inspectResourceLabelEl) deps.inspectResourceLabelEl.textContent = getInspectLayerLabel(inspect.layer);
+      if (deps.inspectResourceBarFillEl) deps.inspectResourceBarFillEl.style.width = `${Math.round(getInspectLayerValue(inspect) * 100)}%`;
+    } else if (deps.inspectResourceBarFillEl) {
+      deps.inspectResourceBarFillEl.style.width = "0%";
+    }
+    if (deps.inspectStatusDetailEl) {
+      deps.inspectStatusDetailEl.textContent = focused
+        ? `${getInspectLayerLabel(inspect.layer)} ${Math.round(getInspectLayerValue(inspect) * 100)}%`
+        : "Inspect focus off.";
+    }
+  }
+
   function updateMovementPanel(movementSnapshot, activitySnapshot) {
+    setScoutActionLayout(false);
+    if (deps.movementActionBtn) {
+      deps.movementActionBtn.classList.add("hidden");
+      deps.movementActionBtn.disabled = true;
+    }
+    updateInspectPanel(activitySnapshot);
     if (activitySnapshot && activitySnapshot.active) {
       setMovementPanelVisible(true);
       if (deps.movementStatusTitleEl) {
         deps.movementStatusTitleEl.textContent = activitySnapshot.type === "gathering"
           ? "Gathering"
-          : (activitySnapshot.type === "inspect" ? "Inspect Terrain" : "Activity");
+          : (activitySnapshot.type === "inspect"
+            ? "Inspect Terrain"
+            : (activitySnapshot.type === "rest"
+              ? "Resting"
+              : (activitySnapshot.type === "travel" ? "Travel" : (activitySnapshot.label || "Activity"))));
       }
-      if (activitySnapshot.type === "inspect") {
-        const x = activitySnapshot.inspectX == null ? "--" : Math.round(Number(activitySnapshot.inspectX));
-        const y = activitySnapshot.inspectY == null ? "--" : Math.round(Number(activitySnapshot.inspectY));
-        const height = Number(activitySnapshot.inspectHeight);
-        const slope = Number(activitySnapshot.inspectSlope);
+      if (activitySnapshot.type === "travel") {
+        const durationHours = typeof deps.getMovementDurationHours === "function"
+          ? deps.getMovementDurationHours(movementSnapshot)
+          : null;
         if (deps.movementStatusEtaEl) {
-          deps.movementStatusEtaEl.textContent = `Position: ${x}, ${y}`;
+          deps.movementStatusEtaEl.textContent = `Travel time: ${durationHours == null ? "--" : `${formatGameDuration(durationHours)} hours`}`;
         }
         if (deps.movementStatusDetailEl) {
-          deps.movementStatusDetailEl.textContent = `Height: ${Number.isFinite(height) ? height.toFixed(3) : "--"} | Slope: ${Number.isFinite(slope) ? `${(slope * 90).toFixed(1)} deg` : "--"}`;
+          deps.movementStatusDetailEl.textContent = "";
         }
-        if (deps.movementCancelBtn) {
-          deps.movementCancelBtn.textContent = "Stop Inspect";
+        return;
+      }
+      if (activitySnapshot.type === "rest") {
+        if (deps.movementStatusEtaEl) {
+          deps.movementStatusEtaEl.textContent = "Recovering fatigue";
+        }
+        if (deps.movementStatusDetailEl) {
+          const steps = Math.max(0, Math.round(Number(activitySnapshot.stepsTaken) || 0));
+          deps.movementStatusDetailEl.textContent = `Ticks: ${steps}`;
+        }
+        return;
+      }
+      if (activitySnapshot.type === "scout") {
+        const phase = activitySnapshot.scoutPhase === "possessed" ? "possessed" : "scanning";
+        const rawCandidateIndex = Number(activitySnapshot.scoutCandidateIndex);
+        const candidateIndex = Number.isFinite(rawCandidateIndex) ? Math.round(rawCandidateIndex) : -1;
+        const disconnectReason = typeof activitySnapshot.scoutDisconnectReason === "string"
+          ? activitySnapshot.scoutDisconnectReason
+          : "";
+        if (deps.movementStatusTitleEl) {
+          deps.movementStatusTitleEl.textContent = phase === "possessed" ? "Bird Scout" : "Scouting";
+        }
+        if (deps.movementStatusEtaEl) {
+          deps.movementStatusEtaEl.textContent = phase === "possessed"
+            ? "Bird possessed"
+            : (candidateIndex >= 0 ? "Bird is within reach" : "Listening");
+        }
+        if (deps.movementStatusDetailEl) {
+          deps.movementStatusDetailEl.textContent = phase === "possessed"
+            ? ""
+            : disconnectReason;
+        }
+        if (deps.movementActionBtn) {
+          setScoutActionLayout(phase !== "possessed");
+          deps.movementActionBtn.textContent = "POS";
+          deps.movementActionBtn.title = "Possess Bird";
+          deps.movementActionBtn.setAttribute("aria-label", "Possess bird");
+          deps.movementActionBtn.disabled = phase === "possessed" || candidateIndex < 0;
+          deps.movementActionBtn.classList.toggle("hidden", phase === "possessed");
         }
         return;
       }
       if (deps.movementStatusEtaEl) {
-        deps.movementStatusEtaEl.textContent = `Radius: ${Math.max(0, Math.round(Number(activitySnapshot.radius) || 0))}`;
+        if (activitySnapshot.resourceId) {
+          deps.movementStatusEtaEl.textContent = "";
+        } else {
+          deps.movementStatusEtaEl.textContent = "";
+        }
       }
       if (deps.movementStatusDetailEl) {
-        const steps = Math.max(0, Math.round(Number(activitySnapshot.stepsTaken) || 0));
-        const visited = Math.max(0, Math.round(Number(activitySnapshot.visitedCount) || 0));
         const found = Math.max(0, Math.round(Number(activitySnapshot.foundCount) || 0));
-        deps.movementStatusDetailEl.textContent = `Steps: ${steps} | Visited: ${visited} | Plants: ${found}`;
-      }
-      if (deps.movementCancelBtn) {
-        deps.movementCancelBtn.textContent = activitySnapshot.type === "gathering" ? "Stop Gathering" : "Stop Activity";
+        deps.movementStatusDetailEl.textContent = found > 0 ? `Found: ${found}` : "";
       }
       return;
     }
     if (!movementSnapshot || !movementSnapshot.active) {
+      if (typeof deps.getInteractionMode === "function" && deps.getInteractionMode() === "pathfinding") {
+        updateTravelPreviewPanel();
+        return;
+      }
       setMovementPanelVisible(false);
       return;
     }
     if (deps.movementStatusTitleEl) {
       deps.movementStatusTitleEl.textContent = "Player Moving";
     }
-    const etaSeconds = typeof deps.getMovementEtaSeconds === "function"
-      ? deps.getMovementEtaSeconds(movementSnapshot)
+    const durationHours = typeof deps.getMovementDurationHours === "function"
+      ? deps.getMovementDurationHours(movementSnapshot)
       : null;
-    const remainingTicks = Math.max(0, Math.round(Number(movementSnapshot.totalTicksRemaining || 0)));
-    const stepIndex = Math.max(0, Math.round(Number(movementSnapshot.currentStepIndex || 0))) + 1;
-    const queueLength = Math.max(0, Math.round(Number(movementSnapshot.queueLength || 0)));
     if (deps.movementStatusEtaEl) {
-      const etaLabel = etaSeconds == null ? "--" : formatEta(etaSeconds);
-      deps.movementStatusEtaEl.textContent = `Estimated arrival: ${etaLabel}`;
+      const durationLabel = durationHours == null ? "--" : formatGameDuration(durationHours);
+      deps.movementStatusEtaEl.textContent = `Travel time: ${durationLabel} hours`;
     }
     if (deps.movementStatusDetailEl) {
-      deps.movementStatusDetailEl.textContent = `Path: step ${stepIndex}/${queueLength}, ${remainingTicks} ticks remaining`;
-    }
-    if (deps.movementCancelBtn) {
-      deps.movementCancelBtn.textContent = "Cancel Travel";
+      deps.movementStatusDetailEl.textContent = "";
     }
     setMovementPanelVisible(true);
   }
@@ -205,11 +369,15 @@ export function createInfoPanelRuntime(deps) {
 
     const metrics = deps.getCurrentPathMetrics();
     if (activitySnapshot && activitySnapshot.active) {
-      const nextPathInfo = activitySnapshot.type === "gathering"
-        ? `Gathering: steps ${activitySnapshot.stepsTaken} | visited ${activitySnapshot.visitedCount} | plants ${activitySnapshot.foundCount}`
+      const nextPathInfo = activitySnapshot.type === "gathering" || activitySnapshot.resourceId
+        ? `${activitySnapshot.label || "Gathering"}: steps ${activitySnapshot.stepsTaken} | visited ${activitySnapshot.visitedCount} | found ${activitySnapshot.foundCount}`
         : (activitySnapshot.type === "inspect"
           ? `Inspect: (${activitySnapshot.inspectX ?? "--"}, ${activitySnapshot.inspectY ?? "--"})`
-          : `Activity: ${activitySnapshot.type}`);
+          : (activitySnapshot.type === "rest"
+            ? `Rest: ticks ${activitySnapshot.stepsTaken}`
+            : (activitySnapshot.type === "travel"
+              ? `Travel: steps ${activitySnapshot.stepsTaken}`
+              : `Activity: ${activitySnapshot.type}`)));
       if (deps.pathInfoEl.textContent !== nextPathInfo) {
         deps.pathInfoEl.textContent = nextPathInfo;
       }

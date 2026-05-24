@@ -18,22 +18,34 @@ export function joinFsPath(folder, fileName) {
   return `${base}/${fileName}`;
 }
 
+function encodeUrlPath(path) {
+  return String(path || "").split("/").map((segment) => {
+    try {
+      return encodeURIComponent(decodeURIComponent(segment));
+    } catch {
+      return encodeURIComponent(segment);
+    }
+  }).join("/");
+}
+
 export function buildMapAssetPath(folder, fileName) {
   const base = String(folder || "").replace(/[\\/]+$/, "");
   if (base.startsWith("file://")) {
-    return `${base}/${fileName}`;
+    return `${base}/${encodeURIComponent(fileName)}`;
   }
   if (isAbsoluteFsPath(base)) {
     const normalized = base.replace(/\\/g, "/");
     if (/^[a-zA-Z]:\//.test(normalized)) {
-      return `file:///${encodeURI(normalized)}/${fileName}`;
+      return `file:///${encodeURI(normalized)}/${encodeURIComponent(fileName)}`;
     }
     if (normalized.startsWith("//")) {
-      return `file:${encodeURI(normalized)}/${fileName}`;
+      return `file:${encodeURI(normalized)}/${encodeURIComponent(fileName)}`;
     }
-    return `file://${encodeURI(normalized)}/${fileName}`;
+    return `file://${encodeURI(normalized)}/${encodeURIComponent(fileName)}`;
   }
-  return `${base}/${fileName}`;
+  const relativePath = `${base}/${fileName}`;
+  const urlPath = relativePath.startsWith(".") ? relativePath : `./${relativePath}`;
+  return encodeUrlPath(urlPath);
 }
 
 export function toAbsoluteFileUrl(path) {

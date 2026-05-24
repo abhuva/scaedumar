@@ -17,11 +17,6 @@ export function createGameplayBootstrapState() {
     stats: { ...defaultPlayer.stats },
   };
 
-  const movePreviewState = {
-    hoverPixel: null,
-    pathPixels: [],
-  };
-
   const swarmState = {
     x: new Float32Array(0),
     y: new Float32Array(0),
@@ -29,6 +24,8 @@ export function createGameplayBootstrapState() {
     vx: new Float32Array(0),
     vy: new Float32Array(0),
     vz: new Float32Array(0),
+    agentId: new Uint32Array(0),
+    nextAgentId: 1,
     speedScale: new Float32Array(0),
     steerScale: new Float32Array(0),
     isResting: new Uint8Array(0),
@@ -91,7 +88,6 @@ export function createGameplayBootstrapState() {
   return {
     defaultPlayer,
     playerState,
-    movePreviewState,
     swarmState,
     swarmRenderState,
     swarmCursorState,

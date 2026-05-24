@@ -3,6 +3,9 @@ export function createStatusRuntime(deps) {
     if (deps && deps.statusEl) {
       deps.statusEl.textContent = text;
     }
+    if (deps && deps.titleStatusEl) {
+      deps.titleStatusEl.textContent = text;
+    }
   }
 
   return {

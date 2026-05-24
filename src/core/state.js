@@ -1,5 +1,11 @@
 const DEFAULT_CYCLE_HOUR = 9.5;
 
+function cloneDefault(value) {
+  return typeof structuredClone === "function"
+    ? structuredClone(value)
+    : JSON.parse(JSON.stringify(value));
+}
+
 const DEFAULT_WEATHER_STATE = {
   type: "clear",
   intensity: 0,
@@ -56,7 +62,7 @@ export const DEFAULT_GAMEPLAY_MOVEMENT = {
 
 export const DEFAULT_GAMEPLAY_ACTIVITY = {
   active: false,
-  type: "none",
+  type: "idle",
   originX: 0,
   originY: 0,
   radius: 0,
@@ -68,6 +74,49 @@ export const DEFAULT_GAMEPLAY_ACTIVITY = {
   inspectY: null,
   inspectHeight: null,
   inspectSlope: null,
+  inspectResources: [],
+  resourceId: "",
+  lastResourceValue: null,
+  lastSearchChance: null,
+};
+
+export const DEFAULT_GAMEPLAY_INVENTORY = {
+  playerContainerId: "player_pack",
+  playerContainer: {
+    id: "player_pack",
+    owner: "player",
+    type: "personal",
+    slots: [],
+    maxWeight: 25,
+    maxBulk: 40,
+  },
+  playerCapacity: {
+    weight: 0,
+    bulk: 0,
+    maxWeight: 25,
+    maxBulk: 40,
+  },
+  openContainerId: null,
+  openContainer: null,
+  openCapacity: null,
+  selected: null,
+  bundles: [],
+};
+
+export const DEFAULT_GAMEPLAY_CONDITION = {
+  nutrition: 65,
+  hydration: 70,
+  fatigue: 5,
+  loadWeight: 0,
+  loadBulk: 0,
+  load: 0,
+  activeEffects: [],
+  modifiers: {
+    movementCostMultiplier: 1,
+    fatigueGainMultiplier: 1,
+    recoveryMultiplier: 1,
+    activityCostMultiplier: 1,
+  },
 };
 
 export const DEFAULT_GAMEPLAY_POINT_LIGHTS = {
@@ -148,7 +197,9 @@ export function createInitialState() {
       pointLights: { ...DEFAULT_GAMEPLAY_POINT_LIGHTS },
       swarm: { ...DEFAULT_GAMEPLAY_SWARM },
       movement: { ...DEFAULT_GAMEPLAY_MOVEMENT },
-      activity: { ...DEFAULT_GAMEPLAY_ACTIVITY },
+      activity: cloneDefault(DEFAULT_GAMEPLAY_ACTIVITY),
+      inventory: cloneDefault(DEFAULT_GAMEPLAY_INVENTORY),
+      condition: cloneDefault(DEFAULT_GAMEPLAY_CONDITION),
     },
     ui: {
       cycleHour: DEFAULT_CYCLE_HOUR,

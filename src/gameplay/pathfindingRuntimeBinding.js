@@ -16,6 +16,7 @@ export function createPathfindingRuntimeBinding(deps) {
 
   const pathfindingPreviewRuntime = createPathfindingPreviewRuntime({
     movementWindowBounds: () => pathfindingCostModel.movementWindowBounds(),
+    getPathfindingRangeRadius: () => pathfindingCostModel.pathfindingRangeRadius(),
     computeMoveStepCost: (fromX, fromY, toX, toY, moveCostContext = null) =>
       pathfindingCostModel.computeMoveStepCost(fromX, fromY, toX, toY, moveCostContext),
     playerState: deps.playerState,
@@ -23,7 +24,7 @@ export function createPathfindingRuntimeBinding(deps) {
     setMovementField: (value) => {
       movementField = value;
     },
-    movePreviewState: deps.movePreviewState,
+    travelPlanningRuntime: deps.travelPlanningRuntime,
     getInteractionModeSnapshot: deps.getInteractionModeSnapshot,
     requestOverlayDraw: deps.requestOverlayDraw,
     clientToNdc: deps.clientToNdc,
@@ -36,6 +37,7 @@ export function createPathfindingRuntimeBinding(deps) {
     getGrayAt: (imageData, x, y, sourceWidth, sourceHeight) =>
       pathfindingCostModel.getGrayAt(imageData, x, y, sourceWidth, sourceHeight),
     movementWindowBounds: () => pathfindingCostModel.movementWindowBounds(),
+    pathfindingRangeRadius: () => pathfindingCostModel.pathfindingRangeRadius(),
     createMoveCostContext: () => pathfindingCostModel.createMoveCostContext(),
     computeMoveStepCost: (fromX, fromY, toX, toY, moveCostContext = null) =>
       pathfindingCostModel.computeMoveStepCost(fromX, fromY, toX, toY, moveCostContext),

@@ -6,6 +6,7 @@ import { createMapBootstrap } from "./mapBootstrap.js";
 export function createMapLifecycleRuntime(deps) {
   let currentMapFolderPath = deps.defaultMapFolder;
   let mapRuntimeState = null;
+  let hasLoadedMap = false;
 
   function getCurrentMapFolderPath() {
     return currentMapFolderPath;
@@ -64,6 +65,8 @@ export function createMapLifecycleRuntime(deps) {
     applyDetailSettings: deps.applyDetailSettings,
     applyCameraSettings: deps.applyCameraSettings,
     applyAudioSettings: deps.applyAudioSettings,
+    applyResourceDebugSettings: deps.applyResourceDebugSettings,
+    applyResourceStockSettings: deps.applyResourceStockSettings,
     applySwarmData: deps.applySwarmData,
     applyLoadedNpc: deps.applyLoadedNpc,
     getFileFromFolderSelection: deps.getFileFromFolderSelection,
@@ -83,7 +86,19 @@ export function createMapLifecycleRuntime(deps) {
     resetMapRuntimeStateAfterImages: () => getMapRuntimeState().resetMapRuntimeStateAfterImages(),
     rebuildMovementField: deps.rebuildMovementField,
     setStatus: deps.setStatus,
+    getRequiredGameplayMapFiles: deps.getRequiredGameplayMapFiles,
+    onMapLoaded: deps.onMapLoaded,
   });
+
+  async function loadMapFromPath(mapFolderPath) {
+    await mapLoadingRuntime.loadMapFromPath(mapFolderPath);
+    hasLoadedMap = true;
+  }
+
+  async function loadMapFromFolderSelection(fileList) {
+    await mapLoadingRuntime.loadMapFromFolderSelection(fileList);
+    hasLoadedMap = true;
+  }
 
   const mapDataSaveRuntime = createMapDataSaveRuntime({
     serializePointLights: deps.serializePointLights,
@@ -96,6 +111,8 @@ export function createMapLifecycleRuntime(deps) {
     serializeDetailSettings: deps.serializeDetailSettings,
     serializeCameraSettings: deps.serializeCameraSettings,
     serializeAudioSettings: deps.serializeAudioSettings,
+    serializeResourceDebugSettings: deps.serializeResourceDebugSettings,
+    serializeResourceStockSettings: deps.serializeResourceStockSettings,
     serializeSwarmData: deps.serializeSwarmData,
     serializeNpcState: deps.serializeNpcState,
     normalizeMapFolderPath: deps.normalizeMapFolderPath,
@@ -112,7 +129,7 @@ export function createMapLifecycleRuntime(deps) {
 
   const mapBootstrap = createMapBootstrap({
     defaultMapFolderCandidates: deps.defaultMapFolderCandidates,
-    loadMapFromPath: (mapFolderPath) => mapLoadingRuntime.loadMapFromPath(mapFolderPath),
+    loadMapFromPath,
     setStatus: deps.setStatus,
   });
 
@@ -125,8 +142,9 @@ export function createMapLifecycleRuntime(deps) {
     createMapDataFileTexts: () => mapDataSaveRuntime.createMapDataFileTexts(),
     downloadTextFile: (fileName, text) => mapDataSaveRuntime.downloadTextFile(fileName, text),
     saveAllMapDataFiles: () => mapDataSaveRuntime.saveAllMapDataFiles(),
-    loadMapFromPath: (mapFolderPath) => mapLoadingRuntime.loadMapFromPath(mapFolderPath),
-    loadMapFromFolderSelection: (fileList) => mapLoadingRuntime.loadMapFromFolderSelection(fileList),
+    hasLoadedMap: () => hasLoadedMap,
+    loadMapFromPath,
+    loadMapFromFolderSelection,
     tryAutoLoadDefaultMap: () => mapBootstrap.tryAutoLoadDefaultMap(),
   };
 }

@@ -842,8 +842,7 @@ export function registerMainCommands(commandBus, deps) {
       deps.clearCursorLightPointerState();
     }
     if (deps.getInteractionMode() === "pathfinding") {
-      deps.movePreviewState.hoverPixel = null;
-      deps.movePreviewState.pathPixels = [];
+      deps.travelPlanningRuntime.clearPreview("canvas-leave");
     }
     deps.requestOverlayDraw();
   });

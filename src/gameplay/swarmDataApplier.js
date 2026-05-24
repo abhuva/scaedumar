@@ -33,6 +33,9 @@ export function createSwarmDataApplier(deps) {
           deps.swarmState.vx[i] = Number.isFinite(Number(state.vx && state.vx[i])) ? Number(state.vx[i]) : 0;
           deps.swarmState.vy[i] = Number.isFinite(Number(state.vy && state.vy[i])) ? Number(state.vy[i]) : 0;
           deps.swarmState.vz[i] = Number.isFinite(Number(state.vz && state.vz[i])) ? Number(state.vz[i]) : 0;
+          deps.swarmState.agentId[i] = Number.isFinite(Number(state.agentId && state.agentId[i])) && Number(state.agentId[i]) > 0
+            ? Math.round(Number(state.agentId[i]))
+            : i + 1;
           deps.swarmState.speedScale[i] = deps.clamp(Number.isFinite(Number(state.speedScale && state.speedScale[i])) ? Number(state.speedScale[i]) : 1, 0.5, 1.5);
           deps.swarmState.steerScale[i] = deps.clamp(Number.isFinite(Number(state.steerScale && state.steerScale[i])) ? Number(state.steerScale[i]) : 1, 0.5, 1.5);
           deps.swarmState.isResting[i] = Number(state.isResting && state.isResting[i]) ? 1 : 0;
@@ -44,6 +47,8 @@ export function createSwarmDataApplier(deps) {
           deps.swarmState.hawkKillIntervalSum = Math.max(0, Number(state.hawkKillIntervalSum) || 0);
           deps.swarmState.hawkKillCount = Math.max(0, Math.round(Number(state.hawkKillCount) || 0));
           deps.swarmState.breedingActive = Boolean(state.breedingActive);
+          const maxAgentId = deps.swarmState.agentId.reduce((max, value) => Math.max(max, value), 0);
+          deps.swarmState.nextAgentId = Math.max(maxAgentId + 1, Math.round(Number(state.nextAgentId) || 1));
           deps.swarmState.hawks = [];
           const hawks = Array.isArray(state.hawks) ? state.hawks : [];
           if (settings.useHawk) {

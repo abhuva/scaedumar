@@ -1,0 +1,137 @@
+{
+  "version": 1,
+  "activeLayer": "plants",
+  "discovery": {
+    "gridSize": 256,
+    "movementRevealRadius": 30,
+    "showMaskOverlay": false,
+    "maskOverlayOpacity": 1,
+    "decay": {
+      "enabled": true,
+      "intervalTicks": 103,
+      "amount": 1
+    }
+  },
+  "layers": {
+    "water": {
+      "renderMode": "marching",
+      "sampleStep": 4,
+      "knowledgeThreshold": 0.61,
+      "lineWidth": 0.25,
+      "bandWidth": 0.018,
+      "tintColor": "#63d6f0",
+      "bands": [
+        {
+          "enabled": true,
+          "threshold": 0.2
+        },
+        {
+          "enabled": true,
+          "threshold": 0.35
+        },
+        {
+          "enabled": true,
+          "threshold": 0.5
+        },
+        {
+          "enabled": true,
+          "threshold": 0.72
+        },
+        {
+          "enabled": true,
+          "threshold": 0.9
+        }
+      ]
+    },
+    "plants": {
+      "renderMode": "marching",
+      "sampleStep": 8,
+      "knowledgeThreshold": 0.25,
+      "lineWidth": 1.25,
+      "bandWidth": 0.018,
+      "tintColor": "#7ddc84",
+      "bands": [
+        {
+          "enabled": true,
+          "threshold": 0.2
+        },
+        {
+          "enabled": true,
+          "threshold": 0.35
+        },
+        {
+          "enabled": true,
+          "threshold": 0.5
+        },
+        {
+          "enabled": true,
+          "threshold": 0.65
+        },
+        {
+          "enabled": true,
+          "threshold": 0.8
+        }
+      ]
+    },
+    "height": {
+      "renderMode": "marching",
+      "sampleStep": 8,
+      "knowledgeThreshold": 0.6,
+      "lineWidth": 4,
+      "bandWidth": 0.002,
+      "tintColor": "#ff0000",
+      "bands": [
+        {
+          "enabled": true,
+          "threshold": 0.24
+        },
+        {
+          "enabled": true,
+          "threshold": 0.3
+        },
+        {
+          "enabled": true,
+          "threshold": 0.42
+        },
+        {
+          "enabled": true,
+          "threshold": 0.48
+        },
+        {
+          "enabled": true,
+          "threshold": 0.54
+        }
+      ]
+    },
+    "slope": {
+      "renderMode": "marching",
+      "sampleStep": 8,
+      "knowledgeThreshold": 0.59,
+      "lineWidth": 1.25,
+      "bandWidth": 0.018,
+      "tintColor": "#ff0000",
+      "bands": [
+        {
+          "enabled": false,
+          "threshold": 0.2
+        },
+        {
+          "enabled": false,
+          "threshold": 0.35
+        },
+        {
+          "enabled": true,
+          "threshold": 0.55
+        },
+        {
+          "enabled": false,
+          "threshold": 0.65
+        },
+        {
+          "enabled": true,
+          "threshold": 0.75
+        }
+      ]
+    }
+  }
+}

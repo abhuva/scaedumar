@@ -264,6 +264,32 @@ export function patchActivityState(deps) {
   }));
 }
 
+export function patchInventoryState(deps) {
+  deps.store.update((prev) => ({
+    ...prev,
+    gameplay: {
+      ...prev.gameplay,
+      inventory: {
+        ...(prev.gameplay && prev.gameplay.inventory ? prev.gameplay.inventory : {}),
+        ...(deps.patch || {}),
+      },
+    },
+  }));
+}
+
+export function patchConditionState(deps) {
+  deps.store.update((prev) => ({
+    ...prev,
+    gameplay: {
+      ...prev.gameplay,
+      condition: {
+        ...(prev.gameplay && prev.gameplay.condition ? prev.gameplay.condition : {}),
+        ...(deps.patch || {}),
+      },
+    },
+  }));
+}
+
 export function syncSwarmFollowState(deps) {
   const runtimeSwarm = deps.getSwarmRuntimeStateSnapshot();
   deps.store.update((prev) => ({

@@ -1,0 +1,82 @@
+{
+  "plant_fiber": {
+    "id": "plant_fiber",
+    "name": "Plant Fiber",
+    "icon": "assets/items/plant_fiber.png",
+    "description": "Tough fibers useful for cordage, binding, and simple repairs.",
+    "stackable": true,
+    "maxStack": 30,
+    "weight": 0.05,
+    "bulk": 0.15,
+    "tags": ["fiber", "crafting", "plant"]
+  },
+  "medicinal_herb": {
+    "id": "medicinal_herb",
+    "name": "Medicinal Herb",
+    "icon": "assets/items/medicinal_herb.png",
+    "description": "A useful herb. It is not directly usable until medicine actions exist.",
+    "stackable": true,
+    "maxStack": 12,
+    "weight": 0.03,
+    "bulk": 0.08,
+    "tags": ["medicine", "plant"]
+  },
+  "berries": {
+    "id": "berries",
+    "name": "Berries",
+    "icon": "assets/items/berries.png",
+    "description": "A small handful of edible berries. Restores a little food and moisture.",
+    "stackable": true,
+    "maxStack": 20,
+    "weight": 0.08,
+    "bulk": 0.12,
+    "tags": ["food", "plant"],
+    "use": {
+      "label": "Eat",
+      "effects": {
+        "nutrition": 6,
+        "hydration": 3
+      }
+    }
+  },
+  "water_skin": {
+    "id": "water_skin",
+    "name": "Waterskin",
+    "icon": "assets/items/water_skin.png",
+    "description": "A refillable carried water container. Each filled portion restores a small amount of hydration.",
+    "stackable": true,
+    "maxStack": 40,
+    "keepWhenEmpty": true,
+    "weight": 0.25,
+    "bulk": 0.02,
+    "tags": ["water", "drink", "water_container"],
+    "use": {
+      "label": "Drink",
+      "effects": {
+        "hydration": 5
+      }
+    }
+  },
+  "dry_wood": {
+    "id": "dry_wood",
+    "name": "Dry Wood",
+    "icon": "assets/items/dry_wood.png",
+    "description": "Dry fuel for fire, camp, and crafting systems.",
+    "stackable": true,
+    "maxStack": 20,
+    "weight": 0.4,
+    "bulk": 1,
+    "tags": ["fuel", "wood"]
+  },
+  "raw_meat": {
+    "id": "raw_meat",
+    "name": "Raw Meat",
+    "icon": "assets/items/raw_meat.png",
+    "description": "Fresh raw meat. It should be cooked or preserved later.",
+    "stackable": true,
+    "maxStack": 10,
+    "weight": 0.6,
+    "bulk": 0.5,
+    "tags": ["food", "meat"]
+  }
+}

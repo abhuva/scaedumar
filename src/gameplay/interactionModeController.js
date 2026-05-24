@@ -5,8 +5,11 @@ export function setInteractionMode(deps, mode) {
   const nextMode = deps.canUseInteractionInCurrentMode(requestedMode) ? requestedMode : "none";
   deps.syncInteractionModeUi(nextMode);
   if (nextMode !== "pathfinding") {
-    deps.movePreviewState.hoverPixel = null;
-    deps.movePreviewState.pathPixels = [];
+    try {
+      deps.travelPlanningRuntime?.clearPreview?.("interaction-mode", { emit: false });
+    } catch (error) {
+      console.error("Failed clearing travel preview for interaction mode:", error);
+    }
   }
   setInteractionModeState({
     store: deps.store,

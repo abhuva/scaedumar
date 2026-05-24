@@ -1,0 +1,34 @@
+{
+  "timeOfDay": {
+    "dayRevealMultiplier": 1.0,
+    "nightRevealMultiplier": 0.4
+  },
+  "maps": {
+    "water": {
+      "decay": {
+        "enabled": true,
+        "intervalTicks": 500,
+        "amount": 1
+      }
+    },
+    "plants": {
+      "decay": {
+        "enabled": true,
+        "intervalTicks": 500,
+        "amount": 1
+      }
+    }
+  },
+  "scout": {
+    "scanRadius": 30,
+    "revealRadius": 40,
+    "camera": {
+      "speedZoomEnabled": true,
+      "zoomIn": 35,
+      "zoomOut": 12,
+      "speedForZoomOut": 120,
+      "speedSmoothing": 0.08,
+      "zoomSmoothing": 0.10
+    }
+  }
+}

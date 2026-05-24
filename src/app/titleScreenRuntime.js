@@ -11,15 +11,34 @@ export function createTitleScreenRuntime(deps) {
     deps.bodyEl.classList.toggle("runtime-gameplay", mode === "gameplay");
   }
 
-  function startMode(mode) {
+  let starting = false;
+
+  async function startMode(mode) {
+    if (starting) return;
+    starting = true;
     const nextMode = validModes.has(mode) ? mode : "dev";
-    deps.dispatchCoreCommand({ type: "core/workspace/setActive", workspace: "map" });
-    deps.dispatchCoreCommand({ type: "core/setMode", mode: nextMode });
-    deps.setActiveTopic("");
-    deps.updateModeCapabilitiesUi();
-    setRuntimeModeClass(nextMode);
-    setTitleVisible(false);
-    deps.setStatus(nextMode === "gameplay" ? "New game started." : "Dev mode started.");
+    try {
+      if (deps.readyPromise && typeof deps.readyPromise.then === "function") {
+        deps.setStatus("Loading map...");
+        await deps.readyPromise;
+      }
+      if (nextMode === "gameplay" && typeof deps.startNewGame === "function") {
+        deps.setStatus("Starting new game...");
+        await deps.startNewGame();
+      }
+      deps.dispatchCoreCommand({ type: "core/workspace/setActive", workspace: "map" });
+      deps.dispatchCoreCommand({ type: "core/setMode", mode: nextMode });
+      deps.setActiveTopic("");
+      deps.updateModeCapabilitiesUi();
+      setRuntimeModeClass(nextMode);
+      setTitleVisible(false);
+      deps.setStatus(nextMode === "gameplay" ? "New game started." : "Dev mode started.");
+    } catch (error) {
+      const message = error && error.message ? error.message : String(error);
+      deps.setStatus(`Failed to start ${nextMode === "gameplay" ? "new game" : "dev mode"}: ${message}`);
+    } finally {
+      starting = false;
+    }
   }
 
   function exitToTitle() {

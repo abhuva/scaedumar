@@ -23,6 +23,8 @@ export function createSwarmDataSerializer(deps) {
         vx: Array.from(deps.swarmState.vx),
         vy: Array.from(deps.swarmState.vy),
         vz: Array.from(deps.swarmState.vz),
+        agentId: Array.from(deps.swarmState.agentId || []),
+        nextAgentId: Math.max(1, Math.round(Number(deps.swarmState.nextAgentId) || 1)),
         speedScale: Array.from(deps.swarmState.speedScale),
         steerScale: Array.from(deps.swarmState.steerScale),
         isResting: Array.from(deps.swarmState.isResting),

@@ -65,6 +65,9 @@ export function setupRuntimeSystems(deps) {
   }
 
   deps.scheduler.addSystem(deps.movementSystem);
+  if (deps.activitySystem) {
+    deps.scheduler.addSystem(deps.activitySystem);
+  }
   deps.scheduler.initAll({ nowMs: 0, dtSec: 0 }, deps.getState());
   deps.syncMapStateToStore();
   deps.syncPlayerStateToStore();

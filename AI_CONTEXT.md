@@ -2,645 +2,200 @@
 
 ## Purpose
 
-This file is the fast handoff context for AI agents working on this repository.
-Use it before changing code.
+Fast handoff context for agents working in this repo. Read this before changing code.
 
 ## Product Intent
 
-Build a self-contained terrain rendering prototype from map textures:
-- splat/albedo map
-- normal map
-- height map for shadowing
+Self-contained prototype for top-down terrain rendering and survival-gameplay experiments from Gaea-exported maps. Runtime is browser-native HTML/JavaScript/WebGL2 with a Tauri desktop wrapper. No game engine.
 
-No game engine is used.
+## Current Architecture Baseline
 
-## Runtime Overview
+- Entry point: `index.html`.
+- Main integration surface: `src/main.js`.
+- Runtime code is modular and core-state-driven. New work should preserve owner modules and avoid rebuilding `main.js`-centric state paths.
+- Rendering is WebGL2 terrain plus 2D overlay canvas for gameplay markers.
+- Runtime change notifications use a small event layer:
+  - `src/core/eventBus.js` defines `createEventBus` and `RuntimeEvents`.
+  - `src/core/runtimeEventHandlers.js` centralizes refresh/invalidation fan-out.
+  - Events are for post-change UI/overlay/cache refresh only. Commands and runtime-owner APIs still own mutation, validation, and success/failure.
+- Command routing lives mainly in `src/core/registerMainCommands.js` and `src/gameplay/interactionCommands.js`.
+- Store-backed state and snapshots are preferred for UI/integration reads.
 
-- Entry point: `index.html`
-- Main implementation: `src/main.js`
-- Desktop wrapper: `src-tauri/` (Tauri v2)
-- Rendering backend: WebGL2 terrain pass + 2D overlay canvas for interaction markers
-- Gameplay scaffolding modules now exist under `src/gameplay/` (`entityStore`, `movementSystem`) and are scheduler-driven adapters around existing runtime behavior.
-- Interaction command routing is now extracted to `src/gameplay/interactionCommands.js` and composed into main command registration.
-- Point-light editor orchestration is now extracted to `src/gameplay/pointLightEditorController.js`, with draft state isolated in `src/gameplay/pointLightEditorState.js`.
-- Point-light selection wrappers (`getSelectedPointLight`, `clearLightEditSelection`, `setLightEditSelection`) are now extracted to `src/gameplay/pointLightSelectionRuntime.js`.
-- Point-light editor runtime bindings (`beginLightEdit`, `applyDraftToSelectedPointLight`, `rebakeIfPointLightLiveUpdateEnabled`, `findPointLightAtPixel`, `createPointLight`, `deletePointLightById`) are now extracted to `src/gameplay/pointLightEditorRuntime.js`.
-- Point-light draft-state binding helpers (has/set draft fields) are now extracted to `src/gameplay/pointLightDraftRuntime.js`.
-- Point-light save/load/confirmation I/O orchestration is now extracted to `src/gameplay/pointLightIoController.js`.
-- Point-light I/O runtime binding (controller composition + wrapper methods, including save-confirm armed-state access) is now extracted to `src/gameplay/pointLightIoRuntime.js`.
-- Point-light transient runtime composition (editor selection/draft state, editor actions, selection helpers, and IO composition) is now extracted to `src/gameplay/pointLightRuntime.js`.
-- Map-level JSON "Save All" file-generation/save orchestration is now extracted to `src/gameplay/mapDataSaveController.js`.
-- Map-sidecar JSON load/apply orchestration for URL/folder-selection paths is now extracted to `src/gameplay/mapSidecarLoader.js`.
-- Map-load orchestration for path/folder-selection flows is now extracted to `src/gameplay/mapLoader.js` and composed from `main.js`.
-- Map lifecycle composition (runtime-state binding, load/save runtime wiring, bootstrap/default-map auto-load) is now extracted to `src/gameplay/mapLifecycleRuntime.js`.
-- Swarm integration-step behavior is now extracted to `src/gameplay/swarmStep.js` and composed into the swarm update loop.
-- Swarm render interpolation state handling is now extracted to `src/gameplay/swarmInterpolation.js` and composed into follow/overlay/lit-swarm paths.
-- Swarm reseed/reset behavior is now extracted to `src/gameplay/swarmReseed.js` and composed from `main.js`.
-- Swarm target selection/follow targeting helpers are now extracted to `src/gameplay/swarmTargeting.js`.
-- Swarm terrain/water/flyability environment helpers are now extracted to `src/gameplay/swarmEnvironment.js`.
-- Cursor-light pointer-to-UV update ownership is now extracted to `src/gameplay/cursorLightPointerRuntime.js`.
-- Swarm-cursor pointer-to-map update ownership is now extracted to `src/gameplay/swarmCursorPointerRuntime.js`.
-- Swarm agent-buffer mutation ownership (`ensure`, `append`, `remove`, resting-bird spawn) is now extracted to `src/gameplay/swarmAgentStateMutator.js`.
-- Swarm-data hydration/apply orchestration (`swarm.json` settings+state+follow apply) is now extracted to `src/gameplay/swarmDataApplier.js`.
-- Swarm-data serialization for map save/load is now extracted to `src/gameplay/swarmDataSerializer.js`.
-- Swarm UI input normalization helpers are now extracted to `src/ui/swarmInputNormalization.js`.
-- Swarm panel UI reflection (labels, enable/disable state, follow button text, stats panel updates) is now extracted to `src/ui/swarmPanelUi.js`.
-- Swarm paired follow-zoom and min/max-height command normalization now resolves untouched paired values from canonical swarm settings in command handlers, not from sibling DOM inputs in bindings.
-- Swarm settings UI-apply reflection path is now extracted to `src/ui/swarmSettingsApplier.js`.
-- Interaction-sidecar serialization (`interaction.json`) is now extracted to `src/gameplay/interactionDataSerializer.js`.
-- Required DOM element lookup helpers (`getRequiredElementById`, `getRequiredElements`) are now extracted to `src/ui/domElementLookup.js`.
-- UI status text update helper (`setStatus`) is now extracted to `src/ui/statusRuntime.js`.
-- Interaction settings UI-apply reflection path is now extracted to `src/ui/interactionSettingsApplier.js`.
-- NPC persistence helpers (`serializeNpcState`, `parseNpcPlayer`, `applyLoadedNpc`) are now extracted to `src/gameplay/npcPersistence.js`.
-- Player-position clamp/apply helper (`setPlayerPosition`) is now extracted to `src/gameplay/playerStateRuntime.js`.
-- Lighting settings UI-apply reflection path is now extracted to `src/ui/lightingSettingsApplier.js`.
-- Render-FX settings UI-apply reflection paths (fog/cloud/water) are now extracted to `src/ui/renderFxSettingsApplier.js`.
-- Render-FX sidecar serialization helpers (lighting/fog/cloud/water) are now extracted to `src/gameplay/renderFxDataSerializer.js`.
-- Core map/player/point-light store sync helpers are now extracted to `src/gameplay/stateSync.js`.
-- Interaction state access helpers for cursor-light snapshot and point-light live-update are now extracted to `src/gameplay/interactionStateAccess.js`.
-- Swarm state access helpers for defaults/reset and enabled-state lookup are now extracted to `src/gameplay/swarmStateAccess.js`.
-- Runtime gameplay/state snapshot helpers for interaction mode, pathfinding settings, swarm cursor mode, and normalized swarm settings are now extracted to `src/gameplay/runtimeStateSnapshots.js`.
-- Interaction-mode snapshot runtime binding (`getInteractionModeSnapshot`) is now extracted to `src/gameplay/interactionModeSnapshotRuntime.js`.
-- Swarm runtime/store synchronization helpers are now extracted to `src/gameplay/swarmStoreSync.js`.
-- Swarm follow-state apply/stop controller logic is now extracted to `src/gameplay/swarmFollowStateController.js`.
-- Swarm follow/runtime store-sync composition (`applySwarmFollowState`, `stopSwarmFollow`, swarm runtime/store snapshot sync) is now extracted to `src/gameplay/swarmRuntime.js`.
-- Swarm follow runtime-state accessors for target indices/smoothing are now extracted to `src/gameplay/swarmFollowRuntimeState.js`.
-- Swarm interpolation/update/follow-camera loop composition is now extracted to `src/gameplay/swarmLoopRuntime.js`.
-- Canonical swarm follow ownership now includes `gameplay.swarm.followAgentIndex` / `followHawkIndex`; swarm follow runtime access resolves those from store-backed state.
-- Swarm gameplay composition for environment/targeting/mutator/reseed/data apply+serialize is now extracted to `src/gameplay/swarmGameplayRuntime.js`.
-- Swarm follow-camera smoothing reset helper (`resetSwarmFollowSpeedSmoothing`) is now extracted to `src/gameplay/swarmFollowSmoothingRuntime.js`.
-- Pathfinding movement-window and step-cost helpers are now extracted to `src/gameplay/pathfindingCostModel.js`.
-- Mode/topic capability UI orchestration is now extracted to `src/ui/modeCapabilitiesUi.js`.
-- Topic-panel runtime orchestration (`setTopicPanelVisible`, guarded `setActiveTopic`, `updateModeCapabilitiesUi`) is now extracted to `src/ui/topicPanelRuntime.js`.
-- Map-path/file-URL helper utilities are now extracted to `src/gameplay/mapPathUtils.js`.
-- Tauri runtime invoke/folder-picker/folder-validation helpers are now extracted to `src/gameplay/tauriRuntime.js`.
-- Map IO helpers for folder-selection file lookup and JSON load (Tauri+fetch fallback) are now extracted to `src/gameplay/mapIoHelpers.js`.
-- Time-routing/time-config state-access helpers are now extracted to `src/core/timeStateAccess.js`.
-- Applied-settings normalization/store-sync helpers (`normalizeAppliedSettings`, `updateStoreFromAppliedSettings`) are now extracted to `src/core/appliedSettingsStoreSync.js`.
-- Simulation-knob section state-access helper (`getSimulationKnobSectionFromStore`) is now extracted to `src/core/simulationKnobAccess.js`.
-- Settings-registry adapter helpers (`serializeSettingsByKey`, `applySettingsByKey`) are now extracted to `src/core/settingsRegistryAdapter.js`.
-- Settings-defaults access helper (`getSettingsDefaults`) is now extracted to `src/core/settingsDefaultsAccess.js`.
-- Color conversion helpers are now extracted to `src/core/colorUtils.js`.
-- Shared clamp/interpolation/hour-format helpers are now extracted to `src/core/mathUtils.js`.
-- Fallback map-image generation and image-data extraction helpers are now extracted to `src/render/fallbackMapImages.js`.
-- Default-map image initialization orchestration (fallback image creation/upload/size+image-data bootstrap) is now extracted to `src/render/defaultMapImageRuntime.js`.
-- Map-image apply/runtime-size/point-light-worker sync helpers are now extracted to `src/gameplay/mapImageRuntime.js`.
-- Point-light/cursor-light label update helpers are now extracted to `src/ui/lightLabelRuntime.js`.
-- Point-light editor UI orchestration (`updateLightEditorUi`) is now extracted to `src/ui/pointLightEditorRuntime.js`.
-- Cursor-light mode UI reflection helper (`updateCursorLightModeUi`) is now extracted to `src/ui/cursorLightModeUiRuntime.js`.
-- Sun keyframe interpolation model (`sampleSunAtHour`) is now extracted to `src/sim/sunModel.js`.
-- Map normal/height sampling helpers (`normalize3`, `sampleNormalAtMapPixel`, `sampleHeightAtMapPixel`, `sampleHeightAtMapCoord`) are now extracted to `src/gameplay/mapSampling.js`.
-- Shadow/occlusion helpers (`computeSwarmDirectionalShadow`, `hasLineOfSightToLight`) are now extracted to `src/gameplay/shadowOcclusion.js`.
-- Point-light bake canvas sizing and RGBA apply/upload helpers are now extracted to `src/render/pointLightBakeCanvasRuntime.js`.
-- Point-light bake-sync accumulation/occlusion/packing logic (`bakePointLightsTextureSync`) is now extracted to `src/render/pointLightBakeSync.js`.
-- Point-light worker + bake-orchestrator runtime wiring is now extracted to `src/render/pointLightBakeRuntime.js`.
-- Point-light bake runtime composition (worker access, sync-bake binding, canvas apply/upload, and public bake operations) is now extracted to `src/render/pointLightBakeRuntimeBinding.js`.
-- Cycle-hour slider/label UI helpers are now extracted to `src/ui/timeUiRuntime.js`.
-- Gameplay mode includes a top-center `gameTimeDiorama` HUD backed by
-  `src/ui/gameTimeDioramaRuntime.js`; it samples the active sun model to derive
-  sunrise/sunset, renders a stylized sun/moon arc, and exposes
-  `1x`/`5x`/`20x`/`100x` time-advance presets through the existing
-  `core/time/setCycleSpeed` command.
-- Runtime mode state-access helpers (`getRuntimeMode`, capability checks) are now extracted to `src/core/modeStateAccess.js`.
-- Runtime mode state runtime binding (`getRuntimeMode`, `canUseTopicInCurrentMode`, `canUseInteractionInCurrentMode`) is now extracted to `src/core/modeStateRuntimeBinding.js`.
-- App launch now starts behind a title-screen shell using
-  `assets/title-logo.jpg`.
-- Title actions enter `gameplay` ("new game") or `dev` mode; desktop builds
-  expose a Tauri-backed quit action.
-- A left-dock `Exit` button is available while running and returns to the
-  title screen without restarting the runtime.
-- Map runtime state helpers (`setCurrentMapFolderPath`, default-settings apply, map-reset, map-size-change apply) are now extracted to `src/gameplay/mapRuntimeState.js`.
-- Lighting parameter assembly logic (`computeLightingParams`) is now extracted to `src/sim/lightingParamsRuntime.js`.
-- Startup UI synchronization sequence is now extracted to `src/ui/startupUiSync.js`.
-- Map bootstrap/default-folder auto-load flow is now extracted to `src/gameplay/mapBootstrap.js`.
-- Map bootstrap/default-folder auto-load ownership is now handled by `src/gameplay/mapBootstrap.js` through `src/gameplay/mapLifecycleRuntime.js`.
-- Swarm unlit-overlay and gizmo drawing helpers are now extracted to `src/ui/swarmOverlayRuntime.js`.
-- Render-frame UI synchronization helpers (fog auto-color input + cycle info text) are now extracted to `src/render/frameUiRuntime.js`.
-- Weather-field render metadata update helper is now extracted to `src/render/weatherFieldRuntime.js`.
-- Render-frame swarm layer/state orchestration helper is now extracted to `src/render/frameSwarmRenderRuntime.js`.
-- Render-frame time/tick routing setup helper is now extracted to `src/render/frameTimeRuntime.js`.
-- Render-loop orchestration is now extracted to `src/render/frameRuntime.js` with `main.js` delegating via a thin wrapper.
-- Viewport/canvas resize helper is now extracted to `src/render/viewportRuntime.js`.
-- Cloud-noise generation + texture upload helpers are now extracted to `src/render/cloudNoiseRuntime.js`.
-- Shadow-target sizing/framebuffer attach and shadow-pass draw orchestration are now extracted to `src/render/shadowPipelineRuntime.js`.
-- WebGL shader/program/texture creation and image upload helpers are now extracted to `src/render/glResourceRuntime.js`.
-- Flow-map rebuild orchestration (`rebuildFlowMapTexture`) is now extracted to `src/render/flowMapRuntime.js`.
-- Pathfinding preview runtime helpers (movement-field rebuild, preview/path extraction, pointer preview update, path metrics) are now extracted to `src/gameplay/pathfindingPreviewRuntime.js`.
-- Pathfinding runtime composition (cost-model binding + preview runtime + movement-field ownership) is now extracted to `src/gameplay/pathfindingRuntimeBinding.js`.
-- Info-panel status composition/update logic is now extracted to `src/ui/infoPanelRuntime.js`.
-- Render-FX label/UI helper updates (`update*Label`/`update*Ui`) are now extracted to `src/ui/renderFxUiRuntime.js`.
-- Terrain, swarm, shadow, and blur shader source is now extracted to `src/render/shaders.js`.
-- Render-FX UI binding composition (label/UI wrapper methods) is now extracted to `src/ui/renderFxUiBindingRuntime.js`.
-- Pathfinding label updates now bind directly to `src/ui/pathfindingLabelUi.js` through app-level interaction setup.
-- Render-FX binding orchestration (`bindRenderFxControls` deps composition) is now extracted to `src/ui/renderFxBindingRuntime.js`.
-- Render-FX command handling now normalizes field-level command patches from canonical store-backed section state instead of rebuilding full section snapshots from sibling DOM inputs on every event.
-- Swarm-follow binding orchestration (`bindSwarmFollowControls` deps composition) is now extracted to `src/ui/swarmFollowBindingRuntime.js`.
-- Swarm-panel binding orchestration (`bindSwarmPanelControls` deps composition) is now extracted to `src/ui/swarmPanelBindingRuntime.js`.
-- Canvas binding orchestration (`bindCanvasControls` deps composition) is now extracted to `src/ui/canvasBindingRuntime.js`.
-- Runtime binding orchestration (`bindRuntimeControls` deps composition) is now extracted to `src/ui/runtimeBindingRuntime.js`.
-- Overlay-hooks composition (`createOverlayHooks` deps composition) is now extracted to `src/ui/overlays/overlayHooksRuntime.js`.
-- Overlay-drawer composition (`createOverlayDrawer` deps composition) is now extracted to `src/ui/overlays/overlayDrawerRuntime.js`.
-- Map-data save runtime composition (`createMapDataSaveController` deps composition) is now extracted to `src/gameplay/mapDataSaveRuntime.js`.
-- Map-loading runtime composition (`createMapSidecarLoader` + `createMapLoader` deps composition) is now extracted to `src/gameplay/mapLoadingRuntime.js`.
-- Map runtime state ownership now binds directly to `src/gameplay/mapRuntimeState.js` inside `src/gameplay/mapLifecycleRuntime.js`.
-- Time-state access is now composed directly inside `src/core/settingsCoreSetupRuntime.js` via `src/core/timeStateAccess.js`.
-- Frame UI synchronization now uses `src/render/frameUiRuntime.js` directly.
-- Tauri runtime invoke/folder-picker/folder-validation helpers are now extracted to `src/gameplay/tauriRuntime.js`.
-- Map-IO helper composition now uses `src/gameplay/mapIoHelpers.js` directly inside `src/gameplay/mapSupportRuntime.js`.
-- Map path/url helpers are now extracted to `src/gameplay/mapPathUtils.js`.
-- Settings-apply composition now lives directly inside `src/core/settingsCoreSetupRuntime.js`.
-- Settings runtime binding (canonical serialize/apply/default access for lighting/fog/cloud/water/interaction/swarm settings) is extracted to `src/core/settingsRuntimeBinding.js`.
-- Lazy settings compatibility wiring now lives directly inside `src/core/settingsCoreSetupRuntime.js`, so `main.js` no longer owns the long serialize/apply/get-defaults shim block inline.
-- Compatibility settings/UI composition (swarm/interaction/lighting/render-FX appliers plus JSON-compatible serializers) is extracted to `src/ui/settingsCompatRuntimeBinding.js`.
-- Render-FX command-side UI reflection is now grouped behind `src/ui/renderFxSettingsSyncRuntime.js` instead of being expanded inline inside `src/core/registerMainCommands.js`.
-- Swarm command-side panel reflection is now grouped behind `src/ui/swarmSettingsSyncRuntime.js`, and time-routing/cycle-speed/sim-tick input reflection is now grouped behind `src/ui/timeRoutingSettingsSyncRuntime.js`.
-- Scheduler/system registration plus initial runtime-store synchronization is now extracted to `src/core/runtimeSystemSetup.js`, so `main.js` no longer owns the full system-add/init block inline.
-- Scheduler-driven canonical store sync for time/lighting/fog/cloud/water/weather slices is now extracted to `src/core/systemStoreSyncRuntime.js` instead of remaining as inline update closures in `main.js`.
-- App startup orchestration for default-map auto-load error handling and startup UI/render kickoff is now extracted to `src/core/appStartupRuntime.js`.
-- Store-backed gameplay/runtime state accessors for swarm/pathfinding/cursor-light/point-light map sync are now grouped behind `src/gameplay/mainRuntimeStateBinding.js` instead of remaining as separate inline wrappers in `main.js`.
-- Swarm state/UI composition is now grouped behind `src/ui/swarmUiRuntimeBinding.js`, which composes main-runtime swarm state access, swarm panel reflection, swarm input normalization, and routing-input sync instead of leaving that integration block inline in `main.js`.
-- Bottom-of-file binding composition is now grouped behind `src/ui/mainBindingsRuntime.js` instead of leaving the full bind-* setup block inline in `main.js`.
-- Low-level GL/flow-map/shadow-pipeline/cloud-image support glue is now grouped behind `src/render/renderSupportRuntime.js` instead of remaining inline in `main.js`.
-- Map path/Tauri/image/sampling/shadow-occlusion support glue is now grouped behind `src/gameplay/mapSupportRuntime.js` instead of remaining inline in `main.js`.
-- Render resource/pass pipeline composition is now grouped behind `src/render/renderPipelineRuntime.js` instead of leaving renderer/pass assembly inline in `main.js`.
-- Swarm step/loop/overlay/lit-render composition is now grouped behind `src/gameplay/swarmRenderSetupRuntime.js` instead of leaving those setup blocks inline in `main.js`.
-- Movement-system player/movement snapshot store-sync ownership is now extracted to `src/gameplay/movementStoreSyncRuntime.js` instead of remaining as inline gameplay-store mutation closures in `main.js`.
-- Movement-system lifecycle hooks (`onMovementStarted`, `onStepStarted`, `onStepCompleted`, `onQueueCompleted`, `onMovementCanceled`) are now available so higher-level gameplay activities can own behavior while movement remains the generic step executor.
-- Gathering activity groundwork now lives in `src/gameplay/gatheringActivityRuntime.js` with store sync through `src/gameplay/activityStoreSyncRuntime.js`: starting gathering forces game time to `1x`, controls movement through repeated single-step queues, rolls a placeholder 5% plant chance on newly visited cells, and forces time back to `1x` when stopped.
-- Time/cycle-hour UI and lighting-params setup are now grouped behind `src/sim/timeLightingSetupRuntime.js` instead of leaving that setup block inline in `main.js`.
-- Interaction UI sync helpers are now grouped behind `src/ui/interactionUiSyncRuntime.js`, and command/controller paths no longer directly write:
-  - `pointLightLiveUpdateToggle.checked` in `registerMainCommands.js`
-  - `swarmFollowTargetInput.value` in `swarmFollowStateController.js`
-- Map-path UI reflection is now grouped behind `src/ui/mapPathUiSyncRuntime.js`, and startup/map-runtime paths no longer write `mapPathInput.value` directly.
-- Early time/settings setup assembly is now grouped behind `src/core/settingsCoreSetupRuntime.js`.
-- Overlay composition is now grouped behind `src/ui/overlaySetupRuntime.js`.
-- Point-light + map-lifecycle assembly is now grouped behind `src/app/mapLightingAssemblyRuntime.js`, which feeds `src/gameplay/mapLightingAssemblyRuntime.js`.
-- Settings compatibility/runtime assembly is now grouped behind `src/ui/settingsAssemblyRuntime.js`.
-- App-level bootstrap/dependency shaping now lives primarily under `src/app/`, including:
-  - `src/app/mainCommandAssemblyRuntime.js`
-  - `src/app/runtimeSystemsAssemblyRuntime.js`
-  - `src/app/interactionUiAssemblyRuntime.js`
-  - `src/app/renderShellAssemblyRuntime.js`
-  - `src/app/appShellLifecycleAssemblyRuntime.js`
-  - `src/app/mainBindingsLifecycleAssemblyRuntime.js`
-  - `src/app/swarmIntegrationAssemblyRuntime.js`
-  - `src/app/swarmUiAssemblyRuntime.js`
-  - `src/app/runtimeSupportAssemblyRuntime.js`
-  - `src/app/settingsCoreAssemblyRuntime.js`
-  - `src/app/runtimeFeatureAssemblyRuntime.js`
-  - `src/app/interactionFeatureAssemblyRuntime.js`
-  - `src/app/bootstrapFeatureAssemblyRuntime.js`
-- Migration-era wrapper modules have been deleted from active runtime paths; `main.js` now depends more directly on concrete runtime owners and app-level assembly modules.
-- Startup-order hazards exposed during the extraction were hardened by switching fragile eager dependencies to getter/lazy access patterns in the affected setup paths.
-- The JS architecture suite now covers the final ownership model and currently passes with `node --test`.
-  - point-light bake/setup composition
-  - point-light + map-lifecycle assembly
-  - light/mode interaction setup
-  - swarm runtime/render setup
-  - main command dependency assembly
-  - initial runtime-system sync wiring
-- Point-light bake operations now hang directly off `src/render/pointLightBakeRuntimeBinding.js`; the old point-light bake wrapper layer has been removed.
-- Compatibility settings dependency assembly is handled by `src/ui/settingsAssemblyRuntime.js` together with `src/ui/settingsCompatRuntimeBinding.js`.
-- Render-pipeline composition is now handled directly by `src/render/renderPipelineRuntime.js`, with the top-level dependency shaping moved into `src/app/runtimeFeatureAssemblyRuntime.js`.
-- Gameplay bootstrap state objects/scratch buffers are now grouped behind `src/gameplay/gameplayBootstrapState.js` instead of leaving that large live-state block inline in `main.js`.
-- Render/bootstrap resource allocation is now grouped behind `src/render/renderBootstrapState.js` instead of leaving that allocation block inline in `main.js`.
-- Map-image, map-sampling, and shadow-occlusion composition now bind directly to:
-  - `src/gameplay/mapImageRuntime.js`
-  - `src/gameplay/mapSampling.js`
-  - `src/gameplay/shadowOcclusion.js`
-  via `src/gameplay/mapSupportRuntime.js`.
-- Light-label runtime composition is now handled directly by `src/ui/lightLabelRuntime.js`.
-- Cursor-light-mode UI reflection is now handled directly by `src/ui/cursorLightModeUiRuntime.js`.
-- Mode/topic runtime binding composition (`createModeStateRuntimeBinding` + `createModeCapabilitiesUi` + `createTopicPanelRuntime`) is now extracted to `src/ui/modeTopicRuntimeBinding.js`.
-- Mode/interaction runtime composition (mode-topic binding plus interaction-mode snapshot wrapper methods) is now extracted to `src/ui/modeInteractionRuntimeBinding.js`.
-- Light interaction runtime composition (cursor-light state/pointer/ui plus point-light editor UI/action wrapper methods) is now extracted to `src/gameplay/lightInteractionRuntimeBinding.js`.
-- Optional map sidecar URL loads now treat missing JSON files as expected/quiet while still warning on malformed JSON or unexpected load failures; browser startup favicon noise is removed via `assets/favicon.svg`.
-- Camera-view binding runtime composition (`createCameraViewRuntime` deps composition + wrapper methods) is now extracted to `src/gameplay/cameraViewRuntimeBinding.js`.
-- Camera runtime composition (camera-view binding plus coordinate/camera transform wrapper methods) is now extracted to `src/gameplay/cameraRuntimeBinding.js`.
-- Startup ordering hardening from the extraction is complete for the current architecture; early startup paths use lazy accessors where dependencies are intentionally late-bound.
-- Pathfinding command-side UI reflection is now routed through `src/ui/pathfindingSettingsApplier.js` instead of direct DOM writes inside `src/gameplay/interactionCommands.js`.
-- Player runtime composition (player-state binding, NPC persistence, and player store-sync wrapper methods) is now extracted to `src/gameplay/playerRuntimeBinding.js`.
-- `main.js` no longer keeps separate pass-through wrapper functions for player/NPC persistence or swarm-follow snapshot/smoothing; those call sites now bind directly to the existing runtime methods.
-- Pathfinding cost-model, point-light-editor UI/actions, lighting params, time UI, GL resource, flow-map, and shadow-pipeline composition now bind directly to their concrete owner modules rather than intermediate binding-runtime wrappers.
-- Swarm overlay drawing ownership (`createSwarmOverlayRuntime`) is now extracted to `src/ui/swarmOverlayRuntime.js`.
-- Camera/coordinate transform helpers (camera state, view extents, world/uv/map/screen conversions) are now extracted to `src/gameplay/cameraTransforms.js`.
-- Camera view/command helpers (`resetCamera`, `getScreenAspect`, `getMapAspect`) are now extracted to `src/gameplay/cameraViewRuntime.js`.
-- Pathfinding label helper updates are now extracted to `src/ui/pathfindingLabelUi.js`.
-- Interaction-mode apply/toggle controller logic is now extracted to `src/gameplay/interactionModeController.js`.
-- Interaction-mode runtime binding (`setInteractionMode` deps composition) is now extracted to `src/gameplay/interactionModeRuntime.js`.
-- Overlay/gameplay frame integration now goes through `src/ui/overlays/overlayHooks.js` (gameplay update hook + overlay render hook).
-- Overlay animation gating policy (`shouldAnimateOverlay`) is now extracted to `src/ui/overlays/overlayAnimationRuntime.js`.
-- Overlay dirty-flag state ownership is now extracted to `src/ui/overlays/overlayDirtyRuntime.js`.
-- The old per-frame `frameSnapshot` / `runtimeParityAdapter` migration layer has been removed.
-- Core state is now updated through command handlers, settings apply flows, bootstrap/map-load synchronization, and scheduler-owned system updates.
-- Camera commands (`reset`, `zoomAtClient`, `dragToClient`, `setPose`) now commit canonical camera pose in store first and then apply a runtime camera adapter.
-- Frame render camera inputs now resolve from canonical `coreState.camera` defaults (not local runtime-camera fallbacks) across frame-state assembly and uniform upload.
-- Local runtime camera mirror state (`panWorld`/`zoom`) has been removed; camera ownership is canonical store state.
-- Migration is complete:
-  - active time/render FX/pathfinding/swarm settings prefer core state
-  - cycle-hour/time-of-day authority is held in core store `ui.cycleHour`
-  - UI/apply helpers that touch DOM are compatibility/reflection paths, not runtime truth
-- Settings UI: left vertical topic-icon dock + single side panel (one topic open at a time)
-  - Mode toggles: `LM` and `PF` (note: `AS` is a topic button that opens the Agent Swarm panel in `index.html`, not a mode toggle)
-  - Audio is a top-level workspace, not a map topic; the workspace switcher exposes `Map` and `Audio`.
-  - Runtime mode capability gating is now active (`dev`/`gameplay`/`hybrid`) for topic buttons + interaction mode toggles.
-- Map bundle auto-load tries these folders in order:
-  - `assets/Map 3/`
-  - `assets/`
-- Required PNG names in each candidate folder:
-  - `splat.png`
-  - `normals.png`
-  - `height.png`
-  - `slope.png`
-  - `water.png`
-  - optional `flow.png` (`R/G = signed XY direction by default`, neutral `128/128`)
-- Optional sidecar JSON files in each candidate folder:
-  - `pointlights.json`
-  - `lighting.json`
-  - `interaction.json`
-  - `fog.json`
-  - `clouds.json`
-  - `waterfx.json`
-  - `watertrails.json`
-  - `detail.json`
-  - `camera.json`
-  - `audio.json`
-  - `swarm.json`
-  - `npc.json`
-- `Load Map` topic supports loading by folder path or folder picker (map bundle semantics)
-- Desktop map-load behavior:
-  - If map path input is empty in Tauri runtime, `Load` opens native folder picker.
-  - Absolute filesystem map paths are validated (`splat.png`, `normals.png`, `height.png`, `slope.png`, `water.png`) before load.
-- Desktop JSON I/O behavior:
-  - Tauri commands currently exposed:
-    - `save_json_file(path, content)`
-    - `load_json_file(path)`
-    - `validate_map_folder(path)`
-    - `pick_map_folder()`
-  - Save/load prefers Tauri commands in desktop runtime, with browser fallback path when native command flow fails.
+## Important Runtime Owners
 
-## Current Lighting Model
+- Map lifecycle/load/save:
+  - `src/gameplay/mapLifecycleRuntime.js`
+  - `src/gameplay/mapLoader.js`
+  - `src/gameplay/mapSidecarLoader.js`
+  - `src/gameplay/mapDataSaveRuntime.js`
+  - `src/gameplay/mapDataSaveController.js`
+- Pathfinding/travel:
+  - `src/gameplay/pathfindingCostModel.js`: movement cost model.
+  - `src/gameplay/pathfindingPreviewRuntime.js`: Dijkstra preview and hover path extraction.
+  - `src/gameplay/pathfindingRuntimeBinding.js`: pathfinding composition.
+  - `src/gameplay/travelPlanningRuntime.js`: hover path, PF range marker, committed original path, remaining-path visualization state.
+  - `src/gameplay/movementSystem.js`: generic movement queue executor. It should not know why movement was requested.
+- Player activity:
+  - `src/gameplay/playerActivityRuntime.js`: facade/API, controller composition, shared stop/cancel cleanup, movement lifecycle routing.
+  - `src/gameplay/playerActivityStateRuntime.js`: shared activity-state shape and snapshot cloning.
+  - `src/gameplay/playerResourceSearchActivityRuntime.js`: gathering/water search movement and reward lifecycle.
+  - `src/gameplay/playerScoutActivityRuntime.js`: scouting/animal possession lifecycle.
+  - `src/gameplay/playerRestActivityRuntime.js`: rest lifecycle and fatigue recovery ticks.
+  - `src/gameplay/playerTravelActivityRuntime.js`: explicit travel activity lifecycle.
+  - `src/gameplay/playerInspectActivityRuntime.js`: legacy close-inspect activity compatibility path.
+  - `src/gameplay/playerActivityUpkeepRuntime.js`: movement-tick normalization and generic upkeep dispatch.
+  - `src/gameplay/gatheringActivityRuntime.js`: compatibility re-export only.
+- Inspect/resource perception:
+  - `src/gameplay/inspectPerceptionRuntime.js`: inspect focus, selected overlay layer, cursor/player sampling, compact snapshots.
+  - `src/gameplay/resourceDiscoveryRuntime.js`: low-resolution discovered-knowledge masks.
+  - `src/gameplay/resourceStockRuntime.js`: live/known stock grids, depletion, replenish, serialization.
+  - `src/gameplay/resourceSearchRuntime.js`: resource map sampling, search chance, movement bias, rewards.
+  - `src/gameplay/resourceDebugSettings.js`: RD overlay/stock/debug settings.
+- Inventory/condition:
+  - `src/gameplay/inventoryRuntime.js`: player inventory, bundles, item use routing.
+  - `src/gameplay/containerModel.js`: pure stack/capacity operations.
+  - `src/gameplay/conditionRuntime.js`: condition mutation and clamping.
+  - `src/gameplay/conditionEffectRuntime.js`: active condition effects and modifiers.
+  - `src/gameplay/activityEffectRuntime.js`: data-driven activity/movement/rest costs.
+- Swarm:
+  - `src/gameplay/swarmGameplayRuntime.js`: gameplay composition.
+  - `src/gameplay/swarmAgentStateMutator.js`: agent buffer mutations and stable IDs.
+  - `src/gameplay/swarmRenderSetupRuntime.js`: render/overlay composition.
+- UI:
+  - `src/ui/gameplayHudRuntime.js`: bottom player HUD and condition bars.
+  - `src/ui/infoPanelRuntime.js`: compact activity/travel/inspect side-panel updates.
+  - `src/ui/resourceDebugPanelRuntime.js`: RD panel.
+  - `src/ui/inventoryPanelRuntime.js`: inventory panel.
+  - `src/ui/overlays/drawOverlay.js`: overlay canvas drawing.
 
-- Day cycle is simulated from keyframes (`SUN_KEYS`) and interpolation.
-- Time progresses based on UI slider `cycleSpeed` (`0..1` hours/second).
-- UI slider `cycleHour` (`0..24` hours, minute resolution) both live-tracks current simulated time and allows immediate time scrubbing.
-- Sun:
-  - directional light (`uSunDir`)
-  - warm tones at low altitude
-- Moon:
-  - secondary directional light (`uMoonDir`)
-  - cool dim tint to avoid pitch-black nights
-- Ambient:
-  - blended sun/moon ambient tint and intensity
-  - includes a small blue night-ambient floor to avoid pitch-black nights
-- Shadows:
-  - map-space shadow texture pass raymarches over `uHeight` (sun + moon channels)
-  - optional second blur pass smooths that shadow texture before main terrain shading
-  - shadow pass runs on a reduced map-space resolution (`heightSize * 0.5`) for performance
-- Optional point lights:
-  - `Lighting Mode` toggle switches click behavior to light placement/selection
-  - each point light stores map pixel coordinate + color + range (radius in px) + intensity + height offset + per-light flicker amount + per-light flicker speed
-  - default new light: orange, range `30`, intensity `1.0`
-  - light source height for baking is `terrainHeightAtLight + heightOffset`
-  - editor has `Live Update` toggle (`on` = rebake on edit input, `off` = rebake on explicit save)
-  - `Save All` / `Load All` supports JSON persistence (`pointlights.json`)
-  - save action uses a two-click confirmation to avoid accidental overwrite/export
-  - load first attempts `<currentMapFolder>/pointlights.json`, then falls back to manual file pick
-  - linear radial falloff (range) + independent intensity multiplier, with saturating accumulation to avoid overblown overlap
-  - normal interaction is baked into a map-space `pointLightTex` on add/edit/delete or normal/height-map update
-  - bake alpha channel packs weighted flicker amount + weighted flicker speed (4 bits each)
-  - terrain height occlusion is baked by a light-to-surface line-of-sight test (cliffs can block local light spread)
-  - main fragment shader samples `uPointLightTex` and applies RGB to base color, with optional runtime flicker modulation from alpha
-- Optional cursor light mode:
-  - mouse position drives a single live point light in shader uniforms
-  - linear falloff + normal interaction
-  - supports two elevation modes:
-    - terrain-following (`height at cursor + offset`)
-    - old fixed-height behavior (derived from light strength)
-  - no bake per mouse move (direct fragment shading path)
-- Optional height fog mode (toggle in UI):
-  - camera-height proxy is derived from zoom (`zoomed out => higher camera`)
-  - per-pixel fog is based on `cameraHeightNorm - terrainHeight`
-  - fog alpha range is controlled by `fogMinAlpha` / `fogMaxAlpha`
-  - fog response curve is controlled by `fogFalloff`
-  - fog onset threshold is controlled by `fogStartOffset`
-  - fog color defaults to auto light-matched tint and becomes fixed when user edits the color picker
-- Optional cloud-shadow mode (toggle in UI):
-  - generated seamless repeating noise texture sampled in shader (no external cloud asset)
-  - two scrolling noise layers provide cloud-shape motion/parallax
-  - controls: coverage, softness, opacity, scale, layer speeds
-  - optional sun projection offsets cloud shadows by sun direction with adjustable strength
-- Optional volumetric scattering mode (toggle in Main Lighting UI):
-  - lightweight texture-space raymarch along projected sun direction
-  - each sample combines fog-density shaping + cloud sun-occlusion to estimate in-scattering
-  - controls: strength, density, anisotropy, ray length, sample count
-- Optional water FX mode (toggle in Water UI):
-  - masked by `water.png`
-  - animated shimmer + flow-line cues from fixed, height-generated, or image-authored direction
-  - flow rendering can use older procedural modulation or authored-vector streamlines with density/sharpness controls
-  - water opacity blends an independent base water color over terrain before scene lighting, so water receives ambient, sun/moon, shadows, point lights, cursor light, and cloud shade with the rest of the terrain
-  - water tint color + tint-strength control applies as a pre-lighting material color
-  - non-fixed flow direction can be flipped with an explicit invert toggle
-  - height-generated flow samples a precomputed multi-scale flow-map texture built from `height.png`
-  - image-authored flow loads optional map-local `flow.png` into the same flow-map texture (`R/G = signed XY direction by default`)
-  - flow-map precompute uses user-controlled 3-radius / 3-weight trend settings; runtime can blend trend with local 1-texel downhill flow
-  - optional flow debug overlay displays computed/sampled water direction on water pixels
-  - water shading is evaluated at map texel centers (pixel-locked) so water influence is per map pixel
-  - flow-line color, shoreline foam, and particle-trail tint apply as pre-lighting material edits; altitude-aware sun/moon glints, sky-tint reflection, and glitter remain post-lighting specular-style terms gated by scene light
-- Optional water particle trail mode (`WT` topic, separate from Water FX):
-  - CPU particles spawn on `water.png`, sample authored `flow.png`, and write a fading RGBA trail texture
-  - the terrain shader samples the trail texture as a water-only tint/brightness overlay
-  - wake simulation supports full/half/quarter/eighth map resolution, defaults to recommended `1/2`, and precomputes water/flow fields at that active resolution
-  - wake propagation/decay/current-drag update runs as a GPU ping-pong pass; CPU particles only upload the per-frame deposit texture
-  - live controls tune particles, agent speed, simulation speed, wake resolution, flow influence, wake spread/current drag, trail fade/width/strength/headroom, channel pair, flips, B magnitude, tint color, and shader-only glitter
-  - trail headroom compresses deposits before RGBA8 storage and expands them in the terrain shader, preserving more visible overlap range before saturation
-  - glitter is an animated water-only sparkle layer; the trail texture can suppress sparkle where wakes are strong
-  - `Save All` persists controls to map-local `watertrails.json`; missing sidecars reset WT to defaults on map load
-- Core zoom-detail material layer:
-  - settings contract key is `detail`, persisted as optional version `3` `detail.json`
-  - default config is enabled; missing individual micro sprites use neutral gray atlas slots, and a missing material splat falls back to the dirt slot
-  - source sprites default to `assets/detail/default/{dirt,rock,grass,snow}_micro.png`
-  - runtime builds one micro color atlas from those sources and uploads one RGBA material splat texture
-  - material splat weights are normalized in the shader; channels map to `R=dirt`, `G=rock`, `B=grass`, `A=snow`
-  - terrain shader applies material detail before lighting while preserving the current terrain color map as the base color
-  - material transition mode is configurable in the `D` panel: `smooth` keeps weighted blending, `dithered` chooses one material through stable sub-map-pixel hash noise, and `priorityDither` chooses one material from weight + per-material priority + noise
-  - transition tuning includes shader-side weight quantization, dither cell size snapped to six map-pixel steps (`1`, `0.5`, `0.25`, `0.125`, `0.0625`, `0.03125`), priority-noise strength, minimum visible material weight, dirt/rock/grass/snow priority values, and a raw material-splat debug channel view; this is an experiment that does not change the RGBA splat asset format
-  - micro detail samples continuous map coordinates; each material's `scaleMeters`/Tile px value is the terrain-map-pixel width/height covered by one full source texture tile, snapped to `1`, `2`, `4`, `8`, `16`, or `32`
-  - each material's `colorStrength` is a `0..1` contribution scalar; `0` skips that material contribution, while `1` contributes fully according to splat weight and zoom fade
-  - zoom fade is computed once per frame and uploaded as `uDetailBlend`; the fragment shader returns before water/material/detail texture sampling when detail is inactive at the current zoom
-  - detail is color-only for performance; it does not modify normals or cast shadows
-  - detail is not suppressed by authored water masks; zoom-detail materials are applied before water material rendering, so visible water overlays detailed terrain instead of disabling the detail pass
-  - dev map mode exposes a `D` topic panel for live tuning four material slots and zoom fade
-- Camera settings:
-  - settings contract key is `camera`, persisted as optional `camera.json`
-  - `zoomMin` / `zoomMax` control runtime camera clamp; default `zoomMax` is `128` for close inspection of zoom-detail materials
-  - camera commands, swarm follow zoom normalization, and fog camera-height normalization resolve current bounds lazily from settings
-- Map-level persistence:
-  - `Load Map -> Save All` writes `pointlights.json`, `lighting.json`, `interaction.json`, `fog.json`, `clouds.json`, `waterfx.json`, `watertrails.json`, `detail.json`, `camera.json`, `audio.json`, `swarm.json`, and `npc.json`
-  - map loading auto-applies these files when present
-- Audio Lab groundwork:
-  - core settings registry now includes `audio` defaults/serialize/apply contract key
-  - command bus now routes `core/audio/settingsChanged` and audio transport/scribble commands
-  - workspace routing uses `ui.workspace` plus `core/workspace/setActive`
-  - runtime ownership is split across `src/audio/audioEngineRuntime.js`, `src/audio/audioAnalysisRuntime.js`, `src/audio/frequencyMappingRuntime.js`, `src/audio/spectrogramRuntime.js`, `src/audio/scribbleCanvasRuntime.js`, `src/audio/audioScribbleInputRuntime.js`, and `src/audio/resynthesisRuntime.js`
-  - UI reflection + input dispatch are owned by `src/ui/audioPanelRuntime.js` and `src/ui/audioBindingRuntime.js`
-  - file flow: browser `AudioBuffer` decode -> mono sample extraction -> offline STFT/FFT amplitude/phase grid -> static spectrogram render
-  - scribble flow: pointer input paints a separate time/frequency amplitude grid over the original spectrogram; scribble playback resynthesizes only painted bins
-  - rendering caches the file spectrogram as a base image; brush strokes only redraw the scribble overlay and are throttled to animation frames
-  - auto-paint flow thresholds/contrasts source STFT amplitudes into the scribble grid for replaying only strong spectrogram regions
-  - frequency authoring is log scale with editable `minHz`/`maxHz`; display, painting, auto-paint, and resynthesis share `src/audio/frequencyMappingRuntime.js`
-  - approximation flow greedily fits a bounded number of ellipse brush blobs to the current scribble grid, then replaces the grid with the replayed blob approximation
-  - Audio workspace now has its own left mode dock with `Spectrogram`
-    and `Synthesis` modes; each mode owns a center surface and right
-    settings section.
-  - Synthesis mode is an additive-synthesis prototype backed by
-    `src/audio/synthesisRuntime.js`: it renders a waveform canvas,
-    plays live WebAudio oscillator nodes, and supports duration, loop,
-    synth gain, oscillator waveform types, and add/remove/update oscillator
-    controls (`frequency`, `amplitude`, `phase`, `enabled`).
-  - Soundscape planning lives in `docs/SOUND_DESIGN.md`.
-  - Audio workspace now includes a `Soundscape` mode backed by
-    `src/audio/soundscapeRuntime.js`; it converts root note, scale, degree,
-    octave, and detune layer settings into oscillator frequencies for the
-    existing synthesis engine while preserving raw `Synthesis` mode.
-  - Soundscape evolution tasks are tracked in `docs/SOUNDSCAPE_TASKS.md`.
-  - Soundscape layers now support attack/release envelopes, amplitude drift,
-    pitch drift, drift cycle length, and modal motion (`static`, `wander`,
-    `call`) with change interval/chance and glide controls.
-  - Soundscape role presets now create tuned `Drone`, `Resonance`, `Shimmer`,
-    `Call`, `Wind`, `Rumble`, and `Air` layers. `Wind`/`Rumble`/`Air` are
-    filtered noise sources mixed through the same soundscape transport.
-  - Soundscape randomization is role-aware and constrained to the active
-    root/scale with a repeatable numeric seed; targeted tests cover modal
-    frequency, noise normalization, role presets, and constrained
-    randomization.
-- Slime Lab groundwork:
-  - dev-mode workspace switching is now registry-driven through
-    `src/ui/workspaceRegistry.js` and supports `map`, `audio`, and `slime`.
-  - core settings registry includes a `slime` contract key.
-  - Slime Lab UI is a top-level workspace with a center WebGL canvas and right
-    settings panel, mirroring the Audio Lab workspace pattern.
-  - first backend lives in `src/slime/slimeGpuRuntime.js` and implements a
-    WebGL2 Physarum transport prototype with float texture agent state,
-    trail/deposit textures, ping-pong update passes, additive point deposits,
-    trail diffusion/decay, and display palettes.
-  - Slime Lab exposes stochastic locomotion controls (`wanderChance`,
-    `wanderStrengthDeg`, `sensorNoise`) plus spawn modes (`full`, `disk`,
-    `ring`, `line`, `edge`) because deterministic centered seeding quickly
-    collapses into stable circular attractors.
-  - Slime mechanics are documented in `docs/SLIME_SIM.md`.
-  - Optional terrain coupling samples current height/slope/water textures as
-    movement biases; slope also supports a hard cutoff that rejects movement
-    onto over-steep samples.
-  - Slime Lab canvas clicks run a GPU brush operation: agents inside
-    `brushRadius` are repositioned according to the active spawn mode, and
-    the trail texture is weakened by `brushTrailClear` within the same radius.
-  - Slime settings are registered in the core settings registry, but map-level
-    `Save All` does not yet write a `slime.json` sidecar.
-  - long-term rendering direction is documented in `docs/ARCHITECTURE.md`:
-    WebGL2 is the prototype backend, while WebGPU or native Rust/WGPU are the
-    intended upgrade paths if high-scale simulation or terrain coupling needs
-    compute shaders/storage buffers.
-  - GPU readback should remain sparse/targeted; later gameplay integration
-    should prefer passing slime trails as GPU textures.
-- Weather groundwork (architecture scaffold only):
-  - core state now includes weather contract (`type`, `intensity`, `windDirDeg`, `windSpeed`, `localModulation`)
-  - scheduler includes `weatherSystem` producing per-frame weather/wind vectors
-  - render resources include placeholder weather-field metadata hook (no visible weather rendering feature yet)
-  - main render path consumes scheduler-updated values from
-    `coreState.systems` for time/lighting/fog/cloud/water, and from
-    `coreState.simulation.weather` for weather.
+## Gameplay State
 
-## Camera/Interaction
+- Runtime modes: title, gameplay, dev.
+- Gameplay mode blocks no-mode teleporting; movement destinations should be chosen through `PF`.
+- Primary activities are mutually exclusive: `PF`, `G`, `W`, `SC`, `R`.
+- Inspect is a secondary perception toggle and can coexist with most primary activities. It is blocked/hidden during rest and scout.
+- Utility actions: inventory and center camera on player.
+- Clicking a different primary activity switches immediately; clicking the active one cancels it.
+- Primary activity buttons are the expected cancel/switch mechanism. Side panels should avoid duplicate cancel buttons.
 
-- Mouse wheel: zoom (cursor-centered)
-- Middle mouse drag: pan
-- `LM` dock toggle enables `lighting` interaction mode.
-- `PF` dock toggle enables `pathfinding` interaction mode.
-- `Agent Swarm` panel has a `Use Agent Swarm` toggle for enabling/disabling swarm simulation.
-- `Agent Swarm` panel has a `Fully Lit Swarm` toggle:
-  - `off`: previous unlit overlay swarm rendering
-  - `on`: swarm rendered in WebGL using terrain lighting pipeline (sun/moon, baked point lights, cloud shading, fog, volumetrics)
-  - lit mode shadowing uses per-agent directional height-ray tests (sun + moon) instead of terrain shadow-texture sampling, reducing altitude-inconsistent shadow flicker over rugged terrain
-  - lit mode applies height-aware point-light reach for swarm: baked brightness is treated as vertical reach from terrain height, with linear falloff by altitude
-- `Agent Swarm` panel has a `Follow Agent Mode` button that tracks camera pan to a random selected swarm agent while keeping zoom/other controls available.
-- Follow mode now has optional speed-driven zoom:
-  - `Speed Zoom` toggle enables dynamic camera zoom while follow mode is active.
-  - low XY movement zooms in toward `Max Zoom In`.
-  - high XY movement zooms out toward `Max Zoom Out`.
-  - both bounds are user-adjustable in swarm controls and persisted in `swarm.json`.
-  - optional `Hawk Range Gizmo` can draw the followed hawk target-range ring while follow target is `hawk`.
-  - normal-agent follow smoothing is user-tunable via `Bird Speed Smooth` and `Bird Zoom Smooth` sliders.
-  - hawk follow keeps separate fixed smoothing values.
-- `Agent Swarm` panel also has a `Stats Panel` toggle that opens a right-side overlay showing:
-  - birds alive
-  - hawks alive
-  - simulation time running in integration steps
-  - average hawk kill interval (ticks), computed from accumulated hawk kill events
-- Mode behavior:
-  - `gameplay`: hides dev topic menus and workspace switching; `PF`,
-    `GA` (gathering), and `Exit` remain available on the left dock.
-  - `dev`: exposes the full current toolset.
-  - `lighting`: left click adds/selects point lights.
-  - `pathfinding`: hover shows live path preview from player; left click moves player instantly to clicked cell.
-  - swarm is not an interaction mode; it runs in map space while normal camera controls and interaction modes remain available.
-  - Agent swarm simulation space uses map coordinates (`0..mapWidth-1`, `0..mapHeight-1`) with edge-bounce constraints (no toroidal wraparound).
-  - Swarm altitude is modeled in `z: 0..256`; each integration step validates against `height.png` at target `(x,y)` and clamps to at least `terrainHeight + clearance` so agents cannot move below terrain.
-  - Swarm controls expose `Min Height` and `Max Height` to define an allowed altitude band (for example `30..200`) while still enforcing terrain floor constraints.
-  - Swarm controls expose `Variation` (`0..50%`) that assigns per-agent speed and turnability multipliers (`1 +/- variation`) on reseed/spawn.
-  - Swarm controls expose `Sim Speed` (`0.1x..20.0x`) to scale swarm simulation time independent of render framerate.
-  - Swarm agents support resting state:
-    - per-tick `Rest Chance` (`0..0.002`, step `0.0001`) can switch a flying agent into rest
-    - `Rest Ticks` (`100..10000`) controls how long resting lasts
-    - resting agents stay landed/immobile at terrain floor and wake immediately on nearby hawk threat
-    - resting is forbidden on water pixels from `water.png`
-- Optional hawk predator:
-  - has independent count/color/speed/turnability controls
-  - target selection is range-based via `Hawk Target Range`: hawk retarget picks randomly among agents within that radius (fallback to global random if none are in range)
-  - hawks do not starve/despawn; they are persistent while swarm is enabled
-  - chases a random agent and switches target on reach
-  - flock agents apply hawk-repulsion using the same radius/strength controls as cursor repulsion
-- Swarm breeding bounce-back:
-- when bird count drops below `Breeding Threshold`, breeding mode becomes active
-  - while breeding mode is active, each new rest event has `Breed Spawn Chance` to create one adjacent resting bird
-  - breeding mode auto-disables when bird count returns to configured `Agent Count`
-- `none`: left click intentionally falls through to player reposition for testing; this is aligned with the `interactionMode === "none"` runtime branch in interaction command routing.
-- Core settings registry usage:
-  - lighting/fog/cloud/water/interaction/swarm defaults + serialize/apply flows are registered through `src/core/mainSettingsContracts.js`.
-  - JSON compatibility is preserved (existing map-sidecar keys unchanged).
-  - Render FX UI controls are command-routed via `core/renderFx/changed` (handler updates labels/UI + synchronizes `simulation.knobs` in core state).
-  - Swarm panel controls are command-routed via `core/swarm/settingsChanged` (handler owns swarm UI side effects, reseed behavior, and gameplay swarm state sync).
-- Lighting mode on:
-  - Left click adds a point light unless one already exists at that map pixel
-  - Clicking an existing light selects it and opens the side editor
-  - Side editor supports `Color`, `Strength`, `Save`, `Cancel`, `Delete`
-- Pathfinding mode:
-  - uses local Dijkstra precompute in a square around the player (`30x30 .. 100x100`)
-  - move cost uses `slope.png` grayscale + uphill delta from `height.png`
-  - preview path is backtracked from hovered pixel via parent links
-  - gameplay mode does not allow no-mode click teleporting; destinations must
-    be chosen through `PF`
-  - active movement shows a right-side ETA panel with an explicit cancel button;
-    ordinary map/UI clicks do not cancel the current movement queue
-  - queued travel starts at the `1x` time preset (`0.01` h/s) and resets back
-    to `1x` when the queue completes or is canceled.
-  - player is loaded from `<mapFolder>/npc.json` and drawn as a 0.5-map-pixel circle
-- Gathering activity:
-  - `GA` starts/stops automated gathering as an exclusive activity.
-  - while active, other map actions and interaction-mode changes are blocked until gathering is canceled.
-  - the player wanders by repeated one-step movement queues chosen from valid neighboring cells inside the activity radius.
-  - candidate movement uses the same terrain movement cost model as pathfinding/travel; invalid slope-cutoff steps are rejected.
-  - lower-cost candidates are weighted higher, recently visited cells are avoided first and allowed only as fallback.
-  - gathering radius comes from `playerState.stats.gatherRadius` / `gameplay.player.stats.gatherRadius`, default `30`.
-  - entering a newly visited cell rolls a placeholder 5% plant chance and updates the activity panel stats.
-  - active gathering draws a map-space radius circle around the activity origin.
-  - starting and stopping/canceling gathering forces time speed to the `1x` preset (`0.01` h/s), while the player may change speed during the activity.
-- Inspect activity:
-  - gameplay-only `I` dock button starts an exclusive non-movement activity.
-  - active inspect uses the shared activity panel with a cancel button.
-  - moving the cursor over terrain updates map pixel `x/y`, sampled height, and sampled slope.
-  - the button is hidden outside gameplay mode.
-- Gameplay camera helper:
-  - gameplay-only `P` dock button centers the camera on the player and sets zoom to `35`.
-- Cursor light mode on:
-  - mouse movement updates live point-light position on terrain
-  - optional overlay gizmo shows live cursor-light radius preview
-- Player + path preview are drawn on `overlayCanvas` to keep gameplay overlays decoupled from terrain shading
-- Render is pixel-sharp while zooming (`NEAREST` texture filtering)
+## Travel And Pathfinding
 
-## Shader Uniform Contract
+- Pathfinding uses a local Dijkstra field centered on the player.
+- PF range is displayed/enforced as a circular mask inside the square Dijkstra window.
+- Clicking a reachable PF preview queues movement and starts explicit `travel` activity.
+- The committed grey path overlay is the original selected path. Travel progress trims the traveled prefix; do not recompute a fresh path to the target while traveling.
+- Travel estimates use the same movement/upkeep costs as committed travel.
+- Travel planning panels stay compact: title shows `Plan Travel: est. x hours`; the body only shows unreachable-path or projected-effect warnings. Current active modifiers are shown elsewhere, and projected nutrition/hydration/fatigue changes render as red/green overlays on bottom condition bars.
 
-Main light uniforms:
-- `uSunDir`, `uSunColor`, `uSunStrength`
-- `uMoonDir`, `uMoonColor`, `uMoonStrength`
-- `uAmbientColor`, `uAmbient`
-- `uPointLightTex`
-- `uCloudNoiseTex`
-- `uShadowTex`
-- `uWater`
-- `uFlowMap`
-- `uDetailMicroColor`
-- `uUseCursorLight`, `uCursorLightUv`, `uCursorLightColor`, `uCursorLightStrength`, `uCursorLightHeightOffset`, `uUseCursorTerrainHeight`, `uCursorLightMapSize`
-- `uTimeSec`, `uPointFlickerEnabled`, `uPointFlickerStrength`, `uPointFlickerSpeed`, `uPointFlickerSpatial`
-- `uUseClouds`, `uCloudCoverage`, `uCloudSoftness`, `uCloudOpacity`, `uCloudScale`, `uCloudSpeed1`, `uCloudSpeed2`, `uCloudSunParallax`, `uCloudUseSunProjection`
-- `uUseWaterFx`, `uWaterFlowSource`, `uWaterFlowChannelPair`, `uWaterFlowFlip`, `uWaterFlowUseMagnitude`, `uWaterFlowDownhill`, `uWaterFlowInvertDownhill`, `uWaterFlowDebug`, `uWaterFlowDir`, `uWaterLocalFlowMix`, `uWaterFlowStrength`, `uWaterFlowMapStrength`, `uWaterFlowVisibility`, `uWaterFlowSpeed`, `uWaterFlowScale`, `uWaterShimmerStrength`, `uWaterGlintStrength`, `uWaterGlintSharpness`, `uWaterShoreFoamStrength`, `uWaterShoreWidth`, `uWaterReflectivity`, `uWaterBaseColor`, `uWaterOpacity`, `uWaterTintColor`, `uWaterTintStrength`, `uSkyColor`
+## Resource Gameplay
 
-Map/camera uniforms:
-- `uSplat`, `uNormals`, `uHeight`
-- `uMapTexelSize` (must come from height texture size)
-- `uMapAspect` (must come from splat texture size)
-- `uResolution`, `uViewHalfExtents`, `uPanWorld`
-- `uUseDetail`, `uDetailBlend`, `uMaterialSplat`, detail material/atlas uniforms for RGBA material-splat micro color mixing, plus detail transition uniforms (`uDetailBlendMode`, `uDetailDebugMode`, `uDetailWeightQuantization`, `uDetailDitherScale`, `uDetailDitherStrength`, `uDetailMinWeight`, `uDetailMaterialPriority`)
-- `uUseFog`, `uFogColor`, `uFogMinAlpha`, `uFogMaxAlpha`, `uFogFalloff`, `uFogStartOffset`, `uCameraHeightNorm`
-- `uUseVolumetric`, `uVolumetricStrength`, `uVolumetricDensity`, `uVolumetricAnisotropy`, `uVolumetricLength`, `uVolumetricSamples`
+- `G` gathers plants; `W` gathers water. Both use `assets/data/resource_search.json` through `resourceSearchRuntime`.
+- Plants and water currently sample wetness data for availability. Plants can later move to their own authored map without changing the search path.
+- Resource rewards support single items, `fillContainer`, and weighted banded loot tables.
+- Water gathering fills carried items tagged `water_container`; `water_skin` stack count is fill level. Empty waterskins remain in inventory.
+- Resource stock is runtime/grid based and persisted through `resource_stock.json` when saving map data.
+- Resource Debug (`RD`) has `Overlay` and `Stock` tabs. Overlay edits the active inspect layer (`Water`, `Plants`, `Height`, `Slope`). Stock edits/debugs live/known stock for resources.
+
+## Inspect/Discovery
+
+- Inspect HUD exposes `W/P/H/S` buttons and a selected-layer bar.
+- Player-facing resource bars use known availability/known stock by default. RD stock mode can override to live/ignore stock for testing.
+- Resource contours are drawn only where discovery knowledge allows it unless dev/debug overrides are active.
+- Movement, idle tick batches, and scout possession can reveal resource knowledge and refresh known stock. Discovery reveal supports a tunable grayscale falloff; `0` preserves the hard full-white reveal brush, `1` is linear falloff.
+
+## UI Layout Vocabulary
+
+See `docs/UI_LAYOUT_GRID.md` for the full contract.
+
+- `Player UI Height`: total height of the bottom-center player HUD.
+- `Player UI Row`: one third of `Player UI Height`.
+- `Side Slot`: half of `Player UI Height`, equal to 1.5 rows.
+- `Side Stack`: fixed right-side stack aligned to the player HUD.
+- Top side slot: Activity/Travel panel.
+- Bottom side slot: Inspect panel.
+- Content adapts to slots; slots do not resize to content.
+
+Current CSS variables in `styles.css`:
+
+```css
+--player-ui-height: 108px;
+--player-ui-row: calc(var(--player-ui-height) / 3);
+--side-slot-height: calc(var(--player-ui-height) / 2);
+--side-stack-gap: 0px;
+--player-ui-bottom: 12px;
+--side-stack-x: calc(50% + 512px);
+```
+
+Gameplay HUD blocks use square corners and zero inter-block gap. The time diorama/time-speed controls live inside the bottom player HUD between condition bars and activity buttons; `0x` is a real game pause. Condition stats are a fixed compact left-anchored stack of vertical label/bar rows without visible numeric values; the time diorama and activity controls are right-anchored, leaving an expandable center cap for future stats. Projected travel/activity costs appear as red/green bar overlays.
+
+## Data Files And Map Sidecars
+
+Map folder convention: `assets/<mapName>/`.
+
+Tauri packaging caveat: the source default map folder is `assets/Map 3/`, but Tauri/WebView asset URLs failed for packaged map images under a path containing a space. The desktop build therefore creates a packaged alias `.tauri-dist/assets/Map3` from `.tauri-dist/assets/Map 3` in `build-tauri.ps1`, and Tauri runtime defaults prefer `assets/Map3/`. Browser/runtime source assets can continue to use `assets/Map 3/`. If this area changes, keep the alias and Tauri default in sync rather than assuming URL escaping will fix the WebView path.
+
+Tauri runtime caveat: `src-tauri/tauri.conf.json` must enable `app.withGlobalTauri = true` so `window.__TAURI__.core.invoke` exists. The title Quit action and desktop file commands depend on this. Startup failures must be shown on the title screen because the normal status panel is hidden before entering dev/gameplay.
+
+Core texture names:
+
+- `splat.png`
+- `normals.png`
+- `height.png`
+- `slope.png`
+- `water.png`
+- optional `flow.png`
+- optional wetness/resource maps referenced by data files
+
+Common sidecars:
+
+- `npc.json`
+- `lighting.json`
+- `interaction.json`
+- `fog.json`
+- `clouds.json`
+- `waterfx.json`
+- `watertrails.json`
+- `detail.json`
+- `camera.json`
+- `audio.json`
+- `swarm.json`
+- `pointlights.json`
+- `resource_debug.json`
+- `resource_stock.json`
+
+Shared gameplay data lives under `assets/data/`.
+
+## Key Docs
+
+- `docs/ACTIVITY_MODEL.md`: survival activity/condition model.
+- `docs/RESOURCE_STOCK_MODEL.md`: resource stock/depletion/replenish model.
+- `docs/EVENT_NOTIFICATION_ARCHITECTURE.md`: event bus boundaries and migration notes.
+- `docs/UI_LAYOUT_GRID.md`: fixed gameplay HUD/side-panel layout vocabulary.
+
+## Verification
+
+Use explicit timeouts for quick JS checks:
+
+```powershell
+node --check src\main.js
+node --test tests\*.test.js
+npm run lint:md
+```
+
+Run more focused checks when changing one owner module. Run full JS tests after changes touching `main.js`, command routing, runtime events, activity, movement, resource, or save/load paths.
+
+## Current Non-Goals
+
+- No game engine.
+- No physically accurate astronomy.
+- No georeferenced sun position.
+- Movement is currently discrete queue stepping, not animated interpolation.
+- Do not broaden the event bus into a command system.
+- Do not grow side panels based on content; reduce content to fit fixed slots.
 
 ## Change Rules
 
-- Keep branch-only workflow: never commit to default branch.
-- Never create/update/trigger PR unless user explicitly asks in current turn.
-- Never push unless user explicitly asks.
-- Preserve pixel-sharp sampling unless user asks for smooth filtering.
-- If lighting behavior changes, update both:
-  - `README.md` notes
-  - `AGENTS.md` Lighting Model section
-
-## Packaging Notes (Windows-First)
-
-- Tauri build expects `build.frontendDist = ../.tauri-dist`.
-- Refresh `.tauri-dist` before release build to include latest frontend/assets.
-- Current release artifacts:
-  - `src-tauri/target/release/bundle/msi/TerrainPrototype_0.1.0_x64_en-US.msi`
-  - `src-tauri/target/release/bundle/nsis/TerrainPrototype_0.1.0_x64-setup.exe`
-  - optional: `src-tauri/target/release/bundle/portable/TerrainPrototype_0.1.0_x64_portable.zip`
-
-## Quick Verification Checklist
-
-After lighting/camera/map-load changes, verify:
-1. Default PNGs auto-load from `assets/`.
-2. Map aspect ratio is preserved (no stretch).
-3. Zoom is sharp (no blur) at high magnification.
-4. Daylight looks warm at sunrise/sunset.
-5. Night is dim but readable due to moon light.
-6. Height-map shadows still react to light direction.
-7. LM/PF mode toggles correctly enforce mutual exclusivity and expected click behavior.
-8. Point-light edits (save/delete) visibly rebake terrain local lighting.
-
-Targeted architecture tests:
-- `node --test`
-- current suite covers mode capabilities, weather normalization contract, and settings-registry wiring.
-
-Latest manual validation:
-- 2026-04-25: browser smoke test passed after migration cleanup
-- 2026-04-25: Tauri full build passed
-- 2026-04-25: installed desktop build launched successfully and basic gameplay smoke testing passed
-
-## Known Non-Goals (Current Prototype)
-
-- No physically accurate astronomy.
-- No georeferenced sun position.
-- No animated movement yet (currently instant click-to-move).
-- The modular architecture migration is complete; `src/main.js` remains the largest integration surface, but it now acts primarily as composition/orchestration over established `src/app/`, `src/core/`, `src/render/`, `src/gameplay/`, `src/ui/`, and `src/sim/` owner modules.
-- After the final cleanup pass, `src/main.js` is around 2477 lines in the current worktree. It is still the largest integration surface, but most dependency shaping now lives in `src/app/` assembly modules and shader source lives under `src/render/`.
-- Manual smoke testing is now green in both browser and installed Tauri runtime, so the next migration work should be driven by ownership clarity or targeted performance issues, not speculative stability fixes.
-
-## Render Module Breakdown
-
-- `src/render/renderer.js`:
-  - render-pass registration and execution coordinator.
-  - orchestrates which pass chain runs per frame.
-- `src/render/resources.js`:
-  - render resource helpers.
-  - metadata hooks, including weather-field metadata.
-- `src/render/shaders.js`:
-  - terrain, swarm, shadow, and blur shader source strings.
-- `src/render/passes/*`:
-  - pass modules for shadow, blur, main terrain, and point-light usage.
-- `src/render/precompute/*`:
-  - map-space precompute adapters.
-  - currently includes flow-map and point-light bake orchestration.
-- `src/render/frameRenderState.js`:
-  - builds frame render DTO from core state + frame inputs.
-- `src/render/uniformInputState.js`:
-  - assembles uniform input object consumed by terrain shading upload.
-
-## Session Handoff (2026-04-20)
+- Preserve existing user changes. Never revert unrelated edits.
+- Keep dependencies minimal.
+- Prefer small, testable increments.
+- Keep `AI_CONTEXT.md` aligned when changing architecture, ownership, UI contracts, or major gameplay behavior.

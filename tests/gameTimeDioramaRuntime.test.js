@@ -35,6 +35,7 @@ test("computeGameTimeDioramaState hides sun outside model daylight", () => {
 });
 
 test("findNearestGameTimeSpeedPreset only marks close preset speeds active", () => {
+  assert.equal(findNearestGameTimeSpeedPreset(0).label, "0x");
   assert.equal(findNearestGameTimeSpeedPreset(0.01).label, "1x");
   assert.equal(findNearestGameTimeSpeedPreset(1).label, "100x");
   assert.equal(findNearestGameTimeSpeedPreset(0.123), null);

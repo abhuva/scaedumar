@@ -1,0 +1,84 @@
+{
+  "water": {
+    "id": "water",
+    "map": "wetness",
+    "channel": "r",
+    "threshold": 0.25,
+    "curve": 1.6,
+    "baseChance": 0.01,
+    "chanceScale": 0.22,
+    "maxChance": 0.35,
+    "movementBias": 2.5,
+    "discovery": {
+      "gridSize": 256,
+      "movementRevealRadius": 30
+    },
+    "overlay": {
+      "type": "contour",
+      "renderMode": "marching",
+      "enabledInInspect": true,
+      "sampleStep": 8,
+      "knowledgeThreshold": 0.25,
+      "bandWidth": 0.018,
+      "thresholds": [0.2, 0.35, 0.5, 0.65, 0.8],
+      "colors": [
+        "rgba(75, 165, 205, 0.34)",
+        "rgba(88, 185, 219, 0.44)",
+        "rgba(99, 214, 240, 0.58)",
+        "rgba(126, 226, 250, 0.7)",
+        "rgba(159, 236, 255, 0.82)"
+      ],
+      "lineWidth": 1.25
+    },
+    "reward": {
+      "type": "fillContainer",
+      "tag": "water_container",
+      "minQuantity": 1,
+      "maxQuantity": 5,
+      "scaleBy": "value"
+    }
+  },
+  "plants": {
+    "id": "plants",
+    "map": "wetness",
+    "channel": "r",
+    "threshold": 0.18,
+    "curve": 1.25,
+    "baseChance": 0.02,
+    "chanceScale": 0.18,
+    "maxChance": 0.28,
+    "movementBias": 1.75,
+    "discovery": {
+      "gridSize": 256,
+      "movementRevealRadius": 30
+    },
+    "overlay": {
+      "type": "contour",
+      "renderMode": "marching",
+      "enabledInInspect": true,
+      "sampleStep": 8,
+      "knowledgeThreshold": 0.25,
+      "bandWidth": 0.018,
+      "thresholds": [0.2, 0.35, 0.5, 0.65, 0.8],
+      "colors": [
+        "rgba(85, 160, 85, 0.34)",
+        "rgba(104, 181, 92, 0.44)",
+        "rgba(131, 205, 104, 0.58)",
+        "rgba(163, 224, 124, 0.7)",
+        "rgba(198, 238, 151, 0.82)"
+      ],
+      "lineWidth": 1.25
+    },
+    "reward": {
+      "type": "lootTable",
+      "defaultBand": 0,
+      "bands": {
+        "0": [
+          { "itemId": "berries", "quantity": 1, "weight": 5 },
+          { "itemId": "medicinal_herb", "quantity": 1, "weight": 3 },
+          { "itemId": "plant_fiber", "quantity": 1, "weight": 2 }
+        ]
+      }
+    }
+  }
+}

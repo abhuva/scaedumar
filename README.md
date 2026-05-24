@@ -50,10 +50,14 @@ Each candidate folder should contain:
 - optional: `fog.json`
 - optional: `clouds.json`
 - optional: `waterfx.json`
+- optional: `watertrails.json`
 - optional: `detail.json`
 - optional: `camera.json`
 - optional: `audio.json`
 - optional but recommended: `npc.json`
+- optional: `swarm.json`
+- optional: `resource_debug.json`
+- optional: `resource_stock.json`
 
 If no candidate folder contains the required PNGs, the app starts with fallback textures. You can load a map by folder path or folder picker in the `Load Map` panel.
 
@@ -218,7 +222,7 @@ Architecture map:
 - `LM` (left dock) enables `Lighting Mode`: left click adds/selects point lights.
 - `PF` (left dock) enables `Pathfinding Mode`:
   - hover shows a live Dijkstra path preview from player to hovered cell
-  - click moves player instantly to clicked cell
+  - click commits the preview path and starts explicit travel
 - With both mode toggles off (`none`), map clicks are currently ignored.
 - `Path Window` slider controls local Dijkstra field size (`30x30 .. 100x100`).
 - Player state is read from `<mapFolder>/npc.json` (`charID`, `pixelX`, `pixelY`, `color`) and rendered as a map-pixel circle.
@@ -260,6 +264,8 @@ Architecture map:
   - `camera.json` (`zoomMin`, `zoomMax`)
   - `audio.json` (spectrogram settings, scribble/playback controls)
   - `npc.json` (`charID`, `pixelX`, `pixelY`, `color`)
+  - `resource_debug.json` (resource discovery/overlay tuning)
+  - `resource_stock.json` (resource stock tuning and live/known stock fields)
 - Map loading automatically applies these JSON files when present in the selected map folder. Map-specific JSONs such as `watertrails.json` live under `assets/<mapName>/`, following the `assets/*/*.json` sidecar convention.
 - Dev map mode exposes a `D` panel for live zoom-detail tuning. Detail is color-only for performance: the current terrain color map remains the base, while a normalized RGBA material splat (`R=dirt`, `G=rock`, `B=grass`, `A=snow`) drives micro material detail over it by zoom fade.
 - `detail.json` is a version `3` micro-only contract. Each material has one `micro` source, tile scale, and color strength; `0` strength contributes nothing and `1` contributes fully according to material-splat influence and zoom fade.

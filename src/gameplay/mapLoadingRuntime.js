@@ -14,6 +14,8 @@ export function createMapLoadingRuntime(deps) {
     applyDetailSettings: deps.applyDetailSettings,
     applyCameraSettings: deps.applyCameraSettings,
     applyAudioSettings: deps.applyAudioSettings,
+    applyResourceDebugSettings: deps.applyResourceDebugSettings,
+    applyResourceStockSettings: deps.applyResourceStockSettings,
     applySwarmData: deps.applySwarmData,
     applyLoadedNpc: deps.applyLoadedNpc,
     getFileFromFolderSelection: deps.getFileFromFolderSelection,
@@ -37,6 +39,8 @@ export function createMapLoadingRuntime(deps) {
     rebuildMovementField: deps.rebuildMovementField,
     setStatus: deps.setStatus,
     getFileFromFolderSelection: deps.getFileFromFolderSelection,
+    getRequiredGameplayMapFiles: deps.getRequiredGameplayMapFiles,
+    onMapLoaded: deps.onMapLoaded,
   });
   return {
     loadMapFromPath: (mapFolderPath) => mapLoader.loadMapFromPath(mapFolderPath),

@@ -43,6 +43,7 @@ export function createMapSidecarLoader(deps) {
       detail: false,
       camera: false,
       audio: false,
+      resourceDebug: false,
       swarm: false,
       npc: false,
     };
@@ -139,6 +140,20 @@ export function createMapSidecarLoader(deps) {
         onErrorLabel: `Failed to load audio.json from ${folder}`,
       },
       {
+        key: "resourceDebug",
+        loadJson: loadOptionalUrlJson(jsonPath("resource_debug.json")),
+        applyFn: (rawData) => deps.applyResourceDebugSettings(rawData),
+        onAbsentOrFailed: () => deps.applyResourceDebugSettings(null),
+        onErrorLabel: `Failed to load resource_debug.json from ${folder}`,
+      },
+      {
+        key: "resourceStock",
+        loadJson: loadOptionalUrlJson(jsonPath("resource_stock.json")),
+        applyFn: (rawData) => deps.applyResourceStockSettings(rawData),
+        onAbsentOrFailed: () => deps.applyResourceStockSettings(null),
+        onErrorLabel: `Failed to load resource_stock.json from ${folder}`,
+      },
+      {
         key: "swarm",
         loadJson: loadOptionalUrlJson(jsonPath("swarm.json")),
         applyFn: (rawData) => deps.applySwarmData(rawData),
@@ -228,6 +243,20 @@ export function createMapSidecarLoader(deps) {
         loadJson: loadOptionalFileJson("audio.json"),
         applyFn: (rawData) => deps.applyAudioSettings(rawData),
         onErrorLabel: "Failed to parse audio.json from selected folder",
+      },
+      {
+        key: "resourceDebug",
+        loadJson: loadOptionalFileJson("resource_debug.json"),
+        applyFn: (rawData) => deps.applyResourceDebugSettings(rawData),
+        onAbsentOrFailed: () => deps.applyResourceDebugSettings(null),
+        onErrorLabel: "Failed to parse resource_debug.json from selected folder",
+      },
+      {
+        key: "resourceStock",
+        loadJson: loadOptionalFileJson("resource_stock.json"),
+        applyFn: (rawData) => deps.applyResourceStockSettings(rawData),
+        onAbsentOrFailed: () => deps.applyResourceStockSettings(null),
+        onErrorLabel: "Failed to parse resource_stock.json from selected folder",
       },
       {
         key: "swarm",

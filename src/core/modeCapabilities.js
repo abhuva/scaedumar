@@ -1,5 +1,5 @@
 const FULL_CAPABILITIES = {
-  topics: ["map", "interaction", "swarm", "lighting", "detail", "fog", "clouds", "water", "water-trails", "editor", "info"],
+  topics: ["map", "interaction", "swarm", "lighting", "detail", "fog", "clouds", "water", "water-trails", "resource-debug", "editor", "info"],
   interactionModes: ["none", "lighting", "pathfinding"],
   overlays: ["pathPreview", "pointLights", "cursorLight", "swarmStats"],
 };
@@ -7,7 +7,7 @@ const FULL_CAPABILITIES = {
 const MODE_CAPABILITIES = {
   dev: FULL_CAPABILITIES,
   gameplay: {
-    topics: [],
+    topics: ["resource-debug"],
     interactionModes: ["none", "pathfinding"],
     overlays: ["pathPreview"],
   },

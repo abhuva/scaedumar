@@ -1,4 +1,10 @@
 export function bindInteractionAndCycleControls(deps) {
+  function clearTravelPreview(reason) {
+    if (typeof deps?.travelPlanningRuntime?.clearPreview === "function") {
+      deps.travelPlanningRuntime.clearPreview(reason);
+    }
+  }
+
   deps.dockLightingModeToggle.addEventListener("click", () => {
     if (typeof deps.isActivityActive === "function" && deps.isActivityActive()) {
       deps.setStatus("Stop the current activity before changing interaction mode.");
@@ -14,30 +20,18 @@ export function bindInteractionAndCycleControls(deps) {
       return;
     }
     deps.dispatchCoreCommand({ type: "core/interaction/setMode", mode: "lighting" });
-    deps.movePreviewState.hoverPixel = null;
-    deps.movePreviewState.pathPixels = [];
-    if (typeof deps.requestOverlayDraw === "function") {
-      deps.requestOverlayDraw();
-    }
+    clearTravelPreview("lighting-mode");
     deps.setStatus("Lighting mode enabled: click terrain to add/select point lights.");
   });
 
   deps.dockPathfindingModeToggle.addEventListener("click", () => {
-    if (typeof deps.isActivityActive === "function" && deps.isActivityActive()) {
-      deps.setStatus("Stop the current activity before changing interaction mode.");
-      return;
-    }
     if (typeof deps.canUseInteractionMode === "function" && !deps.canUseInteractionMode("pathfinding")) {
       deps.setStatus("Pathfinding mode is unavailable in current runtime mode.");
       return;
     }
     if (deps.getInteractionMode() === "pathfinding") {
       deps.dispatchCoreCommand({ type: "core/interaction/setMode", mode: "none" });
-      deps.movePreviewState.hoverPixel = null;
-      deps.movePreviewState.pathPixels = [];
-      if (typeof deps.requestOverlayDraw === "function") {
-        deps.requestOverlayDraw();
-      }
+      clearTravelPreview("pathfinding-disabled");
       deps.setStatus("Pathfinding mode disabled.");
       return;
     }
@@ -48,21 +42,19 @@ export function bindInteractionAndCycleControls(deps) {
 
   if (deps.dockGatheringActivityBtn) {
     deps.dockGatheringActivityBtn.addEventListener("click", () => {
-      if (typeof deps.isActivityActive === "function" && deps.isActivityActive()) {
-        deps.dispatchCoreCommand({ type: "core/activity/cancel" });
-        return;
-      }
       deps.dispatchCoreCommand({ type: "core/activity/startGathering" });
     });
   }
 
   if (deps.dockInspectActivityBtn) {
     deps.dockInspectActivityBtn.addEventListener("click", () => {
-      if (typeof deps.isActivityActive === "function" && deps.isActivityActive()) {
-        deps.dispatchCoreCommand({ type: "core/activity/cancel" });
-        return;
-      }
       deps.dispatchCoreCommand({ type: "core/activity/startInspect" });
+    });
+  }
+
+  if (deps.dockScoutActivityBtn) {
+    deps.dockScoutActivityBtn.addEventListener("click", () => {
+      deps.dispatchCoreCommand({ type: "core/activity/startScout" });
     });
   }
 
@@ -124,13 +116,9 @@ export function bindInteractionAndCycleControls(deps) {
     deps.cycleSpeedInput.addEventListener("change", dispatchCycleSpeedChange);
   }
 
-  if (deps.movementCancelBtn) {
-    deps.movementCancelBtn.addEventListener("click", () => {
-      if (typeof deps.isActivityActive === "function" && deps.isActivityActive()) {
-        deps.dispatchCoreCommand({ type: "core/activity/cancel" });
-      } else {
-        deps.dispatchCoreCommand({ type: "core/movement/cancel" });
-      }
+  if (deps.movementActionBtn) {
+    deps.movementActionBtn.addEventListener("click", () => {
+      deps.dispatchCoreCommand({ type: "core/activity/possessScoutBird" });
     });
   }
 }

@@ -3,6 +3,7 @@ const DEFAULT_DAY_START = 6;
 const DEFAULT_DAY_END = 18;
 
 export const GAME_TIME_SPEED_PRESETS = [
+  { label: "0x", cycleSpeed: 0 },
   { label: "1x", cycleSpeed: 0.01 },
   { label: "5x", cycleSpeed: 0.05 },
   { label: "20x", cycleSpeed: 0.2 },

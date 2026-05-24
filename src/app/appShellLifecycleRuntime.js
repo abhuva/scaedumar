@@ -29,7 +29,7 @@ function assertTitleScreenDeps(titleScreenDeps) {
 export function runAppShellLifecycleRuntime(deps) {
   setupMainBindingsRuntime(createMainBindingsAssemblyRuntime(deps.bindings));
 
-  tryAutoLoadDefaultMapRuntime(deps.autoLoad);
+  const mapReadyPromise = tryAutoLoadDefaultMapRuntime(deps.autoLoad);
 
   if (!deps.startup || typeof deps.startup !== "object") throw new Error("Missing startup dependency: deps.startup");
   const startupUiSync = deps.startup;
@@ -50,6 +50,7 @@ export function runAppShellLifecycleRuntime(deps) {
   if (deps.titleScreen) {
     assertTitleScreenDeps(deps.titleScreen);
     const titleScreenRuntime = createTitleScreenRuntime(deps.titleScreen);
+    deps.titleScreen.readyPromise = mapReadyPromise;
     if (!titleScreenRuntime || typeof titleScreenRuntime.bindTitleScreen !== "function") {
       throw new Error("createTitleScreenRuntime(deps.titleScreen) must return bindTitleScreen().");
     }

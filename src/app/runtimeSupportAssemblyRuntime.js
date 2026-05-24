@@ -42,6 +42,7 @@ export function createMapSupportAssemblyRuntime(deps) {
     setFlowImageData: deps.setFlowImageData,
     setSlopeImageData: deps.setSlopeImageData,
     setWaterImageData: deps.setWaterImageData,
+    setWetnessImageData: deps.setWetnessImageData,
     getSplatSize: deps.getSplatSize,
     setSplatSize: deps.setSplatSize,
     getHeightSize: deps.getHeightSize,

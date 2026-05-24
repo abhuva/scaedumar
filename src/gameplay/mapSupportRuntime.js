@@ -99,6 +99,7 @@ export function createMapSupportRuntime(deps) {
       setFlowImageData: deps.setFlowImageData,
       setSlopeImageData: deps.setSlopeImageData,
       setWaterImageData: deps.setWaterImageData,
+      setWetnessImageData: deps.setWetnessImageData,
     });
     return mapImageRuntime;
   }
@@ -138,8 +139,8 @@ export function createMapSupportRuntime(deps) {
     toAbsoluteFileUrl,
     pickMapFolderViaTauri: () => tauriRuntimeHelpers.pickMapFolderViaTauri(),
     validateMapFolderViaTauri: (folderPath) => tauriRuntimeHelpers.validateMapFolderViaTauri(folderPath),
-    applyMapImages: (splatImage, normalsImage, heightImage, slopeImage, waterImage, flowImage = null) =>
-      getMapImageRuntime().applyMapImages(splatImage, normalsImage, heightImage, slopeImage, waterImage, flowImage),
+    applyMapImages: (splatImage, normalsImage, heightImage, slopeImage, waterImage, flowImage = null, wetnessImage = null) =>
+      getMapImageRuntime().applyMapImages(splatImage, normalsImage, heightImage, slopeImage, waterImage, flowImage, wetnessImage),
     syncPointLightWorkerMapData: () => getMapImageRuntime().syncPointLightWorkerMapData(),
     getFileFromFolderSelection: (files, fileName) => selectFileFromFolder(files, fileName),
     tryLoadJsonFromUrl: (path) => mapIoHelpers.tryLoadJsonFromUrl(path),

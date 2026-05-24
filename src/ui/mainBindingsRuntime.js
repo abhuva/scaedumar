@@ -9,6 +9,7 @@ import { bindPointLightEditorControls } from "./bindings/pointLightEditorBinding
 import { bindRenderFxControls } from "./bindings/renderFxBinding.js";
 import { bindMapIoControls } from "./bindings/mapIoBinding.js";
 import { bindRuntimeControls } from "./bindings/runtimeBinding.js";
+import { bindDesktopWindowControls } from "./bindings/desktopWindowBinding.js";
 import { bindAudioControls } from "./audioBindingRuntime.js";
 import { bindSlimeControls } from "./slimeBindingRuntime.js";
 import { bindWorkspaceControls } from "./workspaceBindingRuntime.js";
@@ -26,6 +27,7 @@ export function setupMainBindingsRuntime(deps) {
   bindRenderFxControls(deps.renderFxBinding);
   bindMapIoControls(deps.mapIoBinding);
   bindRuntimeControls(deps.runtimeBinding);
+  bindDesktopWindowControls(deps.desktopWindowBinding);
   bindAudioControls(deps.audioBinding);
   bindSlimeControls(deps.slimeBinding);
 }

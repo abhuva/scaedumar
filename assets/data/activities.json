@@ -1,0 +1,100 @@
+{
+  "idle": {
+    "id": "idle",
+    "label": "Idle",
+    "buttonLabel": "",
+    "panel": false,
+    "exclusive": false,
+    "costKeys": {
+      "upkeep": "idle.tick"
+    }
+  },
+  "travel": {
+    "id": "travel",
+    "label": "Travel",
+    "buttonLabel": "PF",
+    "title": "Pathfinding / Travel",
+    "panel": true,
+    "exclusive": true,
+    "command": "core/interaction/setPathfindingMode",
+    "cancelLabel": "Travel canceled.",
+    "completeLabel": "Travel complete.",
+    "costKeys": {
+      "movement": "movement.step",
+      "upkeep": "idle.tick"
+    }
+  },
+  "gathering": {
+    "id": "gathering",
+    "label": "Gathering",
+    "buttonLabel": "G",
+    "title": "Gather",
+    "panel": true,
+    "exclusive": true,
+    "command": "core/activity/startGathering",
+    "cancelLabel": "Gathering canceled.",
+    "costKeys": {
+      "work": "gathering.search",
+      "movement": "movement.step",
+      "upkeep": "idle.tick"
+    },
+    "resourceSearch": "plants"
+  },
+  "gather_water": {
+    "id": "gather_water",
+    "label": "Gather Water",
+    "buttonLabel": "W",
+    "title": "Gather Water",
+    "panel": true,
+    "exclusive": true,
+    "command": "core/activity/startGatherWater",
+    "cancelLabel": "Water gathering canceled.",
+    "costKeys": {
+      "work": "gather_water.search",
+      "movement": "movement.step",
+      "upkeep": "idle.tick"
+    },
+    "resourceSearch": "water"
+  },
+  "inspect": {
+    "id": "inspect",
+    "label": "Inspect Terrain",
+    "buttonLabel": "I",
+    "title": "Inspect",
+    "panel": true,
+    "exclusive": false,
+    "command": "core/activity/startInspect",
+    "cancelLabel": "Inspect canceled.",
+    "costKeys": {
+      "upkeep": "idle.tick"
+    }
+  },
+  "scout": {
+    "id": "scout",
+    "label": "Scout",
+    "buttonLabel": "SC",
+    "title": "Scout",
+    "panel": true,
+    "exclusive": true,
+    "command": "core/activity/startScout",
+    "cancelLabel": "Scout canceled.",
+    "costKeys": {
+      "upkeep": "idle.tick"
+    }
+  },
+  "rest": {
+    "id": "rest",
+    "label": "Resting",
+    "buttonLabel": "R",
+    "title": "Rest",
+    "panel": true,
+    "exclusive": true,
+    "command": "core/activity/startRest",
+    "cancelLabel": "Rest canceled.",
+    "completeLabel": "Rest complete.",
+    "costKeys": {
+      "recovery": "rest.tick",
+      "upkeep": "idle.tick"
+    }
+  }
+}
