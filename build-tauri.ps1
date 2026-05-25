@@ -19,9 +19,6 @@ Copy-Item index.html .tauri-dist\ -Force
 Copy-Item styles.css .tauri-dist\ -Force
 Copy-Item src .tauri-dist\src -Recurse -Force
 Copy-Item assets .tauri-dist\assets -Recurse -Force
-if (Test-Path ".tauri-dist\assets\Map 3") {
-  Copy-Item ".tauri-dist\assets\Map 3" .tauri-dist\assets\Map3 -Recurse -Force
-}
 
 if ($Mode -eq "dev") {
   Write-Host "Starting Tauri dev runtime..."

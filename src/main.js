@@ -795,7 +795,7 @@ const renderSupportRuntime = createRenderSupportRuntime(createRenderSupportAssem
   uploadCloudNoiseTextureRender,
 }));
 const mapSupportRuntime = createMapSupportRuntime(createMapSupportAssemblyRuntime({
-  defaultMapFolder: "assets/Map 3/",
+  defaultMapFolder: "assets/map3/",
   windowEl: window,
   applyMapSizeChangeIfNeeded: (...args) => applyMapSizeChangeIfNeeded(...args),
   resetCamera: () => resetCamera(),
@@ -2232,10 +2232,10 @@ const POINT_LIGHT_BAKE_LIVE_SCALE = 0.5;
 const POINT_LIGHT_BAKE_DEBOUNCE_MS = 80;
 const SWARM_POINT_LIGHT_EDGE_MIN = 0.08;
 const overlayDirtyRuntime = createOverlayDirtyRuntime(true);
-const DEFAULT_MAP_FOLDER = tauriInvoke ? "assets/Map3/" : "assets/Map 3/";
+const DEFAULT_MAP_FOLDER = "assets/map3/";
 const DEFAULT_MAP_FOLDER_CANDIDATES = tauriInvoke
-  ? ["assets/Map3/", "assets/Map 3/", "assets/"]
-  : ["assets/Map 3/", "assets/"];
+  ? ["assets/map3/", "assets/"]
+  : ["assets/map3/", "assets/"];
 const playerRuntimeBinding = createPlayerRuntimeBinding({
   store: runtimeCore.store,
   playerState,
@@ -2750,6 +2750,13 @@ function getResourceContourCacheVersion(resourceId) {
   return `${resourceContourOverlayVersion}:${discoveryVersion}:${stockVersion}`;
 }
 
+function getResourceContourDiscoveryCacheVersion(resourceId) {
+  const discoveryVersion = typeof resourceDiscoveryRuntime?.getVersion === "function"
+    ? resourceDiscoveryRuntime.getVersion(resourceId)
+    : 0;
+  return `${resourceContourOverlayVersion}:${discoveryVersion}`;
+}
+
 function getResourceDebugLayerSettings(layer = getInspectOverlayLayer()) {
   const layerId = layer === "plants" || layer === "height" || layer === "slope" ? layer : "water";
   return resourceDebugSettings.layers[layerId] || resourceDebugSettings.layers.water;
@@ -3044,6 +3051,19 @@ function getResourceOverlayConfig(search) {
   };
 }
 
+function createTerrainContourSearch(layer) {
+  if (layer !== "height" && layer !== "slope") return null;
+  return {
+    id: layer,
+    map: layer,
+    channel: "r",
+    overlay: {
+      type: "contour",
+      enabledInInspect: true,
+    },
+  };
+}
+
 function getResourceContourOverlaySnapshot() {
   const inspect = getInspectSnapshot();
   if (!inspect || !inspect.enabled) return null;
@@ -3052,7 +3072,11 @@ function getResourceContourOverlaySnapshot() {
   const layer = getInspectOverlayLayer();
   if (layer === "none") return null;
   const resourceId = getInspectOverlayResourceId(layer);
-  const search = resourceSearchRuntime?.getSearch(resourceId);
+  const isTerrainLayer = layer === "height" || layer === "slope";
+  const discoveryResourceId = isTerrainLayer ? resourceDebugOverlayResourceId || "water" : resourceId;
+  const search = isTerrainLayer
+    ? createTerrainContourSearch(layer)
+    : resourceSearchRuntime?.getSearch(resourceId);
   if (!search || !search.overlay || search.overlay.type !== "contour") return null;
   const imageData = layer === "height"
     ? heightImageData
@@ -3063,10 +3087,14 @@ function getResourceContourOverlaySnapshot() {
     search: getResourceOverlayConfig(search),
     imageData,
     overlayLayer: layer,
-    contourVersion: getResourceContourCacheVersion(resourceId),
-    stockVersion: resourceStockRuntime?.getVersion(resourceId) || 0,
-    sampleKnowledge: (id, x, y) => resourceDiscoveryRuntime?.sampleKnowledge(id, x, y) || 0,
-    sampleStockFactor: getResourceStockOverlayFactor,
+    contourVersion: isTerrainLayer
+      ? `terrain:${layer}:${getResourceContourDiscoveryCacheVersion(discoveryResourceId)}`
+      : getResourceContourCacheVersion(resourceId),
+    stockVersion: isTerrainLayer ? 0 : resourceStockRuntime?.getVersion(resourceId) || 0,
+    sampleKnowledge: isTerrainLayer
+      ? (_id, x, y) => resourceDiscoveryRuntime?.sampleKnowledge(discoveryResourceId, x, y) || 0
+      : (id, x, y) => resourceDiscoveryRuntime?.sampleKnowledge(id, x, y) || 0,
+    sampleStockFactor: isTerrainLayer ? () => 1 : getResourceStockOverlayFactor,
   };
 }
 
