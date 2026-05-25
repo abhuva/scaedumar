@@ -33,7 +33,7 @@ Current architecture baseline:
 
 Auto-load checks these folders in order:
 
-1. `assets/Map 3/`
+1. `assets/map3/`
 2. `assets/`
 
 Each candidate folder should contain:
@@ -250,7 +250,7 @@ Architecture map:
 - Point-light sets can be exported/imported as `pointlights.json` via `Save All` / `Load All`.
 - `Save All` uses a two-step confirmation (click once to arm, click again within 5s to confirm).
 - `Load All` first tries `<current map folder>/pointlights.json` and falls back to manual JSON file selection.
-- For persistence across reloads, save the JSON as `<current map folder>/pointlights.json` (for example `assets/Map 3/pointlights.json`).
+- For persistence across reloads, save the JSON as `<current map folder>/pointlights.json` (for example `assets/map3/pointlights.json`).
 - In desktop runtime, map path can be left empty and `Load` opens a native folder picker.
 - `Load Map` includes a map-level `Save All` action that writes:
   - `pointlights.json`

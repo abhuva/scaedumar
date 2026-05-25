@@ -73,14 +73,6 @@ export function createRenderSupportRuntime(deps) {
         candidates.push(encodeURI(candidate));
       }
     }
-    for (const candidate of [...candidates]) {
-      const mapAlias = candidate
-        .replace(/(^|\/)Map 3(?=\/)/g, "$1Map3")
-        .replace(/(^|\/)Map%203(?=\/)/g, "$1Map3");
-      if (mapAlias !== candidate) {
-        candidates.push(mapAlias);
-      }
-    }
     return [...new Set(candidates)];
   }
 

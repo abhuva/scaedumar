@@ -34,7 +34,7 @@ test("mainRuntimeStateBinding exposes direct runtime-state ownership without ext
     updateStoreFromAppliedSettings: () => {},
     normalizeAppliedSettings: (_key, rawData) => rawData,
     applySwarmSettingsCompat: () => {},
-    getCurrentMapFolderPath: () => "assets/Map 1/",
+    getCurrentMapFolderPath: () => "assets/map1/",
     getSplatSize: () => ({ width: 128, height: 64 }),
     getCursorLightState: () => store.state.gameplay.cursorLight,
     getStopSwarmFollow: () => () => {},

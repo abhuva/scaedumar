@@ -53,7 +53,7 @@
 ## Context Reset Handoff (Fresh-Window Resume)
 
 - Branch: `tauri-migration`
-- Current code baseline: `bdc2e49` (includes latest rendering + Map 2 merge
+- Current code baseline: `bdc2e49` (includes latest rendering + map2 merge
   from `main`)
 - Local working tree note: this migration file is currently untracked until
   first commit
@@ -198,9 +198,9 @@
   - [x] point-light editor save/cancel/delete
   - [x] map-level Save All / Load behavior
 - [x] Map loading parity:
-  - [x] `assets/Map 1/` auto-load
+  - [x] `assets/map1/` auto-load
   - [x] `assets/` fallback
-  - [x] manual map folder loading (including new maps like `Map 2`)
+  - [x] manual map folder loading (including new maps like `map2`)
 
 ### Effort Estimate (Initial)
 
@@ -293,8 +293,8 @@
     - LM/PF mutual-exclusion path present via `setInteractionMode(...)` and
       dock handlers (`src/main.js:2342-2348`, `src/main.js:2951-2971`).
 - Map loading parity from code + assets:
-  - Default candidates include `assets/Map 1/`, `assets/` (`src/main.js:1482`).
-  - `assets/Map 1` and `assets/Map 2` contain required map PNG set.
+  - Default candidates include `assets/map1/`, `assets/` (`src/main.js:1482`).
+  - `assets/map1` and `assets/map2` contain required map PNG set.
   - Manual folder load handler is wired (`src/main.js:3245-3255`).
 - Interactive runtime verification (manual): Completed by user — visual parity
   and interaction behavior checks pass.
