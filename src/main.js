@@ -2750,6 +2750,13 @@ function getResourceContourCacheVersion(resourceId) {
   return `${resourceContourOverlayVersion}:${discoveryVersion}:${stockVersion}`;
 }
 
+function getResourceContourDiscoveryCacheVersion(resourceId) {
+  const discoveryVersion = typeof resourceDiscoveryRuntime?.getVersion === "function"
+    ? resourceDiscoveryRuntime.getVersion(resourceId)
+    : 0;
+  return `${resourceContourOverlayVersion}:${discoveryVersion}`;
+}
+
 function getResourceDebugLayerSettings(layer = getInspectOverlayLayer()) {
   const layerId = layer === "plants" || layer === "height" || layer === "slope" ? layer : "water";
   return resourceDebugSettings.layers[layerId] || resourceDebugSettings.layers.water;
@@ -3081,7 +3088,7 @@ function getResourceContourOverlaySnapshot() {
     imageData,
     overlayLayer: layer,
     contourVersion: isTerrainLayer
-      ? `${resourceContourOverlayVersion}:terrain:${layer}:${getResourceContourCacheVersion(discoveryResourceId)}`
+      ? `terrain:${layer}:${getResourceContourDiscoveryCacheVersion(discoveryResourceId)}`
       : getResourceContourCacheVersion(resourceId),
     stockVersion: isTerrainLayer ? 0 : resourceStockRuntime?.getVersion(resourceId) || 0,
     sampleKnowledge: isTerrainLayer
