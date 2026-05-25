@@ -72,6 +72,28 @@ export function createCameraRuntimeBinding(deps) {
       world,
       getMapAspect: getMapAspectSafe,
     }),
+    clientToMapPixel: (clientX, clientY) => {
+      const ndc = clientToNdc({
+        clientX,
+        clientY,
+        getCanvasRect: () => deps.canvas.getBoundingClientRect(),
+      });
+      const world = worldFromNdc({
+        ndc,
+        getActiveCameraState: getActiveCameraStateSafe,
+        getViewHalfExtents: getViewHalfExtentsSafe,
+      });
+      const uv = worldToUv({
+        world,
+        getMapAspect: getMapAspectSafe,
+      });
+      if (uv.x < 0 || uv.x > 1 || uv.y < 0 || uv.y > 1) return null;
+      return uvToMapPixelIndex({
+        uv,
+        clamp: deps.clamp,
+        splatSize: deps.splatSize,
+      });
+    },
     uvToMapPixelIndex: (uv) => uvToMapPixelIndex({
       uv,
       clamp: deps.clamp,

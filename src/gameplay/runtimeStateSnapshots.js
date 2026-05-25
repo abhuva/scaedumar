@@ -3,7 +3,7 @@ export function getInteractionModeSnapshot(deps) {
   const storedMode = gameplay && typeof gameplay.interactionMode === "string"
     ? gameplay.interactionMode
     : "none";
-  return storedMode === "lighting" || storedMode === "pathfinding" ? storedMode : "none";
+  return storedMode === "lighting" || storedMode === "pathfinding" || storedMode === "routePlanning" ? storedMode : "none";
 }
 
 export function getSwarmCursorMode(deps) {

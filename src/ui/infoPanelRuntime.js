@@ -16,6 +16,15 @@ export function createInfoPanelRuntime(deps) {
     return `${hours}:${minutes.toString().padStart(2, "0")}`;
   }
 
+  function formatRouteHours(ticks) {
+    const rawTicks = Number(ticks);
+    const simTickHours = typeof deps.getConfiguredSimTickHours === "function"
+      ? Number(deps.getConfiguredSimTickHours())
+      : 0;
+    if (!Number.isFinite(rawTicks) || rawTicks <= 0 || !Number.isFinite(simTickHours) || simTickHours <= 0) return "--";
+    return `${formatGameDuration(rawTicks * simTickHours)}h`;
+  }
+
   function setMovementPanelVisible(visible) {
     if (!deps.movementStatusPanelEl) return;
     deps.movementStatusPanelEl.classList.toggle("hidden", !visible);
@@ -24,6 +33,15 @@ export function createInfoPanelRuntime(deps) {
   function setScoutActionLayout(active) {
     if (!deps.movementStatusPanelEl) return;
     deps.movementStatusPanelEl.classList.toggle("scout-action-panel", active);
+  }
+
+  function setRoutePanelLayout(active) {
+    if (deps.movementStatusPanelEl) {
+      deps.movementStatusPanelEl.classList.toggle("route-planning-panel", active);
+    }
+    if (deps.routePlanningControlsEl) {
+      deps.routePlanningControlsEl.classList.toggle("hidden", !active);
+    }
   }
 
   function clamp01(value) {
@@ -85,6 +103,31 @@ export function createInfoPanelRuntime(deps) {
     }
   }
 
+  function updateRoutePreviewPanel() {
+    const snapshot = typeof deps.getRoutePlanningSnapshot === "function"
+      ? deps.getRoutePlanningSnapshot()
+      : null;
+    const totals = snapshot && snapshot.totals ? snapshot.totals : {};
+    const segmentCount = Math.max(0, Math.round(Number(totals.segmentCount) || 0));
+    const sectionTicks = snapshot && snapshot.waypointPlacementActive !== false && Number.isFinite(Number(snapshot.hoverTicks))
+      ? Number(snapshot.hoverTicks)
+      : null;
+    setMovementPanelVisible(true);
+    setRoutePanelLayout(true);
+    if (deps.routeSectionTimeValue) deps.routeSectionTimeValue.textContent = formatRouteHours(sectionTicks);
+    if (deps.routeTotalTimeValue) deps.routeTotalTimeValue.textContent = formatRouteHours(totals.ticks);
+    if (deps.routeDeleteAllBtn) deps.routeDeleteAllBtn.disabled = segmentCount <= 0;
+    if (deps.movementStatusTitleEl) {
+      deps.movementStatusTitleEl.textContent = "Plan Route";
+    }
+    if (deps.movementStatusEtaEl) {
+      deps.movementStatusEtaEl.textContent = "";
+    }
+    if (deps.movementStatusDetailEl) {
+      deps.movementStatusDetailEl.textContent = "";
+    }
+  }
+
   function isInspectFocused(inspectSnapshot, activitySnapshot) {
     if (!inspectSnapshot || !inspectSnapshot.enabled) return false;
     if (!activitySnapshot || !activitySnapshot.active) return true;
@@ -128,6 +171,12 @@ export function createInfoPanelRuntime(deps) {
       }
     }
     if (!inspect) return;
+    const route = typeof deps.getRoutePlanningSnapshot === "function" ? deps.getRoutePlanningSnapshot() : null;
+    if (deps.inspectRouteLayerBtn) {
+      const routeVisible = !route || route.showCommittedOverlay !== false;
+      deps.inspectRouteLayerBtn.classList.toggle("active", routeVisible);
+      deps.inspectRouteLayerBtn.setAttribute("aria-pressed", routeVisible ? "true" : "false");
+    }
     if (deps.inspectStatusTitleEl) deps.inspectStatusTitleEl.textContent = "Inspect:";
     if (deps.inspectStatusEtaEl) deps.inspectStatusEtaEl.textContent = "";
     if (deps.inspectResourceRowEl) {
@@ -148,6 +197,7 @@ export function createInfoPanelRuntime(deps) {
 
   function updateMovementPanel(movementSnapshot, activitySnapshot) {
     setScoutActionLayout(false);
+    setRoutePanelLayout(false);
     if (deps.movementActionBtn) {
       deps.movementActionBtn.classList.add("hidden");
       deps.movementActionBtn.disabled = true;
@@ -232,6 +282,10 @@ export function createInfoPanelRuntime(deps) {
     if (!movementSnapshot || !movementSnapshot.active) {
       if (typeof deps.getInteractionMode === "function" && deps.getInteractionMode() === "pathfinding") {
         updateTravelPreviewPanel();
+        return;
+      }
+      if (typeof deps.getInteractionMode === "function" && deps.getInteractionMode() === "routePlanning") {
+        updateRoutePreviewPanel();
         return;
       }
       setMovementPanelVisible(false);
@@ -391,6 +445,23 @@ export function createInfoPanelRuntime(deps) {
       return;
     }
     if (!metrics) {
+      if (typeof deps.getInteractionMode === "function" && deps.getInteractionMode() === "routePlanning") {
+        const route = typeof deps.getRoutePlanningSnapshot === "function" ? deps.getRoutePlanningSnapshot() : null;
+        const hoverCount = Array.isArray(route && route.hoverPathPixels) ? route.hoverPathPixels.length : 0;
+        const committedCount = route && route.committed && Array.isArray(route.committed.polyline)
+          ? route.committed.polyline.length
+          : 0;
+        const hoverStatus = route && route.hoverStatus;
+        const nextPathInfo = hoverCount > 0
+          ? `Route: preview ${hoverCount} nodes`
+          : (hoverStatus === "outside"
+            ? "Route: outside terrain"
+            : (hoverStatus === "unreachable" ? "Route: no reachable path" : (committedCount > 0 ? `Route: committed ${committedCount} nodes` : "Route: --")));
+        if (deps.pathInfoEl.textContent !== nextPathInfo) {
+          deps.pathInfoEl.textContent = nextPathInfo;
+        }
+        return;
+      }
       const nextPathInfo = "Path: len -- | cost -- | avg --";
       if (deps.pathInfoEl.textContent !== nextPathInfo) {
         deps.pathInfoEl.textContent = nextPathInfo;

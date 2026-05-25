@@ -140,6 +140,8 @@ import {
 } from "./gameplay/resourceDebugSettings.js";
 import { createTravelEstimateRuntime } from "./gameplay/travelEstimateRuntime.js";
 import { createTravelPlanningRuntime } from "./gameplay/travelPlanningRuntime.js";
+import { createRoutePlanningRuntime } from "./gameplay/routePlanningRuntime.js";
+import { DEFAULT_ROUTE_PLANNING_SETTINGS } from "./gameplay/routePlanningCostModel.js";
 import { loadItemDefinitions } from "./gameplay/itemRegistry.js";
 import { createLightInteractionRuntimeBinding } from "./gameplay/lightInteractionRuntimeBinding.js";
 import { createMapSupportRuntime } from "./gameplay/mapSupportRuntime.js";
@@ -254,6 +256,13 @@ const movementStatusPanelEl = getRequiredElementById("movementStatusPanel");
 const movementStatusTitleEl = getRequiredElementById("movementStatusTitle");
 const movementStatusEtaEl = getRequiredElementById("movementStatusEta");
 const movementStatusDetailEl = getRequiredElementById("movementStatusDetail");
+const routePlanningControlsEl = getRequiredElementById("routePlanningControls");
+const routeSectionTimeValue = getRequiredElementById("routeSectionTimeValue");
+const routeTotalTimeValue = getRequiredElementById("routeTotalTimeValue");
+const routeDeleteAllBtn = getRequiredElementById("routeDeleteAllBtn");
+const routeWaypointMenuEl = getRequiredElementById("routeWaypointMenu");
+const routeWaypointExtendBtn = getRequiredElementById("routeWaypointExtendBtn");
+const routeWaypointDeleteBtn = getRequiredElementById("routeWaypointDeleteBtn");
 const movementActionBtn = getRequiredElementById("movementActionBtn");
 const inspectStatusPanelEl = getRequiredElementById("inspectStatusPanel");
 const inspectStatusTitleEl = getRequiredElementById("inspectStatusTitle");
@@ -277,6 +286,7 @@ const gameplayHudEl = getRequiredElementById("gameplayHud");
 const conditionEffectStripEl = getRequiredElementById("conditionEffectStrip");
 const conditionEffectTooltipEl = getRequiredElementById("conditionEffectTooltip");
 const hudPathfindingBtn = getRequiredElementById("hudPathfindingBtn");
+const hudRoutePlanningBtn = getRequiredElementById("hudRoutePlanningBtn");
 const hudGatheringBtn = getRequiredElementById("hudGatheringBtn");
 const hudGatherWaterBtn = getRequiredElementById("hudGatherWaterBtn");
 const hudInspectBtn = getRequiredElementById("hudInspectBtn");
@@ -349,11 +359,41 @@ const resourceStockRevealHereBtn = getRequiredElementById("resourceStockRevealHe
 const resourceStockFillFullBtn = getRequiredElementById("resourceStockFillFullBtn");
 const resourceStockFillEmptyBtn = getRequiredElementById("resourceStockFillEmptyBtn");
 const resourceStockResetBtn = getRequiredElementById("resourceStockResetBtn");
+const routeArrowColorInput = getRequiredElementById("routeArrowColor");
+const routeArrowSpacingInput = getRequiredElementById("routeArrowSpacing");
+const routeArrowSpacingValue = getRequiredElementById("routeArrowSpacingValue");
+const routeArrowOpacityInput = getRequiredElementById("routeArrowOpacity");
+const routeArrowOpacityValue = getRequiredElementById("routeArrowOpacityValue");
+const routeArrowSizeInput = getRequiredElementById("routeArrowSize");
+const routeArrowSizeValue = getRequiredElementById("routeArrowSizeValue");
+const routeEndpointSkipRatioInput = getRequiredElementById("routeEndpointSkipRatio");
+const routeEndpointSkipRatioValue = getRequiredElementById("routeEndpointSkipRatioValue");
+const routePreviewPointRadiusInput = getRequiredElementById("routePreviewPointRadius");
+const routePreviewPointRadiusValue = getRequiredElementById("routePreviewPointRadiusValue");
+const routePreviewOpacityInput = getRequiredElementById("routePreviewOpacity");
+const routePreviewOpacityValue = getRequiredElementById("routePreviewOpacityValue");
+const routePlanningSlopeAddInput = getRequiredElementById("routePlanningSlopeAdd");
+const routePlanningSlopeAddValue = getRequiredElementById("routePlanningSlopeAddValue");
+const routePlanningSlopeMulInput = getRequiredElementById("routePlanningSlopeMul");
+const routePlanningSlopeMulValue = getRequiredElementById("routePlanningSlopeMulValue");
+const routePlanningHeightAddInput = getRequiredElementById("routePlanningHeightAdd");
+const routePlanningHeightAddValue = getRequiredElementById("routePlanningHeightAddValue");
+const routePlanningHeightMulInput = getRequiredElementById("routePlanningHeightMul");
+const routePlanningHeightMulValue = getRequiredElementById("routePlanningHeightMulValue");
+const routePlanningWaterAddInput = getRequiredElementById("routePlanningWaterAdd");
+const routePlanningWaterAddValue = getRequiredElementById("routePlanningWaterAddValue");
+const routePlanningWaterMulInput = getRequiredElementById("routePlanningWaterMul");
+const routePlanningWaterMulValue = getRequiredElementById("routePlanningWaterMulValue");
+const routePlanningSlopeCutoffAddInput = getRequiredElementById("routePlanningSlopeCutoffAdd");
+const routePlanningSlopeCutoffAddValue = getRequiredElementById("routePlanningSlopeCutoffAddValue");
+const routeDebugOverlayModeInput = getRequiredElementById("routeDebugOverlayMode");
+const routeClearBtn = getRequiredElementById("routeClearBtn");
 const inspectLayerControlsEl = getRequiredElementById("inspectLayerControls");
 const inspectWetnessLayerBtn = getRequiredElementById("inspectWetnessLayerBtn");
 const inspectPlantsLayerBtn = getRequiredElementById("inspectPlantsLayerBtn");
 const inspectHeightLayerBtn = getRequiredElementById("inspectHeightLayerBtn");
 const inspectSlopeLayerBtn = getRequiredElementById("inspectSlopeLayerBtn");
+const inspectRouteLayerBtn = getRequiredElementById("inspectRouteLayerBtn");
 const conditionStatEls = {
   nutrition: gameplayHudEl.querySelector('[data-condition-stat="nutrition"]'),
   hydration: gameplayHudEl.querySelector('[data-condition-stat="hydration"]'),
@@ -2386,6 +2426,7 @@ const extractPathTo = (...args) => pathfindingRuntimeBinding.extractPathTo(...ar
 const refreshPathPreview = (...args) => pathfindingRuntimeBinding.refreshPathPreview(...args);
 const updatePathPreviewFromPointer = (...args) => pathfindingRuntimeBinding.updatePathPreviewFromPointer(...args);
 const getCurrentPathMetrics = (...args) => pathfindingRuntimeBinding.getCurrentPathMetrics(...args);
+const updateRoutePreviewFromPointer = (...args) => routePlanningRuntime?.updateHoverFromPointer?.(...args);
 
 const updatePathfindingRangeLabel = (...args) => pathfindingLabelRuntime.updatePathfindingRangeLabel(...args);
 const updatePathWeightLabels = (...args) => pathfindingLabelRuntime.updatePathWeightLabels(...args);
@@ -2702,6 +2743,7 @@ let activityEffectRuntime = null;
 let conditionEffectRuntime = null;
 let travelEstimateRuntime = null;
 let travelPlanningRuntime = null;
+let routePlanningRuntime = null;
 let resourceSearchRuntime = null;
 let resourceStockRuntime = null;
 let resourceDiscoveryRuntime = null;
@@ -2739,6 +2781,28 @@ function emitTravelPlanningChanged(payload = {}) {
 travelPlanningRuntime = createTravelPlanningRuntime({
   onChange: emitTravelPlanningChanged,
 });
+
+const routePlanningRuntimeProxy = {
+  setActive: (...args) => routePlanningRuntime?.setActive?.(...args),
+  updateHoverAtPixel: (...args) => routePlanningRuntime?.updateHoverAtPixel?.(...args),
+  updateHoverFromPointer: (...args) => routePlanningRuntime?.updateHoverFromPointer?.(...args),
+  clearHover: (...args) => routePlanningRuntime?.clearHover?.(...args),
+  commitHover: (...args) => routePlanningRuntime?.commitHover?.(...args),
+  clearCommitted: (...args) => routePlanningRuntime?.clearCommitted?.(...args),
+  updateSettings: (...args) => routePlanningRuntime?.updateSettings?.(...args),
+  setShowCommittedOverlay: (...args) => routePlanningRuntime?.setShowCommittedOverlay?.(...args),
+  setWaypointPlacementActive: (...args) => routePlanningRuntime?.setWaypointPlacementActive?.(...args),
+  selectSegment: (...args) => routePlanningRuntime?.selectSegment?.(...args),
+  selectWaypointAtPixel: (...args) => routePlanningRuntime?.selectWaypointAtPixel?.(...args),
+  selectWaypointFromEndpoint: (...args) => routePlanningRuntime?.selectWaypointFromEndpoint?.(...args),
+  clearSelection: (...args) => routePlanningRuntime?.clearSelection?.(...args),
+  deleteSegment: (...args) => routePlanningRuntime?.deleteSegment?.(...args),
+  deleteSelectedSegment: (...args) => routePlanningRuntime?.deleteSelectedSegment?.(...args),
+  deleteSelectedWaypoint: (...args) => routePlanningRuntime?.deleteSelectedWaypoint?.(...args),
+  setAnchorFromEndpoint: (...args) => routePlanningRuntime?.setAnchorFromEndpoint?.(...args),
+  hitTestAtPixel: (...args) => routePlanningRuntime?.hitTestAtPixel?.(...args),
+  getSnapshot: (...args) => routePlanningRuntime?.getSnapshot?.(...args),
+};
 
 function getResourceContourCacheVersion(resourceId) {
   const discoveryVersion = typeof resourceDiscoveryRuntime?.getVersion === "function"
@@ -3471,6 +3535,35 @@ resourceDebugPanelRuntime = createResourceDebugPanelRuntime({
   stockFillFullBtn: resourceStockFillFullBtn,
   stockFillEmptyBtn: resourceStockFillEmptyBtn,
   stockResetBtn: resourceStockResetBtn,
+  routeArrowColorInput,
+  routeArrowSpacingInput,
+  routeArrowSpacingValue,
+  routeArrowOpacityInput,
+  routeArrowOpacityValue,
+  routeArrowSizeInput,
+  routeArrowSizeValue,
+  routeEndpointSkipRatioInput,
+  routeEndpointSkipRatioValue,
+  routePreviewPointRadiusInput,
+  routePreviewPointRadiusValue,
+  routePreviewOpacityInput,
+  routePreviewOpacityValue,
+  routePlanningSlopeAddInput,
+  routePlanningSlopeAddValue,
+  routePlanningSlopeMulInput,
+  routePlanningSlopeMulValue,
+  routePlanningHeightAddInput,
+  routePlanningHeightAddValue,
+  routePlanningHeightMulInput,
+  routePlanningHeightMulValue,
+  routePlanningWaterAddInput,
+  routePlanningWaterAddValue,
+  routePlanningWaterMulInput,
+  routePlanningWaterMulValue,
+  routePlanningSlopeCutoffAddInput,
+  routePlanningSlopeCutoffAddValue,
+  routeDebugOverlayModeInput,
+  routeClearBtn,
   getSettings: () => resourceDebugSettings,
   getStockSettings: (resourceId) => resourceStockRuntime.getResourceSettings(resourceId),
   updateStockSettings: (resourceId, patch) => {
@@ -3500,6 +3593,15 @@ resourceDebugPanelRuntime = createResourceDebugPanelRuntime({
     resourceStockRuntime.reset(resourceId);
     revealResourceMovementKnowledge(resourceId, playerState.pixelX, playerState.pixelY);
     setStatus(`${resourceId} stock reset.`);
+  },
+  getRouteSettings: () => routePlanningRuntime?.getSnapshot?.().settings || DEFAULT_ROUTE_PLANNING_SETTINGS,
+  updateRouteSettings: (patch) => {
+    routePlanningRuntime?.updateSettings?.(patch, "resource-debug-route-settings");
+    setStatus("Route settings updated.");
+  },
+  clearRoute: () => {
+    routePlanningRuntime?.clearCommitted?.("resource-debug-clear-route");
+    setStatus("Committed route cleared.");
   },
   setActiveLayer: (layer) => setInspectOverlayLayer(layer),
   updateDiscovery: (patch) => {
@@ -3575,6 +3677,13 @@ for (const [layer, button] of [
 ]) {
   button.addEventListener("click", () => setInspectOverlayLayer(layer));
 }
+inspectRouteLayerBtn.addEventListener("click", () => {
+  const visible = routePlanningRuntime?.getSnapshot?.().showCommittedOverlay !== false;
+  routePlanningRuntime?.setShowCommittedOverlay?.(!visible, "inspect-route-overlay-toggle");
+  setStatus(!visible ? "Route overlay visible in Inspect." : "Route overlay hidden in Inspect.");
+  overlayDirtyRuntime.requestOverlayDraw();
+  updateInfoPanel?.();
+});
 setInspectOverlayLayer("water");
 const inventoryRuntime = createInventoryRuntime({
   playerState,
@@ -3816,6 +3925,7 @@ gameplayHudRuntime = createGameplayHudRuntime({
   conditionEffectStripEl,
   conditionEffectTooltipEl,
   pathfindingBtn: hudPathfindingBtn,
+  routePlanningBtn: hudRoutePlanningBtn,
   gatheringBtn: hudGatheringBtn,
   gatherWaterBtn: hudGatherWaterBtn,
   inspectBtn: hudInspectBtn,
@@ -3911,6 +4021,7 @@ registerMainCommands(runtimeCore.commandBus, createMainCommandAssemblyRuntime({
   cycleState,
   cursorLightState,
   travelPlanningRuntime,
+  routePlanningRuntime: routePlanningRuntimeProxy,
   getActivitySnapshot,
   playerState,
   swarmFollowState,
@@ -4524,11 +4635,13 @@ const swarmIntegrationSetupRuntime = createSwarmIntegrationSetupRuntime(
     playerState,
       getCurrentPathMetrics,
       getTravelPreviewEstimate: () => travelEstimateRuntime.getEstimate(),
+      getRoutePlanningSnapshot: () => routePlanningRuntime?.getSnapshot?.() || null,
       getInteractionMode: () => getInteractionModeSnapshot(),
       getMovementSnapshot: () => movementSystem.getSnapshot(),
       getActivitySnapshot,
       getInspectSnapshot,
       getMovementDurationHours,
+      getConfiguredSimTickHours: getConfiguredSimTickHoursFromStoreOrDefaults,
       getFrameDebugInfo,
       getDetailDebugInfo,
       frameInfoEl,
@@ -4537,10 +4650,14 @@ const swarmIntegrationSetupRuntime = createSwarmIntegrationSetupRuntime(
       detailInfoEl,
       playerInfoEl,
     pathInfoEl,
-    movementStatusPanelEl,
-    movementStatusTitleEl,
+      movementStatusPanelEl,
+      movementStatusTitleEl,
       movementStatusEtaEl,
       movementStatusDetailEl,
+      routePlanningControlsEl,
+      routeSectionTimeValue,
+      routeTotalTimeValue,
+      routeDeleteAllBtn,
       movementActionBtn,
       inspectStatusPanelEl,
       inspectStatusTitleEl,
@@ -4550,10 +4667,12 @@ const swarmIntegrationSetupRuntime = createSwarmIntegrationSetupRuntime(
       inspectResourceLabelEl,
       inspectResourceBarFillEl,
       inspectLayerControlsEl,
+      inspectRouteLayerBtn,
     applyInteractionMode,
     canUseInteractionInCurrentMode,
     syncInteractionModeUi: interactionModeUiRuntime.syncInteractionModeUi,
     travelPlanningRuntime,
+    routePlanningRuntime: routePlanningRuntimeProxy,
     store: runtimeCore.store,
     getCameraRuntimeBinding,
     playerRuntimeBinding,
@@ -4604,6 +4723,7 @@ const {
   clientToNdc,
   worldFromNdc,
   worldToUv,
+  clientToMapPixel,
   uvToMapPixelIndex,
   mapPixelIndexToUv,
   mapPixelToWorld,
@@ -4614,6 +4734,88 @@ const {
   parseNpcPlayer,
   applyLoadedNpc,
 } = mainInteractionBindings;
+
+routePlanningRuntime = createRoutePlanningRuntime({
+  playerState,
+  getMapSize: () => splatSize,
+  getSlopeImageData: () => slopeImageData,
+  getHeightImageData: () => heightImageData,
+  getWaterImageData: () => waterImageData,
+  getPathfindingStateSnapshot,
+  getNavigationKnowledgeSnapshots: () => Object.keys(RESOURCE_SEARCHES)
+    .map((resourceId) => resourceDiscoveryRuntime?.getSnapshot?.(resourceId))
+    .filter(Boolean),
+  clientToNdc,
+  worldFromNdc,
+  worldToUv,
+  uvToMapPixelIndex,
+  onChange: () => {
+    overlayDirtyRuntime.requestOverlayDraw();
+    updateInfoPanel?.();
+    updateRouteWaypointMenu();
+  },
+});
+
+let routeWaypointMenuFollowRaf = 0;
+
+function scheduleRouteWaypointMenuFollow() {
+  if (routeWaypointMenuFollowRaf) return;
+  routeWaypointMenuFollowRaf = window.requestAnimationFrame(() => {
+    routeWaypointMenuFollowRaf = 0;
+    updateRouteWaypointMenu();
+  });
+}
+
+function updateRouteWaypointMenu() {
+  const snapshot = routePlanningRuntime?.getSnapshot?.();
+  const waypoint = snapshot && snapshot.active && snapshot.waypointPlacementActive === false
+    ? snapshot.selectedWaypoint
+    : null;
+  if (!waypoint || !routeWaypointMenuEl) {
+    routeWaypointMenuEl?.classList.add("hidden");
+    return;
+  }
+  const screen = worldToScreen(mapPixelToWorld(waypoint.x, waypoint.y));
+  if (!Number.isFinite(screen.x) || !Number.isFinite(screen.y)) {
+    routeWaypointMenuEl.classList.add("hidden");
+    return;
+  }
+  const rect = overlayCanvas.getBoundingClientRect();
+  const cssX = rect.left + (screen.x / Math.max(1, overlayCanvas.width)) * rect.width;
+  const cssY = rect.top + (screen.y / Math.max(1, overlayCanvas.height)) * rect.height;
+  routeWaypointDeleteBtn.disabled = snapshot.canDeleteSelectedWaypoint !== true;
+  routeWaypointMenuEl.style.left = `${Math.round(cssX)}px`;
+  routeWaypointMenuEl.style.top = `${Math.round(cssY)}px`;
+  routeWaypointMenuEl.classList.remove("hidden");
+  scheduleRouteWaypointMenuFollow();
+}
+
+routeWaypointExtendBtn.addEventListener("click", () => {
+  const snapshot = routePlanningRuntime?.getSnapshot?.();
+  const waypoint = snapshot && snapshot.selectedWaypoint;
+  if (!waypoint) {
+    setStatus("Select a route waypoint first.");
+    return;
+  }
+  routePlanningRuntime?.setAnchorAtPixel?.(waypoint, "route-waypoint-menu-extend");
+  setStatus("Route extension started.");
+  overlayDirtyRuntime.requestOverlayDraw();
+  updateRouteWaypointMenu();
+});
+
+routeWaypointDeleteBtn.addEventListener("click", () => {
+  const deleted = routePlanningRuntime?.deleteSelectedWaypoint?.("route-waypoint-menu-delete");
+  setStatus(deleted ? "Selected waypoint deleted." : "Select a leaf waypoint to delete.");
+  overlayDirtyRuntime.requestOverlayDraw();
+  updateRouteWaypointMenu();
+});
+
+routeDeleteAllBtn.addEventListener("click", () => {
+  routePlanningRuntime?.clearCommitted?.("route-panel-delete-all");
+  setStatus("All route segments deleted.");
+  overlayDirtyRuntime.requestOverlayDraw();
+  updateRouteWaypointMenu();
+});
 
 const interactionUiSetupRuntime = createInteractionUiSetupRuntime(createInteractionUiAssemblyRuntime({
   isSwarmEnabled,
@@ -4788,6 +4990,7 @@ const renderShellSetupRuntime = createRenderShellSetupRuntime(createRenderShellA
   getCursorLightSnapshot,
   cursorLightState,
   getTravelPlanningSnapshot: () => travelPlanningRuntime.getSnapshot(),
+  getRoutePlanningSnapshot: () => routePlanningRuntime?.getSnapshot?.() || null,
   getActivitySnapshot,
   getInspectSnapshot,
   getResourceContourOverlaySnapshot,
@@ -4866,6 +5069,7 @@ runAppShellLifecycleRuntime(createAppShellLifecycleAssemblyRuntime({
     updateSwarmCursorFromPointer,
     updateCursorLightFromPointer,
     updatePathPreviewFromPointer,
+    updateRoutePreviewFromPointer,
     updateInspectFromPointer,
     isMiddleDragging: () => isMiddleDragging,
     isCursorLightEnabled: () => getCursorLightSnapshot().enabled,
@@ -4874,6 +5078,7 @@ runAppShellLifecycleRuntime(createAppShellLifecycleAssemblyRuntime({
     clientToNdc,
     worldFromNdc,
     worldToUv,
+    clientToMapPixel,
     uvToMapPixelIndex,
     swarmCursorState,
     cursorLightState,

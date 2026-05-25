@@ -30,10 +30,14 @@ Self-contained prototype for top-down terrain rendering and survival-gameplay ex
   - `src/gameplay/mapDataSaveRuntime.js`
   - `src/gameplay/mapDataSaveController.js`
 - Pathfinding/travel:
+  - `src/core/gridDijkstra.js`: shared 8-neighbor grid Dijkstra builder used by both local pathfinding and long-distance route planning.
+  - `src/core/gridPathExtraction.js`: shared deterministic parent-chain path extraction from Dijkstra fields.
   - `src/gameplay/pathfindingCostModel.js`: movement cost model.
   - `src/gameplay/pathfindingPreviewRuntime.js`: Dijkstra preview and hover path extraction.
   - `src/gameplay/pathfindingRuntimeBinding.js`: pathfinding composition.
   - `src/gameplay/travelPlanningRuntime.js`: hover path, PF range marker, committed original path, remaining-path visualization state.
+  - `src/gameplay/routePlanningRuntime.js`: long-distance strategic route mode, low-resolution Dijkstra field, hover route previews, waypoint segment state, and planning-anchor advancement.
+  - `src/gameplay/routePlanningCostModel.js`: strategic low-resolution averaged terrain grids and pathfinding-style route step costs.
   - `src/gameplay/movementSystem.js`: generic movement queue executor. It should not know why movement was requested.
 - Player activity:
   - `src/gameplay/playerActivityRuntime.js`: facade/API, controller composition, shared stop/cancel cleanup, movement lifecycle routing.
@@ -77,15 +81,26 @@ Self-contained prototype for top-down terrain rendering and survival-gameplay ex
 - Utility actions: inventory and center camera on player.
 - Clicking a different primary activity switches immediately; clicking the active one cancels it.
 - Primary activity buttons are the expected cancel/switch mechanism. Side panels should avoid duplicate cancel buttons.
+- `Nav`/route planning is a separate strategic activity-style interaction mode. It previews low-resolution long-distance routes on hover and adds waypoint segments on click, but it never queues movement directly.
 
 ## Travel And Pathfinding
 
 - Pathfinding uses a local Dijkstra field centered on the player.
+- Local pathfinding and long-distance route planning share the same Dijkstra core. They differ in data resolution and ownership, not in graph-search semantics.
+- Local pathfinding and long-distance route planning also share deterministic parent-chain path extraction semantics.
 - PF range is displayed/enforced as a circular mask inside the square Dijkstra window.
 - Clicking a reachable PF preview queues movement and starts explicit `travel` activity.
 - The committed grey path overlay is the original selected path. Travel progress trims the traveled prefix; do not recompute a fresh path to the target while traveling.
 - Travel estimates use the same movement/upkeep costs as committed travel.
 - Travel planning panels stay compact: title shows `Plan Travel: est. x hours`; the body only shows unreachable-path or projected-effect warnings. Current active modifiers are shown elsewhere, and projected nutrition/hydration/fatigue changes render as red/green overlays on bottom condition bars.
+- Long-distance route planning uses `routePlanning` interaction mode, not tactical `pathfinding`. Activating `Nav` builds a low-resolution Dijkstra field from the current planning anchor, initially the player. Hover previews are drawn as detailed route points; clicking adds a waypoint segment, advances the anchor to that destination, and rebuilds Dijkstra from the new anchor. The committed visualization derives sparse directional arrow markers from stored route segments and remains non-executable.
+- Committed route arrows render into a cached 1024x1024 2D texture and are composited over the terrain with image smoothing disabled so the route overlay keeps the same pixelated visual language as the map. Active `Nav` always shows this final arrow texture; outside `Nav`, visibility is controlled by the independent Inspect `R` toggle and requires Inspect to be enabled.
+- Route planning has editor state in `routePlanningRuntime`: committed segments have stable IDs, route endpoints are selectable waypoints, and start/end endpoint clicks reset the active planning anchor and rebuild Dijkstra from that point. Deletion is waypoint-based and allowed only for leaf waypoints, meaning a point with at least one incoming segment and no outgoing segment.
+- Route waypoint placement stops automatically after a segment is committed. Terrain clicks do not commit new route segments until an existing route endpoint is selected and the local waypoint action menu `EXT` action is used to set that point as the active planning anchor and rebuild Dijkstra from there. The same local menu exposes leaf waypoint deletion.
+- Activating `Nav` on an empty route starts waypoint placement from the player. Activating `Nav` when route segments already exist starts in the non-placement editing state so existing waypoints can be selected first.
+- Route planning averages slope/height/water maps into its low-resolution grid once per map/grid/image set, then computes edge costs with the same movement formula as local pathfinding. Route field builds merge the active local pathfinding weights and slope cutoff, while route-specific settings still own grid size and visualization tuning. Route previews/segments store actual extracted-path cost and displayed route time uses per-edge `ceil(stepCost)` ticks to match tactical travel estimates.
+- Route planning debug overlays can display the low-resolution Dijkstra field or the route-planning discovery knowledge field for testing. These overlays are visualization-only; route extraction remains the normal Dijkstra parent-chain path.
+- Route planning supports NAV-only planning bias settings that add/multiply the effective route cost weights before Dijkstra is built. These are currently exposed in RD for slope, height, water, and slope cutoff, and are intended as a future hook for traits/status effects without altering local tactical pathfinding.
 
 ## Resource Gameplay
 
@@ -95,6 +110,7 @@ Self-contained prototype for top-down terrain rendering and survival-gameplay ex
 - Water gathering fills carried items tagged `water_container`; `water_skin` stack count is fill level. Empty waterskins remain in inventory.
 - Resource stock is runtime/grid based and persisted through `resource_stock.json` when saving map data.
 - Resource Debug (`RD`) has `Overlay` and `Stock` tabs. Overlay edits the active inspect layer (`Water`, `Plants`, `Height`, `Slope`). Stock edits/debugs live/known stock for resources.
+- RD also has a `Route` tab for runtime-only route visualization, planning-bias, and debug tuning such as arrow color, opacity, spacing, size, preview point radius, preview opacity, slope/height/water planning bias, debug map overlays, and clearing the committed route.
 
 ## Inspect/Discovery
 
@@ -174,7 +190,7 @@ Shared gameplay data lives under `assets/data/`.
 
 ## Verification
 
-Use explicit timeouts for quick JS checks:
+When running quick checks through Codex tools, pass explicit `timeout_ms` values. Common commands are:
 
 ```powershell
 node --check src\main.js

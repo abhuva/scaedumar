@@ -6,7 +6,20 @@ export function bindCanvasControls(deps) {
 
   function isUiTarget(target) {
     if (!target || typeof target.closest !== "function") return false;
-    return Boolean(target.closest(".topic-dock, .topic-panel, .swarm-stats-panel, .movement-status-panel, .inventory-panel, .gameplay-hud"));
+    return Boolean(target.closest(".topic-dock, .topic-panel, .swarm-stats-panel, .movement-status-panel, .route-waypoint-menu, .inventory-panel, .gameplay-hud"));
+  }
+
+  function clientToMapPixel(clientX, clientY) {
+    if (typeof deps.clientToMapPixel === "function") {
+      return deps.clientToMapPixel(clientX, clientY);
+    }
+    const ndc = deps.clientToNdc(clientX, clientY);
+    const world = deps.worldFromNdc(ndc);
+    const uv = deps.worldToUv(world);
+    if (uv.x < 0 || uv.x > 1 || uv.y < 0 || uv.y > 1) {
+      return null;
+    }
+    return deps.uvToMapPixelIndex(uv);
   }
 
   function shouldRouteFallbackToCanvas(event, options = {}) {
@@ -21,11 +34,12 @@ export function bindCanvasControls(deps) {
     deps.updateSwarmCursorFromPointer(clientX, clientY);
     deps.updateCursorLightFromPointer(clientX, clientY);
     deps.updatePathPreviewFromPointer(clientX, clientY);
+    deps.updateRoutePreviewFromPointer?.(clientX, clientY);
     if (typeof deps.updateInspectFromPointer === "function") {
       deps.updateInspectFromPointer(clientX, clientY);
     }
     if (!deps.isMiddleDragging()) {
-      if (deps.isCursorLightEnabled() || deps.getInteractionMode() === "pathfinding" || deps.isSwarmEnabled?.()) {
+      if (deps.isCursorLightEnabled() || deps.getInteractionMode() === "pathfinding" || deps.getInteractionMode() === "routePlanning" || deps.isSwarmEnabled?.()) {
         deps.requestOverlayDraw();
       }
       return;
@@ -39,14 +53,8 @@ export function bindCanvasControls(deps) {
 
   function handleMapClick(clientX, clientY, button) {
     if (button !== 0) return;
-    const ndc = deps.clientToNdc(clientX, clientY);
-    const world = deps.worldFromNdc(ndc);
-    const uv = deps.worldToUv(world);
-    if (uv.x < 0 || uv.x > 1 || uv.y < 0 || uv.y > 1) {
-      return;
-    }
-
-    const pixel = deps.uvToMapPixelIndex(uv);
+    const pixel = clientToMapPixel(clientX, clientY);
+    if (!pixel) return;
     deps.dispatchCoreCommand({
       type: "core/interaction/clickMapPixel",
       x: pixel.x,

@@ -159,6 +159,11 @@ export function createGameplayHudRuntime(deps) {
 
   function syncActivityButtons() {
     applyActivityButton(deps.pathfindingBtn, "travel", "PF", "Pathfinding / Travel");
+    if (deps.routePlanningBtn) {
+      deps.routePlanningBtn.textContent = "Nav";
+      deps.routePlanningBtn.title = "Plan Route";
+      deps.routePlanningBtn.setAttribute("aria-label", "Plan Route");
+    }
     applyActivityButton(deps.gatheringBtn, "gathering", "G", "Gather");
     applyActivityButton(deps.gatherWaterBtn, "gather_water", "W", "Gather Water");
     applyActivityButton(deps.inspectBtn, "inspect", "I", "Inspect");
@@ -172,6 +177,11 @@ export function createGameplayHudRuntime(deps) {
     if (deps.pathfindingBtn) {
       deps.pathfindingBtn.classList.toggle("active", deps.getInteractionMode() === "pathfinding" || activeType === "travel");
       deps.pathfindingBtn.setAttribute("aria-pressed", deps.getInteractionMode() === "pathfinding" || activeType === "travel" ? "true" : "false");
+    }
+    if (deps.routePlanningBtn) {
+      const active = deps.getInteractionMode() === "routePlanning";
+      deps.routePlanningBtn.classList.toggle("active", active);
+      deps.routePlanningBtn.setAttribute("aria-pressed", active ? "true" : "false");
     }
     const activityButtons = [
       [deps.gatheringBtn, "gathering"],
@@ -209,6 +219,17 @@ export function createGameplayHudRuntime(deps) {
     deps.dispatchCoreCommand({ type: "core/interaction/setMode", mode: "pathfinding" });
     deps.rebuildMovementField();
     deps.setStatus("Pathfinding mode enabled: hover for path preview, click to move player.");
+    sync();
+  });
+  deps.routePlanningBtn?.addEventListener("click", () => {
+    if (deps.getInteractionMode() === "routePlanning") {
+      deps.dispatchCoreCommand({ type: "core/interaction/setMode", mode: "none" });
+      deps.setStatus("Route mode disabled.");
+      sync();
+      return;
+    }
+    deps.dispatchCoreCommand({ type: "core/interaction/setMode", mode: "routePlanning" });
+    deps.setStatus("Route mode enabled: hover for route preview, click to add waypoint.");
     sync();
   });
   deps.gatheringBtn?.addEventListener("click", () => {

@@ -36,11 +36,13 @@ export function createSwarmIntegrationSetupRuntime(deps) {
     playerState: deps.interactionContext.playerState,
     getCurrentPathMetrics: deps.interactionContext.getCurrentPathMetrics,
     getTravelPreviewEstimate: deps.interactionContext.getTravelPreviewEstimate,
+    getRoutePlanningSnapshot: deps.interactionContext.getRoutePlanningSnapshot,
     getInteractionMode: deps.interactionContext.getInteractionMode,
     getMovementSnapshot: deps.interactionContext.getMovementSnapshot,
     getActivitySnapshot: deps.interactionContext.getActivitySnapshot,
     getInspectSnapshot: deps.interactionContext.getInspectSnapshot,
     getMovementDurationHours: deps.interactionContext.getMovementDurationHours,
+    getConfiguredSimTickHours: deps.interactionContext.getConfiguredSimTickHours,
     getFrameDebugInfo: deps.interactionContext.getFrameDebugInfo,
     getDetailDebugInfo: deps.interactionContext.getDetailDebugInfo,
     frameInfoEl: deps.interactionContext.frameInfoEl,
@@ -53,6 +55,10 @@ export function createSwarmIntegrationSetupRuntime(deps) {
     movementStatusTitleEl: deps.interactionContext.movementStatusTitleEl,
     movementStatusEtaEl: deps.interactionContext.movementStatusEtaEl,
     movementStatusDetailEl: deps.interactionContext.movementStatusDetailEl,
+    routePlanningControlsEl: deps.interactionContext.routePlanningControlsEl,
+    routeSectionTimeValue: deps.interactionContext.routeSectionTimeValue,
+    routeTotalTimeValue: deps.interactionContext.routeTotalTimeValue,
+    routeDeleteAllBtn: deps.interactionContext.routeDeleteAllBtn,
     movementActionBtn: deps.interactionContext.movementActionBtn,
     inspectStatusPanelEl: deps.interactionContext.inspectStatusPanelEl,
     inspectStatusTitleEl: deps.interactionContext.inspectStatusTitleEl,
@@ -62,6 +68,7 @@ export function createSwarmIntegrationSetupRuntime(deps) {
     inspectResourceLabelEl: deps.interactionContext.inspectResourceLabelEl,
     inspectResourceBarFillEl: deps.interactionContext.inspectResourceBarFillEl,
     inspectLayerControlsEl: deps.interactionContext.inspectLayerControlsEl,
+    inspectRouteLayerBtn: deps.interactionContext.inspectRouteLayerBtn,
   });
 
   const interactionModeBinding = {
@@ -71,6 +78,7 @@ export function createSwarmIntegrationSetupRuntime(deps) {
           canUseInteractionInCurrentMode: deps.interactionContext.canUseInteractionInCurrentMode,
           syncInteractionModeUi: deps.interactionContext.syncInteractionModeUi,
           travelPlanningRuntime: deps.interactionContext.travelPlanningRuntime,
+          routePlanningRuntime: deps.interactionContext.routePlanningRuntime,
           store: deps.interactionContext.store,
           requestOverlayDraw: deps.interactionContext.requestOverlayDraw,
         },
@@ -86,6 +94,7 @@ export function createSwarmIntegrationSetupRuntime(deps) {
     worldFromNdc: (ndc, zoomValue = null, pan = null) =>
       deps.interactionContext.getCameraRuntimeBinding().worldFromNdc(ndc, zoomValue, pan),
     worldToUv: (world) => deps.interactionContext.getCameraRuntimeBinding().worldToUv(world),
+    clientToMapPixel: (clientX, clientY) => deps.interactionContext.getCameraRuntimeBinding().clientToMapPixel(clientX, clientY),
     uvToMapPixelIndex: (uv) => deps.interactionContext.getCameraRuntimeBinding().uvToMapPixelIndex(uv),
     mapPixelIndexToUv: (pixelX, pixelY) => deps.interactionContext.getCameraRuntimeBinding().mapPixelIndexToUv(pixelX, pixelY),
     mapPixelToWorld: (pixelX, pixelY) => deps.interactionContext.getCameraRuntimeBinding().mapPixelToWorld(pixelX, pixelY),

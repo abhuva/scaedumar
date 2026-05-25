@@ -1,5 +1,6 @@
 import { drawResourceContourOverlay } from "./resourceContourOverlay.js";
 import { drawDiscoveryMaskOverlay } from "./discoveryMaskOverlay.js";
+import { drawRoutePlanningOverlay } from "./routePlanningOverlay.js";
 
 export function createOverlayDrawer(deps) {
   return function drawOverlay() {
@@ -122,6 +123,22 @@ export function createOverlayDrawer(deps) {
       }
     }
 
+    const activitySnapshot = typeof deps.getActivitySnapshot === "function" ? deps.getActivitySnapshot() : null;
+    const inspectSnapshot = typeof deps.getInspectSnapshot === "function" ? deps.getInspectSnapshot() : null;
+    const inspectBlocked = activitySnapshot
+      && activitySnapshot.active
+      && (activitySnapshot.type === "rest" || activitySnapshot.type === "scout");
+
+    const routePlanning = typeof deps.getRoutePlanningSnapshot === "function"
+      ? deps.getRoutePlanningSnapshot()
+      : null;
+    const routeOverlaySnapshot = routePlanning
+      ? {
+          ...routePlanning,
+          showFinalOverlay: routePlanning.active === true
+            || (routePlanning.showCommittedOverlay !== false && inspectSnapshot && inspectSnapshot.enabled && !inspectBlocked),
+        }
+      : null;
     const discoveryMaskOverlay = typeof deps.getDiscoveryMaskOverlaySnapshot === "function"
       ? deps.getDiscoveryMaskOverlaySnapshot()
       : null;
@@ -134,11 +151,6 @@ export function createOverlayDrawer(deps) {
       });
     }
 
-    const activitySnapshot = typeof deps.getActivitySnapshot === "function" ? deps.getActivitySnapshot() : null;
-    const inspectSnapshot = typeof deps.getInspectSnapshot === "function" ? deps.getInspectSnapshot() : null;
-    const inspectBlocked = activitySnapshot
-      && activitySnapshot.active
-      && (activitySnapshot.type === "rest" || activitySnapshot.type === "scout");
     if (inspectSnapshot && inspectSnapshot.enabled && !inspectBlocked) {
       const contour = typeof deps.getResourceContourOverlaySnapshot === "function"
         ? deps.getResourceContourOverlaySnapshot()
@@ -156,6 +168,19 @@ export function createOverlayDrawer(deps) {
           worldToScreen: deps.worldToScreen,
         });
       }
+    }
+
+    if (routeOverlaySnapshot) {
+      drawRoutePlanningOverlay({
+        ctx: deps.overlayCtx,
+        snapshot: routeOverlaySnapshot,
+        drawFinalTexture: true,
+        drawPlanning: true,
+        mapPixelToWorld: deps.mapPixelToWorld,
+        worldToScreen: deps.worldToScreen,
+        getMapAspect: deps.getMapAspect,
+        splatSize: deps.splatSize,
+      });
     }
 
     if (activitySnapshot && activitySnapshot.active && (activitySnapshot.type === "gathering" || activitySnapshot.resourceId)) {

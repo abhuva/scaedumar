@@ -76,6 +76,7 @@ export function registerInteractionCommands(commandBus, deps) {
   function clearPlanningPreview() {
     deps.setInteractionMode("none");
     clearTravelPlanning("planning-cleared");
+    deps.routePlanningRuntime?.setActive?.(false, "planning-cleared");
   }
 
   function startPrimaryActivity(startFn, fallbackReason) {
@@ -105,14 +106,37 @@ export function registerInteractionCommands(commandBus, deps) {
   }
 
   commandBus.register("core/interaction/setMode", (command) => {
-    if (command.mode === "pathfinding") {
+    const requestedMode = command.mode === "pathfinding" || command.mode === "routePlanning" || command.mode === "lighting"
+      ? command.mode
+      : "none";
+    const routeRuntime = deps.routePlanningRuntime;
+    if (requestedMode === "routePlanning" && (!routeRuntime || typeof routeRuntime.setActive !== "function")) {
+      deps.setStatus("Route mode unavailable: route runtime missing.");
+      return;
+    }
+    if (requestedMode === "pathfinding" || requestedMode === "routePlanning") {
       stopPrimaryForSwitch();
     }
-    deps.setInteractionMode(command.mode);
-    if (deps.getInteractionMode() === "pathfinding") {
+    deps.setInteractionMode(requestedMode);
+    if (requestedMode === "pathfinding") {
       startTravelPlanningRange("mode-changed");
     } else {
       clearTravelPlanningRange("mode-changed");
+    }
+    if (requestedMode === "routePlanning") {
+      const result = routeRuntime.setActive(true, "mode-changed");
+      if (result && typeof result.then === "function") {
+        result.then((value) => {
+          if (value !== false) deps.setStatus("Route mode enabled: hover for route preview, click to add waypoint.");
+        }).catch(() => {
+          deps.setInteractionMode("none");
+          deps.setStatus("Route mode unavailable: route runtime failed to start.");
+        });
+      } else if (result !== false) {
+        deps.setStatus("Route mode enabled: hover for route preview, click to add waypoint.");
+      }
+    } else {
+      routeRuntime?.setActive?.(false, "mode-changed");
     }
   });
 
@@ -227,6 +251,39 @@ export function registerInteractionCommands(commandBus, deps) {
       return;
     }
 
+    if (deps.getInteractionMode() === "routePlanning") {
+      const routeRuntime = deps.routePlanningRuntime;
+      const routeHit = routeRuntime?.hitTestAtPixel?.(pixel);
+      if (routeHit && routeHit.type === "endpoint") {
+        routeRuntime?.selectWaypointFromEndpoint?.(routeHit.segmentId, routeHit.endpoint, "route-endpoint-clicked");
+        deps.setStatus("Route waypoint selected.");
+        deps.requestOverlayDraw();
+        return;
+      }
+      if (routeHit && routeHit.type === "segment") {
+        routeRuntime?.selectSegment?.(routeHit.segmentId, "route-segment-clicked");
+        deps.setStatus(`Route segment ${routeHit.segmentId} selected.`);
+        deps.requestOverlayDraw();
+        return;
+      }
+      const routeSnapshot = routeRuntime?.getSnapshot?.();
+      if (routeSnapshot && routeSnapshot.waypointPlacementActive === false) {
+        routeRuntime?.clearSelection?.("route-terrain-click-clears-selection");
+        deps.setStatus("Route selection cleared.");
+        deps.requestOverlayDraw();
+        return;
+      }
+      const hasRoute = routeRuntime?.updateHoverAtPixel?.(pixel, "route-click") || false;
+      if (!hasRoute || !routeRuntime?.commitHover?.("route-committed")) {
+        deps.setStatus("No reachable route at clicked cell.");
+        deps.requestOverlayDraw();
+        return;
+      }
+      deps.setStatus(`Route waypoint committed at (${pixel.x}, ${pixel.y}).`);
+      deps.requestOverlayDraw();
+      return;
+    }
+
     const runtimeMode = typeof deps.getRuntimeMode === "function" ? deps.getRuntimeMode() : RUNTIME_MODE_DEV;
     if (runtimeMode === RUNTIME_MODE_GAMEPLAY) {
       clearTravelPreview("gameplay-no-mode-click");
@@ -244,6 +301,19 @@ export function registerInteractionCommands(commandBus, deps) {
     deps.setStatus(`Player moved to (${deps.playerState.pixelX}, ${deps.playerState.pixelY})`);
   });
 
+  commandBus.register("core/interaction/hoverMapPixel", (command) => {
+    if (deps.getInteractionMode() !== "routePlanning") return;
+    deps.routePlanningRuntime?.updateHoverAtPixel?.({
+      x: Number(command.x),
+      y: Number(command.y),
+    }, "route-hover");
+  });
+
+  commandBus.register("core/interaction/hoverMapOutside", () => {
+    if (deps.getInteractionMode() !== "routePlanning") return;
+    deps.routePlanningRuntime?.setHoverOutside?.("route-hover-outside");
+  });
+
   function syncPathfindingStateToStore() {
     deps.syncPathfindingStateToStore(
       typeof deps.getPathfindingStateSnapshot === "function" ? deps.getPathfindingStateSnapshot() : {},
@@ -256,7 +326,9 @@ export function registerInteractionCommands(commandBus, deps) {
 
   function registerPathfindingSetter(commandType, field, min, max, round = false) {
     commandBus.register(commandType, (command) => {
-      const rawValue = deps.clamp(Number(command.value), min, max);
+      const parsedValue = Number(command.value);
+      if (!Number.isFinite(parsedValue)) return;
+      const rawValue = deps.clamp(parsedValue, min, max);
       const value = round ? Math.round(rawValue) : rawValue;
       updatePathfindingStoreField({ [field]: value });
       deps.syncPathfindingSettingsUi();

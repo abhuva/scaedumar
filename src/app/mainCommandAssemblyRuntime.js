@@ -10,6 +10,7 @@ export function createMainCommandAssemblyRuntime(deps) {
     cycleState: deps.cycleState,
     cursorLightState: deps.cursorLightState,
     travelPlanningRuntime: deps.travelPlanningRuntime,
+    routePlanningRuntime: deps.routePlanningRuntime,
     playerState: deps.playerState,
     swarmFollowState: deps.swarmFollowState,
     getSwarmFollowSnapshot: deps.getSwarmFollowSnapshot,

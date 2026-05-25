@@ -1246,6 +1246,7 @@
           <div class="rd-tabs" role="tablist" aria-label="Resource Debug sections">
             <button id="resourceDebugOverlayTab" class="rd-tab active" type="button" role="tab" data-rd-tab="overlay" aria-selected="true" aria-controls="resourceDebugOverlayPanel" tabindex="0">Overlay</button>
             <button id="resourceDebugStockTab" class="rd-tab" type="button" role="tab" data-rd-tab="stock" aria-selected="false" aria-controls="resourceDebugStockPanel" tabindex="-1">Stock</button>
+            <button id="resourceDebugRouteTab" class="rd-tab" type="button" role="tab" data-rd-tab="route" aria-selected="false" aria-controls="resourceDebugRoutePanel" tabindex="-1">Route</button>
           </div>
           <div id="resourceDebugOverlayPanel" class="rd-tab-panel active" role="tabpanel" data-rd-panel="overlay" aria-labelledby="resourceDebugOverlayTab" aria-hidden="false">
           <div class="row">
@@ -1476,6 +1477,122 @@
               </div>
             </div>
           </div>
+          <div id="resourceDebugRoutePanel" class="rd-tab-panel" role="tabpanel" data-rd-panel="route" aria-labelledby="resourceDebugRouteTab" aria-hidden="true">
+            <p class="panel-note">Runtime-only route planning visualization, knowledge, and debug controls.</p>
+            <div class="row">
+              <label for="routeArrowColor">Arrow Color</label>
+              <div class="inline-control">
+                <input id="routeArrowColor" type="color" value="#ffffff" />
+              </div>
+            </div>
+            <div class="row">
+              <label for="routeArrowSpacing">Arrow Spacing</label>
+              <div class="inline-control">
+                <input id="routeArrowSpacing" type="range" min="1" max="128" step="1" value="12" />
+                <span id="routeArrowSpacingValue">12</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="routeArrowOpacity">Arrow Opacity</label>
+              <div class="inline-control">
+                <input id="routeArrowOpacity" type="range" min="0" max="1" step="0.01" value="0.78" />
+                <span id="routeArrowOpacityValue">0.78</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="routeArrowSize">Arrow Size</label>
+              <div class="inline-control">
+                <input id="routeArrowSize" type="range" min="1" max="48" step="0.5" value="8" />
+                <span id="routeArrowSizeValue">8.0</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="routeEndpointSkipRatio">Endpoint Skip</label>
+              <div class="inline-control">
+                <input id="routeEndpointSkipRatio" type="range" min="0" max="1" step="0.05" value="0.5" />
+                <span id="routeEndpointSkipRatioValue">0.50</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="routePreviewPointRadius">Preview Radius</label>
+              <div class="inline-control">
+                <input id="routePreviewPointRadius" type="range" min="0.1" max="12" step="0.1" value="2" />
+                <span id="routePreviewPointRadiusValue">2.0</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="routePreviewOpacity">Preview Opacity</label>
+              <div class="inline-control">
+                <input id="routePreviewOpacity" type="range" min="0" max="1" step="0.01" value="0.82" />
+                <span id="routePreviewOpacityValue">0.82</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="routePlanningSlopeAdd">Slope Add</label>
+              <div class="inline-control">
+                <input id="routePlanningSlopeAdd" type="range" min="-30" max="30" step="0.1" value="0" />
+                <span id="routePlanningSlopeAddValue">0.0</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="routePlanningSlopeMul">Slope Mul</label>
+              <div class="inline-control">
+                <input id="routePlanningSlopeMul" type="range" min="0" max="3" step="0.01" value="1" />
+                <span id="routePlanningSlopeMulValue">1.00</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="routePlanningHeightAdd">Height Add</label>
+              <div class="inline-control">
+                <input id="routePlanningHeightAdd" type="range" min="-30" max="30" step="0.1" value="0" />
+                <span id="routePlanningHeightAddValue">0.0</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="routePlanningHeightMul">Height Mul</label>
+              <div class="inline-control">
+                <input id="routePlanningHeightMul" type="range" min="0" max="3" step="0.01" value="1" />
+                <span id="routePlanningHeightMulValue">1.00</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="routePlanningWaterAdd">Water Add</label>
+              <div class="inline-control">
+                <input id="routePlanningWaterAdd" type="range" min="-100" max="100" step="0.5" value="0" />
+                <span id="routePlanningWaterAddValue">0.0</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="routePlanningWaterMul">Water Mul</label>
+              <div class="inline-control">
+                <input id="routePlanningWaterMul" type="range" min="0" max="3" step="0.01" value="1" />
+                <span id="routePlanningWaterMulValue">1.00</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="routePlanningSlopeCutoffAdd">Cutoff Add</label>
+              <div class="inline-control">
+                <input id="routePlanningSlopeCutoffAdd" type="range" min="-1" max="1" step="0.01" value="0" />
+                <span id="routePlanningSlopeCutoffAddValue">0.00</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="routeDebugOverlayMode">Debug Overlay</label>
+              <div class="inline-control">
+                <select id="routeDebugOverlayMode">
+                  <option value="none">None</option>
+                  <option value="dijkstra">Dijkstra</option>
+                  <option value="knowledge">Discovery</option>
+                </select>
+              </div>
+            </div>
+            <div class="row">
+              <label>Committed Route</label>
+              <div class="inline-control">
+                <button id="routeClearBtn" class="row-action-btn" type="button">Clear Route</button>
+              </div>
+            </div>
+          </div>
         </section>
 
         <section class="topic-card" data-topic="editor" data-title="Point Light Editor" aria-live="polite">
@@ -1610,6 +1727,7 @@
         <div class="gameplay-action-divider" aria-hidden="true"></div>
         <div class="gameplay-primary-actions" aria-label="Primary activities">
           <button id="hudPathfindingBtn" class="hud-action-btn" type="button">PF</button>
+          <button id="hudRoutePlanningBtn" class="hud-action-btn" type="button" title="Plan Route">Nav</button>
           <button id="hudGatheringBtn" class="hud-action-btn" type="button" title="Gather">G</button>
           <button id="hudGatherWaterBtn" class="hud-action-btn" type="button" title="Gather Water">W</button>
           <button id="hudScoutBtn" class="hud-action-btn" type="button" title="Scout">SC</button>
@@ -1625,6 +1743,7 @@
         <button id="inspectPlantsLayerBtn" class="inspect-layer-btn" type="button" title="Plant availability overlay">P</button>
         <button id="inspectHeightLayerBtn" class="inspect-layer-btn" type="button" title="Height overlay">H</button>
         <button id="inspectSlopeLayerBtn" class="inspect-layer-btn" type="button" title="Slope overlay">S</button>
+        <button id="inspectRouteLayerBtn" class="inspect-layer-btn" type="button" title="Route arrow overlay" aria-pressed="true">R</button>
         </div>
       </div>
       <p id="inspectStatusEta" class="sr-only"></p>
@@ -1638,8 +1757,21 @@
       <h2 id="movementStatusTitle">Player Moving</h2>
       <p id="movementStatusEta">Estimated arrival: --</p>
       <p id="movementStatusDetail">Path: --</p>
+      <div id="routePlanningControls" class="route-planning-controls hidden">
+        <div class="route-time-readout" aria-label="Route time estimate">
+          <span>SEC <strong id="routeSectionTimeValue">--</strong></span>
+          <span>TOT <strong id="routeTotalTimeValue">--</strong></span>
+        </div>
+        <div class="route-panel-actions">
+          <button id="routeDeleteAllBtn" class="movement-action-btn route-panel-btn" type="button" title="Delete all route segments" aria-label="Delete all route segments">DA</button>
+        </div>
+      </div>
       <button id="movementActionBtn" class="movement-action-btn hidden" type="button">Possess Bird</button>
     </aside>
+    <div id="routeWaypointMenu" class="route-waypoint-menu hidden" aria-label="Selected route waypoint actions">
+      <button id="routeWaypointExtendBtn" type="button" title="Extend route from this waypoint">EXT</button>
+      <button id="routeWaypointDeleteBtn" type="button" title="Delete this leaf waypoint">DEL</button>
+    </div>
     <aside id="inventoryPanel" class="inventory-panel hidden" aria-label="Inventory">
       <div class="inventory-panel-header">
         <h2>Inventory</h2>

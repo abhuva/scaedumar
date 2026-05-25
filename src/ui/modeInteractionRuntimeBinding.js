@@ -18,6 +18,7 @@ export function createModeInteractionRuntimeBinding(deps) {
     topicPanelTitleEl: deps.topicPanelTitleEl,
     dockLightingModeToggle: deps.dockLightingModeToggle,
     dockPathfindingModeToggle: deps.dockPathfindingModeToggle,
+    dockRoutePlanningModeToggle: deps.dockRoutePlanningModeToggle,
     getInteractionModeSnapshot: interactionModeSnapshotRuntime.getInteractionModeSnapshot,
     setInteractionMode: deps.setInteractionMode,
     setStatus: deps.setStatus,

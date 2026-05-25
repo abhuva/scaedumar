@@ -844,6 +844,9 @@ export function registerMainCommands(commandBus, deps) {
     if (deps.getInteractionMode() === "pathfinding") {
       deps.travelPlanningRuntime.clearPreview("canvas-leave");
     }
+    if (deps.getInteractionMode() === "routePlanning") {
+      deps.routePlanningRuntime?.clearHover?.("canvas-leave");
+    }
     deps.requestOverlayDraw();
   });
 
