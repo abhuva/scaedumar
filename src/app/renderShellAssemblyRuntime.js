@@ -25,6 +25,7 @@ export function createRenderShellAssemblyRuntime(deps) {
       getCursorLightSnapshot: deps.getCursorLightSnapshot,
       cursorLightState: deps.cursorLightState,
       getTravelPlanningSnapshot: deps.getTravelPlanningSnapshot,
+      getRoutePlanningSnapshot: deps.getRoutePlanningSnapshot,
       getActivitySnapshot: deps.getActivitySnapshot,
       getInspectSnapshot: deps.getInspectSnapshot,
       getResourceContourOverlaySnapshot: deps.getResourceContourOverlaySnapshot,

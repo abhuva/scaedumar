@@ -163,6 +163,162 @@ test("pathfinding click starts explicit travel after queuing movement", () => {
   assert.equal(deps.calls.requestOverlayDraw, 1);
 });
 
+test("route planning hover updates route runtime without starting movement", () => {
+  const commandBus = createCommandBus();
+  const calls = {
+    hover: null,
+    replaceMovementQueue: 0,
+  };
+  const deps = createDeps({
+    getInteractionMode: () => "routePlanning",
+    routePlanningRuntime: {
+      updateHoverAtPixel: (pixel) => {
+        calls.hover = pixel;
+        return true;
+      },
+    },
+    replaceMovementQueue: () => {
+      calls.replaceMovementQueue += 1;
+      return false;
+    },
+  });
+  registerInteractionCommands(commandBus, deps);
+
+  commandBus.dispatch({ type: "core/interaction/hoverMapPixel", x: 11, y: 12 });
+
+  assert.deepEqual(calls.hover, { x: 11, y: 12 });
+  assert.equal(calls.replaceMovementQueue, 0);
+});
+
+test("route planning mode activation starts route runtime from command intent", () => {
+  const commandBus = createCommandBus();
+  let activeValue = null;
+  const deps = createDeps({
+    routePlanningRuntime: {
+      setActive: (active) => {
+        activeValue = active;
+      },
+    },
+  });
+  registerInteractionCommands(commandBus, deps);
+
+  commandBus.dispatch({ type: "core/interaction/setMode", mode: "routePlanning" });
+
+  assert.equal(activeValue, true);
+});
+
+test("route planning outside hover updates route runtime outside state", () => {
+  const commandBus = createCommandBus();
+  let outside = false;
+  const deps = createDeps({
+    getInteractionMode: () => "routePlanning",
+    routePlanningRuntime: {
+      setHoverOutside: () => {
+        outside = true;
+      },
+    },
+  });
+  registerInteractionCommands(commandBus, deps);
+
+  commandBus.dispatch({ type: "core/interaction/hoverMapOutside" });
+
+  assert.equal(outside, true);
+});
+
+test("route planning click selects segment before committing hover", () => {
+  const commandBus = createCommandBus();
+  const calls = {
+    selected: null,
+    committed: 0,
+  };
+  const deps = createDeps({
+    getInteractionMode: () => "routePlanning",
+    routePlanningRuntime: {
+      hitTestAtPixel: () => ({ type: "segment", segmentId: 7 }),
+      selectSegment: (segmentId) => {
+        calls.selected = segmentId;
+        return true;
+      },
+      updateHoverAtPixel: () => true,
+      commitHover: () => {
+        calls.committed += 1;
+        return true;
+      },
+    },
+  });
+  registerInteractionCommands(commandBus, deps);
+
+  commandBus.dispatch({ type: "core/interaction/clickMapPixel", x: 11, y: 12 });
+
+  assert.equal(calls.selected, 7);
+  assert.equal(calls.committed, 0);
+});
+
+test("route planning click on endpoint selects waypoint before committing hover", () => {
+  const commandBus = createCommandBus();
+  const calls = {
+    selected: null,
+    committed: 0,
+  };
+  const deps = createDeps({
+    getInteractionMode: () => "routePlanning",
+    routePlanningRuntime: {
+      hitTestAtPixel: () => ({ type: "endpoint", segmentId: 3, endpoint: "source" }),
+      selectWaypointFromEndpoint: (segmentId, endpoint) => {
+        calls.selected = { segmentId, endpoint };
+        return true;
+      },
+      updateHoverAtPixel: () => true,
+      commitHover: () => {
+        calls.committed += 1;
+        return true;
+      },
+    },
+  });
+  registerInteractionCommands(commandBus, deps);
+
+  commandBus.dispatch({ type: "core/interaction/clickMapPixel", x: 11, y: 12 });
+
+  assert.deepEqual(calls.selected, { segmentId: 3, endpoint: "source" });
+  assert.equal(calls.committed, 0);
+});
+
+test("route planning canceled waypoint placement clears selection on terrain click", () => {
+  const commandBus = createCommandBus();
+  const calls = {
+    cleared: 0,
+    hover: 0,
+    committed: 0,
+  };
+  const deps = createDeps({
+    getInteractionMode: () => "routePlanning",
+    routePlanningRuntime: {
+      hitTestAtPixel: () => null,
+      getSnapshot: () => ({ waypointPlacementActive: false }),
+      clearSelection: () => {
+        calls.cleared += 1;
+        return true;
+      },
+      updateHoverAtPixel: () => {
+        calls.hover += 1;
+        return true;
+      },
+      commitHover: () => {
+        calls.committed += 1;
+        return true;
+      },
+    },
+  });
+  registerInteractionCommands(commandBus, deps);
+
+  commandBus.dispatch({ type: "core/interaction/clickMapPixel", x: 11, y: 12 });
+
+  assert.equal(calls.cleared, 1);
+  assert.equal(calls.hover, 0);
+  assert.equal(calls.committed, 0);
+  assert.equal(deps.calls.status, "Route selection cleared.");
+});
+
 test("start gather water command clears map preview on success", () => {
   const commandBus = createCommandBus();
   let mode = "pathfinding";

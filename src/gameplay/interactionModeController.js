@@ -1,7 +1,7 @@
 import { setInteractionModeState } from "./stateSync.js";
 
 export function setInteractionMode(deps, mode) {
-  const requestedMode = mode === "lighting" || mode === "pathfinding" ? mode : "none";
+  const requestedMode = mode === "lighting" || mode === "pathfinding" || mode === "routePlanning" ? mode : "none";
   const nextMode = deps.canUseInteractionInCurrentMode(requestedMode) ? requestedMode : "none";
   deps.syncInteractionModeUi(nextMode);
   if (nextMode !== "pathfinding") {
@@ -9,6 +9,13 @@ export function setInteractionMode(deps, mode) {
       deps.travelPlanningRuntime?.clearPreview?.("interaction-mode", { emit: false });
     } catch (error) {
       console.error("Failed clearing travel preview for interaction mode:", error);
+    }
+  }
+  if (nextMode !== "routePlanning") {
+    try {
+      deps.routePlanningRuntime?.setActive?.(false, "interaction-mode");
+    } catch (error) {
+      console.error("Failed disabling route planning for interaction mode:", error);
     }
   }
   setInteractionModeState({

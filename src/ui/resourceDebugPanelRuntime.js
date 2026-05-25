@@ -9,7 +9,10 @@ function format(value, digits = 2) {
 
 function setRange(input, valueEl, value, digits = 2) {
   if (input) input.value = String(value);
-  if (valueEl) valueEl.textContent = digits === 0 ? String(Math.round(finite(value, 0))) : format(value, digits);
+  if (valueEl) {
+    const numeric = finite(value, 0);
+    valueEl.textContent = digits === 0 ? String(Math.round(numeric)) : format(numeric, digits);
+  }
 }
 
 function getActiveLayer(settings) {
@@ -42,6 +45,21 @@ export function createResourceDebugPanelRuntime(deps) {
     ["knowledgeThreshold", deps.knowledgeThresholdInput, deps.knowledgeThresholdValue, 2],
     ["lineWidth", deps.lineWidthInput, deps.lineWidthValue, 2],
     ["bandWidth", deps.bandWidthInput, deps.bandWidthValue, 3],
+  ];
+  const routeControls = [
+    ["arrowSpacing", deps.routeArrowSpacingInput, deps.routeArrowSpacingValue, 0],
+    ["arrowOpacity", deps.routeArrowOpacityInput, deps.routeArrowOpacityValue, 2],
+    ["arrowSize", deps.routeArrowSizeInput, deps.routeArrowSizeValue, 1],
+    ["endpointSkipRatio", deps.routeEndpointSkipRatioInput, deps.routeEndpointSkipRatioValue, 2],
+    ["previewPointRadius", deps.routePreviewPointRadiusInput, deps.routePreviewPointRadiusValue, 1],
+    ["previewOpacity", deps.routePreviewOpacityInput, deps.routePreviewOpacityValue, 2],
+    ["planningSlopeAdd", deps.routePlanningSlopeAddInput, deps.routePlanningSlopeAddValue, 1],
+    ["planningSlopeMul", deps.routePlanningSlopeMulInput, deps.routePlanningSlopeMulValue, 2],
+    ["planningHeightAdd", deps.routePlanningHeightAddInput, deps.routePlanningHeightAddValue, 1],
+    ["planningHeightMul", deps.routePlanningHeightMulInput, deps.routePlanningHeightMulValue, 2],
+    ["planningWaterAdd", deps.routePlanningWaterAddInput, deps.routePlanningWaterAddValue, 1],
+    ["planningWaterMul", deps.routePlanningWaterMulInput, deps.routePlanningWaterMulValue, 2],
+    ["planningSlopeCutoffAdd", deps.routePlanningSlopeCutoffAddInput, deps.routePlanningSlopeCutoffAddValue, 2],
   ];
   const bandControls = [
     { input: deps.band1Input, value: deps.band1Value, enabled: deps.band1EnabledInput },
@@ -77,6 +95,7 @@ export function createResourceDebugPanelRuntime(deps) {
       if (control.enabled) control.enabled.checked = band.enabled !== false;
     });
     syncStock();
+    syncRoute();
   }
 
   function syncStock() {
@@ -92,6 +111,15 @@ export function createResourceDebugPanelRuntime(deps) {
     if (deps.stockReadout && typeof deps.getStockReadout === "function") {
       const readout = deps.getStockReadout(resourceId);
       deps.stockReadout.textContent = readout || "Stock: -- | Known: -- | Chance: --";
+    }
+  }
+
+  function syncRoute() {
+    const settings = typeof deps.getRouteSettings === "function" ? deps.getRouteSettings() : {};
+    if (deps.routeArrowColorInput) deps.routeArrowColorInput.value = settings.arrowColor || "#ffffff";
+    if (deps.routeDebugOverlayModeInput) deps.routeDebugOverlayModeInput.value = settings.debugOverlayMode || "none";
+    for (const [key, input, valueEl, digits] of routeControls) {
+      setRange(input, valueEl, settings[key], digits);
     }
   }
 
@@ -137,7 +165,14 @@ export function createResourceDebugPanelRuntime(deps) {
   });
   layerControls.forEach(([key, input, valueEl, digits]) => bindLayerRange(key, input, valueEl, digits));
   stockControls.forEach(([key, input, valueEl, digits]) => bindStockRange(key, input, valueEl, digits));
-
+  routeControls.forEach(([key, input, valueEl, digits]) => {
+    if (!input) return;
+    input.addEventListener("input", () => {
+      const value = digits === 0 ? Math.round(finite(input.value, 0)) : finite(input.value, 0);
+      if (valueEl) valueEl.textContent = digits === 0 ? String(value) : format(value, digits);
+      deps.updateRouteSettings?.({ [key]: value });
+    });
+  });
   if (Array.isArray(deps.tabButtons) && Array.isArray(deps.tabPanels)) {
     const selectTab = (tab, options = {}) => {
       for (const item of deps.tabButtons) {
@@ -274,11 +309,28 @@ export function createResourceDebugPanelRuntime(deps) {
       syncStock();
     });
   }
+  if (deps.routeArrowColorInput) {
+    deps.routeArrowColorInput.addEventListener("input", () => {
+      deps.updateRouteSettings?.({ arrowColor: deps.routeArrowColorInput.value });
+    });
+  }
+  if (deps.routeDebugOverlayModeInput) {
+    deps.routeDebugOverlayModeInput.addEventListener("change", () => {
+      deps.updateRouteSettings?.({ debugOverlayMode: deps.routeDebugOverlayModeInput.value });
+    });
+  }
+  if (deps.routeClearBtn) {
+    deps.routeClearBtn.addEventListener("click", () => {
+      deps.clearRoute?.();
+      syncRoute();
+    });
+  }
 
   sync();
 
   return {
     sync,
     syncStock,
+    syncRoute,
   };
 }

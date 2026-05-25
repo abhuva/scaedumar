@@ -29,6 +29,7 @@ export function createModeTopicRuntimeBinding(deps) {
     topicPanelTitleEl: deps.topicPanelTitleEl,
     dockLightingModeToggle: deps.dockLightingModeToggle,
     dockPathfindingModeToggle: deps.dockPathfindingModeToggle,
+    dockRoutePlanningModeToggle: deps.dockRoutePlanningModeToggle,
     getRuntimeMode,
     canUseModeTopic: deps.canUseModeTopic,
     canUseModeInteraction: deps.canUseModeInteraction,

@@ -25,6 +25,7 @@ export function createPathfindingRuntimeBinding(deps) {
       movementField = value;
     },
     travelPlanningRuntime: deps.travelPlanningRuntime,
+    getPathfindingStateSnapshot: deps.getPathfindingStateSnapshot,
     getInteractionModeSnapshot: deps.getInteractionModeSnapshot,
     requestOverlayDraw: deps.requestOverlayDraw,
     clientToNdc: deps.clientToNdc,

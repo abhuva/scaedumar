@@ -1,40 +1,5 @@
-class MinHeap {
-  constructor() {
-    this.items = [];
-  }
-
-  push(node) {
-    this.items.push(node);
-    let i = this.items.length - 1;
-    while (i > 0) {
-      const p = Math.floor((i - 1) / 2);
-      if (this.items[p].dist <= node.dist) break;
-      this.items[i] = this.items[p];
-      i = p;
-    }
-    this.items[i] = node;
-  }
-
-  pop() {
-    if (this.items.length === 0) return null;
-    const root = this.items[0];
-    const last = this.items.pop();
-    if (this.items.length === 0 || !last) return root;
-    let i = 0;
-    while (true) {
-      const l = i * 2 + 1;
-      const r = l + 1;
-      if (l >= this.items.length) break;
-      let c = l;
-      if (r < this.items.length && this.items[r].dist < this.items[l].dist) c = r;
-      if (this.items[c].dist >= last.dist) break;
-      this.items[i] = this.items[c];
-      i = c;
-    }
-    this.items[i] = last;
-    return root;
-  }
-}
+import { buildGridDijkstraField } from "../core/gridDijkstra.js";
+import { extractGridPath } from "../core/gridPathExtraction.js";
 
 export function createPathfindingPreviewRuntime(deps) {
   function getTravelPlanningRuntime() {
@@ -85,25 +50,17 @@ export function createPathfindingPreviewRuntime(deps) {
     if (!movementField) return [];
     if (pixelX < movementField.minX || pixelX > movementField.maxX || pixelY < movementField.minY || pixelY > movementField.maxY) return [];
     if (!isInsidePathfindingRange(pixelX, pixelY)) return [];
-    const indexOf = (x, y) => (y - movementField.minY) * movementField.width + (x - movementField.minX);
-    const indexToPixel = (idx) => ({
-      x: movementField.minX + (idx % movementField.width),
-      y: movementField.minY + Math.floor(idx / movementField.width),
+    const cells = extractGridPath({
+      field: movementField,
+      sourceX: deps.playerState.pixelX - movementField.minX,
+      sourceY: deps.playerState.pixelY - movementField.minY,
+      targetX: pixelX - movementField.minX,
+      targetY: pixelY - movementField.minY,
     });
-    const targetIdx = indexOf(pixelX, pixelY);
-    if (!Number.isFinite(movementField.dist[targetIdx])) return [];
-    const path = [];
-    let cursor = targetIdx;
-    const maxSteps = movementField.width * movementField.height;
-    for (let i = 0; i < maxSteps && cursor >= 0; i++) {
-      const p = indexToPixel(cursor);
-      path.push({ x: p.x, y: p.y });
-      if (p.x === deps.playerState.pixelX && p.y === deps.playerState.pixelY) break;
-      cursor = movementField.parent[cursor];
-    }
-    if (path.length === 0) return [];
-    path.reverse();
-    return path;
+    return cells.map((cell) => ({
+      x: movementField.minX + cell.x,
+      y: movementField.minY + cell.y,
+    }));
   }
 
   function refreshPathPreview() {
@@ -129,58 +86,34 @@ export function createPathfindingPreviewRuntime(deps) {
       return;
     }
 
-    const len = width * height;
-    const dist = new Float64Array(len);
-    const parent = new Int32Array(len);
-    dist.fill(Number.POSITIVE_INFINITY);
-    parent.fill(-1);
-
-    const indexOf = (x, y) => (y - bounds.minY) * width + (x - bounds.minX);
-    const startIdx = indexOf(deps.playerState.pixelX, deps.playerState.pixelY);
-    dist[startIdx] = 0;
-
-    const heap = new MinHeap();
-    heap.push({ x: deps.playerState.pixelX, y: deps.playerState.pixelY, dist: 0 });
     const moveCostContext = typeof deps.getMoveCostContext === "function" ? deps.getMoveCostContext() : null;
-    const dirs = [
-      { dx: 1, dy: 0 },
-      { dx: -1, dy: 0 },
-      { dx: 0, dy: 1 },
-      { dx: 0, dy: -1 },
-      { dx: 1, dy: 1 },
-      { dx: 1, dy: -1 },
-      { dx: -1, dy: 1 },
-      { dx: -1, dy: -1 },
-    ];
-
-    while (true) {
-      const current = heap.pop();
-      if (!current) break;
-      const idx = indexOf(current.x, current.y);
-      if (current.dist > dist[idx]) continue;
-      for (const dir of dirs) {
-        const nx = current.x + dir.dx;
-        const ny = current.y + dir.dy;
-        if (nx < bounds.minX || nx > bounds.maxX || ny < bounds.minY || ny > bounds.maxY) continue;
-        if (!isInsidePathfindingRange(nx, ny)) continue;
-        const nIdx = indexOf(nx, ny);
-        const stepCost = deps.computeMoveStepCost(current.x, current.y, nx, ny, moveCostContext);
-        if (!Number.isFinite(stepCost)) continue;
-        const nextDist = dist[idx] + stepCost;
-        if (nextDist < dist[nIdx]) {
-          dist[nIdx] = nextDist;
-          parent[nIdx] = idx;
-          heap.push({ x: nx, y: ny, dist: nextDist });
-        }
-      }
+    const field = buildGridDijkstraField({
+      width,
+      height,
+      sourceX: deps.playerState.pixelX - bounds.minX,
+      sourceY: deps.playerState.pixelY - bounds.minY,
+      isAllowedCell: (x, y) => isInsidePathfindingRange(bounds.minX + x, bounds.minY + y),
+      getStepCost: (fromX, fromY, toX, toY) =>
+        deps.computeMoveStepCost(
+          bounds.minX + fromX,
+          bounds.minY + fromY,
+          bounds.minX + toX,
+          bounds.minY + toY,
+          moveCostContext,
+        ),
+    });
+    if (!field) {
+      deps.setMovementField(null);
+      setHoverPath(null, [], "movement-field-empty");
+      return;
     }
 
     deps.setMovementField({
       ...bounds,
       width,
       height,
-      dist,
-      parent,
+      dist: field.dist,
+      parent: field.parent,
     });
     refreshPathPreview();
   }
@@ -214,11 +147,17 @@ export function createPathfindingPreviewRuntime(deps) {
     const targetX = hover.x;
     const targetY = hover.y;
     if (targetX < movementField.minX || targetX > movementField.maxX || targetY < movementField.minY || targetY > movementField.maxY) return null;
-    const idx = (targetY - movementField.minY) * movementField.width + (targetX - movementField.minX);
-    const totalCost = movementField.dist[idx];
-    if (!Number.isFinite(totalCost)) return null;
     const nodeCount = pathPixels.length;
     if (nodeCount <= 0) return null;
+    const moveCostContext = typeof deps.getMoveCostContext === "function" ? deps.getMoveCostContext() : null;
+    let totalCost = 0;
+    for (let i = 1; i < pathPixels.length; i += 1) {
+      const from = pathPixels[i - 1];
+      const to = pathPixels[i];
+      const stepCost = deps.computeMoveStepCost(from.x, from.y, to.x, to.y, moveCostContext);
+      if (!Number.isFinite(stepCost) || stepCost <= 0) return null;
+      totalCost += stepCost;
+    }
     const steps = Math.max(0, nodeCount - 1);
     return {
       steps,
