@@ -893,7 +893,8 @@ input[type="file"] {
 
 .movement-status-panel.route-planning-panel {
   bottom: calc(var(--player-ui-bottom) + var(--side-slot-height) + var(--side-stack-gap));
-  height: calc(var(--side-slot-height) + 42px);
+  height: var(--side-slot-height);
+  overflow: auto;
   border-color: rgba(214, 180, 106, 0.62);
   background:
     linear-gradient(180deg, rgba(34, 28, 14, 0.94), rgba(10, 13, 12, 0.97)),
@@ -1116,7 +1117,7 @@ body.runtime-gameplay .inspect-status-panel {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-top: 5px;
+  margin-top: 3px;
 }
 
 .route-planning-controls.hidden {
@@ -1141,17 +1142,17 @@ body.runtime-gameplay .inspect-status-panel {
 .route-time-readout {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 6px;
+  gap: 4px;
   min-width: 0;
   color: #f3dd9a;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 900;
   line-height: 1.1;
 }
 
 .route-time-readout strong {
   color: #ffffff;
-  font-size: 11px;
+  font-size: 10px;
 }
 
 .route-panel-actions {
@@ -1163,7 +1164,7 @@ body.runtime-gameplay .inspect-status-panel {
 
 .route-panel-btn {
   width: 28px;
-  height: 28px;
+  height: 24px;
   margin-top: 0;
   padding: 0;
   border-color: rgba(214, 180, 106, 0.55);

@@ -190,7 +190,7 @@ Shared gameplay data lives under `assets/data/`.
 
 ## Verification
 
-Use explicit timeouts for quick JS checks:
+When running quick checks through Codex tools, pass explicit `timeout_ms` values. Common commands are:
 
 ```powershell
 node --check src\main.js

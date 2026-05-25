@@ -3,8 +3,11 @@ import { MinHeap } from "./minHeap.js";
 export function buildGridDijkstraField(input = {}) {
   const width = Math.max(0, Math.round(Number(input.width) || 0));
   const height = Math.max(0, Math.round(Number(input.height) || 0));
-  const sourceX = Math.round(Number(input.sourceX));
-  const sourceY = Math.round(Number(input.sourceY));
+  const rawSourceX = Number(input.sourceX);
+  const rawSourceY = Number(input.sourceY);
+  if (!Number.isFinite(rawSourceX) || !Number.isFinite(rawSourceY)) return null;
+  const sourceX = Math.round(rawSourceX);
+  const sourceY = Math.round(rawSourceY);
   const getStepCost = typeof input.getStepCost === "function" ? input.getStepCost : () => Number.POSITIVE_INFINITY;
   const isAllowedCell = typeof input.isAllowedCell === "function" ? input.isAllowedCell : () => true;
   if (width <= 0 || height <= 0) return null;
@@ -45,7 +48,7 @@ export function buildGridDijkstraField(input = {}) {
       if (!isAllowedCell(nx, ny, current.x, current.y)) continue;
       const nIdx = indexOf(nx, ny);
       const stepCost = getStepCost(current.x, current.y, nx, ny);
-      if (!Number.isFinite(stepCost)) continue;
+      if (!Number.isFinite(stepCost) || stepCost < 0) continue;
       const nextDist = dist[idx] + stepCost;
       if (nextDist < dist[nIdx]) {
         dist[nIdx] = nextDist;

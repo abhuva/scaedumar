@@ -207,6 +207,23 @@ test("route planning mode activation starts route runtime from command intent", 
   assert.equal(activeValue, true);
 });
 
+test("route planning mode activation fails when route runtime is missing", () => {
+  const commandBus = createCommandBus();
+  let mode = "none";
+  const deps = createDeps({
+    routePlanningRuntime: null,
+    setInteractionMode: (nextMode) => {
+      mode = nextMode;
+    },
+  });
+  registerInteractionCommands(commandBus, deps);
+
+  commandBus.dispatch({ type: "core/interaction/setMode", mode: "routePlanning" });
+
+  assert.equal(mode, "none");
+  assert.equal(deps.calls.status, "Route mode unavailable: route runtime missing.");
+});
+
 test("route planning outside hover updates route runtime outside state", () => {
   const commandBus = createCommandBus();
   let outside = false;
@@ -368,4 +385,19 @@ test("missing runtime mode falls back to dev no-mode click behavior", () => {
 
   assert.equal(deps.calls.setPlayerPosition, 1);
   assert.equal(deps.calls.cancelMovementQueue, 1);
+});
+
+test("pathfinding setting commands ignore non-finite values", () => {
+  const commandBus = createCommandBus();
+  let patch = null;
+  const deps = createDeps({
+    patchPathfindingStateToStore: (nextPatch) => {
+      patch = nextPatch;
+    },
+  });
+  registerInteractionCommands(commandBus, deps);
+
+  commandBus.dispatch({ type: "core/pathfinding/setWeightSlope", value: "not-a-number" });
+
+  assert.equal(patch, null);
 });

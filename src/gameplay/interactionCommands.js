@@ -109,6 +109,11 @@ export function registerInteractionCommands(commandBus, deps) {
     const requestedMode = command.mode === "pathfinding" || command.mode === "routePlanning" || command.mode === "lighting"
       ? command.mode
       : "none";
+    const routeRuntime = deps.routePlanningRuntime;
+    if (requestedMode === "routePlanning" && (!routeRuntime || typeof routeRuntime.setActive !== "function")) {
+      deps.setStatus("Route mode unavailable: route runtime missing.");
+      return;
+    }
     if (requestedMode === "pathfinding" || requestedMode === "routePlanning") {
       stopPrimaryForSwitch();
     }
@@ -119,10 +124,19 @@ export function registerInteractionCommands(commandBus, deps) {
       clearTravelPlanningRange("mode-changed");
     }
     if (requestedMode === "routePlanning") {
-      deps.routePlanningRuntime?.setActive?.(true, "mode-changed");
-      deps.setStatus("Route mode enabled: hover for route preview, click to add waypoint.");
+      const result = routeRuntime.setActive(true, "mode-changed");
+      if (result && typeof result.then === "function") {
+        result.then((value) => {
+          if (value !== false) deps.setStatus("Route mode enabled: hover for route preview, click to add waypoint.");
+        }).catch(() => {
+          deps.setInteractionMode("none");
+          deps.setStatus("Route mode unavailable: route runtime failed to start.");
+        });
+      } else if (result !== false) {
+        deps.setStatus("Route mode enabled: hover for route preview, click to add waypoint.");
+      }
     } else {
-      deps.routePlanningRuntime?.setActive?.(false, "mode-changed");
+      routeRuntime?.setActive?.(false, "mode-changed");
     }
   });
 
@@ -312,7 +326,9 @@ export function registerInteractionCommands(commandBus, deps) {
 
   function registerPathfindingSetter(commandType, field, min, max, round = false) {
     commandBus.register(commandType, (command) => {
-      const rawValue = deps.clamp(Number(command.value), min, max);
+      const parsedValue = Number(command.value);
+      if (!Number.isFinite(parsedValue)) return;
+      const rawValue = deps.clamp(parsedValue, min, max);
       const value = round ? Math.round(rawValue) : rawValue;
       updatePathfindingStoreField({ [field]: value });
       deps.syncPathfindingSettingsUi();

@@ -58,3 +58,16 @@ test("route planning step cost scales low-res steps by source map pixels", () =>
   assert.equal(model.computeRouteStepCost(0, 0, 1, 0, grid, settings), 2);
   assert.equal(Number(model.computeRouteStepCost(0, 0, 1, 1, grid, settings).toFixed(3)), 2.828);
 });
+
+test("route planning step cost rejects out-of-bounds source cells", () => {
+  const model = createRoutePlanningCostModel({
+    getMapSize: () => ({ width: 4, height: 4 }),
+    getSlopeImageData: () => imageData(4, 4, []),
+    getHeightImageData: () => imageData(4, 4, []),
+    getWaterImageData: () => imageData(4, 4, []),
+  });
+  const grid = model.getTerrainGrid({ gridSize: 2 });
+
+  assert.equal(model.computeRouteStepCost(-1, 0, 1, 0, grid), Number.POSITIVE_INFINITY);
+  assert.equal(model.computeRouteStepCost(0, 2, 1, 0, grid), Number.POSITIVE_INFINITY);
+});

@@ -210,7 +210,11 @@ export function createRoutePlanningCostModel(deps) {
 
   function computeRouteStepCost(fromX, fromY, toX, toY, terrain, rawSettings = {}) {
     const settings = normalizeRoutePlanningSettings(rawSettings);
-    if (!terrain || toX < 0 || toX >= terrain.width || toY < 0 || toY >= terrain.height) return Number.POSITIVE_INFINITY;
+    if (!terrain
+      || fromX < 0 || fromX >= terrain.width || fromY < 0 || fromY >= terrain.height
+      || toX < 0 || toX >= terrain.width || toY < 0 || toY >= terrain.height) {
+      return Number.POSITIVE_INFINITY;
+    }
     const fromIdx = indexOf(terrain, fromX, fromY);
     const toIdx = indexOf(terrain, toX, toY);
     const slope = terrain.slopeMap[toIdx] || 0;

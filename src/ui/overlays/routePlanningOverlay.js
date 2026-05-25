@@ -12,6 +12,11 @@ function rgba(hex, alpha) {
   return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${Math.max(0, Math.min(1, Number(alpha) || 0)).toFixed(3)})`;
 }
 
+function finitePositive(value, fallback) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
 function drawMapDot(ctx, deps, pixel, color, radiusMapPx) {
   const centerWorld = deps.mapPixelToWorld(pixel.x, pixel.y);
   const centerScreen = deps.worldToScreen(centerWorld);
@@ -141,13 +146,19 @@ const debugTextureCache = {
 };
 
 function routeTextureKey(snapshot, deps, settings, textureSize) {
-  const committed = snapshot && snapshot.committed;
+  const segments = Array.isArray(snapshot && snapshot.segments) ? snapshot.segments : [];
+  const segmentKey = segments.map((segment) => {
+    const polyline = Array.isArray(segment && segment.polyline) ? segment.polyline : [];
+    const source = segment && segment.source ? `${Math.round(Number(segment.source.x))},${Math.round(Number(segment.source.y))}` : "";
+    const destination = segment && segment.destination ? `${Math.round(Number(segment.destination.x))},${Math.round(Number(segment.destination.y))}` : "";
+    return `${segment && segment.id}:${source}:${destination}:${polyline.length}`;
+  }).join("|");
   const mapWidth = deps && deps.splatSize ? deps.splatSize.width : "";
   const mapHeight = deps && deps.splatSize ? deps.splatSize.height : "";
   return [
     snapshot.version,
-    committed ? committed.segmentCount : 0,
-    committed && Array.isArray(committed.polyline) ? committed.polyline.length : 0,
+    segments.length,
+    segmentKey,
     mapWidth,
     mapHeight,
     settings.arrowSpacing,
@@ -310,6 +321,7 @@ export function drawRoutePlanningOverlay(deps) {
   const snapshot = deps.snapshot;
   if (!snapshot) return;
   const settings = snapshot.settings || {};
+  const previewPointRadius = finitePositive(settings.previewPointRadius, 1);
   if (snapshot.active && snapshot.debugOverlay) {
     drawTextureOverMap(deps.ctx, deps, renderDebugOverlayTexture(snapshot.debugOverlay, snapshot.version));
   }
@@ -348,7 +360,7 @@ export function drawRoutePlanningOverlay(deps) {
   if (snapshot.active && Array.isArray(snapshot.hoverPathPixels) && snapshot.hoverPathPixels.length > 0) {
     const color = rgba(settings.arrowColor, settings.previewOpacity);
     for (const pixel of snapshot.hoverPathPixels) {
-      drawMapDot(deps.ctx, deps, pixel, color, settings.previewPointRadius);
+      drawMapDot(deps.ctx, deps, pixel, color, previewPointRadius);
     }
   }
 }

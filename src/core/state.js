@@ -190,7 +190,7 @@ export function createInitialState() {
       weather: { ...DEFAULT_WEATHER_STATE },
     },
     gameplay: {
-      player: { ...DEFAULT_GAMEPLAY_PLAYER },
+      player: cloneDefault(DEFAULT_GAMEPLAY_PLAYER),
       interactionMode: "none",
       cursorLight: { ...DEFAULT_GAMEPLAY_CURSOR_LIGHT },
       pathfinding: { ...DEFAULT_GAMEPLAY_PATHFINDING },
