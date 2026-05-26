@@ -23,6 +23,7 @@ const FALLBACK_SLOPE_COLORS = [
   "rgba(255, 218, 145, 0.82)",
 ];
 const BAND_ALPHA_RAMP = [0.34, 0.44, 0.58, 0.7, 0.82];
+const TERRAIN_VISIBILITY_MODES = new Set(["black", "greyscale", "desaturate", "debug"]);
 
 function finite(value, fallback = 0) {
   const parsed = Number(value);
@@ -99,17 +100,35 @@ function normalizeDecaySettings(rawDecay, fallbackDecay = {}) {
   };
 }
 
+function normalizeTerrainVisibilitySettings(rawVisibility, fallbackVisibility = {}) {
+  const source = rawVisibility && typeof rawVisibility === "object" ? rawVisibility : {};
+  const mode = TERRAIN_VISIBILITY_MODES.has(source.mode) ? source.mode : (fallbackVisibility.mode || "black");
+  const resourceId = "world";
+  return {
+    enabled: source.enabled == null ? fallbackVisibility.enabled === true : source.enabled === true,
+    resourceId,
+    mode,
+    ditherScale: clamp(source.ditherScale, 0.03125, 64, fallbackVisibility.ditherScale || 1),
+    knowledgeGamma: clamp(source.knowledgeGamma, 0.1, 4, fallbackVisibility.knowledgeGamma || 1),
+    baseVisibility: clamp(source.baseVisibility, 0, 1, fallbackVisibility.baseVisibility || 0),
+    fullVisibilityThreshold: clamp(source.fullVisibilityThreshold, 0, 1, fallbackVisibility.fullVisibilityThreshold ?? 0.98),
+    unknownDarkness: clamp(source.unknownDarkness, 0, 1, fallbackVisibility.unknownDarkness ?? 1),
+    noiseSeed: Math.round(clamp(source.noiseSeed, 0, 999999, fallbackVisibility.noiseSeed || 1)),
+    noiseScale: clamp(source.noiseScale, 1, 256, fallbackVisibility.noiseScale || 24),
+    noiseMin: clamp(source.noiseMin, 0, 1, fallbackVisibility.noiseMin || 0),
+    noiseMax: clamp(source.noiseMax, 0, 1, fallbackVisibility.noiseMax ?? 1),
+  };
+}
+
 function createDefaultLayerSettings(layer, overlay = {}) {
   const thresholds = Array.isArray(overlay.thresholds) && overlay.thresholds.length
     ? overlay.thresholds
     : FALLBACK_BANDS;
   const colors = defaultColorsForLayer(layer, overlay);
   return {
-    renderMode: overlay.renderMode === "raster" ? "raster" : "marching",
     sampleStep: Math.round(clamp(overlay.sampleStep, 1, 128, 8)),
     knowledgeThreshold: clamp(overlay.knowledgeThreshold, 0, 1, 0.25),
     lineWidth: clamp(overlay.lineWidth, 0.25, 8, 1.25),
-    bandWidth: clamp(overlay.bandWidth, 0.0001, 1, 0.018),
     tintColor: colorToHex(colors[2] || colors[0] || "#74d7f5"),
     bands: FALLBACK_BANDS.map((fallbackThreshold, index) => normalizeBand(
       null,
@@ -123,11 +142,9 @@ function normalizeLayerSettings(rawLayer, fallbackLayer) {
   const fallbackBands = Array.isArray(fallbackLayer.bands) ? fallbackLayer.bands : [];
   const rawBands = Array.isArray(source.bands) ? source.bands : [];
   return {
-    renderMode: source.renderMode === "raster" ? "raster" : "marching",
     sampleStep: Math.round(clamp(source.sampleStep, 1, 128, fallbackLayer.sampleStep)),
     knowledgeThreshold: clamp(source.knowledgeThreshold, 0, 1, fallbackLayer.knowledgeThreshold),
     lineWidth: clamp(source.lineWidth, 0.25, 8, fallbackLayer.lineWidth),
-    bandWidth: clamp(source.bandWidth, 0.0001, 1, fallbackLayer.bandWidth),
     tintColor: colorToHex(source.tintColor || (rawBands.find((band) => band && band.color) || {}).color, fallbackLayer.tintColor),
     bands: fallbackBands.map((fallbackBand, index) => normalizeBand(rawBands[index], fallbackBand.threshold)),
   };
@@ -149,11 +166,25 @@ export function createDefaultResourceDebugSettings(resourceSearches = {}, resour
     activeLayer: "water",
     discovery: {
       gridSize: Math.round(clamp(discovery.gridSize, 8, 2048, 256)),
-      movementRevealRadius: clamp(discovery.movementRevealRadius, 0, 4096, 30),
-      revealFalloff: clamp(discovery.revealFalloff, 0, 8, 0),
+      movementRevealRadius: clamp(discovery.movementRevealRadius, 0, 4096, 80),
+      revealFalloff: clamp(discovery.revealFalloff, 0, 8, 0.15),
       showMaskOverlay: false,
       maskOverlayOpacity: 0.45,
       decay: normalizeDecaySettings(mapSettings.decay, { intervalTicks: 500, amount: 1 }),
+      terrainVisibility: normalizeTerrainVisibilitySettings(null, {
+        enabled: true,
+        resourceId: "world",
+        mode: "black",
+        ditherScale: 1,
+        knowledgeGamma: 1,
+        baseVisibility: 0.2,
+        fullVisibilityThreshold: 0.8,
+        unknownDarkness: 1,
+        noiseSeed: 1,
+        noiseScale: 24,
+        noiseMin: 0.08,
+        noiseMax: 0.62,
+      }),
     },
     layers,
   };
@@ -179,6 +210,7 @@ export function normalizeResourceDebugSettings(rawSettings, fallbackSettings) {
       showMaskOverlay: rawDiscovery.showMaskOverlay === true,
       maskOverlayOpacity: clamp(rawDiscovery.maskOverlayOpacity, 0, 1, fallback.discovery.maskOverlayOpacity),
       decay: normalizeDecaySettings(rawDiscovery.decay, fallback.discovery.decay),
+      terrainVisibility: normalizeTerrainVisibilitySettings(rawDiscovery.terrainVisibility, fallback.discovery.terrainVisibility),
     },
     layers,
   };

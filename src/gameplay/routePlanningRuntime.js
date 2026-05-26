@@ -192,20 +192,27 @@ export function createRoutePlanningRuntime(deps) {
     const costSettings = getCostSettings();
     const costGrid = costModel.buildCostGrid(costSettings);
     const sourceCell = costModel.pixelToCell(source, costGrid);
+    const knowledge = buildKnowledgeGrid(
+      costGrid.terrain,
+      typeof deps.getNavigationKnowledgeSnapshots === "function" ? deps.getNavigationKnowledgeSnapshots() : [],
+    );
+    const sourceIndex = sourceCell.y * costGrid.width + sourceCell.x;
+    const discoveryCutoff = Math.max(0, Math.min(1, Number(costSettings.discoveryCutoff) || 0));
     const dijkstra = buildGridDijkstraField({
       width: costGrid.width,
       height: costGrid.height,
       sourceX: sourceCell.x,
       sourceY: sourceCell.y,
-      getStepCost: (fromX, fromY, toX, toY) =>
-        costModel.computeRouteStepCost(fromX, fromY, toX, toY, costGrid.terrain, costSettings),
+      getStepCost: (fromX, fromY, toX, toY) => {
+        const toIndex = toY * costGrid.width + toX;
+        if (discoveryCutoff > 0 && toIndex !== sourceIndex && (knowledge[toIndex] || 0) < discoveryCutoff) {
+          return Number.POSITIVE_INFINITY;
+        }
+        return costModel.computeRouteStepCost(fromX, fromY, toX, toY, costGrid.terrain, costSettings);
+      },
     });
     const dist = dijkstra ? dijkstra.dist : new Float64Array(costGrid.width * costGrid.height).fill(Number.POSITIVE_INFINITY);
     const parent = dijkstra ? dijkstra.parent : new Int32Array(costGrid.width * costGrid.height).fill(-1);
-    const knowledge = buildKnowledgeGrid(
-      costGrid.terrain,
-      typeof deps.getNavigationKnowledgeSnapshots === "function" ? deps.getNavigationKnowledgeSnapshots() : [],
-    );
 
     state.source = clonePoint(source);
     state.anchor = clonePoint(source);
@@ -233,7 +240,11 @@ export function createRoutePlanningRuntime(deps) {
     state.active = Boolean(active);
     if (state.active) {
       state.waypointPlacementActive = state.segments.length === 0;
-      if (!state.anchor) state.anchor = playerPixel();
+      if (state.segments.length === 0) {
+        state.anchor = playerPixel();
+      } else if (!state.anchor) {
+        state.anchor = playerPixel();
+      }
       rebuildField(reason, state.anchor);
       return;
     }
@@ -277,9 +288,14 @@ export function createRoutePlanningRuntime(deps) {
     }
     let cost = 0;
     let ticks = 0;
+    const discoveryCutoff = Math.max(0, Math.min(1, Number(field.settings.discoveryCutoff) || 0));
     for (let i = 1; i < cells.length; i += 1) {
       const from = cells[i - 1];
       const to = cells[i];
+      const toIndex = to.y * field.width + to.x;
+      if (discoveryCutoff > 0 && field.knowledge && (field.knowledge[toIndex] || 0) < discoveryCutoff) {
+        return { cost: Number.POSITIVE_INFINITY, ticks: Number.POSITIVE_INFINITY };
+      }
       const stepCost = costModel.computeRouteStepCost(
         from.x,
         from.y,
@@ -502,6 +518,16 @@ export function createRoutePlanningRuntime(deps) {
       state.destination = clonePoint(state.segments[state.segments.length - 1].destination);
     } else if (state.segments.length === 0) {
       state.destination = null;
+      state.anchor = playerPixel();
+      state.waypointPlacementActive = true;
+      state.selectedWaypoint = null;
+      state.hoverPixel = null;
+      state.hoverCell = null;
+      state.hoverStatus = "none";
+      state.hoverCost = null;
+      state.hoverTicks = null;
+      state.hoverPathCells = [];
+      state.hoverPathPixels = [];
     }
     notify(reason);
     return true;

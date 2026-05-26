@@ -1,5 +1,6 @@
 import { drawResourceContourOverlay } from "./resourceContourOverlay.js";
 import { drawDiscoveryMaskOverlay } from "./discoveryMaskOverlay.js";
+import { drawDiscoveryTerrainVisibilityOverlay } from "./discoveryTerrainVisibilityOverlay.js";
 import { drawRoutePlanningOverlay } from "./routePlanningOverlay.js";
 
 export function createOverlayDrawer(deps) {
@@ -7,6 +8,19 @@ export function createOverlayDrawer(deps) {
     deps.overlayCtx.clearRect(0, 0, deps.overlayCanvas.width, deps.overlayCanvas.height);
     const worldPerMapPixel = deps.getMapAspect() / deps.splatSize.width;
     const travelPlanning = deps.getTravelPlanningSnapshot();
+    const discoveryTerrainVisibility = typeof deps.getDiscoveryTerrainVisibilityOverlaySnapshot === "function"
+      ? deps.getDiscoveryTerrainVisibilityOverlaySnapshot()
+      : null;
+    if (discoveryTerrainVisibility) {
+      drawDiscoveryTerrainVisibilityOverlay({
+        ctx: deps.overlayCtx,
+        snapshot: discoveryTerrainVisibility.snapshot,
+        settings: discoveryTerrainVisibility.settings,
+        terrainImageData: discoveryTerrainVisibility.terrainImageData,
+        mapPixelToWorld: deps.mapPixelToWorld,
+        worldToScreen: deps.worldToScreen,
+      });
+    }
 
     if (deps.getInteractionMode() === "lighting") {
       const lightEditDraft = deps.getLightEditDraft();

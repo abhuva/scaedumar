@@ -659,6 +659,12 @@ body.runtime-gameplay .game-time-diorama {
   border-bottom: 1px solid var(--panel-border);
 }
 
+.topic-panel-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .topic-panel-header h1 {
   margin: 0;
   font-size: 17px;
@@ -675,6 +681,55 @@ body.runtime-gameplay .game-time-diorama {
 
 .topic-panel-header button:hover {
   background: rgba(255, 255, 255, 0.15);
+}
+
+#perfOverlayToggleBtn.active {
+  background: rgba(126, 215, 255, 0.22);
+  color: #ccefff;
+}
+
+.performance-overlay-panel {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 11;
+  width: min(420px, calc(100vw - 24px));
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  background: rgba(10, 14, 18, 0.9);
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.36);
+  padding: 8px 10px;
+  pointer-events: none;
+}
+
+.performance-overlay-panel.hidden {
+  display: none;
+}
+
+.performance-overlay-text {
+  margin: 0;
+  padding-right: 58px;
+  color: #d6e2ea;
+  font: 12px/1.35 Consolas, SFMono-Regular, Menlo, monospace;
+  white-space: pre-wrap;
+}
+
+.performance-overlay-copy-btn {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  border: 1px solid var(--panel-border);
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #d6e2ea;
+  font-size: 11px;
+  padding: 3px 8px;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.performance-overlay-copy-btn:hover {
+  background: rgba(255, 255, 255, 0.17);
 }
 
 .topic-panel-body {

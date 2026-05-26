@@ -125,6 +125,29 @@ test("route planning clear resets route anchor to player", () => {
   assert.deepEqual(snapshot.source, { x: 0, y: 0 });
 });
 
+test("route planning empty-route activation uses current player position after deleting last segment", () => {
+  const playerState = { pixelX: 0, pixelY: 0 };
+  const runtime = createRuntime({ playerState });
+
+  runtime.setActive(true);
+  runtime.updateHoverAtPixel({ x: 15, y: 15 });
+  runtime.commitHover();
+  const segmentId = runtime.getSnapshot().segments[0].id;
+  runtime.selectSegment(segmentId);
+  runtime.deleteSelectedSegment();
+  runtime.setActive(false);
+
+  playerState.pixelX = 7;
+  playerState.pixelY = 9;
+  runtime.setActive(true);
+  const snapshot = runtime.getSnapshot();
+
+  assert.deepEqual(snapshot.anchor, { x: 7, y: 9 });
+  assert.deepEqual(snapshot.source, { x: 7, y: 9 });
+  assert.equal(snapshot.waypointPlacementActive, true);
+  assert.equal(snapshot.segments.length, 0);
+});
+
 test("route planning can hide committed overlay without deleting segments", () => {
   const runtime = createRuntime();
 
@@ -316,6 +339,30 @@ test("route planning applies NAV-only planning bias to effective costs", () => {
   assert.equal(snapshot.settings.planningWaterAdd, 10);
   assert.equal(snapshot.settings.weightWater, 0);
   assert.ok(snapshot.hoverCost > 40);
+});
+
+test("route planning treats low discovery knowledge as impassable at cutoff", () => {
+  const cells = new Uint8ClampedArray(8 * 8);
+  cells[0] = 255;
+  const runtime = createRuntime({
+    getNavigationKnowledgeSnapshots: () => [{
+      resourceId: "water",
+      width: 8,
+      height: 8,
+      mapWidth: 16,
+      mapHeight: 16,
+      cells,
+    }],
+  });
+  runtime.updateSettings({
+    gridSize: 8,
+    discoveryCutoff: 0.5,
+  });
+
+  runtime.setActive(true);
+
+  assert.equal(runtime.updateHoverAtPixel({ x: 15, y: 0 }), false);
+  assert.equal(runtime.getSnapshot().hoverStatus, "unreachable");
 });
 
 test("route planning estimates ticks with per-step rounding", () => {

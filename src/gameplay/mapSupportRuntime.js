@@ -94,6 +94,7 @@ export function createMapSupportRuntime(deps) {
       getPointLightBakeWorker: deps.getPointLightBakeWorker,
       getNormalsImageData: deps.getNormalsImageData,
       getHeightImageData: deps.getHeightImageData,
+      setSplatImageData: deps.setSplatImageData,
       setNormalsImageData: deps.setNormalsImageData,
       setHeightImageData: deps.setHeightImageData,
       setFlowImageData: deps.setFlowImageData,

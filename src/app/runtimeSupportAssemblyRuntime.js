@@ -37,6 +37,7 @@ export function createMapSupportAssemblyRuntime(deps) {
     getPointLightBakeWorker: deps.getPointLightBakeWorker,
     clamp: deps.clamp,
     getNormalsImageData: deps.getNormalsImageData,
+    setSplatImageData: deps.setSplatImageData,
     setNormalsImageData: deps.setNormalsImageData,
     setHeightImageData: deps.setHeightImageData,
     setFlowImageData: deps.setFlowImageData,

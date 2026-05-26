@@ -57,11 +57,9 @@ function makeCacheKey(input, imageData, search, overlay, thresholds, step, knowl
     imageData.height,
     version,
     stockVersion,
-    overlay.renderMode === "marching" ? "marching" : "raster",
     step,
     knowledgeThreshold.toFixed(4),
     finite(overlay.lineWidth, 1.25).toFixed(4),
-    finite(overlay.bandWidth, 0.018).toFixed(4),
     Array.isArray(overlay.colors) ? overlay.colors.join(",") : "",
     thresholds.map((value) => finite(value, 0).toFixed(4)).join(","),
   ].join("|");
@@ -186,62 +184,6 @@ function getCachedContourRaster(input, imageData, search, overlay, thresholds, s
   return canvas;
 }
 
-function getCachedBandRaster(input, imageData, search, overlay, thresholds, step, knowledgeThreshold) {
-  void step;
-  const cacheKey = makeCacheKey(input, imageData, search, overlay, thresholds, 0, knowledgeThreshold);
-  if (rasterCache.has(cacheKey)) {
-    const cached = rasterCache.get(cacheKey);
-    rasterCache.delete(cacheKey);
-    rasterCache.set(cacheKey, cached);
-    return cached;
-  }
-
-  const sampleKnowledge = typeof input.sampleKnowledge === "function" ? input.sampleKnowledge : () => 0;
-  const sampleStockFactor = typeof input.sampleStockFactor === "function" ? input.sampleStockFactor : () => 1;
-  const canvas = createCanvas(imageData.width, imageData.height);
-  if (!canvas) return null;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return null;
-  const output = ctx.createImageData(imageData.width, imageData.height);
-  const out = output.data;
-  const bandWidth = Math.max(0.0001, finite(overlay.bandWidth, 0.018));
-  const colors = thresholds.map((_, index) => parseRgba(
-    Array.isArray(overlay.colors) ? overlay.colors[index] : null,
-  ));
-
-  for (let y = 0; y < imageData.height; y++) {
-    for (let x = 0; x < imageData.width; x++) {
-      if (sampleKnowledge(search.id, x, y) < knowledgeThreshold) continue;
-      const wetness = sampleResourceMapValue(imageData, x, y, search.channel) * sampleStockFactor(search.id, x, y);
-      let bestIndex = -1;
-      let bestAlpha = 0;
-      for (let i = 0; i < thresholds.length; i++) {
-        const distance = Math.abs(wetness - thresholds[i]);
-        if (distance > bandWidth) continue;
-        const alpha = 1 - distance / bandWidth;
-        if (alpha > bestAlpha) {
-          bestAlpha = alpha;
-          bestIndex = i;
-        }
-      }
-      if (bestIndex < 0) continue;
-      const color = colors[bestIndex];
-      const idx = (y * imageData.width + x) * 4;
-      out[idx] = color[0];
-      out[idx + 1] = color[1];
-      out[idx + 2] = color[2];
-      out[idx + 3] = Math.round(color[3] * bestAlpha);
-    }
-  }
-
-  ctx.putImageData(output, 0, 0);
-  rasterCache.set(cacheKey, canvas);
-  while (rasterCache.size > SEGMENT_CACHE_LIMIT) {
-    rasterCache.delete(rasterCache.keys().next().value);
-  }
-  return canvas;
-}
-
 export function drawResourceContourOverlay(input) {
   const ctx = input && input.ctx;
   const imageData = input && input.imageData;
@@ -257,9 +199,7 @@ export function drawResourceContourOverlay(input) {
 
   const step = Math.max(1, Math.round(finite(overlay.sampleStep, 8)));
   const knowledgeThreshold = Math.max(0, Math.min(1, finite(overlay.knowledgeThreshold, 0.25)));
-  const raster = overlay.renderMode === "marching"
-    ? getCachedContourRaster(input, imageData, search, overlay, thresholds, step, knowledgeThreshold)
-    : getCachedBandRaster(input, imageData, search, overlay, thresholds, step, knowledgeThreshold);
+  const raster = getCachedContourRaster(input, imageData, search, overlay, thresholds, step, knowledgeThreshold);
   if (!raster) return;
   const topLeft = worldToScreen(mapPixelToWorld(-0.5, -0.5));
   const bottomRight = worldToScreen(mapPixelToWorld(imageData.width - 0.5, imageData.height - 0.5));

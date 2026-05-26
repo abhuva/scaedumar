@@ -26,14 +26,14 @@ test("resource stock events fan out to stock UI, inspect, overlay cache, and red
   assert.deepEqual(calls, ["invalidate", "sync-stock", "refresh-inspect", "redraw"]);
 });
 
-test("inspect events update focused UI and redraw through the event handler", () => {
+test("inspect events update focused UI and redraw without contour cache invalidation", () => {
   const bus = createEventBus();
   const { calls, deps } = createCallRecorder();
   registerRuntimeEventHandlers(bus, deps);
 
   bus.emit(RuntimeEvents.INSPECT_CHANGED, { enabled: true });
 
-  assert.deepEqual(calls, ["invalidate", "refresh-inspect", "sync-hud", "update-panel", "redraw"]);
+  assert.deepEqual(calls, ["refresh-inspect", "sync-hud", "update-panel", "redraw"]);
 });
 
 test("registered runtime event handlers can be removed", () => {

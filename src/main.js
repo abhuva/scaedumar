@@ -207,6 +207,7 @@ const CONDITION_EFFECTS = await loadConditionEffects();
 const RESOURCE_SEARCHES = await loadResourceSearches();
 const RESOURCE_STOCK_SETTINGS = await loadResourceStockSettings({ resourceIds: Object.keys(RESOURCE_SEARCHES) });
 const DISCOVERY_SETTINGS = await loadDiscoverySettings();
+const WORLD_KNOWLEDGE_MAP_ID = "world";
 const DEFAULT_RESOURCE_DEBUG_SETTINGS = createDefaultResourceDebugSettings(RESOURCE_SEARCHES, "water", DISCOVERY_SETTINGS);
 let resourceDebugSettings = normalizeResourceDebugSettings(null, DEFAULT_RESOURCE_DEBUG_SETTINGS);
 
@@ -241,7 +242,11 @@ const audioControlPanels = getRequiredElements(".audio-control-section");
 const topicButtons = getRequiredElements(".topic-btn");
 const topicPanelEl = getRequiredElementById("topicPanel");
 const topicPanelTitleEl = getRequiredElementById("topicPanelTitle");
+const perfOverlayToggleBtn = getRequiredElementById("perfOverlayToggleBtn");
 const topicPanelCloseBtn = getRequiredElementById("topicPanelClose");
+const performanceOverlayPanelEl = getRequiredElementById("performanceOverlayPanel");
+const performanceOverlayCopyBtn = getRequiredElementById("performanceOverlayCopyBtn");
+const performanceOverlayTextEl = getRequiredElementById("performanceOverlayText");
 const topicCards = getRequiredElements(".topic-card");
 const statusEl = getRequiredElementById("status");
 const statusRuntime = createStatusRuntime({ statusEl, titleStatusEl });
@@ -297,7 +302,6 @@ const hudShowPlayerBtn = getRequiredElementById("hudShowPlayerBtn");
 const resourceDebugTabButtons = getRequiredElements(".rd-tab");
 const resourceDebugTabPanels = getRequiredElements(".rd-tab-panel");
 const resourceDebugLayerInput = getRequiredElementById("resourceDebugLayer");
-const resourceDebugRenderModeInput = getRequiredElementById("resourceDebugRenderMode");
 const resourceDebugTintColorInput = getRequiredElementById("resourceDebugTintColor");
 const resourceDebugDiscoveryGridInput = getRequiredElementById("resourceDebugDiscoveryGrid");
 const resourceDebugDiscoveryGridValue = getRequiredElementById("resourceDebugDiscoveryGridValue");
@@ -319,8 +323,6 @@ const resourceDebugKnowledgeThresholdInput = getRequiredElementById("resourceDeb
 const resourceDebugKnowledgeThresholdValue = getRequiredElementById("resourceDebugKnowledgeThresholdValue");
 const resourceDebugLineWidthInput = getRequiredElementById("resourceDebugLineWidth");
 const resourceDebugLineWidthValue = getRequiredElementById("resourceDebugLineWidthValue");
-const resourceDebugBandWidthInput = getRequiredElementById("resourceDebugBandWidth");
-const resourceDebugBandWidthValue = getRequiredElementById("resourceDebugBandWidthValue");
 const resourceDebugBand1Input = getRequiredElementById("resourceDebugBand1");
 const resourceDebugBand1Value = getRequiredElementById("resourceDebugBand1Value");
 const resourceDebugBand1EnabledInput = getRequiredElementById("resourceDebugBand1Enabled");
@@ -337,8 +339,30 @@ const resourceDebugBand5Input = getRequiredElementById("resourceDebugBand5");
 const resourceDebugBand5Value = getRequiredElementById("resourceDebugBand5Value");
 const resourceDebugBand5EnabledInput = getRequiredElementById("resourceDebugBand5Enabled");
 const resourceDebugSaveBtn = getRequiredElementById("resourceDebugSaveBtn");
-const resourceDebugCoverAllBtn = getRequiredElementById("resourceDebugCoverAllBtn");
-const resourceDebugUncoverAllBtn = getRequiredElementById("resourceDebugUncoverAllBtn");
+const discoveryVisibilityEnabledInput = getRequiredElementById("discoveryVisibilityEnabled");
+const discoveryVisibilityResourceInput = getRequiredElementById("discoveryVisibilityResource");
+const discoveryVisibilityModeInput = getRequiredElementById("discoveryVisibilityMode");
+const discoveryVisibilityDitherScaleInput = getRequiredElementById("discoveryVisibilityDitherScale");
+const discoveryVisibilityDitherScaleValue = getRequiredElementById("discoveryVisibilityDitherScaleValue");
+const discoveryVisibilityKnowledgeGammaInput = getRequiredElementById("discoveryVisibilityKnowledgeGamma");
+const discoveryVisibilityKnowledgeGammaValue = getRequiredElementById("discoveryVisibilityKnowledgeGammaValue");
+const discoveryVisibilityBaseInput = getRequiredElementById("discoveryVisibilityBase");
+const discoveryVisibilityBaseValue = getRequiredElementById("discoveryVisibilityBaseValue");
+const discoveryVisibilityFullThresholdInput = getRequiredElementById("discoveryVisibilityFullThreshold");
+const discoveryVisibilityFullThresholdValue = getRequiredElementById("discoveryVisibilityFullThresholdValue");
+const discoveryVisibilityUnknownDarknessInput = getRequiredElementById("discoveryVisibilityUnknownDarkness");
+const discoveryVisibilityUnknownDarknessValue = getRequiredElementById("discoveryVisibilityUnknownDarknessValue");
+const discoveryNoiseSeedInput = getRequiredElementById("discoveryNoiseSeed");
+const discoveryNoiseSeedValue = getRequiredElementById("discoveryNoiseSeedValue");
+const discoveryNoiseScaleInput = getRequiredElementById("discoveryNoiseScale");
+const discoveryNoiseScaleValue = getRequiredElementById("discoveryNoiseScaleValue");
+const discoveryNoiseMinInput = getRequiredElementById("discoveryNoiseMin");
+const discoveryNoiseMinValue = getRequiredElementById("discoveryNoiseMinValue");
+const discoveryNoiseMaxInput = getRequiredElementById("discoveryNoiseMax");
+const discoveryNoiseMaxValue = getRequiredElementById("discoveryNoiseMaxValue");
+const discoveryNoiseApplyBtn = getRequiredElementById("discoveryNoiseApplyBtn");
+const discoveryFillKnownBtn = getRequiredElementById("discoveryFillKnownBtn");
+const discoveryFillUnknownBtn = getRequiredElementById("discoveryFillUnknownBtn");
 const resourceStockResourceInput = getRequiredElementById("resourceStockResource");
 const resourceStockOverlayModeInput = getRequiredElementById("resourceStockOverlayMode");
 const resourceStockGridSizeInput = getRequiredElementById("resourceStockGridSize");
@@ -372,16 +396,12 @@ const routePreviewPointRadiusInput = getRequiredElementById("routePreviewPointRa
 const routePreviewPointRadiusValue = getRequiredElementById("routePreviewPointRadiusValue");
 const routePreviewOpacityInput = getRequiredElementById("routePreviewOpacity");
 const routePreviewOpacityValue = getRequiredElementById("routePreviewOpacityValue");
-const routePlanningSlopeAddInput = getRequiredElementById("routePlanningSlopeAdd");
-const routePlanningSlopeAddValue = getRequiredElementById("routePlanningSlopeAddValue");
+const routeDiscoveryCutoffInput = getRequiredElementById("routeDiscoveryCutoff");
+const routeDiscoveryCutoffValue = getRequiredElementById("routeDiscoveryCutoffValue");
 const routePlanningSlopeMulInput = getRequiredElementById("routePlanningSlopeMul");
 const routePlanningSlopeMulValue = getRequiredElementById("routePlanningSlopeMulValue");
-const routePlanningHeightAddInput = getRequiredElementById("routePlanningHeightAdd");
-const routePlanningHeightAddValue = getRequiredElementById("routePlanningHeightAddValue");
 const routePlanningHeightMulInput = getRequiredElementById("routePlanningHeightMul");
 const routePlanningHeightMulValue = getRequiredElementById("routePlanningHeightMulValue");
-const routePlanningWaterAddInput = getRequiredElementById("routePlanningWaterAdd");
-const routePlanningWaterAddValue = getRequiredElementById("routePlanningWaterAddValue");
 const routePlanningWaterMulInput = getRequiredElementById("routePlanningWaterMul");
 const routePlanningWaterMulValue = getRequiredElementById("routePlanningWaterMulValue");
 const routePlanningSlopeCutoffAddInput = getRequiredElementById("routePlanningSlopeCutoffAdd");
@@ -852,6 +872,9 @@ const mapSupportRuntime = createMapSupportRuntime(createMapSupportAssemblyRuntim
   getPointLightBakeWorker: () => pointLightBakeRuntimeBinding.getWorker(),
   clamp: clampUtil,
   getNormalsImageData: () => normalsImageData,
+  setSplatImageData: (value) => {
+    splatImageData = value;
+  },
   setNormalsImageData: (value) => {
     normalsImageData = value;
   },
@@ -1894,6 +1917,58 @@ const clampRound = (v, min, max, decimals = LIGHTING_SAVE_PRECISION) =>
 const rgbToHex = (rgb) => rgbToHexUtil(rgb, clamp);
 const hexToRgb01 = (hex) => hexToRgb01Util(hex);
 
+let performanceOverlayEnabled = false;
+function setPerformanceOverlayEnabled(enabled) {
+  performanceOverlayEnabled = Boolean(enabled);
+  performanceOverlayPanelEl.classList.toggle("hidden", !performanceOverlayEnabled);
+  perfOverlayToggleBtn.classList.toggle("active", performanceOverlayEnabled);
+  perfOverlayToggleBtn.setAttribute("aria-pressed", performanceOverlayEnabled ? "true" : "false");
+}
+perfOverlayToggleBtn.addEventListener("click", () => {
+  setPerformanceOverlayEnabled(!performanceOverlayEnabled);
+});
+setPerformanceOverlayEnabled(false);
+
+async function copyPerformanceOverlayText() {
+  const text = (performanceOverlayTextEl && typeof performanceOverlayTextEl.textContent === "string")
+    ? performanceOverlayTextEl.textContent
+    : "";
+  if (!text) return false;
+  const clipboard = window.navigator && window.navigator.clipboard;
+  if (clipboard && typeof clipboard.writeText === "function") {
+    try {
+      await clipboard.writeText(text);
+      return true;
+    } catch {
+      // fall back below
+    }
+  }
+  try {
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.setAttribute("readonly", "true");
+    textarea.style.position = "fixed";
+    textarea.style.top = "-1000px";
+    textarea.style.left = "-1000px";
+    document.body.appendChild(textarea);
+    textarea.select();
+    const copied = document.execCommand("copy");
+    document.body.removeChild(textarea);
+    return copied === true;
+  } catch {
+    return false;
+  }
+}
+
+performanceOverlayCopyBtn.addEventListener("click", async () => {
+  const previous = performanceOverlayCopyBtn.textContent;
+  const ok = await copyPerformanceOverlayText();
+  performanceOverlayCopyBtn.textContent = ok ? "Copied" : "Failed";
+  window.setTimeout(() => {
+    performanceOverlayCopyBtn.textContent = previous || "Copy";
+  }, 900);
+});
+
 const sampleSunAtHour = sampleSunAtHourModel;
 
 const program = createProgram(VERT_SRC, FRAG_SRC);
@@ -1914,6 +1989,7 @@ const uniforms = {
   uWaterTrailTex: gl.getUniformLocation(program, "uWaterTrailTex"),
   uMaterialSplat: gl.getUniformLocation(program, "uMaterialSplat"),
   uDetailMicroColor: gl.getUniformLocation(program, "uDetailMicroColor"),
+  uDiscoveryMask: gl.getUniformLocation(program, "uDiscoveryMask"),
   uUseCursorLight: gl.getUniformLocation(program, "uUseCursorLight"),
   uCursorLightUv: gl.getUniformLocation(program, "uCursorLightUv"),
   uCursorLightColor: gl.getUniformLocation(program, "uCursorLightColor"),
@@ -1943,6 +2019,11 @@ const uniforms = {
   uDetailDitherStrength: gl.getUniformLocation(program, "uDetailDitherStrength"),
   uDetailMinWeight: gl.getUniformLocation(program, "uDetailMinWeight"),
   uDetailMaterialPriority: gl.getUniformLocation(program, "uDetailMaterialPriority"),
+  uDiscoveryVisibilityEnabled: gl.getUniformLocation(program, "uDiscoveryVisibilityEnabled"),
+  uDiscoveryVisibilityMode: gl.getUniformLocation(program, "uDiscoveryVisibilityMode"),
+  uDiscoveryDitherScale: gl.getUniformLocation(program, "uDiscoveryDitherScale"),
+  uDiscoveryKnowledgeGamma: gl.getUniformLocation(program, "uDiscoveryKnowledgeGamma"),
+  uDiscoveryUnknownDarkness: gl.getUniformLocation(program, "uDiscoveryUnknownDarkness"),
   uDetailMicroRect0: gl.getUniformLocation(program, "uDetailMicroRect0"),
   uDetailMicroRect1: gl.getUniformLocation(program, "uDetailMicroRect1"),
   uDetailMicroRect2: gl.getUniformLocation(program, "uDetailMicroRect2"),
@@ -2140,6 +2221,8 @@ const {
   waterTrailTex,
   materialSplatTex,
   detailMicroColorTex,
+  discoveryMaskTex,
+  discoveryMaskTextureState,
   detailAtlasState,
   pointLightTex,
   cloudNoiseTex,
@@ -2193,6 +2276,7 @@ const DEFAULT_POINT_LIGHT_FLICKER = 0.7;
 const DEFAULT_POINT_LIGHT_FLICKER_SPEED = 0.5;
 const pointLights = [];
 let nextPointLightId = 1;
+let splatImageData = null;
 let normalsImageData = null;
 let heightImageData = null;
 let slopeImageData = null;
@@ -2543,10 +2627,7 @@ const updateCursorLightHeightOffsetLabel = (...args) => lightLabelRuntime.update
     return [...new Set(names)];
   },
   onMapLoaded: () => {
-    resourceDiscoveryRuntime?.reset();
-    for (const resourceId of getResourceSearchIds()) {
-      revealResourceMovementKnowledge(resourceId, playerState.pixelX, playerState.pixelY);
-    }
+    resetKnowledgeMapForConfig();
   },
   serializeLightingSettings: (...args) => serializeLightingSettings(...args),
   serializeInteractionSettings: (...args) => serializeInteractionSettings(...args),
@@ -2830,10 +2911,15 @@ function syncResourceDebugPanel() {
   resourceDebugPanelRuntime?.sync();
 }
 
-function resetDebugResourceDiscoveryForConfig() {
-  resourceDiscoveryRuntime?.reset(resourceDebugOverlayResourceId);
+function resetKnowledgeMapForConfig() {
+  resourceDiscoveryRuntime?.reset(WORLD_KNOWLEDGE_MAP_ID);
+  seedDiscoveryNoise(WORLD_KNOWLEDGE_MAP_ID);
+  resourceDiscoveryRuntime?.revealMovement(WORLD_KNOWLEDGE_MAP_ID, playerState.pixelX, playerState.pixelY);
   for (const resourceId of getResourceSearchIds()) {
-    revealResourceMovementKnowledge(resourceId, playerState.pixelX, playerState.pixelY);
+    resourceStockRuntime?.revealKnown(resourceId, playerState.pixelX, playerState.pixelY, resolveDiscoveryRevealRadius(
+      resourceId,
+      getResourceMovementRevealRadius(resourceId),
+    ));
   }
 }
 
@@ -2845,12 +2931,18 @@ function normalizeAndApplyResourceDebugSettings(nextSettings, options = {}) {
   const gridChanged = resourceDebugSettings.discovery.gridSize !== previousGridSize;
   const revealRadiusChanged = resourceDebugSettings.discovery.movementRevealRadius !== previousRevealRadius;
   const revealFalloffChanged = resourceDebugSettings.discovery.revealFalloff !== previousRevealFalloff;
-  if (options.resetDiscovery || gridChanged || revealRadiusChanged || revealFalloffChanged) {
-    resetDebugResourceDiscoveryForConfig();
+  if (options.resetDiscovery) {
+    resetKnowledgeMapForConfig();
+  } else if (gridChanged || revealRadiusChanged || revealFalloffChanged) {
+    resetKnowledgeMapForConfig();
+    overlayDirtyRuntime.requestOverlayDraw();
   }
   syncResourceDebugPanel();
   const currentLayer = getInspectOverlayLayer();
-  setInspectOverlayLayer(currentLayer === "none" ? "none" : currentLayer);
+  setInspectOverlayLayer(currentLayer === "none" ? "none" : currentLayer, {
+    reason: "settings-sync",
+    revealKnowledge: false,
+  });
 }
 
 function serializeResourceDebugSettingsRuntime() {
@@ -2858,7 +2950,7 @@ function serializeResourceDebugSettingsRuntime() {
 }
 
 function applyResourceDebugSettingsRuntime(rawData) {
-  normalizeAndApplyResourceDebugSettings(rawData, { resetDiscovery: true });
+  normalizeAndApplyResourceDebugSettings(rawData);
 }
 
 function serializeResourceStockSettingsRuntime() {
@@ -2888,8 +2980,8 @@ function getInspectOverlayLayer() {
   return inspectPerceptionRuntime?.getLayer() || "water";
 }
 
-function setInspectOverlayLayer(layer) {
-  return inspectPerceptionRuntime?.setLayer(layer);
+function setInspectOverlayLayer(layer, options = {}) {
+  return inspectPerceptionRuntime?.setLayer(layer, options);
 }
 
 function getActivitySnapshot() {
@@ -2931,11 +3023,11 @@ function getInspectResourceReadings(pixelX, pixelY) {
     .filter(Boolean);
 }
 
-function getResourceDiscoveryConfig(resourceId) {
-  if (resourceId !== resourceDebugOverlayResourceId) {
-    const search = resourceSearchRuntime?.getSearch(resourceId);
-    return search && search.discovery ? search.discovery : null;
-  }
+function getKnowledgeMapId() {
+  return WORLD_KNOWLEDGE_MAP_ID;
+}
+
+function getResourceDiscoveryConfig() {
   return {
     gridSize: resourceDebugSettings.discovery.gridSize,
     movementRevealRadius: resourceDebugSettings.discovery.movementRevealRadius,
@@ -2943,13 +3035,8 @@ function getResourceDiscoveryConfig(resourceId) {
   };
 }
 
-function getResourceDiscoveryDecayConfig(resourceId) {
-  if (resourceId === resourceDebugOverlayResourceId) {
-    return resourceDebugSettings.discovery.decay;
-  }
-  return DISCOVERY_SETTINGS.maps && DISCOVERY_SETTINGS.maps[resourceId]
-    ? DISCOVERY_SETTINGS.maps[resourceId].decay
-    : null;
+function getResourceDiscoveryDecayConfig() {
+  return resourceDebugSettings.discovery.decay;
 }
 
 function isDiscoveryDaytime() {
@@ -2975,8 +3062,8 @@ function resolveDiscoveryRevealRadius(resourceId, radius) {
 function getResourceMovementRevealRadius(resourceId) {
   const search = resourceSearchRuntime?.getSearch(resourceId);
   const configured = getResourceDiscoveryConfig(resourceId);
-  const discovery = configured || (search && search.discovery) || {};
-  return Number.isFinite(Number(discovery.movementRevealRadius)) ? Number(discovery.movementRevealRadius) : 30;
+  const discovery = (search && search.discovery) || configured || {};
+  return Number.isFinite(Number(discovery.movementRevealRadius)) ? Number(discovery.movementRevealRadius) : 80;
 }
 
 function revealResourceMovementKnowledge(resourceId, x, y) {
@@ -3104,11 +3191,9 @@ function getResourceOverlayConfig(search) {
       ...(search.overlay || {}),
       type: "contour",
       enabledInInspect: true,
-      renderMode: layerSettings.renderMode,
       sampleStep: layerSettings.sampleStep,
       knowledgeThreshold: layerSettings.knowledgeThreshold,
       lineWidth: layerSettings.lineWidth,
-      bandWidth: layerSettings.bandWidth,
       thresholds: enabledBands.map((band) => Number(band.threshold)),
       colors: enabledBands.map((band) => band.color),
     },
@@ -3164,11 +3249,63 @@ function getResourceContourOverlaySnapshot() {
 
 function getDiscoveryMaskOverlaySnapshot() {
   if (resourceDebugSettings.discovery.showMaskOverlay !== true) return null;
-  const snapshot = resourceDiscoveryRuntime?.getSnapshot(resourceDebugOverlayResourceId);
+  const snapshot = resourceDiscoveryRuntime?.getSnapshot(WORLD_KNOWLEDGE_MAP_ID);
   if (!snapshot) return null;
   return {
     ...snapshot,
     opacity: resourceDebugSettings.discovery.maskOverlayOpacity,
+  };
+}
+
+function getDiscoveryVisibilitySettings() {
+  const visibility = resourceDebugSettings.discovery && resourceDebugSettings.discovery.terrainVisibility
+    ? resourceDebugSettings.discovery.terrainVisibility
+    : {};
+  return {
+    ...visibility,
+    resourceId: WORLD_KNOWLEDGE_MAP_ID,
+  };
+}
+
+function getDiscoveryVisibilitySnapshot(resourceId = null) {
+  const id = resourceId || WORLD_KNOWLEDGE_MAP_ID;
+  return resourceDiscoveryRuntime?.getSnapshot(id) || null;
+}
+
+function getDiscoveryNoiseSettings() {
+  const visibility = getDiscoveryVisibilitySettings();
+  return {
+    seed: visibility.noiseSeed,
+    scale: visibility.noiseScale,
+    min: visibility.noiseMin,
+    max: visibility.noiseMax,
+  };
+}
+
+function seedDiscoveryNoise(resourceId = null) {
+  if (!resourceDiscoveryRuntime || typeof resourceDiscoveryRuntime.fillNoise !== "function") return false;
+  const ids = resourceId ? [resourceId] : getResourceSearchIds();
+  const settings = getDiscoveryNoiseSettings();
+  let changed = false;
+  for (const id of ids) {
+    changed = resourceDiscoveryRuntime.fillNoise(id, settings) || changed;
+  }
+  if (changed) {
+    overlayDirtyRuntime.requestOverlayDraw();
+  }
+  return changed;
+}
+
+function getDiscoveryTerrainVisibilityOverlaySnapshot() {
+  const settings = getDiscoveryVisibilitySettings();
+  if (settings.enabled !== true) return null;
+  if (routePlanningRuntime?.getSnapshot?.().active !== true) return null;
+  const snapshot = getDiscoveryVisibilitySnapshot(settings.resourceId);
+  if (!snapshot) return null;
+  return {
+    snapshot,
+    settings,
+    terrainImageData: splatImageData,
   };
 }
 
@@ -3420,6 +3557,7 @@ resourceDiscoveryRuntime = createResourceDiscoveryRuntime({
   getMapHeight: () => splatSize.height,
   getDiscoveryConfig: getResourceDiscoveryConfig,
   getDecayConfig: getResourceDiscoveryDecayConfig,
+  getKnowledgeMapId,
   getRevealRadiusMultiplier: getDiscoveryRevealRadiusMultiplier,
   onChange: () => {
     emitResourceDiscoveryChanged({ resourceId: "*", reason: "runtime-change" });
@@ -3457,12 +3595,18 @@ inspectPerceptionRuntime = createInspectPerceptionRuntime({
   setStatus,
 });
 resourceStockResourceInput.textContent = "";
+discoveryVisibilityResourceInput.textContent = "";
 for (const resourceId of Object.keys(RESOURCE_SEARCHES)) {
   const option = document.createElement("option");
   option.value = resourceId;
   option.textContent = getResourceDisplayLabel(resourceId);
   resourceStockResourceInput.appendChild(option);
 }
+const knowledgeOption = document.createElement("option");
+knowledgeOption.value = WORLD_KNOWLEDGE_MAP_ID;
+knowledgeOption.textContent = "Shared Knowledge Map";
+discoveryVisibilityResourceInput.appendChild(knowledgeOption);
+discoveryVisibilityResourceInput.value = WORLD_KNOWLEDGE_MAP_ID;
 if (!resourceStockResourceInput.value) {
   const option = document.createElement("option");
   option.value = "water";
@@ -3473,7 +3617,6 @@ resourceDebugPanelRuntime = createResourceDebugPanelRuntime({
   tabButtons: resourceDebugTabButtons,
   tabPanels: resourceDebugTabPanels,
   layerInput: resourceDebugLayerInput,
-  renderModeInput: resourceDebugRenderModeInput,
   tintColorInput: resourceDebugTintColorInput,
   discoveryGridInput: resourceDebugDiscoveryGridInput,
   discoveryGridValue: resourceDebugDiscoveryGridValue,
@@ -3495,8 +3638,6 @@ resourceDebugPanelRuntime = createResourceDebugPanelRuntime({
   knowledgeThresholdValue: resourceDebugKnowledgeThresholdValue,
   lineWidthInput: resourceDebugLineWidthInput,
   lineWidthValue: resourceDebugLineWidthValue,
-  bandWidthInput: resourceDebugBandWidthInput,
-  bandWidthValue: resourceDebugBandWidthValue,
   band1Input: resourceDebugBand1Input,
   band1Value: resourceDebugBand1Value,
   band1EnabledInput: resourceDebugBand1EnabledInput,
@@ -3513,8 +3654,30 @@ resourceDebugPanelRuntime = createResourceDebugPanelRuntime({
   band5Value: resourceDebugBand5Value,
   band5EnabledInput: resourceDebugBand5EnabledInput,
   saveSettingsBtn: resourceDebugSaveBtn,
-  coverAllBtn: resourceDebugCoverAllBtn,
-  uncoverAllBtn: resourceDebugUncoverAllBtn,
+  discoveryVisibilityEnabledInput,
+  discoveryVisibilityResourceInput,
+  discoveryVisibilityModeInput,
+  discoveryVisibilityDitherScaleInput,
+  discoveryVisibilityDitherScaleValue,
+  discoveryVisibilityKnowledgeGammaInput,
+  discoveryVisibilityKnowledgeGammaValue,
+  discoveryVisibilityBaseInput,
+  discoveryVisibilityBaseValue,
+  discoveryVisibilityFullThresholdInput,
+  discoveryVisibilityFullThresholdValue,
+  discoveryVisibilityUnknownDarknessInput,
+  discoveryVisibilityUnknownDarknessValue,
+  discoveryNoiseSeedInput,
+  discoveryNoiseSeedValue,
+  discoveryNoiseScaleInput,
+  discoveryNoiseScaleValue,
+  discoveryNoiseMinInput,
+  discoveryNoiseMinValue,
+  discoveryNoiseMaxInput,
+  discoveryNoiseMaxValue,
+  discoveryNoiseApplyBtn,
+  discoveryFillKnownBtn,
+  discoveryFillUnknownBtn,
   stockResourceInput: resourceStockResourceInput,
   stockOverlayModeInput: resourceStockOverlayModeInput,
   stockGridSizeInput: resourceStockGridSizeInput,
@@ -3548,16 +3711,12 @@ resourceDebugPanelRuntime = createResourceDebugPanelRuntime({
   routePreviewPointRadiusValue,
   routePreviewOpacityInput,
   routePreviewOpacityValue,
-  routePlanningSlopeAddInput,
-  routePlanningSlopeAddValue,
+  routeDiscoveryCutoffInput,
+  routeDiscoveryCutoffValue,
   routePlanningSlopeMulInput,
   routePlanningSlopeMulValue,
-  routePlanningHeightAddInput,
-  routePlanningHeightAddValue,
   routePlanningHeightMulInput,
   routePlanningHeightMulValue,
-  routePlanningWaterAddInput,
-  routePlanningWaterAddValue,
   routePlanningWaterMulInput,
   routePlanningWaterMulValue,
   routePlanningSlopeCutoffAddInput,
@@ -3625,6 +3784,19 @@ resourceDebugPanelRuntime = createResourceDebugPanelRuntime({
       },
     });
   },
+  updateDiscoveryVisibility: (patch) => {
+    normalizeAndApplyResourceDebugSettings({
+      ...resourceDebugSettings,
+      discovery: {
+        ...resourceDebugSettings.discovery,
+        terrainVisibility: {
+          ...resourceDebugSettings.discovery.terrainVisibility,
+          ...patch,
+        },
+      },
+    });
+    overlayDirtyRuntime.requestOverlayDraw();
+  },
   updateActiveLayer: (patch) => {
     const activeLayer = resourceDebugSettings.activeLayer;
     normalizeAndApplyResourceDebugSettings({
@@ -3657,15 +3829,15 @@ resourceDebugPanelRuntime = createResourceDebugPanelRuntime({
       },
     });
   },
-  fillDiscovery: (value) => {
-    resourceDiscoveryRuntime.fill(resourceDebugOverlayResourceId, value);
-    resourceStockRuntime.fill(resourceDebugOverlayResourceId, value >= 1 ? 255 : 0, "known");
-    const overlayLabel = getInspectOverlayDisplayLabel(getInspectOverlayLayer());
-    const resourceLabel = getResourceDisplayLabel(resourceDebugOverlayResourceId);
-    const targetLabel = overlayLabel === resourceLabel ? overlayLabel : `${overlayLabel} (${resourceLabel} knowledge mask)`;
+  fillDiscoveryNoise: () => {
+    seedDiscoveryNoise(WORLD_KNOWLEDGE_MAP_ID);
+    setStatus("Shared Knowledge Map noise populated.");
+  },
+  fillVisibilityDiscovery: (value) => {
+    resourceDiscoveryRuntime.fill(WORLD_KNOWLEDGE_MAP_ID, value);
     setStatus(value >= 1
-      ? `${targetLabel} discovery debug: uncovered full map and known stock.`
-      : `${targetLabel} discovery debug: covered full map and known stock.`);
+      ? "Shared Knowledge Map filled known."
+      : "Shared Knowledge Map filled unknown.");
   },
   saveSettings: () => saveAllMapDataFiles(),
 });
@@ -3684,7 +3856,7 @@ inspectRouteLayerBtn.addEventListener("click", () => {
   overlayDirtyRuntime.requestOverlayDraw();
   updateInfoPanel?.();
 });
-setInspectOverlayLayer("water");
+setInspectOverlayLayer("water", { reason: "startup-init", revealKnowledge: false });
 const inventoryRuntime = createInventoryRuntime({
   playerState,
   entityStore,
@@ -3970,6 +4142,7 @@ registerMainSettingsContracts(runtimeCore.settingsRegistry, {
 });
 const renderPipelineRuntime = createRenderPipelineRuntime(createRenderPipelineAssemblyRuntime({
   gl,
+  document,
   canvas,
   program,
   uniforms,
@@ -3985,12 +4158,16 @@ const renderPipelineRuntime = createRenderPipelineRuntime(createRenderPipelineAs
   waterTrailTex,
   materialSplatTex,
   detailMicroColorTex,
+  discoveryMaskTex,
+  discoveryMaskTextureState,
   detailAtlasState,
   heightSize,
   splatSize,
   getViewHalfExtents: (...args) => getViewHalfExtents(...args),
   cursorLightState,
   applyPointLightUsagePass,
+  getDiscoveryVisibilitySettings,
+  getDiscoveryVisibilitySnapshot,
   renderShadowPipeline,
   shadowSize,
   shadowBlurFbo,
@@ -4647,6 +4824,9 @@ const swarmIntegrationSetupRuntime = createSwarmIntegrationSetupRuntime(
       frameInfoEl,
       frameProfileInfoEl,
       gpuProfileInfoEl,
+      performanceOverlayPanelEl,
+      performanceOverlayTextEl,
+      isPerformanceOverlayEnabled: () => performanceOverlayEnabled,
       detailInfoEl,
       playerInfoEl,
     pathInfoEl,
@@ -4742,9 +4922,7 @@ routePlanningRuntime = createRoutePlanningRuntime({
   getHeightImageData: () => heightImageData,
   getWaterImageData: () => waterImageData,
   getPathfindingStateSnapshot,
-  getNavigationKnowledgeSnapshots: () => Object.keys(RESOURCE_SEARCHES)
-    .map((resourceId) => resourceDiscoveryRuntime?.getSnapshot?.(resourceId))
-    .filter(Boolean),
+  getNavigationKnowledgeSnapshots: () => [resourceDiscoveryRuntime?.getSnapshot?.(WORLD_KNOWLEDGE_MAP_ID)].filter(Boolean),
   clientToNdc,
   worldFromNdc,
   worldToUv,
@@ -4995,6 +5173,7 @@ const renderShellSetupRuntime = createRenderShellSetupRuntime(createRenderShellA
   getInspectSnapshot,
   getResourceContourOverlaySnapshot,
   getDiscoveryMaskOverlaySnapshot,
+  getDiscoveryTerrainVisibilityOverlaySnapshot,
   getInventoryBundles: () => inventoryRuntime.listBundles(),
   playerState,
   drawSwarmUnlitOverlay,
