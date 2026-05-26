@@ -8,7 +8,10 @@ function format(value, digits = 2) {
 }
 
 function setRange(input, valueEl, value, digits = 2) {
-  if (input) input.value = String(value);
+  if (input) {
+    const numeric = Number(value);
+    input.value = value != null && Number.isFinite(numeric) ? String(value) : "";
+  }
   if (valueEl) {
     const numeric = finite(value, 0);
     valueEl.textContent = digits === 0 ? String(Math.round(numeric)) : format(numeric, digits);

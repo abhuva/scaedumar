@@ -2934,6 +2934,7 @@ function normalizeAndApplyResourceDebugSettings(nextSettings, options = {}) {
   if (options.resetDiscovery) {
     resetKnowledgeMapForConfig();
   } else if (gridChanged || revealRadiusChanged || revealFalloffChanged) {
+    resetKnowledgeMapForConfig();
     overlayDirtyRuntime.requestOverlayDraw();
   }
   syncResourceDebugPanel();
@@ -3061,7 +3062,7 @@ function resolveDiscoveryRevealRadius(resourceId, radius) {
 function getResourceMovementRevealRadius(resourceId) {
   const search = resourceSearchRuntime?.getSearch(resourceId);
   const configured = getResourceDiscoveryConfig(resourceId);
-  const discovery = configured || (search && search.discovery) || {};
+  const discovery = (search && search.discovery) || configured || {};
   return Number.isFinite(Number(discovery.movementRevealRadius)) ? Number(discovery.movementRevealRadius) : 80;
 }
 
@@ -4157,6 +4158,8 @@ const renderPipelineRuntime = createRenderPipelineRuntime(createRenderPipelineAs
   waterTrailTex,
   materialSplatTex,
   detailMicroColorTex,
+  discoveryMaskTex,
+  discoveryMaskTextureState,
   detailAtlasState,
   heightSize,
   splatSize,

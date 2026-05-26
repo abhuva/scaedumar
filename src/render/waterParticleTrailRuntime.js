@@ -233,6 +233,7 @@ export function createWaterParticleTrailRuntime(deps) {
   let statsFrame = 0;
   let simAccumulatorSec = 0;
   const minUpdateIntervalSec = 1 / 60;
+  const maxSimulationTimeSec = 0.12;
   let lastDepositMax = 0;
   let lastStats = {
     enabled: false,
@@ -679,9 +680,9 @@ export function createWaterParticleTrailRuntime(deps) {
     }
     ensureParticleCount();
     const inputDt = Math.max(0, Number(dtSec) || 0);
-    simAccumulatorSec = Math.min(0.12, simAccumulatorSec + inputDt);
+    simAccumulatorSec = Math.min(maxSimulationTimeSec, simAccumulatorSec + inputDt);
     if (simAccumulatorSec < minUpdateIntervalSec) return;
-    const dt = clamp(simAccumulatorSec * settings.simSpeed, 0, 0.12);
+    const dt = clamp(simAccumulatorSec * settings.simSpeed, 0, maxSimulationTimeSec);
     simAccumulatorSec = 0;
     if (dt <= 0) return;
     depositUpload.fill(0);

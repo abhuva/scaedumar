@@ -123,8 +123,8 @@ npm run lint
 Common focused checks during runtime work:
 
 ```powershell
-node --check src\main.js
-node --test tests\*.test.js
+node --check src/main.js
+node --test tests/*.test.js
 npm run lint:md
 ```
 

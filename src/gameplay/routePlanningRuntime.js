@@ -288,10 +288,10 @@ export function createRoutePlanningRuntime(deps) {
     }
     let cost = 0;
     let ticks = 0;
+    const discoveryCutoff = Math.max(0, Math.min(1, Number(field.settings.discoveryCutoff) || 0));
     for (let i = 1; i < cells.length; i += 1) {
       const from = cells[i - 1];
       const to = cells[i];
-      const discoveryCutoff = Math.max(0, Math.min(1, Number(field.settings.discoveryCutoff) || 0));
       const toIndex = to.y * field.width + to.x;
       if (discoveryCutoff > 0 && field.knowledge && (field.knowledge[toIndex] || 0) < discoveryCutoff) {
         return { cost: Number.POSITIVE_INFINITY, ticks: Number.POSITIVE_INFINITY };

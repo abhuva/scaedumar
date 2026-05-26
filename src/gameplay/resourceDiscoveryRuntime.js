@@ -101,8 +101,8 @@ export function createResourceDiscoveryRuntime(deps = {}) {
     if (!id) return null;
     const mapWidth = getMapWidth();
     const mapHeight = getMapHeight();
-    const discoveryOverride = typeof deps.getDiscoveryConfig === "function" ? deps.getDiscoveryConfig(requestedId || id) : null;
-    const search = getSearchConfig(searches, requestedId) || getSearchConfig(searches, id);
+    const discoveryOverride = typeof deps.getDiscoveryConfig === "function" ? deps.getDiscoveryConfig(id) : null;
+    const search = getSearchConfig(searches, id);
     const desiredGridSizeValue = discoveryOverride && discoveryOverride.gridSize != null
       ? discoveryOverride.gridSize
       : (search && search.discovery && search.discovery.gridSize != null ? search.discovery.gridSize : 256);
@@ -121,9 +121,11 @@ export function createResourceDiscoveryRuntime(deps = {}) {
     if (resourceId) {
       const id = normalizeKnowledgeMapId(resourceId);
       masks.delete(id);
+      decayTickRemainders.delete(id);
       bumpVersion(id);
     } else {
       masks.clear();
+      decayTickRemainders.clear();
       bumpVersion("*");
     }
     if (typeof deps.onChange === "function") {

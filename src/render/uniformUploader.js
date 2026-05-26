@@ -1,4 +1,13 @@
 export function createTerrainUniformUploader(deps) {
+  function finite(value, fallback = 0) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }
+
+  function clamp(value, min, max) {
+    return Math.min(max, Math.max(min, value));
+  }
+
   function getRect(state, index) {
     const rects = state.microRects;
     const rect = Array.isArray(rects) ? rects[index] : null;
@@ -13,6 +22,58 @@ export function createTerrainUniformUploader(deps) {
     const span = Math.max(0.0001, Number(edge1) - Number(edge0));
     const t = Math.min(1, Math.max(0, (Number(value) - Number(edge0)) / span));
     return t * t * (3 - 2 * t);
+  }
+
+  function discoveryVisibilityModeToUniform(mode) {
+    if (mode === "greyscale") return 1;
+    if (mode === "desaturate") return 2;
+    if (mode === "debug") return 3;
+    return 0;
+  }
+
+  function uploadDiscoveryMask(snapshot) {
+    if (!deps.discoveryMaskTex || !snapshot || !snapshot.cells || !snapshot.width || !snapshot.height) return false;
+    const width = Math.max(1, Math.round(finite(snapshot.width, 1)));
+    const height = Math.max(1, Math.round(finite(snapshot.height, 1)));
+    const version = snapshot.version == null ? 0 : snapshot.version;
+    const versionKey = `${snapshot.resourceId || ""}|${width}x${height}|${version}`;
+    const state = deps.discoveryMaskTextureState || {};
+    deps.gl.activeTexture(deps.gl.TEXTURE11);
+    if (state.versionKey !== versionKey) {
+      const pixelCount = width * height;
+      const upload = new Uint8Array(pixelCount * 4);
+      for (let i = 0, j = 0; i < pixelCount; i += 1, j += 4) {
+        const value = snapshot.cells[i] || 0;
+        upload[j] = value;
+        upload[j + 1] = value;
+        upload[j + 2] = value;
+        upload[j + 3] = 255;
+      }
+      deps.gl.bindTexture(deps.gl.TEXTURE_2D, deps.discoveryMaskTex);
+      deps.gl.texImage2D(deps.gl.TEXTURE_2D, 0, deps.gl.RGBA, width, height, 0, deps.gl.RGBA, deps.gl.UNSIGNED_BYTE, upload);
+      state.width = width;
+      state.height = height;
+      state.versionKey = versionKey;
+    }
+    deps.gl.bindTexture(deps.gl.TEXTURE_2D, deps.discoveryMaskTex);
+    deps.gl.uniform1i(deps.uniforms.uDiscoveryMask, 11);
+    return true;
+  }
+
+  function uploadDiscoveryVisibilityUniforms() {
+    const settings = typeof deps.getDiscoveryVisibilitySettings === "function"
+      ? deps.getDiscoveryVisibilitySettings()
+      : {};
+    const snapshot = settings && typeof deps.getDiscoveryVisibilitySnapshot === "function"
+      ? deps.getDiscoveryVisibilitySnapshot(settings.resourceId)
+      : null;
+    const hasMask = uploadDiscoveryMask(snapshot);
+    const enabled = settings && settings.enabled === true && hasMask;
+    deps.gl.uniform1f(deps.uniforms.uDiscoveryVisibilityEnabled, enabled ? 1 : 0);
+    deps.gl.uniform1f(deps.uniforms.uDiscoveryVisibilityMode, discoveryVisibilityModeToUniform(settings && settings.mode));
+    deps.gl.uniform1f(deps.uniforms.uDiscoveryDitherScale, Math.max(0.03125, finite(settings && settings.ditherScale, 1)));
+    deps.gl.uniform1f(deps.uniforms.uDiscoveryKnowledgeGamma, Math.max(0.1, finite(settings && settings.knowledgeGamma, 1)));
+    deps.gl.uniform1f(deps.uniforms.uDiscoveryUnknownDarkness, clamp(finite(settings && settings.unknownDarkness, 1), 0, 1));
   }
 
   return function uploadUniforms(params, frameTime, input, frameCamera = null) {
@@ -122,13 +183,7 @@ export function createTerrainUniformUploader(deps) {
     deps.gl.uniform1f(deps.uniforms.uDetailDitherScale, input.detailDitherScale);
     deps.gl.uniform1f(deps.uniforms.uDetailDitherStrength, input.detailDitherStrength);
     deps.gl.uniform1f(deps.uniforms.uDetailMinWeight, input.detailMinWeight);
-    if (deps.uniforms.uDiscoveryVisibilityEnabled) {
-      deps.gl.uniform1f(deps.uniforms.uDiscoveryVisibilityEnabled, 0);
-    }
-    deps.gl.uniform1f(deps.uniforms.uDiscoveryVisibilityMode, 0);
-    deps.gl.uniform1f(deps.uniforms.uDiscoveryDitherScale, 1);
-    deps.gl.uniform1f(deps.uniforms.uDiscoveryKnowledgeGamma, 1);
-    deps.gl.uniform1f(deps.uniforms.uDiscoveryUnknownDarkness, 1);
+    uploadDiscoveryVisibilityUniforms();
     deps.gl.uniform4f(
       deps.uniforms.uDetailMaterialPriority,
       Number(detailPriorities[0]) || 0,
