@@ -39,6 +39,7 @@ export const DEFAULT_ROUTE_PLANNING_SETTINGS = {
   planningWaterAdd: 0,
   planningWaterMul: 1,
   planningSlopeCutoffAdd: 0,
+  discoveryCutoff: 0,
   debugOverlayMode: "none",
 };
 
@@ -73,6 +74,7 @@ export function normalizeRoutePlanningSettings(input = {}) {
     planningWaterAdd: clampWithFallback(source.planningWaterAdd, -100, 100, DEFAULT_ROUTE_PLANNING_SETTINGS.planningWaterAdd),
     planningWaterMul: clampWithFallback(source.planningWaterMul, 0, 3, DEFAULT_ROUTE_PLANNING_SETTINGS.planningWaterMul),
     planningSlopeCutoffAdd: clampWithFallback(source.planningSlopeCutoffAdd, -1, 1, DEFAULT_ROUTE_PLANNING_SETTINGS.planningSlopeCutoffAdd),
+    discoveryCutoff: clampWithFallback(source.discoveryCutoff, 0, 1, DEFAULT_ROUTE_PLANNING_SETTINGS.discoveryCutoff),
     debugOverlayMode,
   };
 }

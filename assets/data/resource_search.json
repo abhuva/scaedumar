@@ -11,7 +11,8 @@
     "movementBias": 2.5,
     "discovery": {
       "gridSize": 256,
-      "movementRevealRadius": 30
+      "movementRevealRadius": 80,
+      "revealFalloff": 0.15
     },
     "overlay": {
       "type": "contour",
@@ -20,7 +21,13 @@
       "sampleStep": 8,
       "knowledgeThreshold": 0.25,
       "bandWidth": 0.018,
-      "thresholds": [0.2, 0.35, 0.5, 0.65, 0.8],
+      "thresholds": [
+        0.2,
+        0.35,
+        0.5,
+        0.65,
+        0.8
+      ],
       "colors": [
         "rgba(75, 165, 205, 0.34)",
         "rgba(88, 185, 219, 0.44)",
@@ -50,7 +57,8 @@
     "movementBias": 1.75,
     "discovery": {
       "gridSize": 256,
-      "movementRevealRadius": 30
+      "movementRevealRadius": 80,
+      "revealFalloff": 0.15
     },
     "overlay": {
       "type": "contour",
@@ -59,7 +67,13 @@
       "sampleStep": 8,
       "knowledgeThreshold": 0.25,
       "bandWidth": 0.018,
-      "thresholds": [0.2, 0.35, 0.5, 0.65, 0.8],
+      "thresholds": [
+        0.2,
+        0.35,
+        0.5,
+        0.65,
+        0.8
+      ],
       "colors": [
         "rgba(85, 160, 85, 0.34)",
         "rgba(104, 181, 92, 0.44)",
@@ -74,9 +88,21 @@
       "defaultBand": 0,
       "bands": {
         "0": [
-          { "itemId": "berries", "quantity": 1, "weight": 5 },
-          { "itemId": "medicinal_herb", "quantity": 1, "weight": 3 },
-          { "itemId": "plant_fiber", "quantity": 1, "weight": 2 }
+          {
+            "itemId": "berries",
+            "quantity": 1,
+            "weight": 5
+          },
+          {
+            "itemId": "medicinal_herb",
+            "quantity": 1,
+            "weight": 3
+          },
+          {
+            "itemId": "plant_fiber",
+            "quantity": 1,
+            "weight": 2
+          }
         ]
       }
     }

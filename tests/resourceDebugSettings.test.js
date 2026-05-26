@@ -12,7 +12,6 @@ test("resource debug defaults create separate layer settings", () => {
     water: {
       discovery: { gridSize: 128, movementRevealRadius: 42 },
       overlay: {
-        renderMode: "marching",
         thresholds: [0.2, 0.35, 0.5, 0.65, 0.8],
         colors: ["rgba(1, 2, 3, 0.4)"],
       },
@@ -21,15 +20,19 @@ test("resource debug defaults create separate layer settings", () => {
 
   assert.equal(settings.discovery.gridSize, 128);
   assert.equal(settings.discovery.movementRevealRadius, 42);
-  assert.equal(settings.discovery.revealFalloff, 0);
+  assert.equal(settings.discovery.revealFalloff, 0.15);
   assert.equal(settings.discovery.showMaskOverlay, false);
   assert.equal(settings.discovery.maskOverlayOpacity, 0.45);
   assert.equal(settings.discovery.decay.enabled, true);
   assert.equal(settings.discovery.decay.intervalTicks, 500);
   assert.equal(settings.discovery.decay.amount, 1);
-  assert.equal(settings.layers.water.renderMode, "marching");
-  assert.equal(settings.layers.plants.renderMode, "marching");
-  assert.equal(settings.layers.height.renderMode, "marching");
+  assert.equal(settings.discovery.terrainVisibility.noiseScale, 24);
+  assert.equal(settings.discovery.terrainVisibility.noiseMin, 0.08);
+  assert.equal(settings.discovery.terrainVisibility.noiseMax, 0.62);
+  assert.equal(settings.discovery.terrainVisibility.enabled, true);
+  assert.equal(settings.discovery.terrainVisibility.resourceId, "world");
+  assert.equal(settings.discovery.terrainVisibility.baseVisibility, 0.2);
+  assert.equal(settings.discovery.terrainVisibility.fullVisibilityThreshold, 0.8);
   assert.notEqual(settings.layers.water.tintColor, settings.layers.plants.tintColor);
   assert.notEqual(settings.layers.water.tintColor, settings.layers.height.tintColor);
 });
@@ -41,11 +44,9 @@ test("resource debug normalization preserves per-band toggles and layer tint", (
     discovery: { gridSize: 99999, movementRevealRadius: 12, revealFalloff: 99 },
     layers: {
       slope: {
-        renderMode: "raster",
         sampleStep: 4,
         knowledgeThreshold: 0.5,
         lineWidth: 2,
-        bandWidth: 0.03,
         tintColor: "#ff0000",
         bands: [
           { enabled: false, threshold: 0.25 },
@@ -57,7 +58,6 @@ test("resource debug normalization preserves per-band toggles and layer tint", (
   assert.equal(settings.activeLayer, "slope");
   assert.equal(settings.discovery.gridSize, 2048);
   assert.equal(settings.discovery.revealFalloff, 8);
-  assert.equal(settings.layers.slope.renderMode, "raster");
   assert.equal(settings.layers.slope.tintColor, "#ff0000");
   assert.equal(settings.layers.slope.bands[0].enabled, false);
   assert.equal(settings.layers.slope.bands[0].threshold, 0.25);

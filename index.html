@@ -53,7 +53,10 @@
     <aside id="topicPanel" class="topic-panel hidden">
       <div class="topic-panel-header">
         <h1 id="topicPanelTitle">Settings</h1>
-        <button id="topicPanelClose" type="button">Close</button>
+        <div class="topic-panel-header-actions">
+          <button id="perfOverlayToggleBtn" type="button" aria-pressed="false">Perf Overlay</button>
+          <button id="topicPanelClose" type="button">Close</button>
+        </div>
       </div>
       <div class="topic-panel-body">
         <section class="topic-card" data-topic="map" data-title="Load Map">
@@ -1239,18 +1242,112 @@
         </section>
 
         <section class="topic-card" data-topic="resource-debug" data-title="Resource Debug">
-          <p class="panel-note">Map-local tuning controls for testing discovered terrain overlays during gameplay.</p>
+          <p class="panel-note">Map-local controls for the shared Knowledge Map, known-resource views, NAV planning, and resource stock.</p>
           <div class="panel-actions">
             <button id="resourceDebugSaveBtn" class="row-action-btn" type="button">Save RD Settings</button>
           </div>
           <div class="rd-tabs" role="tablist" aria-label="Resource Debug sections">
-            <button id="resourceDebugOverlayTab" class="rd-tab active" type="button" role="tab" data-rd-tab="overlay" aria-selected="true" aria-controls="resourceDebugOverlayPanel" tabindex="0">Overlay</button>
+            <button id="resourceDebugKnowledgeTab" class="rd-tab active" type="button" role="tab" data-rd-tab="knowledge" aria-selected="true" aria-controls="resourceDebugKnowledgePanel" tabindex="0">Knowledge</button>
+            <button id="resourceDebugOverlayTab" class="rd-tab" type="button" role="tab" data-rd-tab="overlay" aria-selected="false" aria-controls="resourceDebugOverlayPanel" tabindex="-1">Known View</button>
+            <button id="resourceDebugDiscoveryTab" class="rd-tab" type="button" role="tab" data-rd-tab="nav" aria-selected="false" aria-controls="resourceDebugDiscoveryPanel" tabindex="-1">NAV</button>
             <button id="resourceDebugStockTab" class="rd-tab" type="button" role="tab" data-rd-tab="stock" aria-selected="false" aria-controls="resourceDebugStockPanel" tabindex="-1">Stock</button>
-            <button id="resourceDebugRouteTab" class="rd-tab" type="button" role="tab" data-rd-tab="route" aria-selected="false" aria-controls="resourceDebugRoutePanel" tabindex="-1">Route</button>
           </div>
-          <div id="resourceDebugOverlayPanel" class="rd-tab-panel active" role="tabpanel" data-rd-panel="overlay" aria-labelledby="resourceDebugOverlayTab" aria-hidden="false">
+          <div id="resourceDebugKnowledgePanel" class="rd-tab-panel active" role="tabpanel" data-rd-panel="knowledge" aria-labelledby="resourceDebugKnowledgeTab" aria-hidden="false">
+            <p class="panel-note">Shared world Knowledge Map. Sliders change future reveals only; buttons below are the only direct map edits.</p>
+            <div class="row">
+              <label>Map Scope</label>
+              <p class="panel-note">Shared World Knowledge</p>
+            </div>
+            <div class="row">
+              <label for="resourceDebugDiscoveryGrid">Knowledge Grid</label>
+            <div class="inline-control">
+              <input id="resourceDebugDiscoveryGrid" type="range" min="32" max="512" step="32" value="256" />
+              <span id="resourceDebugDiscoveryGridValue">256</span>
+            </div>
+          </div>
+            <div class="row">
+            <label for="resourceDebugRevealRadius">Reveal Radius</label>
+            <div class="inline-control">
+              <input id="resourceDebugRevealRadius" type="range" min="0" max="160" step="1" value="80" />
+              <span id="resourceDebugRevealRadiusValue">80</span>
+            </div>
+          </div>
+            <div class="row">
+            <label for="resourceDebugRevealFalloff">Reveal Falloff</label>
+            <div class="inline-control">
+              <input id="resourceDebugRevealFalloff" type="range" min="0" max="4" step="0.05" value="0.15" />
+              <span id="resourceDebugRevealFalloffValue">0.15</span>
+            </div>
+          </div>
+            <div class="row">
+            <label for="resourceDebugDecayEnabled">Decay</label>
+            <div class="inline-control">
+              <input id="resourceDebugDecayEnabled" type="checkbox" checked aria-label="Enable knowledge decay" />
+              <span>enabled</span>
+            </div>
+          </div>
+            <div class="row">
+            <label for="resourceDebugDecayInterval">Decay Ticks</label>
+            <div class="inline-control">
+              <input id="resourceDebugDecayInterval" type="range" min="1" max="5000" step="1" value="500" />
+              <span id="resourceDebugDecayIntervalValue">500</span>
+            </div>
+          </div>
+            <div class="row">
+            <label for="resourceDebugDecayAmount">Decay Amount</label>
+            <div class="inline-control">
+              <input id="resourceDebugDecayAmount" type="range" min="0" max="32" step="1" value="1" />
+              <span id="resourceDebugDecayAmountValue">1</span>
+            </div>
+          </div>
+            <div class="row">
+            <label for="resourceDebugShowMaskOverlay">Show Knowledge Map</label>
+            <div class="inline-control">
+              <input id="resourceDebugShowMaskOverlay" type="checkbox" aria-label="Show full Knowledge Map overlay" />
+              <input id="resourceDebugMaskOverlayOpacity" type="range" min="0" max="1" step="0.05" value="0.45" aria-label="Knowledge Map overlay opacity" />
+              <span id="resourceDebugMaskOverlayOpacityValue">0.45</span>
+            </div>
+          </div>
+            <div class="row">
+              <label for="discoveryNoiseSeed">Noise Seed</label>
+              <div class="inline-control">
+                <input id="discoveryNoiseSeed" type="range" min="0" max="9999" step="1" value="1" />
+                <span id="discoveryNoiseSeedValue">1</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="discoveryNoiseScale">Noise Scale</label>
+              <div class="inline-control">
+                <input id="discoveryNoiseScale" type="range" min="1" max="128" step="1" value="24" />
+                <span id="discoveryNoiseScaleValue">24</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="discoveryNoiseMin">Noise Min</label>
+              <div class="inline-control">
+                <input id="discoveryNoiseMin" type="range" min="0" max="1" step="0.01" value="0" />
+                <span id="discoveryNoiseMinValue">0.00</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="discoveryNoiseMax">Noise Max</label>
+              <div class="inline-control">
+                <input id="discoveryNoiseMax" type="range" min="0" max="1" step="0.01" value="1" />
+                <span id="discoveryNoiseMaxValue">1.00</span>
+              </div>
+            </div>
+            <div class="row">
+              <label>Knowledge Actions</label>
+              <div class="inline-control">
+                <button id="discoveryFillUnknownBtn" class="row-action-btn" type="button">Clear</button>
+                <button id="discoveryFillKnownBtn" class="row-action-btn" type="button">Fill</button>
+                <button id="discoveryNoiseApplyBtn" class="row-action-btn" type="button">Noise</button>
+              </div>
+            </div>
+          </div>
+          <div id="resourceDebugOverlayPanel" class="rd-tab-panel" role="tabpanel" data-rd-panel="overlay" aria-labelledby="resourceDebugOverlayTab" aria-hidden="true">
           <div class="row">
-            <label for="resourceDebugLayer">Overlay</label>
+            <label for="resourceDebugLayer">Known View</label>
             <select id="resourceDebugLayer">
               <option value="water" selected>Water</option>
               <option value="plants">Plants</option>
@@ -1259,68 +1356,18 @@
             </select>
           </div>
           <div class="row">
-            <label for="resourceDebugRenderMode">Render Mode</label>
-            <select id="resourceDebugRenderMode">
-              <option value="marching" selected>Marching Lines</option>
-              <option value="raster">Raster Bands</option>
-            </select>
-          </div>
-          <div class="row">
             <label for="resourceDebugTintColor">Tint</label>
             <div class="inline-control">
               <input id="resourceDebugTintColor" type="color" value="#74d7f5" />
             </div>
           </div>
-          <div class="row">
-            <label for="resourceDebugDiscoveryGrid">Discovery Grid</label>
-            <div class="inline-control">
-              <input id="resourceDebugDiscoveryGrid" type="range" min="32" max="512" step="32" value="256" />
-              <span id="resourceDebugDiscoveryGridValue">256</span>
-            </div>
-          </div>
-          <div class="row">
-            <label for="resourceDebugRevealRadius">Reveal Radius</label>
-            <div class="inline-control">
-              <input id="resourceDebugRevealRadius" type="range" min="0" max="160" step="1" value="30" />
-              <span id="resourceDebugRevealRadiusValue">30</span>
-            </div>
-          </div>
-          <div class="row">
-            <label for="resourceDebugRevealFalloff">Reveal Falloff</label>
-            <div class="inline-control">
-              <input id="resourceDebugRevealFalloff" type="range" min="0" max="4" step="0.05" value="0" />
-              <span id="resourceDebugRevealFalloffValue">0.00</span>
-            </div>
-          </div>
-          <div class="row">
-            <label for="resourceDebugDecayEnabled">Decay</label>
-            <div class="inline-control">
-              <input id="resourceDebugDecayEnabled" type="checkbox" checked aria-label="Enable discovery decay" />
-              <span>enabled</span>
-            </div>
-          </div>
-          <div class="row">
-            <label for="resourceDebugDecayInterval">Decay Ticks</label>
-            <div class="inline-control">
-              <input id="resourceDebugDecayInterval" type="range" min="1" max="5000" step="1" value="500" />
-              <span id="resourceDebugDecayIntervalValue">500</span>
-            </div>
-          </div>
-          <div class="row">
-            <label for="resourceDebugDecayAmount">Decay Amount</label>
-            <div class="inline-control">
-              <input id="resourceDebugDecayAmount" type="range" min="0" max="32" step="1" value="1" />
-              <span id="resourceDebugDecayAmountValue">1</span>
-            </div>
-          </div>
-          <div class="row">
-            <label for="resourceDebugShowMaskOverlay">Show Discovery</label>
-            <div class="inline-control">
-              <input id="resourceDebugShowMaskOverlay" type="checkbox" aria-label="Show full discovery mask overlay" />
-              <input id="resourceDebugMaskOverlayOpacity" type="range" min="0" max="1" step="0.05" value="0.45" aria-label="Mask overlay opacity" />
-              <span id="resourceDebugMaskOverlayOpacityValue">0.45</span>
-            </div>
-          </div>
+
+
+
+
+
+
+
           <div class="row">
             <label for="resourceDebugSampleStep">Contour Step</label>
             <div class="inline-control">
@@ -1341,13 +1388,6 @@
             <div class="inline-control">
               <input id="resourceDebugLineWidth" type="range" min="0.25" max="4" step="0.05" value="1.25" />
               <span id="resourceDebugLineWidthValue">1.25</span>
-            </div>
-          </div>
-          <div class="row">
-            <label for="resourceDebugBandWidth">Band Width</label>
-            <div class="inline-control">
-              <input id="resourceDebugBandWidth" type="range" min="0.002" max="0.1" step="0.002" value="0.018" />
-              <span id="resourceDebugBandWidthValue">0.018</span>
             </div>
           </div>
           <div class="row">
@@ -1390,16 +1430,175 @@
               <span id="resourceDebugBand5Value">0.80</span>
             </div>
           </div>
-          <div class="row">
-            <label>Discovery Mask</label>
-            <div class="inline-control">
-              <button id="resourceDebugCoverAllBtn" class="row-action-btn" type="button">Cover All</button>
-              <button id="resourceDebugUncoverAllBtn" class="row-action-btn" type="button">Uncover All</button>
+
+          </div>
+          <div id="resourceDebugDiscoveryPanel" class="rd-tab-panel" role="tabpanel" data-rd-panel="nav" aria-labelledby="resourceDebugDiscoveryTab" aria-hidden="true">
+            <p class="panel-note">NAV uses the shared Knowledge Map for terrain visibility and long-route restrictions.</p>
+            <div class="row">
+              <label for="discoveryVisibilityEnabled">Terrain Visibility</label>
+              <div class="inline-control">
+                <input id="discoveryVisibilityEnabled" type="checkbox" aria-label="Enable NAV terrain visibility" checked />
+                <span>enabled</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="discoveryVisibilityResource">Knowledge Source</label>
+              <select id="discoveryVisibilityResource">
+                <option value="world" selected>Shared Knowledge Map</option>
+              </select>
+            </div>
+            <div class="row">
+              <label for="discoveryVisibilityMode">Mode</label>
+              <select id="discoveryVisibilityMode">
+                <option value="black" selected>Black Dither</option>
+                <option value="greyscale">Greyscale Unknown</option>
+                <option value="desaturate">Desaturate by Knowledge</option>
+                <option value="debug">Debug Knowledge</option>
+              </select>
+            </div>
+            <div class="row">
+              <label for="discoveryVisibilityDitherScale">Dither Cell px</label>
+              <div class="inline-control">
+                <input id="discoveryVisibilityDitherScale" type="range" min="0.25" max="16" step="0.25" value="1" />
+                <span id="discoveryVisibilityDitherScaleValue">1.00</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="discoveryVisibilityKnowledgeGamma">Knowledge Gamma</label>
+              <div class="inline-control">
+                <input id="discoveryVisibilityKnowledgeGamma" type="range" min="0.1" max="4" step="0.05" value="1" />
+                <span id="discoveryVisibilityKnowledgeGammaValue">1.00</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="discoveryVisibilityBase">Base Visibility</label>
+              <div class="inline-control">
+                <input id="discoveryVisibilityBase" type="range" min="0" max="1" step="0.01" value="0.2" />
+                <span id="discoveryVisibilityBaseValue">0.20</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="discoveryVisibilityFullThreshold">Full Visible At</label>
+              <div class="inline-control">
+                <input id="discoveryVisibilityFullThreshold" type="range" min="0" max="1" step="0.01" value="0.8" />
+                <span id="discoveryVisibilityFullThresholdValue">0.80</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="discoveryVisibilityUnknownDarkness">Unknown Dark</label>
+              <div class="inline-control">
+                <input id="discoveryVisibilityUnknownDarkness" type="range" min="0" max="1" step="0.01" value="1" />
+                <span id="discoveryVisibilityUnknownDarknessValue">1.00</span>
+              </div>
+            </div>
+
+
+
+
+
+            <p class="panel-note">Route visuals and route rules for NAV.</p>
+            <div class="row">
+              <label for="routeArrowColor">Arrow Color</label>
+              <div class="inline-control">
+                <input id="routeArrowColor" type="color" value="#ffffff" />
+              </div>
+            </div>
+            <div class="row">
+              <label for="routeArrowSpacing">Arrow Spacing</label>
+              <div class="inline-control">
+                <input id="routeArrowSpacing" type="range" min="1" max="128" step="1" value="12" />
+                <span id="routeArrowSpacingValue">12</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="routeArrowOpacity">Arrow Opacity</label>
+              <div class="inline-control">
+                <input id="routeArrowOpacity" type="range" min="0" max="1" step="0.01" value="0.78" />
+                <span id="routeArrowOpacityValue">0.78</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="routeArrowSize">Arrow Size</label>
+              <div class="inline-control">
+                <input id="routeArrowSize" type="range" min="1" max="48" step="0.5" value="8" />
+                <span id="routeArrowSizeValue">8.0</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="routeEndpointSkipRatio">Endpoint Skip</label>
+              <div class="inline-control">
+                <input id="routeEndpointSkipRatio" type="range" min="0" max="1" step="0.05" value="0.5" />
+                <span id="routeEndpointSkipRatioValue">0.50</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="routePreviewPointRadius">Preview Radius</label>
+              <div class="inline-control">
+                <input id="routePreviewPointRadius" type="range" min="0.1" max="12" step="0.1" value="2" />
+                <span id="routePreviewPointRadiusValue">2.0</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="routePreviewOpacity">Preview Opacity</label>
+              <div class="inline-control">
+                <input id="routePreviewOpacity" type="range" min="0" max="1" step="0.01" value="0.82" />
+                <span id="routePreviewOpacityValue">0.82</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="routeDiscoveryCutoff">Knowledge Cutoff</label>
+              <div class="inline-control">
+                <input id="routeDiscoveryCutoff" type="range" min="0" max="1" step="0.01" value="0" />
+                <span id="routeDiscoveryCutoffValue">0.00</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="routePlanningSlopeMul">Slope Mul</label>
+              <div class="inline-control">
+                <input id="routePlanningSlopeMul" type="range" min="0" max="3" step="0.01" value="1" />
+                <span id="routePlanningSlopeMulValue">1.00</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="routePlanningHeightMul">Height Mul</label>
+              <div class="inline-control">
+                <input id="routePlanningHeightMul" type="range" min="0" max="3" step="0.01" value="1" />
+                <span id="routePlanningHeightMulValue">1.00</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="routePlanningWaterMul">Water Mul</label>
+              <div class="inline-control">
+                <input id="routePlanningWaterMul" type="range" min="0" max="3" step="0.01" value="1" />
+                <span id="routePlanningWaterMulValue">1.00</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="routePlanningSlopeCutoffAdd">Slope Cutoff Add</label>
+              <div class="inline-control">
+                <input id="routePlanningSlopeCutoffAdd" type="range" min="-1" max="1" step="0.01" value="0" />
+                <span id="routePlanningSlopeCutoffAddValue">0.00</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="routeDebugOverlayMode">NAV Overlay</label>
+              <div class="inline-control">
+                <select id="routeDebugOverlayMode">
+                  <option value="none">None</option>
+                  <option value="dijkstra">Cost Field</option>
+                  <option value="knowledge">NAV Knowledge</option>
+                </select>
+              </div>
+            </div>
+            <div class="row">
+              <label>Committed Route</label>
+              <div class="inline-control">
+                <button id="routeClearBtn" class="row-action-btn" type="button">Clear Route</button>
+              </div>
             </div>
           </div>
-          </div>
           <div id="resourceDebugStockPanel" class="rd-tab-panel" role="tabpanel" data-rd-panel="stock" aria-labelledby="resourceDebugStockTab" aria-hidden="true">
-            <p class="panel-note">Runtime-only resource stock controls. Stock affects actual search chance; known stock affects player-facing overlays.</p>
+            <p class="panel-note">Resource stock controls. Stock affects actual search chance and recovery; it is separate from the Knowledge Map.</p>
             <div class="row">
               <label for="resourceStockResource">Resource</label>
               <select id="resourceStockResource">
@@ -1408,7 +1607,7 @@
               </select>
             </div>
             <div class="row">
-              <label for="resourceStockOverlayMode">Overlay Stock</label>
+              <label for="resourceStockOverlayMode">Stock View</label>
               <select id="resourceStockOverlayMode">
                 <option value="known" selected>Known</option>
                 <option value="live">Live</option>
@@ -1462,10 +1661,10 @@
               <p id="resourceStockReadout" class="panel-note">Stock: -- | Known: -- | Chance: --</p>
             </div>
             <div class="row">
-              <label>Debug Actions</label>
+              <label>Stock Actions</label>
               <div class="inline-control">
                 <button id="resourceStockDepleteHereBtn" class="row-action-btn" type="button">Deplete Here</button>
-                <button id="resourceStockRevealHereBtn" class="row-action-btn" type="button">Reveal Here</button>
+                <button id="resourceStockRevealHereBtn" class="row-action-btn" type="button">Reveal Stock</button>
               </div>
             </div>
             <div class="row">
@@ -1477,122 +1676,7 @@
               </div>
             </div>
           </div>
-          <div id="resourceDebugRoutePanel" class="rd-tab-panel" role="tabpanel" data-rd-panel="route" aria-labelledby="resourceDebugRouteTab" aria-hidden="true">
-            <p class="panel-note">Runtime-only route planning visualization, knowledge, and debug controls.</p>
-            <div class="row">
-              <label for="routeArrowColor">Arrow Color</label>
-              <div class="inline-control">
-                <input id="routeArrowColor" type="color" value="#ffffff" />
-              </div>
-            </div>
-            <div class="row">
-              <label for="routeArrowSpacing">Arrow Spacing</label>
-              <div class="inline-control">
-                <input id="routeArrowSpacing" type="range" min="1" max="128" step="1" value="12" />
-                <span id="routeArrowSpacingValue">12</span>
-              </div>
-            </div>
-            <div class="row">
-              <label for="routeArrowOpacity">Arrow Opacity</label>
-              <div class="inline-control">
-                <input id="routeArrowOpacity" type="range" min="0" max="1" step="0.01" value="0.78" />
-                <span id="routeArrowOpacityValue">0.78</span>
-              </div>
-            </div>
-            <div class="row">
-              <label for="routeArrowSize">Arrow Size</label>
-              <div class="inline-control">
-                <input id="routeArrowSize" type="range" min="1" max="48" step="0.5" value="8" />
-                <span id="routeArrowSizeValue">8.0</span>
-              </div>
-            </div>
-            <div class="row">
-              <label for="routeEndpointSkipRatio">Endpoint Skip</label>
-              <div class="inline-control">
-                <input id="routeEndpointSkipRatio" type="range" min="0" max="1" step="0.05" value="0.5" />
-                <span id="routeEndpointSkipRatioValue">0.50</span>
-              </div>
-            </div>
-            <div class="row">
-              <label for="routePreviewPointRadius">Preview Radius</label>
-              <div class="inline-control">
-                <input id="routePreviewPointRadius" type="range" min="0.1" max="12" step="0.1" value="2" />
-                <span id="routePreviewPointRadiusValue">2.0</span>
-              </div>
-            </div>
-            <div class="row">
-              <label for="routePreviewOpacity">Preview Opacity</label>
-              <div class="inline-control">
-                <input id="routePreviewOpacity" type="range" min="0" max="1" step="0.01" value="0.82" />
-                <span id="routePreviewOpacityValue">0.82</span>
-              </div>
-            </div>
-            <div class="row">
-              <label for="routePlanningSlopeAdd">Slope Add</label>
-              <div class="inline-control">
-                <input id="routePlanningSlopeAdd" type="range" min="-30" max="30" step="0.1" value="0" />
-                <span id="routePlanningSlopeAddValue">0.0</span>
-              </div>
-            </div>
-            <div class="row">
-              <label for="routePlanningSlopeMul">Slope Mul</label>
-              <div class="inline-control">
-                <input id="routePlanningSlopeMul" type="range" min="0" max="3" step="0.01" value="1" />
-                <span id="routePlanningSlopeMulValue">1.00</span>
-              </div>
-            </div>
-            <div class="row">
-              <label for="routePlanningHeightAdd">Height Add</label>
-              <div class="inline-control">
-                <input id="routePlanningHeightAdd" type="range" min="-30" max="30" step="0.1" value="0" />
-                <span id="routePlanningHeightAddValue">0.0</span>
-              </div>
-            </div>
-            <div class="row">
-              <label for="routePlanningHeightMul">Height Mul</label>
-              <div class="inline-control">
-                <input id="routePlanningHeightMul" type="range" min="0" max="3" step="0.01" value="1" />
-                <span id="routePlanningHeightMulValue">1.00</span>
-              </div>
-            </div>
-            <div class="row">
-              <label for="routePlanningWaterAdd">Water Add</label>
-              <div class="inline-control">
-                <input id="routePlanningWaterAdd" type="range" min="-100" max="100" step="0.5" value="0" />
-                <span id="routePlanningWaterAddValue">0.0</span>
-              </div>
-            </div>
-            <div class="row">
-              <label for="routePlanningWaterMul">Water Mul</label>
-              <div class="inline-control">
-                <input id="routePlanningWaterMul" type="range" min="0" max="3" step="0.01" value="1" />
-                <span id="routePlanningWaterMulValue">1.00</span>
-              </div>
-            </div>
-            <div class="row">
-              <label for="routePlanningSlopeCutoffAdd">Cutoff Add</label>
-              <div class="inline-control">
-                <input id="routePlanningSlopeCutoffAdd" type="range" min="-1" max="1" step="0.01" value="0" />
-                <span id="routePlanningSlopeCutoffAddValue">0.00</span>
-              </div>
-            </div>
-            <div class="row">
-              <label for="routeDebugOverlayMode">Debug Overlay</label>
-              <div class="inline-control">
-                <select id="routeDebugOverlayMode">
-                  <option value="none">None</option>
-                  <option value="dijkstra">Dijkstra</option>
-                  <option value="knowledge">Discovery</option>
-                </select>
-              </div>
-            </div>
-            <div class="row">
-              <label>Committed Route</label>
-              <div class="inline-control">
-                <button id="routeClearBtn" class="row-action-btn" type="button">Clear Route</button>
-              </div>
-            </div>
-          </div>
+
         </section>
 
         <section class="topic-card" data-topic="editor" data-title="Point Light Editor" aria-live="polite">
@@ -1666,6 +1750,11 @@
           <p id="status" class="status">Initializing...</p>
         </section>
       </div>
+    </aside>
+
+    <aside id="performanceOverlayPanel" class="performance-overlay-panel hidden" aria-live="polite">
+      <button id="performanceOverlayCopyBtn" class="performance-overlay-copy-btn" type="button">Copy</button>
+      <pre id="performanceOverlayText" class="performance-overlay-text">Performance overlay disabled.</pre>
     </aside>
 
     <aside id="swarmStatsPanel" class="swarm-stats-panel hidden">

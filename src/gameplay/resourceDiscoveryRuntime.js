@@ -7,6 +7,31 @@ function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
+function hashNoise(x, y, seed) {
+  let value = Math.imul(x + 374761393, 668265263) ^ Math.imul(y + 1442695041, 2246822519) ^ Math.imul(seed + 3266489917, 3266489917);
+  value ^= value >>> 13;
+  value = Math.imul(value, 1274126177);
+  value ^= value >>> 16;
+  return (value >>> 0) / 4294967295;
+}
+
+function smoothNoise(x, y, seed, scale) {
+  const safeScale = Math.max(1, finite(scale, 1));
+  const gx = Math.floor(x / safeScale);
+  const gy = Math.floor(y / safeScale);
+  const tx = (x / safeScale) - gx;
+  const ty = (y / safeScale) - gy;
+  const sx = tx * tx * (3 - 2 * tx);
+  const sy = ty * ty * (3 - 2 * ty);
+  const a = hashNoise(gx, gy, seed);
+  const b = hashNoise(gx + 1, gy, seed);
+  const c = hashNoise(gx, gy + 1, seed);
+  const d = hashNoise(gx + 1, gy + 1, seed);
+  const top = a + (b - a) * sx;
+  const bottom = c + (d - c) * sx;
+  return top + (bottom - top) * sy;
+}
+
 function getSearchConfig(searches, resourceId) {
   return searches && searches[resourceId] ? searches[resourceId] : null;
 }
@@ -20,7 +45,7 @@ function getRevealRadiusMultiplier(deps, resourceId) {
 
 function getRevealFalloff(deps, resourceId) {
   const configured = typeof deps.getDiscoveryConfig === "function" ? deps.getDiscoveryConfig(resourceId) : null;
-  return Math.max(0, Math.min(8, finite(configured && configured.revealFalloff, 0)));
+  return Math.max(0, Math.min(8, finite(configured && configured.revealFalloff, 0.15)));
 }
 
 function createMask(searches, resourceId, mapWidth, mapHeight, discoveryOverride = null) {
@@ -45,6 +70,14 @@ function createMask(searches, resourceId, mapWidth, mapHeight, discoveryOverride
 
 export function createResourceDiscoveryRuntime(deps = {}) {
   const searches = deps.resourceSearches || {};
+
+  function normalizeKnowledgeMapId(resourceId) {
+    const rawId = String(resourceId || "");
+    if (!rawId) return "";
+    if (typeof deps.getKnowledgeMapId !== "function") return rawId;
+    const mapped = deps.getKnowledgeMapId(rawId);
+    return String(mapped || rawId);
+  }
   const masks = new Map();
   const versions = new Map();
   const decayTickRemainders = new Map();
@@ -63,12 +96,13 @@ export function createResourceDiscoveryRuntime(deps = {}) {
   }
 
   function getMask(resourceId) {
-    const id = String(resourceId || "");
+    const requestedId = String(resourceId || "");
+    const id = normalizeKnowledgeMapId(requestedId);
     if (!id) return null;
     const mapWidth = getMapWidth();
     const mapHeight = getMapHeight();
-    const discoveryOverride = typeof deps.getDiscoveryConfig === "function" ? deps.getDiscoveryConfig(id) : null;
-    const search = getSearchConfig(searches, id);
+    const discoveryOverride = typeof deps.getDiscoveryConfig === "function" ? deps.getDiscoveryConfig(requestedId || id) : null;
+    const search = getSearchConfig(searches, requestedId) || getSearchConfig(searches, id);
     const desiredGridSizeValue = discoveryOverride && discoveryOverride.gridSize != null
       ? discoveryOverride.gridSize
       : (search && search.discovery && search.discovery.gridSize != null ? search.discovery.gridSize : 256);
@@ -85,8 +119,9 @@ export function createResourceDiscoveryRuntime(deps = {}) {
 
   function reset(resourceId = null) {
     if (resourceId) {
-      masks.delete(String(resourceId));
-      bumpVersion(resourceId);
+      const id = normalizeKnowledgeMapId(resourceId);
+      masks.delete(id);
+      bumpVersion(id);
     } else {
       masks.clear();
       bumpVersion("*");
@@ -139,7 +174,7 @@ export function createResourceDiscoveryRuntime(deps = {}) {
     }
 
     if (changed) {
-      bumpVersion(resourceId);
+      bumpVersion(normalizeKnowledgeMapId(resourceId));
       if (typeof deps.onChange === "function") {
         deps.onChange();
       }
@@ -170,7 +205,7 @@ export function createResourceDiscoveryRuntime(deps = {}) {
   }
 
   function getVersion(resourceId) {
-    const key = resourceId == null ? "*" : String(resourceId);
+    const key = resourceId == null ? "*" : normalizeKnowledgeMapId(resourceId);
     const ownVersion = versions.get(key) || 0;
     return key === "*" ? ownVersion : ownVersion + (versions.get("*") || 0);
   }
@@ -179,7 +214,7 @@ export function createResourceDiscoveryRuntime(deps = {}) {
     const search = getSearchConfig(searches, resourceId);
     const configured = typeof deps.getDiscoveryConfig === "function" ? deps.getDiscoveryConfig(resourceId) : null;
     const discovery = configured || (search && search.discovery) || {};
-    const radius = discovery.movementRevealRadius ?? 30;
+    const radius = discovery.movementRevealRadius ?? 80;
     return revealCircle(resourceId, x, y, radius, 1);
   }
 
@@ -187,7 +222,29 @@ export function createResourceDiscoveryRuntime(deps = {}) {
     const mask = getMask(resourceId);
     if (!mask) return false;
     mask.cells.fill(Math.round(Math.max(0, Math.min(1, finite(value, 0))) * 255));
-    bumpVersion(resourceId);
+    bumpVersion(normalizeKnowledgeMapId(resourceId));
+    if (typeof deps.onChange === "function") {
+      deps.onChange();
+    }
+    return true;
+  }
+
+  function fillNoise(resourceId, options = {}) {
+    const mask = getMask(resourceId);
+    if (!mask) return false;
+    const seed = Math.round(finite(options.seed, 1));
+    const scale = Math.max(1, finite(options.scale, 24));
+    const minValue = clamp(finite(options.min, 0), 0, 1);
+    const maxValue = clamp(finite(options.max, 1), 0, 1);
+    const low = Math.min(minValue, maxValue);
+    const high = Math.max(minValue, maxValue);
+    for (let y = 0; y < mask.height; y++) {
+      for (let x = 0; x < mask.width; x++) {
+        const value = low + smoothNoise(x, y, seed, scale) * (high - low);
+        mask.cells[y * mask.width + x] = Math.round(clamp(value, 0, 1) * 255);
+      }
+    }
+    bumpVersion(normalizeKnowledgeMapId(resourceId));
     if (typeof deps.onChange === "function") {
       deps.onChange();
     }
@@ -195,7 +252,7 @@ export function createResourceDiscoveryRuntime(deps = {}) {
   }
 
   function decay(resourceId, amount) {
-    const id = String(resourceId || "");
+    const id = normalizeKnowledgeMapId(resourceId);
     const mask = masks.get(id);
     if (!mask) return false;
     const byteAmount = Math.max(0, Math.min(255, Math.round(finite(amount, 0))));
@@ -230,8 +287,8 @@ export function createResourceDiscoveryRuntime(deps = {}) {
     const ticks = Math.max(0, Math.round(finite(ctx.time && ctx.time.ticksProcessed, 0)));
     if (ticks <= 0) return;
     const resourceIds = new Set([
-      ...Object.keys(searches),
-      ...masks.keys(),
+      ...Object.keys(searches).map(normalizeKnowledgeMapId),
+      ...Array.from(masks.keys()).map(normalizeKnowledgeMapId),
     ]);
     for (const resourceId of resourceIds) {
       const config = getDecayConfig(resourceId);
@@ -252,6 +309,7 @@ export function createResourceDiscoveryRuntime(deps = {}) {
     revealMovement,
     resolveRevealRadius: (resourceId, radius) => Math.max(0, finite(radius, 0) * getRevealRadiusMultiplier(deps, resourceId)),
     fill,
+    fillNoise,
     decay,
     sampleKnowledge,
     getSnapshot,

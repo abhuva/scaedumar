@@ -66,8 +66,8 @@ function normalizeDiscovery(rawDiscovery) {
   const source = rawDiscovery && typeof rawDiscovery === "object" ? rawDiscovery : {};
   return {
     gridSize: Math.max(8, Math.min(2048, Math.round(finite(source.gridSize, 256)))),
-    movementRevealRadius: Math.max(0, finite(source.movementRevealRadius, 30)),
-    revealFalloff: Math.max(0, Math.min(8, finite(source.revealFalloff, 0))),
+    movementRevealRadius: Math.max(0, finite(source.movementRevealRadius, 80)),
+    revealFalloff: Math.max(0, Math.min(8, finite(source.revealFalloff, 0.15))),
   };
 }
 
@@ -81,11 +81,9 @@ function normalizeOverlay(rawOverlay) {
     : [];
   return {
     type: source.type === "contour" ? "contour" : "none",
-    renderMode: source.renderMode === "raster" ? "raster" : "marching",
     enabledInInspect: source.enabledInInspect !== false,
     sampleStep: Math.max(1, Math.min(128, Math.round(finite(source.sampleStep, 8)))),
     knowledgeThreshold: Math.max(0, Math.min(1, finite(source.knowledgeThreshold, 0.25))),
-    bandWidth: Math.max(0.0001, Math.min(1, finite(source.bandWidth, 0.018))),
     thresholds: thresholds.length ? thresholds : [0.2, 0.35, 0.5, 0.65, 0.8],
     colors,
     lineWidth: Math.max(0.25, Math.min(8, finite(source.lineWidth, 1.25))),

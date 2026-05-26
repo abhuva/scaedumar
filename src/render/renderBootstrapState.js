@@ -7,6 +7,12 @@ export function createRenderBootstrapState(deps) {
   const waterTrailTex = deps.createLinearTexture();
   const materialSplatTex = deps.createLinearTexture();
   const detailMicroColorTex = deps.createLinearTexture();
+  const discoveryMaskTex = deps.createTexture();
+  const discoveryMaskTextureState = {
+    width: 0,
+    height: 0,
+    versionKey: "",
+  };
   const detailAtlasState = {
     available: false,
     loadedSourceCount: 0,
@@ -44,6 +50,8 @@ export function createRenderBootstrapState(deps) {
     waterTrailTex,
     materialSplatTex,
     detailMicroColorTex,
+    discoveryMaskTex,
+    discoveryMaskTextureState,
     detailAtlasState,
     pointLightTex,
     cloudNoiseTex,

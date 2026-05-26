@@ -14,7 +14,6 @@ export function registerRuntimeEventHandlers(eventBus, deps = {}) {
       deps.requestOverlayDraw?.();
     }),
     eventBus.on(RuntimeEvents.INSPECT_CHANGED, () => {
-      deps.invalidateResourceContourOverlay?.();
       deps.refreshInspectSample?.();
       deps.syncGameplayHud?.();
       deps.updateMovementStatusPanel?.();

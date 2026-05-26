@@ -122,6 +122,13 @@ export function createTerrainUniformUploader(deps) {
     deps.gl.uniform1f(deps.uniforms.uDetailDitherScale, input.detailDitherScale);
     deps.gl.uniform1f(deps.uniforms.uDetailDitherStrength, input.detailDitherStrength);
     deps.gl.uniform1f(deps.uniforms.uDetailMinWeight, input.detailMinWeight);
+    if (deps.uniforms.uDiscoveryVisibilityEnabled) {
+      deps.gl.uniform1f(deps.uniforms.uDiscoveryVisibilityEnabled, 0);
+    }
+    deps.gl.uniform1f(deps.uniforms.uDiscoveryVisibilityMode, 0);
+    deps.gl.uniform1f(deps.uniforms.uDiscoveryDitherScale, 1);
+    deps.gl.uniform1f(deps.uniforms.uDiscoveryKnowledgeGamma, 1);
+    deps.gl.uniform1f(deps.uniforms.uDiscoveryUnknownDarkness, 1);
     deps.gl.uniform4f(
       deps.uniforms.uDetailMaterialPriority,
       Number(detailPriorities[0]) || 0,

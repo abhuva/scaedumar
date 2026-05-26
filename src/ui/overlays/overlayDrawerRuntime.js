@@ -22,6 +22,7 @@ export function createOverlayDrawerRuntime(deps) {
     getInspectSnapshot: deps.getInspectSnapshot,
     getResourceContourOverlaySnapshot: deps.getResourceContourOverlaySnapshot,
     getDiscoveryMaskOverlaySnapshot: deps.getDiscoveryMaskOverlaySnapshot,
+    getDiscoveryTerrainVisibilityOverlaySnapshot: deps.getDiscoveryTerrainVisibilityOverlaySnapshot,
     getInventoryBundles: deps.getInventoryBundles,
     playerState: deps.playerState,
     isSwarmEnabled: deps.isSwarmEnabled,

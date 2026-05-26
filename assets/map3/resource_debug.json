@@ -3,13 +3,28 @@
   "activeLayer": "plants",
   "discovery": {
     "gridSize": 256,
-    "movementRevealRadius": 30,
+    "movementRevealRadius": 80,
+    "revealFalloff": 0.15,
     "showMaskOverlay": false,
     "maskOverlayOpacity": 1,
     "decay": {
       "enabled": true,
       "intervalTicks": 103,
       "amount": 1
+    },
+    "terrainVisibility": {
+      "enabled": true,
+      "resourceId": "world",
+      "mode": "black",
+      "ditherScale": 1,
+      "knowledgeGamma": 1,
+      "baseVisibility": 0.2,
+      "fullVisibilityThreshold": 0.8,
+      "unknownDarkness": 1,
+      "noiseSeed": 1,
+      "noiseScale": 24,
+      "noiseMin": 0.08,
+      "noiseMax": 0.62
     }
   },
   "layers": {

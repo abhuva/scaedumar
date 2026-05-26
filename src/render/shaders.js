@@ -20,6 +20,7 @@ uniform sampler2D uFlowMap;
 uniform sampler2D uWaterTrailTex;
 uniform sampler2D uMaterialSplat;
 uniform sampler2D uDetailMicroColor;
+uniform sampler2D uDiscoveryMask;
 uniform float uUseCursorLight;
 uniform vec2 uCursorLightUv;
 uniform vec3 uCursorLightColor;
@@ -49,6 +50,11 @@ uniform float uDetailDitherScale;
 uniform float uDetailDitherStrength;
 uniform float uDetailMinWeight;
 uniform vec4 uDetailMaterialPriority;
+uniform float uDiscoveryVisibilityEnabled;
+uniform float uDiscoveryVisibilityMode;
+uniform float uDiscoveryDitherScale;
+uniform float uDiscoveryKnowledgeGamma;
+uniform float uDiscoveryUnknownDarkness;
 uniform vec4 uDetailMicroRect0;
 uniform vec4 uDetailMicroRect1;
 uniform vec4 uDetailMicroRect2;
@@ -540,6 +546,27 @@ vec3 applyWaterParticleTrail(vec2 uv, vec3 lit, float localLight) {
   return mix(lit, clamp(result, 0.0, 1.0), waterMask);
 }
 
+vec3 applyDiscoveryVisibility(vec3 lit, vec2 uv, vec2 mapPixel) {
+  if (uDiscoveryVisibilityEnabled < 0.5) return lit;
+  float knowledge = clamp(texture(uDiscoveryMask, uv).r, 0.0, 1.0);
+  knowledge = pow(knowledge, max(0.1, uDiscoveryKnowledgeGamma));
+  if (uDiscoveryVisibilityMode > 2.5) {
+    return vec3(knowledge);
+  }
+  if (knowledge >= 0.999) return lit;
+  float noise = detailHash(floor(mapPixel / max(0.03125, uDiscoveryDitherScale)));
+  float visible = step(noise, knowledge);
+  vec3 grey = vec3(dot(lit, vec3(0.299, 0.587, 0.114)));
+  if (uDiscoveryVisibilityMode > 1.5) {
+    return mix(grey, lit, knowledge);
+  }
+  if (uDiscoveryVisibilityMode > 0.5) {
+    return mix(grey * (1.0 - clamp(uDiscoveryUnknownDarkness, 0.0, 1.0)), lit, visible);
+  }
+  vec3 unknown = lit * (1.0 - clamp(uDiscoveryUnknownDarkness, 0.0, 1.0));
+  return mix(unknown, lit, visible);
+}
+
 vec3 computeVolumetricScattering(vec2 uv, float timeSec, float sunVisibility) {
   if (uUseVolumetric < 0.5 || uVolumetricStrength <= 0.0001 || sunVisibility <= 0.0001) return vec3(0.0);
   float sunPlanarLen = length(uSunDir.xy);
@@ -680,6 +707,7 @@ void main() {
   }
 
   lit = clamp(lit + volumetricScatter * (1.0 - lit), 0.0, 1.0);
+  lit = applyDiscoveryVisibility(lit, uv, mapPixel);
   outColor = vec4(lit, 1.0);
 }`;
 

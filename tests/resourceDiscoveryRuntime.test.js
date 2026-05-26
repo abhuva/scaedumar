@@ -118,6 +118,35 @@ test("resource discovery supports debug fill and grid override", () => {
   assert.ok(runtime.getVersion("water") > 0);
 });
 
+test("resource discovery fills deterministic noise", () => {
+  const searches = normalizeResourceSearches({
+    water: {
+      map: "wetness",
+      discovery: {
+        gridSize: 8,
+        movementRevealRadius: 10,
+      },
+    },
+  });
+  const runtime = createResourceDiscoveryRuntime({
+    resourceSearches: searches,
+    getMapWidth: () => 64,
+    getMapHeight: () => 64,
+  });
+
+  assert.equal(runtime.fillNoise("water", { seed: 7, scale: 3, min: 0.2, max: 0.8 }), true);
+  const first = Array.from(runtime.getSnapshot("water").cells);
+  assert.ok(first.some((value) => value > Math.round(0.2 * 255)));
+  assert.ok(first.every((value) => value >= Math.round(0.2 * 255) && value <= Math.round(0.8 * 255)));
+
+  runtime.fill("water", 0);
+  runtime.fillNoise("water", { seed: 7, scale: 3, min: 0.2, max: 0.8 });
+  assert.deepEqual(Array.from(runtime.getSnapshot("water").cells), first);
+
+  runtime.fillNoise("water", { seed: 8, scale: 3, min: 0.2, max: 0.8 });
+  assert.notDeepEqual(Array.from(runtime.getSnapshot("water").cells), first);
+});
+
 test("resource discovery version changes when movement reveals new cells", () => {
   const searches = normalizeResourceSearches({
     water: {
@@ -198,4 +227,23 @@ test("resource discovery decays known cells by configured game ticks", () => {
   runtime.decay("water", 999);
   assert.equal(runtime.sampleKnowledge("water", 32, 32), 0);
   assert.ok(changed >= 3);
+});
+
+test("resource discovery can alias resources to one shared knowledge map", () => {
+  const runtime = createResourceDiscoveryRuntime({
+    resourceSearches: {
+      water: { discovery: { gridSize: 8, movementRevealRadius: 4 } },
+      plants: { discovery: { gridSize: 8, movementRevealRadius: 4 } },
+    },
+    getMapWidth: () => 16,
+    getMapHeight: () => 16,
+    getKnowledgeMapId: () => "world",
+    onChange: () => {},
+  });
+
+  runtime.fill("water", 0);
+  runtime.revealCircle("plants", 8, 8, 4, 1);
+
+  assert.equal(runtime.getSnapshot("water").resourceId, "world");
+  assert.deepEqual(Array.from(runtime.getSnapshot("water").cells), Array.from(runtime.getSnapshot("plants").cells));
 });

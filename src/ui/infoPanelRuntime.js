@@ -6,6 +6,10 @@ export function createInfoPanelRuntime(deps) {
     profile: null,
     lastUpdateMs: 0,
   };
+  const perfOverlayState = {
+    lastUpdateMs: 0,
+    lastText: "",
+  };
 
   function formatGameDuration(hoursValue) {
     const safeHours = Number(hoursValue);
@@ -374,6 +378,58 @@ export function createInfoPanelRuntime(deps) {
     }
   }
 
+  function updatePerformanceOverlay() {
+    if (!deps.performanceOverlayTextEl || typeof deps.isPerformanceOverlayEnabled !== "function") return;
+    if (!deps.isPerformanceOverlayEnabled()) return;
+    if (typeof deps.getFrameDebugInfo !== "function") return;
+    const info = deps.getFrameDebugInfo();
+    if (!info) return;
+    const nowMs = Number(info.nowMs);
+    if (Number.isFinite(nowMs) && nowMs - perfOverlayState.lastUpdateMs < 250) return;
+    if (Number.isFinite(nowMs)) perfOverlayState.lastUpdateMs = nowMs;
+
+    const fps = Number(frameStats.fps) || 0;
+    const frameMs = Number(frameStats.frameMs) || 0;
+    const p = frameStats.profile || {};
+    const cpu = Number(p.totalCpuMs) || 0;
+    const update = (Number(p.systemsMs) || 0) + (Number(p.gameplayMs) || 0);
+    const ui = Number(p.uiMs) || 0;
+    const render = Number(p.renderMs) || 0;
+    const overlay = Number(p.overlayMs) || 0;
+    const terrain = Number(p.terrainRenderMs) || 0;
+    const swarmRender = Number(p.swarmLitRenderMs) || 0;
+    const waterTrail = Number(p.waterTrailMs) || 0;
+    const gpu = info.gpuProfile;
+    const gpuPasses = gpu && gpu.supported ? (gpu.passes || {}) : null;
+    const gpuShadow = gpuPasses ? (Number(gpuPasses.shadow) || 0) : 0;
+    const gpuBlur = gpuPasses ? (Number(gpuPasses.shadowBlur) || 0) : 0;
+    const gpuTerrain = gpuPasses ? (Number(gpuPasses.mainTerrain) || 0) : 0;
+    const gpuBg = gpuPasses ? (Number(gpuPasses.backgroundClear) || 0) : 0;
+    const gpuTotal = gpuPasses ? (gpuShadow + gpuBlur + gpuTerrain + gpuBg) : 0;
+
+    const movement = typeof deps.getMovementSnapshot === "function" ? deps.getMovementSnapshot() : null;
+    const route = typeof deps.getRoutePlanningSnapshot === "function" ? deps.getRoutePlanningSnapshot() : null;
+    const inspect = typeof deps.getInspectSnapshot === "function" ? deps.getInspectSnapshot() : null;
+    const interactionMode = typeof deps.getInteractionMode === "function" ? deps.getInteractionMode() : "none";
+
+    const lines = [
+      `FPS ${fps.toFixed(1)} | Frame ${frameMs.toFixed(2)} ms | CPU ${cpu.toFixed(2)} ms`,
+      `CPU parts: update ${update.toFixed(2)} | ui ${ui.toFixed(2)} | render ${render.toFixed(2)} | overlay ${overlay.toFixed(2)}`,
+      `Render parts: terrain ${terrain.toFixed(2)} | swarm ${swarmRender.toFixed(2)} | trails ${waterTrail.toFixed(2)}`,
+      gpuPasses
+        ? `GPU ${gpuTotal.toFixed(2)} ms | terrain ${gpuTerrain.toFixed(2)} | shadow ${gpuShadow.toFixed(2)} | blur ${gpuBlur.toFixed(2)}`
+        : "GPU unavailable (timer query unsupported or warming up)",
+      `Mode ${interactionMode} | Inspect ${inspect && inspect.enabled ? `${inspect.layer}` : "off"} | Move ${movement && movement.active ? "active" : "idle"}`,
+      `Route seg ${route && route.totals ? Number(route.totals.segmentCount || 0) : 0} | hover ${route ? route.hoverStatus : "none"} | NAV ${route && route.active ? "on" : "off"}`,
+      `Player (${deps.playerState.pixelX}, ${deps.playerState.pixelY}) | Swarm ${Number(deps.swarmState && deps.swarmState.count) || 0}`,
+    ];
+    const text = lines.join("\n");
+    if (text !== perfOverlayState.lastText) {
+      deps.performanceOverlayTextEl.textContent = text;
+      perfOverlayState.lastText = text;
+    }
+  }
+
   function updateDetailInfo() {
     if (!deps.detailInfoEl || typeof deps.getDetailDebugInfo !== "function") return;
     const info = deps.getDetailDebugInfo();
@@ -401,6 +457,7 @@ export function createInfoPanelRuntime(deps) {
       : null;
     updateMovementPanel(movementSnapshot, activitySnapshot);
     updateFrameInfo();
+    updatePerformanceOverlay();
     updateDetailInfo();
 
     if (deps.isSwarmEnabled()) {

@@ -12,6 +12,7 @@ export function createRenderPipelineRuntime(deps) {
   const renderer = createRenderer({ resources: renderResources, gl: deps.gl });
   const uploadUniforms = createTerrainUniformUploader({
     gl: deps.gl,
+    document: deps.document,
     program: deps.program,
     uniforms: deps.uniforms,
     splatTex: deps.splatTex,
@@ -26,6 +27,8 @@ export function createRenderPipelineRuntime(deps) {
     waterTrailTex: deps.waterTrailTex,
     materialSplatTex: deps.materialSplatTex,
     detailMicroColorTex: deps.detailMicroColorTex,
+    discoveryMaskTex: deps.discoveryMaskTex,
+    discoveryMaskTextureState: deps.discoveryMaskTextureState,
     detailAtlasState: deps.detailAtlasState,
     heightSize: deps.heightSize,
     splatSize: deps.splatSize,
@@ -33,6 +36,8 @@ export function createRenderPipelineRuntime(deps) {
     getViewHalfExtents: deps.getViewHalfExtents,
     cursorLightState: deps.cursorLightState,
     applyPointLightUsagePass: deps.applyPointLightUsagePass,
+    getDiscoveryVisibilitySettings: deps.getDiscoveryVisibilitySettings,
+    getDiscoveryVisibilitySnapshot: deps.getDiscoveryVisibilitySnapshot,
   });
 
   renderer.registerPass("shadow", createShadowPass({

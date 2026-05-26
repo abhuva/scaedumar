@@ -40,11 +40,21 @@ export function createResourceDebugPanelRuntime(deps) {
     ["intervalTicks", deps.decayIntervalInput, deps.decayIntervalValue, 0],
     ["amount", deps.decayAmountInput, deps.decayAmountValue, 0],
   ];
+  const visibilityControls = [
+    ["ditherScale", deps.discoveryVisibilityDitherScaleInput, deps.discoveryVisibilityDitherScaleValue, 2],
+    ["knowledgeGamma", deps.discoveryVisibilityKnowledgeGammaInput, deps.discoveryVisibilityKnowledgeGammaValue, 2],
+    ["baseVisibility", deps.discoveryVisibilityBaseInput, deps.discoveryVisibilityBaseValue, 2],
+    ["fullVisibilityThreshold", deps.discoveryVisibilityFullThresholdInput, deps.discoveryVisibilityFullThresholdValue, 2],
+    ["unknownDarkness", deps.discoveryVisibilityUnknownDarknessInput, deps.discoveryVisibilityUnknownDarknessValue, 2],
+    ["noiseSeed", deps.discoveryNoiseSeedInput, deps.discoveryNoiseSeedValue, 0],
+    ["noiseScale", deps.discoveryNoiseScaleInput, deps.discoveryNoiseScaleValue, 0],
+    ["noiseMin", deps.discoveryNoiseMinInput, deps.discoveryNoiseMinValue, 2],
+    ["noiseMax", deps.discoveryNoiseMaxInput, deps.discoveryNoiseMaxValue, 2],
+  ];
   const layerControls = [
     ["sampleStep", deps.sampleStepInput, deps.sampleStepValue, 0],
     ["knowledgeThreshold", deps.knowledgeThresholdInput, deps.knowledgeThresholdValue, 2],
     ["lineWidth", deps.lineWidthInput, deps.lineWidthValue, 2],
-    ["bandWidth", deps.bandWidthInput, deps.bandWidthValue, 3],
   ];
   const routeControls = [
     ["arrowSpacing", deps.routeArrowSpacingInput, deps.routeArrowSpacingValue, 0],
@@ -53,11 +63,9 @@ export function createResourceDebugPanelRuntime(deps) {
     ["endpointSkipRatio", deps.routeEndpointSkipRatioInput, deps.routeEndpointSkipRatioValue, 2],
     ["previewPointRadius", deps.routePreviewPointRadiusInput, deps.routePreviewPointRadiusValue, 1],
     ["previewOpacity", deps.routePreviewOpacityInput, deps.routePreviewOpacityValue, 2],
-    ["planningSlopeAdd", deps.routePlanningSlopeAddInput, deps.routePlanningSlopeAddValue, 1],
+    ["discoveryCutoff", deps.routeDiscoveryCutoffInput, deps.routeDiscoveryCutoffValue, 2],
     ["planningSlopeMul", deps.routePlanningSlopeMulInput, deps.routePlanningSlopeMulValue, 2],
-    ["planningHeightAdd", deps.routePlanningHeightAddInput, deps.routePlanningHeightAddValue, 1],
     ["planningHeightMul", deps.routePlanningHeightMulInput, deps.routePlanningHeightMulValue, 2],
-    ["planningWaterAdd", deps.routePlanningWaterAddInput, deps.routePlanningWaterAddValue, 1],
     ["planningWaterMul", deps.routePlanningWaterMulInput, deps.routePlanningWaterMulValue, 2],
     ["planningSlopeCutoffAdd", deps.routePlanningSlopeCutoffAddInput, deps.routePlanningSlopeCutoffAddValue, 2],
   ];
@@ -73,17 +81,23 @@ export function createResourceDebugPanelRuntime(deps) {
     const settings = deps.getSettings();
     const discovery = settings.discovery || {};
     const decay = discovery.decay || {};
+    const visibility = discovery.terrainVisibility || {};
     const layer = getActiveLayer(settings);
     if (deps.layerInput) deps.layerInput.value = settings.activeLayer || "water";
-    if (deps.renderModeInput) deps.renderModeInput.value = layer.renderMode === "raster" ? "raster" : "marching";
     if (deps.tintColorInput) deps.tintColorInput.value = typeof layer.tintColor === "string" ? layer.tintColor : "#74d7f5";
     for (const [key, input, valueEl, digits] of discoveryControls) {
       setRange(input, valueEl, discovery[key], digits);
     }
     if (deps.decayEnabledInput) deps.decayEnabledInput.checked = decay.enabled !== false;
     if (deps.showMaskOverlayInput) deps.showMaskOverlayInput.checked = discovery.showMaskOverlay === true;
+    if (deps.discoveryVisibilityEnabledInput) deps.discoveryVisibilityEnabledInput.checked = visibility.enabled === true;
+    if (deps.discoveryVisibilityResourceInput) deps.discoveryVisibilityResourceInput.value = visibility.resourceId || "world";
+    if (deps.discoveryVisibilityModeInput) deps.discoveryVisibilityModeInput.value = visibility.mode || "black";
     for (const [key, input, valueEl, digits] of decayControls) {
       setRange(input, valueEl, decay[key], digits);
+    }
+    for (const [key, input, valueEl, digits] of visibilityControls) {
+      setRange(input, valueEl, visibility[key], digits);
     }
     for (const [key, input, valueEl, digits] of layerControls) {
       setRange(input, valueEl, layer[key], digits);
@@ -163,6 +177,14 @@ export function createResourceDebugPanelRuntime(deps) {
       deps.updateDiscoveryDecay({ [key]: value });
     });
   });
+  visibilityControls.forEach(([key, input, valueEl, digits]) => {
+    if (!input) return;
+    input.addEventListener("input", () => {
+      const value = digits === 0 ? Math.round(finite(input.value, 0)) : finite(input.value, 0);
+      if (valueEl) valueEl.textContent = digits === 0 ? String(value) : format(value, digits);
+      deps.updateDiscoveryVisibility?.({ [key]: value });
+    });
+  });
   layerControls.forEach(([key, input, valueEl, digits]) => bindLayerRange(key, input, valueEl, digits));
   stockControls.forEach(([key, input, valueEl, digits]) => bindStockRange(key, input, valueEl, digits));
   routeControls.forEach(([key, input, valueEl, digits]) => {
@@ -231,11 +253,6 @@ export function createResourceDebugPanelRuntime(deps) {
       sync();
     });
   }
-  if (deps.renderModeInput) {
-    deps.renderModeInput.addEventListener("change", () => {
-      deps.updateActiveLayer({ renderMode: deps.renderModeInput.value === "raster" ? "raster" : "marching" });
-    });
-  }
   if (deps.tintColorInput) {
     deps.tintColorInput.addEventListener("input", () => {
       deps.updateActiveLayer({ tintColor: deps.tintColorInput.value });
@@ -251,11 +268,39 @@ export function createResourceDebugPanelRuntime(deps) {
       deps.updateDiscovery({ showMaskOverlay: deps.showMaskOverlayInput.checked });
     });
   }
-  if (deps.coverAllBtn) {
-    deps.coverAllBtn.addEventListener("click", () => deps.fillDiscovery(0));
+  if (deps.discoveryVisibilityEnabledInput) {
+    deps.discoveryVisibilityEnabledInput.addEventListener("change", () => {
+      deps.updateDiscoveryVisibility?.({ enabled: deps.discoveryVisibilityEnabledInput.checked });
+    });
   }
-  if (deps.uncoverAllBtn) {
-    deps.uncoverAllBtn.addEventListener("click", () => deps.fillDiscovery(1));
+  if (deps.discoveryVisibilityResourceInput) {
+    deps.discoveryVisibilityResourceInput.addEventListener("change", () => {
+      deps.updateDiscoveryVisibility?.({ resourceId: deps.discoveryVisibilityResourceInput.value || "world" });
+      sync();
+    });
+  }
+  if (deps.discoveryVisibilityModeInput) {
+    deps.discoveryVisibilityModeInput.addEventListener("change", () => {
+      deps.updateDiscoveryVisibility?.({ mode: deps.discoveryVisibilityModeInput.value || "black" });
+    });
+  }
+  if (deps.discoveryNoiseApplyBtn) {
+    deps.discoveryNoiseApplyBtn.addEventListener("click", () => {
+      deps.fillDiscoveryNoise?.();
+      sync();
+    });
+  }
+  if (deps.discoveryFillKnownBtn) {
+    deps.discoveryFillKnownBtn.addEventListener("click", () => {
+      deps.fillVisibilityDiscovery?.(1);
+      sync();
+    });
+  }
+  if (deps.discoveryFillUnknownBtn) {
+    deps.discoveryFillUnknownBtn.addEventListener("click", () => {
+      deps.fillVisibilityDiscovery?.(0);
+      sync();
+    });
   }
   if (deps.saveSettingsBtn) {
     deps.saveSettingsBtn.addEventListener("click", () => {

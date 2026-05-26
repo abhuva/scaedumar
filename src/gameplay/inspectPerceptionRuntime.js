@@ -85,7 +85,9 @@ export function createInspectPerceptionRuntime(deps = {}) {
       const resourceId = getResourceId(state.layer);
       if (resourceId) {
         deps.onResourceLayerSelected?.(resourceId);
-        deps.revealResourceKnowledge?.(resourceId);
+        if (options.revealKnowledge !== false) {
+          deps.revealResourceKnowledge?.(resourceId);
+        }
       }
       deps.onDebugLayerSelected?.(getInspectOverlayDebugLayer(state.layer));
     }

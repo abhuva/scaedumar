@@ -87,6 +87,25 @@ test("inspect perception layer changes notify resource/debug owners", () => {
   ]);
 });
 
+test("inspect perception can sync resource layer without revealing knowledge", () => {
+  const calls = [];
+  const runtime = createInspectPerceptionRuntime({
+    onResourceLayerSelected: (resourceId) => calls.push(["resource", resourceId]),
+    revealResourceKnowledge: (resourceId) => calls.push(["reveal", resourceId]),
+    onDebugLayerSelected: (layer) => calls.push(["debug", layer]),
+    syncDebugPanel: () => calls.push(["sync"]),
+    onChanged: (payload) => calls.push(["changed", payload.layer, payload.reason]),
+  });
+
+  assert.equal(runtime.setLayer("water", { reason: "settings-sync", revealKnowledge: false }), "water");
+  assert.deepEqual(calls, [
+    ["resource", "water"],
+    ["debug", "water"],
+    ["sync"],
+    ["changed", "water", "settings-sync"],
+  ]);
+});
+
 test("inspect perception respects blocked enable state", () => {
   const runtime = createInspectPerceptionRuntime({
     canEnable: () => false,

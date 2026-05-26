@@ -83,6 +83,9 @@ export function createMapImageRuntime(deps) {
   async function applyMapImages(splatImage, normalsImage, heightImage, slopeImage, waterImage, flowImage = null, wetnessImage = null) {
     deps.uploadImageToTexture(deps.getSplatTex(), splatImage);
     const sizeChanged = setSplatSizeFromImage(splatImage);
+    if (typeof deps.setSplatImageData === "function") {
+      deps.setSplatImageData(deps.extractImageData(splatImage));
+    }
     deps.resetCamera();
 
     deps.uploadImageToTexture(deps.getNormalsTex(), normalsImage);

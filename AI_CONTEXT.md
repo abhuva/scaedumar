@@ -71,6 +71,8 @@ Self-contained prototype for top-down terrain rendering and survival-gameplay ex
   - `src/ui/resourceDebugPanelRuntime.js`: RD panel.
   - `src/ui/inventoryPanelRuntime.js`: inventory panel.
   - `src/ui/overlays/drawOverlay.js`: overlay canvas drawing.
+- Animated overlay redraws are capped to a 60 Hz cadence when the overlay is clean; explicit dirty redraws still happen immediately.
+- Water particle trail simulation/upload accumulates frame time and runs at a 60 Hz cadence instead of every render frame.
 
 ## Gameplay State
 
@@ -100,7 +102,7 @@ Self-contained prototype for top-down terrain rendering and survival-gameplay ex
 - Activating `Nav` on an empty route starts waypoint placement from the player. Activating `Nav` when route segments already exist starts in the non-placement editing state so existing waypoints can be selected first.
 - Route planning averages slope/height/water maps into its low-resolution grid once per map/grid/image set, then computes edge costs with the same movement formula as local pathfinding. Route field builds merge the active local pathfinding weights and slope cutoff, while route-specific settings still own grid size and visualization tuning. Route previews/segments store actual extracted-path cost and displayed route time uses per-edge `ceil(stepCost)` ticks to match tactical travel estimates.
 - Route planning debug overlays can display the low-resolution Dijkstra field or the route-planning discovery knowledge field for testing. These overlays are visualization-only; route extraction remains the normal Dijkstra parent-chain path.
-- Route planning supports NAV-only planning bias settings that add/multiply the effective route cost weights before Dijkstra is built. These are currently exposed in RD for slope, height, water, and slope cutoff, and are intended as a future hook for traits/status effects without altering local tactical pathfinding.
+- Route planning supports NAV-only planning bias settings that multiply effective slope/height/water route weights and adjust slope cutoff before Dijkstra is built. It also supports a discovery cutoff: low-resolution route cells below the selected discovery knowledge threshold are treated as impassable for strategic route planning.
 
 ## Resource Gameplay
 
@@ -109,15 +111,18 @@ Self-contained prototype for top-down terrain rendering and survival-gameplay ex
 - Resource rewards support single items, `fillContainer`, and weighted banded loot tables.
 - Water gathering fills carried items tagged `water_container`; `water_skin` stack count is fill level. Empty waterskins remain in inventory.
 - Resource stock is runtime/grid based and persisted through `resource_stock.json` when saving map data.
-- Resource Debug (`RD`) has `Overlay` and `Stock` tabs. Overlay edits the active inspect layer (`Water`, `Plants`, `Height`, `Slope`). Stock edits/debugs live/known stock for resources.
-- RD also has a `Route` tab for runtime-only route visualization, planning-bias, and debug tuning such as arrow color, opacity, spacing, size, preview point radius, preview opacity, slope/height/water planning bias, debug map overlays, and clearing the committed route.
+- Resource Debug (`RD`) has `Knowledge`, `Known View`, `NAV`, and `Stock` tabs. `Knowledge` owns explicit edits to the shared world Knowledge Map. `Known View` controls contour presentation for known water, plants, height, and slope without mutating knowledge. `NAV` controls NAV-only terrain visibility, route rules, and route visualization. `Stock` edits/debugs live/known stock and recovery for resources.
+- The shared world Knowledge Map is owned by `resourceDiscoveryRuntime`. Water, plants, terrain visibility, and NAV currently resolve to this same map. Slider changes must not repaint or reset it; only explicit Knowledge actions and gameplay reveal movement mutate it. See `docs/KNOWLEDGE_MAP.md`.
+- NAV terrain visibility can draw a pixel-stable dithered layer from NAV Knowledge before gameplay overlays. This visibility layer is gated to active `Nav` so normal observation keeps the full terrain view. The earlier WebGL sampler path is disabled until the discovery texture upload path is corrected.
+- NAV terrain visibility skips raster/draw work when non-debug visibility would be fully transparent because all Knowledge Map cells meet the configured full-visibility threshold.
 
 ## Inspect/Discovery
 
 - Inspect HUD exposes `W/P/H/S` buttons and a selected-layer bar.
 - Player-facing resource bars use known availability/known stock by default. RD stock mode can override to live/ignore stock for testing.
-- Resource contours are drawn only where discovery knowledge allows it unless dev/debug overrides are active.
-- Movement, idle tick batches, and scout possession can reveal resource knowledge and refresh known stock. Discovery reveal supports a tunable grayscale falloff; `0` preserves the hard full-white reveal brush, `1` is linear falloff.
+- Resource contours are drawn only where the shared Knowledge Map allows it unless dev/debug overrides are active.
+- Movement, idle tick batches, and scout possession can reveal the shared Knowledge Map and refresh known stock. Knowledge reveal supports a tunable grayscale falloff; `0` preserves the hard full-white reveal brush, `1` is linear falloff.
+- Map sidecar settings load and passive Inspect layer sync are non-mutating for the Knowledge Map. The final map-loaded hook resets/seeds/reveals the shared map once after all sidecars have loaded so the reveal uses the applied `npc.json` player position.
 
 ## UI Layout Vocabulary
 
@@ -187,6 +192,7 @@ Shared gameplay data lives under `assets/data/`.
 - `docs/RESOURCE_STOCK_MODEL.md`: resource stock/depletion/replenish model.
 - `docs/EVENT_NOTIFICATION_ARCHITECTURE.md`: event bus boundaries and migration notes.
 - `docs/UI_LAYOUT_GRID.md`: fixed gameplay HUD/side-panel layout vocabulary.
+- `docs/KNOWLEDGE_MAP.md`: shared Knowledge Map naming and mutation rules.
 
 ## Verification
 
