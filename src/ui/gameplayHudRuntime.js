@@ -166,6 +166,7 @@ export function createGameplayHudRuntime(deps) {
     }
     applyActivityButton(deps.gatheringBtn, "gathering", "G", "Gather");
     applyActivityButton(deps.gatherWaterBtn, "gather_water", "W", "Gather Water");
+    applyActivityButton(deps.huntingBtn, "hunting", "HU", "Hunt");
     applyActivityButton(deps.inspectBtn, "inspect", "I", "Inspect");
     applyActivityButton(deps.scoutBtn, "scout", "SC", "Scout");
     applyActivityButton(deps.restBtn, "rest", "R", "Rest");
@@ -186,6 +187,7 @@ export function createGameplayHudRuntime(deps) {
     const activityButtons = [
       [deps.gatheringBtn, "gathering"],
       [deps.gatherWaterBtn, "gather_water"],
+      [deps.huntingBtn, "hunting"],
       [deps.scoutBtn, "scout"],
       [deps.restBtn, "rest"],
     ];
@@ -237,6 +239,9 @@ export function createGameplayHudRuntime(deps) {
   });
   deps.gatherWaterBtn?.addEventListener("click", () => {
     dispatchPrimaryActivity("gather_water", "core/activity/startGatherWater");
+  });
+  deps.huntingBtn?.addEventListener("click", () => {
+    dispatchPrimaryActivity("hunting", "core/activity/startHunting");
   });
   deps.inspectBtn?.addEventListener("click", () => {
     deps.dispatchCoreCommand({

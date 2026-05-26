@@ -31,6 +31,7 @@ export function createRenderShellAssemblyRuntime(deps) {
       getResourceContourOverlaySnapshot: deps.getResourceContourOverlaySnapshot,
       getDiscoveryMaskOverlaySnapshot: deps.getDiscoveryMaskOverlaySnapshot,
       getDiscoveryTerrainVisibilityOverlaySnapshot: deps.getDiscoveryTerrainVisibilityOverlaySnapshot,
+      getSlimeAvailabilityOverlaySnapshot: deps.getSlimeAvailabilityOverlaySnapshot,
       getInventoryBundles: deps.getInventoryBundles,
       playerState: deps.playerState,
       drawSwarmUnlitOverlay: deps.drawSwarmUnlitOverlay,

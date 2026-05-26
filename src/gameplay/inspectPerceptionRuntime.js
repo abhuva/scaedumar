@@ -4,6 +4,7 @@ const RESOURCE_LAYER_IDS = new Set(["water", "plants"]);
 
 export function normalizeInspectOverlayLayer(layer) {
   if (layer === "none") return "none";
+  if (layer === "tracks") return "tracks";
   if (layer === "plants") return "plants";
   if (layer === "height" || layer === "slope") return layer;
   return "water";
@@ -11,6 +12,7 @@ export function normalizeInspectOverlayLayer(layer) {
 
 export function getInspectOverlayDebugLayer(layer = "water") {
   const normalized = normalizeInspectOverlayLayer(layer);
+  if (normalized === "tracks" || normalized === "none") return null;
   if (normalized === "plants" || normalized === "height" || normalized === "slope") return normalized;
   return "water";
 }
@@ -23,6 +25,7 @@ export function getInspectOverlayResourceId(layer = "water") {
 
 export function getInspectOverlayDisplayLabel(layer = "water") {
   const normalized = normalizeInspectOverlayLayer(layer);
+  if (normalized === "tracks") return "Tracks";
   if (normalized === "water") return "Water";
   if (normalized === "plants") return "Plants";
   if (normalized === "height") return "Height";
@@ -44,6 +47,7 @@ export function createInspectPerceptionRuntime(deps = {}) {
     inspectY: null,
     inspectHeight: null,
     inspectSlope: null,
+    inspectTracks: 0,
     inspectResources: [],
   };
 
@@ -89,7 +93,10 @@ export function createInspectPerceptionRuntime(deps = {}) {
           deps.revealResourceKnowledge?.(resourceId);
         }
       }
-      deps.onDebugLayerSelected?.(getInspectOverlayDebugLayer(state.layer));
+      const debugLayer = getInspectOverlayDebugLayer(state.layer);
+      if (debugLayer) {
+        deps.onDebugLayerSelected?.(debugLayer);
+      }
     }
     syncLayerButtons();
     deps.syncDebugPanel?.();
@@ -107,6 +114,7 @@ export function createInspectPerceptionRuntime(deps = {}) {
     state.inspectY = y;
     state.inspectHeight = typeof deps.sampleHeight === "function" ? deps.sampleHeight(x, y) : 0;
     state.inspectSlope = typeof deps.sampleSlope === "function" ? deps.sampleSlope(x, y) : 0;
+    state.inspectTracks = typeof deps.sampleTracks === "function" ? deps.sampleTracks(x, y) : 0;
     state.inspectResources = typeof deps.getResourceReadings === "function"
       ? deps.getResourceReadings(x, y)
       : [];
@@ -130,6 +138,7 @@ export function createInspectPerceptionRuntime(deps = {}) {
     const normalized = normalizeInspectOverlayLayer(layer);
     if (normalized === "height") return clamp(Number(state.inspectHeight) || 0, 0, 1);
     if (normalized === "slope") return clamp(Number(state.inspectSlope) || 0, 0, 1);
+    if (normalized === "tracks") return clamp(Number(state.inspectTracks) || 0, 0, 1);
     if (!RESOURCE_LAYER_IDS.has(normalized)) return 0;
     const resourceId = getResourceId(normalized);
     const reading = state.inspectResources.find((item) => item && item.resourceId === resourceId);
@@ -155,6 +164,7 @@ export function createInspectPerceptionRuntime(deps = {}) {
       inspectY: state.inspectY,
       inspectHeight: state.inspectHeight,
       inspectSlope: state.inspectSlope,
+      inspectTracks: state.inspectTracks,
       inspectResources: state.inspectResources.map(cloneReading),
       stockOverlayMode: options.stockOverlayMode || "known",
     };

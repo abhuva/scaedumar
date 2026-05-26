@@ -139,6 +139,7 @@ export function createInfoPanelRuntime(deps) {
   }
 
   function getInspectLayerLabel(layer) {
+    if (layer === "tracks") return "Tracks";
     if (layer === "plants") return "Plants";
     if (layer === "height") return "Height";
     if (layer === "slope") return "Slope";
@@ -149,6 +150,7 @@ export function createInfoPanelRuntime(deps) {
     const layer = inspectSnapshot && inspectSnapshot.layer;
     if (layer === "height") return clamp01(inspectSnapshot.inspectHeight);
     if (layer === "slope") return clamp01(inspectSnapshot.inspectSlope);
+    if (layer === "tracks") return clamp01(inspectSnapshot.inspectTracks);
     const resourceId = layer === "plants" ? "plants" : "water";
     const readings = Array.isArray(inspectSnapshot && inspectSnapshot.inspectResources)
       ? inspectSnapshot.inspectResources
@@ -202,6 +204,7 @@ export function createInfoPanelRuntime(deps) {
   function updateMovementPanel(movementSnapshot, activitySnapshot) {
     setScoutActionLayout(false);
     setRoutePanelLayout(false);
+    updateHuntingAvailabilityPanel(activitySnapshot);
     if (deps.movementActionBtn) {
       deps.movementActionBtn.classList.add("hidden");
       deps.movementActionBtn.disabled = true;
@@ -309,6 +312,28 @@ export function createInfoPanelRuntime(deps) {
       deps.movementStatusDetailEl.textContent = "";
     }
     setMovementPanelVisible(true);
+  }
+
+  function updateHuntingAvailabilityPanel(activitySnapshot) {
+    const active = activitySnapshot && activitySnapshot.active && activitySnapshot.type === "hunting";
+    if (deps.huntingAvailabilityRowEl) {
+      deps.huntingAvailabilityRowEl.classList.toggle("hidden", !active);
+    }
+    if (!active) {
+      if (deps.huntingAvailabilityBarFillEl) deps.huntingAvailabilityBarFillEl.style.width = "0%";
+      return;
+    }
+    const availability = clamp01(activitySnapshot.huntingAvailability);
+    const chance = clamp01(activitySnapshot.lastSearchChance);
+    if (deps.huntingAvailabilityLabelEl) {
+      deps.huntingAvailabilityLabelEl.innerHTML = `Tracks <span class="activity-meter-label-value">${Math.round(availability * 100)}%</span>`;
+    }
+    if (deps.huntingAvailabilityBarFillEl) {
+      deps.huntingAvailabilityBarFillEl.style.width = `${Math.round(availability * 100)}%`;
+    }
+    if (deps.huntingAvailabilityRowEl) {
+      deps.huntingAvailabilityRowEl.title = `Hunting chance ${Math.round(chance * 100)}%`;
+    }
   }
 
   function updateFrameInfo() {

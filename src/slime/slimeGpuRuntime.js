@@ -18,6 +18,7 @@ uniform sampler2D uTrail;
 uniform sampler2D uHeight;
 uniform sampler2D uSlope;
 uniform sampler2D uWater;
+uniform sampler2D uPlant;
 uniform int uAgentCount;
 uniform ivec2 uAgentTexSize;
 uniform vec2 uSimSize;
@@ -38,6 +39,8 @@ uniform float uHeightMin;
 uniform float uHeightMax;
 uniform float uHeightBandWeight;
 uniform float uWaterBias;
+uniform float uPlantBias;
+uniform float uPlantFloor;
 uniform bool uWrapEdges;
 uniform float uFrame;
 in vec2 vUv;
@@ -70,12 +73,15 @@ float sampleTrail(vec2 pos, float angle) {
   float slope = texture(uSlope, terrainUv).r;
   float height = texture(uHeight, terrainUv).r;
   float water = texture(uWater, terrainUv).r;
+  float plant = texture(uPlant, terrainUv).r;
   float minHeight = min(uHeightMin, uHeightMax);
   float maxHeight = max(uHeightMin, uHeightMax);
   float outsideBand = max(max(minHeight - height, height - maxHeight), 0.0);
+  float plantPreference = plant - uPlantFloor;
   float terrainScore = -slope * uSlopeBias
     + height * uHeightBias
     - water * uWaterBias
+    + plantPreference * uPlantBias
     - outsideBand * uHeightBandWeight;
   if (slope > uSlopeCutoff) {
     terrainScore -= 1000.0;
@@ -285,12 +291,90 @@ void main() {
 }
 `;
 
+const PLANT_STOCK_FRAG = `#version 300 es
+precision highp float;
+uniform sampler2D uPlantStock;
+uniform sampler2D uPlantBase;
+uniform sampler2D uTrail;
+uniform float uEatAmount;
+uniform float uRegenAmount;
+uniform bool uDoEat;
+uniform bool uDoRegen;
+in vec2 vUv;
+out vec4 outColor;
+void main() {
+  float stock = texture(uPlantStock, vUv).r;
+  float base = texture(uPlantBase, vUv).r;
+  if (uDoEat) {
+    float trail = texture(uTrail, vUv).r;
+    stock = max(0.0, stock - trail * uEatAmount);
+  }
+  if (uDoRegen) {
+    stock = min(base, stock + uRegenAmount);
+  }
+  outColor = vec4(stock, stock, stock, 1.0);
+}
+`;
+
+const TRAIL_AVAILABILITY_READBACK_FRAG = `#version 300 es
+precision highp float;
+uniform sampler2D uTrail;
+uniform float uGain;
+uniform float uGamma;
+uniform float uThreshold;
+in vec2 vUv;
+out vec4 outColor;
+void main() {
+  float raw = max(0.0, texture(uTrail, vUv).r);
+  float availability = 0.0;
+  if (raw > uThreshold) {
+    availability = pow(min(1.0, raw * max(0.001, uGain)), 1.0 / max(0.001, uGamma));
+  }
+  outColor = vec4(availability, availability, availability, 1.0);
+}
+`;
+
+const TRAIL_OVERLAY_READBACK_FRAG = `#version 300 es
+precision highp float;
+uniform sampler2D uTrail;
+uniform float uGain;
+uniform float uGamma;
+uniform float uThreshold;
+uniform float uOpacity;
+in vec2 vUv;
+out vec4 outColor;
+void main() {
+  float raw = max(0.0, texture(uTrail, vUv).r);
+  if (raw <= uThreshold) {
+    outColor = vec4(0.0);
+    return;
+  }
+  float value = pow(min(1.0, raw * max(0.001, uGain)), 1.0 / max(0.001, uGamma));
+  outColor = vec4(value, (92.0 + 150.0 * value) / 255.0, (18.0 + 52.0 * value) / 255.0, uOpacity * max(0.18, value));
+}
+`;
+
+const PLANT_STOCK_FACTOR_READBACK_FRAG = `#version 300 es
+precision highp float;
+uniform sampler2D uPlantStock;
+uniform sampler2D uPlantBase;
+in vec2 vUv;
+out vec4 outColor;
+void main() {
+  float stock = max(0.0, texture(uPlantStock, vUv).r);
+  float base = max(0.0, texture(uPlantBase, vUv).r);
+  float factor = base > 0.0001 ? clamp(stock / base, 0.0, 1.0) : 1.0;
+  outColor = vec4(factor, factor, factor, 1.0);
+}
+`;
+
 const DISPLAY_FRAG = `#version 300 es
 precision highp float;
 uniform sampler2D uTrail;
 uniform sampler2D uHeight;
 uniform sampler2D uSlope;
 uniform sampler2D uWater;
+uniform sampler2D uPlant;
 uniform float uGain;
 uniform float uGamma;
 uniform int uPalette;
@@ -317,7 +401,8 @@ void main() {
     float height = texture(uHeight, vUv).r;
     float slope = texture(uSlope, vUv).r;
     float water = texture(uWater, vUv).r;
-    vec3 terrain = vec3(height * 0.42 + slope * 0.28, height * 0.5, height * 0.32 + water * 0.85);
+    float plant = texture(uPlant, vUv).r;
+    vec3 terrain = vec3(height * 0.42 + slope * 0.28, height * 0.5 + plant * 0.5, height * 0.32 + water * 0.85);
     color = mix(terrain, color, clamp(v * 1.35, 0.28, 1.0));
   }
   outColor = vec4(color, 1.0);
@@ -336,12 +421,15 @@ export function createSlimeGpuRuntime(deps) {
   let resources = null;
   let terrainRefs = null;
   let brushSeed = 1;
+  let simulationTick = 0;
+  let gameTickAccumulator = 0;
+  let availabilityVersion = 0;
 
   function start(rawSettings) {
     state.running = true;
     state.error = "";
     if (!tryEnsureInitialized(rawSettings)) return;
-    schedule();
+    if (settings.timeMode === "free") schedule();
   }
 
   function stop() {
@@ -391,6 +479,12 @@ export function createSlimeGpuRuntime(deps) {
       return;
     }
     if (state.initialized) renderDisplay();
+    if (state.running && settings.timeMode === "free") {
+      schedule();
+    } else if (settings.timeMode === "gameTick" && frameId !== null) {
+      cancelAnimationFrame(frameId);
+      frameId = null;
+    }
   }
 
   function tryEnsureInitialized(rawSettings) {
@@ -444,7 +538,7 @@ export function createSlimeGpuRuntime(deps) {
         step();
       }
       renderDisplay();
-      frameCounter += 1;
+      markFrameAdvanced();
       frameTicks += 1;
       state.frame = frameCounter;
       if (!lastFpsTime) lastFpsTime = nowMs;
@@ -466,8 +560,89 @@ export function createSlimeGpuRuntime(deps) {
 
   function step() {
     updateAgents();
+    simulationTick += 1;
     depositAgents();
     diffuseTrail();
+    updatePlantStockFromTrail();
+  }
+
+  function markFrameAdvanced() {
+    frameCounter += 1;
+    state.frame = frameCounter;
+  }
+
+  function stepGameTicks(ticks, rawSettings) {
+    const safeTicks = Math.max(0, Math.round(Number(ticks) || 0));
+    if (safeTicks <= 0) return 0;
+    if (!tryEnsureInitialized(rawSettings || settings)) return 0;
+    const gameTicksPerStep = Math.max(1, Math.round(Number(settings.gameTicksPerSlimeStep) || 1));
+    gameTickAccumulator += safeTicks;
+    const elapsedIntervals = Math.floor(gameTickAccumulator / gameTicksPerStep);
+    if (elapsedIntervals <= 0) return 0;
+    gameTickAccumulator -= elapsedIntervals * gameTicksPerStep;
+    const steps = elapsedIntervals * Math.max(1, Math.round(Number(settings.stepsPerGameTick) || 1));
+    if (steps <= 0) {
+      renderDisplay();
+      return 0;
+    }
+    for (let i = 0; i < steps; i++) {
+      step();
+    }
+    renderDisplay();
+    markFrameAdvanced();
+    if (typeof deps.onFrame === "function") deps.onFrame();
+    return steps;
+  }
+
+  function warmupSteps(stepCount, rawSettings) {
+    const steps = Math.max(0, Math.round(Number(stepCount) || 0));
+    if (steps <= 0) return 0;
+    if (!tryEnsureInitialized(rawSettings || settings)) return 0;
+    for (let i = 0; i < steps; i++) {
+      step();
+    }
+    renderDisplay();
+    markFrameAdvanced();
+    if (typeof deps.onFrame === "function") deps.onFrame();
+    return steps;
+  }
+
+  function updatePlantStockFromTrail() {
+    if (
+      !resources
+      || !resources.hasTerrain
+      || (!shouldEatPlantsThisTick() && !shouldRegeneratePlantsThisTick())
+    ) {
+      return;
+    }
+    const r = resources;
+    gl.useProgram(r.plantStockProgram.program);
+    bindFramebuffer(r.plantStockFramebuffers[1 - r.plantStockIndex], r.plantMapWidth, r.plantMapHeight);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, r.plantStockTextures[r.plantStockIndex]);
+    gl.uniform1i(r.plantStockProgram.uPlantStock, 0);
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, r.plantBaseTexture);
+    gl.uniform1i(r.plantStockProgram.uPlantBase, 1);
+    gl.activeTexture(gl.TEXTURE2);
+    gl.bindTexture(gl.TEXTURE_2D, r.trailTextures[r.trailIndex]);
+    gl.uniform1i(r.plantStockProgram.uTrail, 2);
+    gl.uniform1f(r.plantStockProgram.uEatAmount, settings.plantEatAmount / 255);
+    gl.uniform1f(r.plantStockProgram.uRegenAmount, settings.plantRegenAmount / 255);
+    gl.uniform1i(r.plantStockProgram.uDoEat, shouldEatPlantsThisTick() ? 1 : 0);
+    gl.uniform1i(r.plantStockProgram.uDoRegen, shouldRegeneratePlantsThisTick() ? 1 : 0);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    r.plantStockIndex = 1 - r.plantStockIndex;
+  }
+
+  function shouldEatPlantsThisTick() {
+    return settings.plantEatAmount > 0
+      && simulationTick % Math.max(1, Math.round(settings.plantEatTickInterval)) === 0;
+  }
+
+  function shouldRegeneratePlantsThisTick() {
+    return settings.plantRegenAmount > 0
+      && simulationTick % Math.max(1, Math.round(settings.plantRegenTickInterval)) === 0;
   }
 
   function updateAgents() {
@@ -501,6 +676,8 @@ export function createSlimeGpuRuntime(deps) {
     gl.uniform1f(r.agentProgram.uHeightMax, settings.heightMax);
     gl.uniform1f(r.agentProgram.uHeightBandWeight, settings.heightBandWeight);
     gl.uniform1f(r.agentProgram.uWaterBias, settings.waterBias);
+    gl.uniform1f(r.agentProgram.uPlantBias, settings.plantBias);
+    gl.uniform1f(r.agentProgram.uPlantFloor, settings.plantFloor);
     gl.uniform1i(r.agentProgram.uWrapEdges, settings.wrapEdges ? 1 : 0);
     gl.uniform1f(r.agentProgram.uFrame, frameCounter);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
@@ -578,6 +755,161 @@ export function createSlimeGpuRuntime(deps) {
     r.trailIndex = 1 - r.trailIndex;
   }
 
+  function brushResetAtMapPixel(pixelX, pixelY, mapWidth, mapHeight, options = {}) {
+    if (!tryEnsureInitialized(settings)) return false;
+    const width = Math.max(1, Number(mapWidth) || 1);
+    const height = Math.max(1, Number(mapHeight) || 1);
+    const previousRadius = settings.brushRadius;
+    const previousClear = settings.brushTrailClear;
+    if (Number.isFinite(Number(options.radius))) {
+      settings.brushRadius = Math.max(1, Number(options.radius));
+    }
+    if (Number.isFinite(Number(options.trailClear))) {
+      settings.brushTrailClear = Math.max(0, Math.min(1, Number(options.trailClear)));
+    }
+    const center = {
+      x: Math.max(0, Math.min(settings.simSize - 1, (Number(pixelX) || 0) / width * settings.simSize)),
+      y: Math.max(0, Math.min(settings.simSize - 1, (1 - (Number(pixelY) || 0) / height) * settings.simSize)),
+    };
+    brushSeed += 1;
+    applyAgentBrush(center);
+    applyTrailBrush(center);
+    settings.brushRadius = previousRadius;
+    settings.brushTrailClear = previousClear;
+    renderDisplay();
+    return true;
+  }
+
+  function readTrailAvailabilityGrid(options = {}) {
+    if (!tryEnsureInitialized(settings)) {
+      return null;
+    }
+    const r = resources;
+    const gridSize = Math.max(1, Math.round(Number(options.gridSize ?? settings.availabilityGridSize) || settings.availabilityGridSize));
+    const effectiveMax = Math.max(0.0001, Number(options.effectiveMax ?? settings.availabilityEffectiveMax) || settings.availabilityEffectiveMax);
+    const gain = Math.max(0.001, Number(options.gain ?? settings.trailGain) || 1);
+    const gamma = Math.max(0.001, Number(options.gamma ?? settings.trailGamma) || 1);
+    const threshold = Math.max(0, Number(options.threshold ?? 0) || 0);
+    ensureReadbackTarget(gridSize, gridSize);
+    gl.useProgram(r.trailAvailabilityReadbackProgram.program);
+    bindFramebuffer(r.readbackFramebuffer, gridSize, gridSize);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, r.trailTextures[r.trailIndex]);
+    gl.uniform1i(r.trailAvailabilityReadbackProgram.uTrail, 0);
+    gl.uniform1f(r.trailAvailabilityReadbackProgram.uGain, gain);
+    gl.uniform1f(r.trailAvailabilityReadbackProgram.uGamma, gamma);
+    gl.uniform1f(r.trailAvailabilityReadbackProgram.uThreshold, threshold);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    const raw = new Uint8Array(gridSize * gridSize * 4);
+    gl.readPixels(0, 0, gridSize, gridSize, gl.RGBA, gl.UNSIGNED_BYTE, raw);
+    const data = new Float32Array(gridSize * gridSize);
+    const rawData = new Float32Array(gridSize * gridSize);
+    for (let y = 0; y < gridSize; y++) {
+      const targetY = gridSize - y - 1;
+      for (let x = 0; x < gridSize; x++) {
+        const sourceIndex = (y * gridSize + x) * 4;
+        const targetIndex = targetY * gridSize + x;
+        const availability = raw[sourceIndex] / 255;
+        data[targetIndex] = availability;
+        rawData[targetIndex] = availability * effectiveMax;
+      }
+    }
+    availabilityVersion += 1;
+    return { width: gridSize, height: gridSize, data, rawData, version: availabilityVersion, effectiveMax };
+  }
+
+  function readPlantStockImageData() {
+    if (!tryEnsureInitialized(settings) || !resources || !resources.hasTerrain) {
+      return null;
+    }
+    const r = resources;
+    const width = Math.max(1, Math.round(r.plantMapWidth || 1));
+    const height = Math.max(1, Math.round(r.plantMapHeight || 1));
+    const raw = new Uint8Array(width * height * 4);
+    const data = new Uint8ClampedArray(width * height * 4);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, r.plantStockFramebuffers[r.plantStockIndex]);
+    gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, raw);
+    for (let y = 0; y < height; y++) {
+      const targetY = height - y - 1;
+      const sourceRow = y * width * 4;
+      const targetRow = targetY * width * 4;
+      data.set(raw.subarray(sourceRow, sourceRow + width * 4), targetRow);
+    }
+    return { width, height, data };
+  }
+
+  function readPlantStockFactorImageData(options = {}) {
+    if (!tryEnsureInitialized(settings) || !resources || !resources.hasTerrain) {
+      return null;
+    }
+    const r = resources;
+    const width = Math.max(1, Math.round(Number(options.width) || r.plantMapWidth || 1));
+    const height = Math.max(1, Math.round(Number(options.height) || r.plantMapHeight || 1));
+    ensureReadbackTarget(width, height);
+    gl.useProgram(r.plantStockFactorReadbackProgram.program);
+    bindFramebuffer(r.readbackFramebuffer, width, height);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, r.plantStockTextures[r.plantStockIndex]);
+    gl.uniform1i(r.plantStockFactorReadbackProgram.uPlantStock, 0);
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, r.plantBaseTexture);
+    gl.uniform1i(r.plantStockFactorReadbackProgram.uPlantBase, 1);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    const raw = new Uint8Array(width * height * 4);
+    const data = new Uint8ClampedArray(width * height * 4);
+    gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, raw);
+    for (let y = 0; y < height; y++) {
+      const targetY = height - y - 1;
+      const sourceRow = y * width * 4;
+      const targetRow = targetY * width * 4;
+      data.set(raw.subarray(sourceRow, sourceRow + width * 4), targetRow);
+    }
+    return { width, height, data };
+  }
+
+  function readTrailOverlayRaster(options = {}) {
+    if (!tryEnsureInitialized(settings)) {
+      return null;
+    }
+    const r = resources;
+    const width = Math.max(1, Math.round(settings.simSize));
+    const height = Math.max(1, Math.round(settings.simSize));
+    const data = new Uint8ClampedArray(width * height * 4);
+    const gain = Math.max(0.001, Number(options.gain ?? settings.trailGain) || 1);
+    const gamma = Math.max(0.001, Number(options.gamma ?? settings.trailGamma) || 1);
+    const threshold = Math.max(0, Number(options.threshold ?? 0) || 0);
+    const opacity = Math.max(0, Math.min(1, Number(options.opacity ?? 0.65) || 0.65));
+
+    ensureReadbackTarget(width, height);
+    gl.useProgram(r.trailOverlayReadbackProgram.program);
+    bindFramebuffer(r.readbackFramebuffer, width, height);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, r.trailTextures[r.trailIndex]);
+    gl.uniform1i(r.trailOverlayReadbackProgram.uTrail, 0);
+    gl.uniform1f(r.trailOverlayReadbackProgram.uGain, gain);
+    gl.uniform1f(r.trailOverlayReadbackProgram.uGamma, gamma);
+    gl.uniform1f(r.trailOverlayReadbackProgram.uThreshold, threshold);
+    gl.uniform1f(r.trailOverlayReadbackProgram.uOpacity, opacity);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+    const raw = new Uint8Array(width * height * 4);
+    gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, raw);
+    for (let y = 0; y < height; y++) {
+      const targetY = height - y - 1;
+      const sourceRow = y * width * 4;
+      const targetRow = targetY * width * 4;
+      data.set(raw.subarray(sourceRow, sourceRow + width * 4), targetRow);
+    }
+
+    availabilityVersion += 1;
+    return {
+      width,
+      height,
+      data,
+      version: availabilityVersion,
+    };
+  }
+
   function renderDisplay() {
     if (!gl || !resources) return;
     resizeCanvas();
@@ -619,14 +951,28 @@ export function createSlimeGpuRuntime(deps) {
       heightTexture: createByteTexture(1, 1, new Uint8Array([0, 0, 0, 255])),
       slopeTexture: createByteTexture(1, 1, new Uint8Array([0, 0, 0, 255])),
       waterTexture: createByteTexture(1, 1, new Uint8Array([0, 0, 0, 255])),
+      plantBaseTexture: createByteTexture(1, 1, new Uint8Array([0, 0, 0, 255])),
+      plantStockTextures: [
+        createByteTexture(1, 1, new Uint8Array([0, 0, 0, 255])),
+        createByteTexture(1, 1, new Uint8Array([0, 0, 0, 255])),
+      ],
+      plantStockFramebuffers: [],
+      plantStockIndex: 0,
+      plantMapWidth: 1,
+      plantMapHeight: 1,
+      plantStockInitialized: false,
+      readbackTexture: null,
+      readbackFramebuffer: null,
+      readbackWidth: 0,
+      readbackHeight: 0,
       hasTerrain: false,
       agentIndex: 0,
       trailIndex: 0,
       agentProgram: createProgramInfo(FULLSCREEN_VERT, AGENT_UPDATE_FRAG, [
-        "uAgents", "uTrail", "uHeight", "uSlope", "uWater", "uAgentCount", "uAgentTexSize", "uSimSize", "uSensorDistance", "uSensorAngle",
+        "uAgents", "uTrail", "uHeight", "uSlope", "uWater", "uPlant", "uAgentCount", "uAgentTexSize", "uSimSize", "uSensorDistance", "uSensorAngle",
         "uSensorSize", "uSensorNoise", "uStepSize", "uTurnAngle", "uWanderChance", "uWanderStrength",
         "uUseTerrain", "uTerrainMix", "uSlopeBias", "uSlopeCutoff", "uHeightBias", "uHeightMin", "uHeightMax",
-        "uHeightBandWeight", "uWaterBias", "uWrapEdges", "uFrame",
+        "uHeightBandWeight", "uWaterBias", "uPlantBias", "uPlantFloor", "uWrapEdges", "uFrame",
       ]),
       depositProgram: createProgramInfo(DEPOSIT_VERT, DEPOSIT_FRAG, [
         "uAgents", "uAgentCount", "uAgentTexSize", "uSimSize", "uDepositSize", "uDepositAmount",
@@ -640,10 +986,23 @@ export function createSlimeGpuRuntime(deps) {
       diffuseProgram: createProgramInfo(FULLSCREEN_VERT, DIFFUSE_FRAG, [
         "uTrail", "uDeposit", "uTexelSize", "uDiffusion", "uDecay",
       ]),
+      plantStockProgram: createProgramInfo(FULLSCREEN_VERT, PLANT_STOCK_FRAG, [
+        "uPlantStock", "uPlantBase", "uTrail", "uEatAmount", "uRegenAmount", "uDoEat", "uDoRegen",
+      ]),
+      trailAvailabilityReadbackProgram: createProgramInfo(FULLSCREEN_VERT, TRAIL_AVAILABILITY_READBACK_FRAG, [
+        "uTrail", "uGain", "uGamma", "uThreshold",
+      ]),
+      trailOverlayReadbackProgram: createProgramInfo(FULLSCREEN_VERT, TRAIL_OVERLAY_READBACK_FRAG, [
+        "uTrail", "uGain", "uGamma", "uThreshold", "uOpacity",
+      ]),
+      plantStockFactorReadbackProgram: createProgramInfo(FULLSCREEN_VERT, PLANT_STOCK_FACTOR_READBACK_FRAG, [
+        "uPlantStock", "uPlantBase",
+      ]),
       displayProgram: createProgramInfo(FULLSCREEN_VERT, DISPLAY_FRAG, [
-        "uTrail", "uHeight", "uSlope", "uWater", "uGain", "uGamma", "uPalette", "uShowTerrainUnderlay",
+        "uTrail", "uHeight", "uSlope", "uWater", "uPlant", "uGain", "uGamma", "uPalette", "uShowTerrainUnderlay",
       ]),
     };
+    nextResources.plantStockFramebuffers = nextResources.plantStockTextures.map((texture) => createFramebuffer(texture));
     return nextResources;
   }
 
@@ -737,12 +1096,16 @@ export function createSlimeGpuRuntime(deps) {
       height: source.heightImageData || null,
       slope: source.slopeImageData || null,
       water: source.waterImageData || null,
+      plantBase: source.plantBaseImageData || source.plantImageData || null,
+      plantStock: source.plantStockImageData || source.plantImageData || null,
     };
     if (
       terrainRefs
       && terrainRefs.height === nextRefs.height
       && terrainRefs.slope === nextRefs.slope
       && terrainRefs.water === nextRefs.water
+      && terrainRefs.plantBase === nextRefs.plantBase
+      && terrainRefs.plantStock === nextRefs.plantStock
     ) {
       return;
     }
@@ -759,13 +1122,86 @@ export function createSlimeGpuRuntime(deps) {
     uploadImageDataToTexture(resources.heightTexture, nextRefs.height);
     uploadImageDataToTexture(resources.slopeTexture, nextRefs.slope);
     uploadImageDataToTexture(resources.waterTexture, nextRefs.water);
-    state.capabilities = `${settings.simSize}x${settings.simSize}, ${settings.agentCount} agents, terrain ${nextRefs.height.width}x${nextRefs.height.height}`;
+    if (nextRefs.plantBase && nextRefs.plantBase.data) {
+      const stockImageData = nextRefs.plantStock && nextRefs.plantStock.data ? nextRefs.plantStock : nextRefs.plantBase;
+      const plantWidth = Math.max(1, Math.round(Number(nextRefs.plantBase.width) || 1));
+      const plantHeight = Math.max(1, Math.round(Number(nextRefs.plantBase.height) || 1));
+      const shouldResetMutablePlantStock = !resources.plantStockInitialized
+        || resources.plantMapWidth !== plantWidth
+        || resources.plantMapHeight !== plantHeight;
+      uploadImageDataToTexture(resources.plantBaseTexture, nextRefs.plantBase);
+      if (shouldResetMutablePlantStock) {
+        uploadImageDataToTexture(resources.plantStockTextures[0], stockImageData);
+        uploadImageDataToTexture(resources.plantStockTextures[1], stockImageData);
+        resources.plantStockIndex = 0;
+        resources.plantStockInitialized = true;
+      }
+      resources.plantMapWidth = plantWidth;
+      resources.plantMapHeight = plantHeight;
+    } else {
+      const emptyPlant = { width: 1, height: 1, data: new Uint8Array([0, 0, 0, 255]) };
+      uploadImageDataToTexture(resources.plantBaseTexture, emptyPlant);
+      uploadImageDataToTexture(resources.plantStockTextures[0], emptyPlant);
+      uploadImageDataToTexture(resources.plantStockTextures[1], emptyPlant);
+      resources.plantStockIndex = 0;
+      resources.plantStockInitialized = false;
+      resources.plantMapWidth = nextRefs.height.width;
+      resources.plantMapHeight = nextRefs.height.height;
+    }
+    const plantStatus = nextRefs.plantBase && nextRefs.plantBase.data ? ", plants bound" : ", no plants bound";
+    state.capabilities = `${settings.simSize}x${settings.simSize}, ${settings.agentCount} agents, terrain ${nextRefs.height.width}x${nextRefs.height.height}${plantStatus}`;
   }
 
   function uploadImageDataToTexture(texture, imageData) {
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, imageData.width, imageData.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, imageData.data);
+    gl.texImage2D(
+      gl.TEXTURE_2D,
+      0,
+      gl.RGBA,
+      imageData.width,
+      imageData.height,
+      0,
+      gl.RGBA,
+      gl.UNSIGNED_BYTE,
+      flipTopLeftRowsForTexture(imageData),
+    );
+  }
+
+  function flipTopLeftRowsForTexture(imageData) {
+    const width = Math.max(1, Math.round(Number(imageData && imageData.width) || 1));
+    const height = Math.max(1, Math.round(Number(imageData && imageData.height) || 1));
+    const source = imageData && imageData.data;
+    if (!source || height <= 1) return source;
+    const rowSize = width * 4;
+    const flipped = new Uint8Array(rowSize * height);
+    for (let y = 0; y < height; y++) {
+      const sourceRow = y * rowSize;
+      const targetRow = (height - y - 1) * rowSize;
+      flipped.set(source.subarray(sourceRow, sourceRow + rowSize), targetRow);
+    }
+    return flipped;
+  }
+
+  function ensureReadbackTarget(width, height) {
+    if (!resources) return;
+    const safeWidth = Math.max(1, Math.round(Number(width) || 1));
+    const safeHeight = Math.max(1, Math.round(Number(height) || 1));
+    if (resources.readbackTexture && resources.readbackWidth === safeWidth && resources.readbackHeight === safeHeight) {
+      return;
+    }
+    if (resources.readbackFramebuffer) {
+      gl.deleteFramebuffer(resources.readbackFramebuffer);
+      resources.readbackFramebuffer = null;
+    }
+    if (resources.readbackTexture) {
+      gl.deleteTexture(resources.readbackTexture);
+      resources.readbackTexture = null;
+    }
+    resources.readbackTexture = createByteTexture(safeWidth, safeHeight, null);
+    resources.readbackFramebuffer = createFramebuffer(resources.readbackTexture);
+    resources.readbackWidth = safeWidth;
+    resources.readbackHeight = safeHeight;
   }
 
   function bindTerrainUniforms(programInfo, firstUnit) {
@@ -778,6 +1214,9 @@ export function createSlimeGpuRuntime(deps) {
     gl.activeTexture(gl.TEXTURE0 + firstUnit + 2);
     gl.bindTexture(gl.TEXTURE_2D, resources.waterTexture);
     gl.uniform1i(programInfo.uWater, firstUnit + 2);
+    gl.activeTexture(gl.TEXTURE0 + firstUnit + 3);
+    gl.bindTexture(gl.TEXTURE_2D, resources.plantStockTextures[resources.plantStockIndex]);
+    gl.uniform1i(programInfo.uPlant, firstUnit + 3);
   }
 
   function hasTerrainTextures() {
@@ -857,15 +1296,20 @@ export function createSlimeGpuRuntime(deps) {
       resources.heightTexture,
       resources.slopeTexture,
       resources.waterTexture,
+      resources.plantBaseTexture,
+      ...resources.plantStockTextures,
+      resources.readbackTexture,
     ]) {
-      gl.deleteTexture(texture);
+      if (texture) gl.deleteTexture(texture);
     }
     for (const framebuffer of [
       ...resources.agentFramebuffers,
       ...resources.trailFramebuffers,
+      ...resources.plantStockFramebuffers,
       resources.depositFramebuffer,
+      resources.readbackFramebuffer,
     ]) {
-      gl.deleteFramebuffer(framebuffer);
+      if (framebuffer) gl.deleteFramebuffer(framebuffer);
     }
     for (const programInfo of [
       resources.agentProgram,
@@ -873,12 +1317,18 @@ export function createSlimeGpuRuntime(deps) {
       resources.agentBrushProgram,
       resources.trailBrushProgram,
       resources.diffuseProgram,
+      resources.plantStockProgram,
+      resources.trailAvailabilityReadbackProgram,
+      resources.trailOverlayReadbackProgram,
+      resources.plantStockFactorReadbackProgram,
       resources.displayProgram,
     ]) {
       gl.deleteProgram(programInfo.program);
     }
     resources = null;
     terrainRefs = null;
+    simulationTick = 0;
+    gameTickAccumulator = 0;
     state.initialized = false;
     state.capabilities = "Not initialized";
   }
@@ -902,6 +1352,13 @@ export function createSlimeGpuRuntime(deps) {
     reset,
     applySettings,
     brushResetAtClient,
+    brushResetAtMapPixel,
+    readTrailAvailabilityGrid,
+    readPlantStockImageData,
+    readPlantStockFactorImageData,
+    readTrailOverlayRaster,
+    stepGameTicks,
+    warmupSteps,
     renderDisplay,
   };
 }

@@ -76,6 +76,34 @@ export function createTerrainUniformUploader(deps) {
     deps.gl.uniform1f(deps.uniforms.uDiscoveryUnknownDarkness, clamp(finite(settings && settings.unknownDarkness, 1), 0, 1));
   }
 
+  function uploadSlimeTrailOverlayUniforms() {
+    const snapshot = typeof deps.getSlimeTrailOverlaySnapshot === "function"
+      ? deps.getSlimeTrailOverlaySnapshot()
+      : null;
+    if (!deps.slimeTrailOverlayTex || !snapshot || !snapshot.data || !snapshot.width || !snapshot.height) {
+      deps.gl.uniform1f(deps.uniforms.uSlimeTrailOverlayEnabled, 0);
+      return;
+    }
+    const width = Math.max(1, Math.round(finite(snapshot.width, 1)));
+    const height = Math.max(1, Math.round(finite(snapshot.height, 1)));
+    const version = Math.max(0, Math.round(finite(snapshot.version, 0)));
+    const state = deps.slimeTrailOverlayTextureState || {};
+    deps.gl.activeTexture(deps.gl.TEXTURE12);
+    deps.gl.bindTexture(deps.gl.TEXTURE_2D, deps.slimeTrailOverlayTex);
+    deps.gl.texParameteri(deps.gl.TEXTURE_2D, deps.gl.TEXTURE_MIN_FILTER, deps.gl.NEAREST);
+    deps.gl.texParameteri(deps.gl.TEXTURE_2D, deps.gl.TEXTURE_MAG_FILTER, deps.gl.NEAREST);
+    if (state.width !== width || state.height !== height || state.version !== version) {
+      deps.gl.pixelStorei(deps.gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+      deps.gl.pixelStorei(deps.gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, deps.gl.NONE);
+      deps.gl.texImage2D(deps.gl.TEXTURE_2D, 0, deps.gl.RGBA, width, height, 0, deps.gl.RGBA, deps.gl.UNSIGNED_BYTE, snapshot.data);
+      state.width = width;
+      state.height = height;
+      state.version = version;
+    }
+    deps.gl.uniform1i(deps.uniforms.uSlimeTrailOverlay, 12);
+    deps.gl.uniform1f(deps.uniforms.uSlimeTrailOverlayEnabled, 1);
+  }
+
   return function uploadUniforms(params, frameTime, input, frameCamera = null) {
     const cameraZoom = frameCamera && Number.isFinite(Number(frameCamera.zoom))
       ? Number(frameCamera.zoom)
@@ -184,6 +212,7 @@ export function createTerrainUniformUploader(deps) {
     deps.gl.uniform1f(deps.uniforms.uDetailDitherStrength, input.detailDitherStrength);
     deps.gl.uniform1f(deps.uniforms.uDetailMinWeight, input.detailMinWeight);
     uploadDiscoveryVisibilityUniforms();
+    uploadSlimeTrailOverlayUniforms();
     deps.gl.uniform4f(
       deps.uniforms.uDetailMaterialPriority,
       Number(detailPriorities[0]) || 0,

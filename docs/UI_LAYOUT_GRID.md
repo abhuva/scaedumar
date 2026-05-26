@@ -16,6 +16,7 @@ The gameplay HUD uses fixed layout units. Do not size these panels from their cu
 These variables live in `styles.css`:
 
 ```css
+--player-ui-width: 1024px;
 --player-ui-height: 108px;
 --player-ui-row: calc(var(--player-ui-height) / 3);
 --side-slot-height: calc(var(--player-ui-height) / 2);

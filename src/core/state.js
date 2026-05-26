@@ -78,6 +78,8 @@ export const DEFAULT_GAMEPLAY_ACTIVITY = {
   resourceId: "",
   lastResourceValue: null,
   lastSearchChance: null,
+  huntingAvailability: null,
+  huntingRawAvailability: null,
 };
 
 export const DEFAULT_GAMEPLAY_INVENTORY = {

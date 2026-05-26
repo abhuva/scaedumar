@@ -14,6 +14,7 @@ Self-contained prototype for top-down terrain rendering and survival-gameplay ex
 - Main integration surface: `src/main.js`.
 - Runtime code is modular and core-state-driven. New work should preserve owner modules and avoid rebuilding `main.js`-centric state paths.
 - Rendering is WebGL2 terrain plus 2D overlay canvas for gameplay markers.
+- Render-time map texture layers must use the established main WebGL renderer texture-compositing path by default: allocate/upload the texture in the render pipeline, bind it through `src/render/uniformUploader.js`, and composite it in `src/render/shaders.js`. Do not introduce a separate canvas/readback visualization architecture for full-map texture layers unless it is explicitly a marker/vector UI layer or a justified fallback. CPU/readback grids are acceptable for gameplay sampling and diagnostics, but the visual layer belongs in the existing render-time texture pipeline.
 - Runtime change notifications use a small event layer:
   - `src/core/eventBus.js` defines `createEventBus` and `RuntimeEvents`.
   - `src/core/runtimeEventHandlers.js` centralizes refresh/invalidation fan-out.
@@ -47,6 +48,7 @@ Self-contained prototype for top-down terrain rendering and survival-gameplay ex
   - `src/gameplay/playerRestActivityRuntime.js`: rest lifecycle and fatigue recovery ticks.
   - `src/gameplay/playerTravelActivityRuntime.js`: explicit travel activity lifecycle.
   - `src/gameplay/playerInspectActivityRuntime.js`: legacy close-inspect activity compatibility path.
+  - `src/gameplay/playerHuntingActivityRuntime.js`: Slime-trail-backed hunting activity. It patrols directly between random points inside the activity circle, samples trail availability over the whole range, and clears local Slime trail/agents on success.
   - `src/gameplay/playerActivityUpkeepRuntime.js`: movement-tick normalization and generic upkeep dispatch.
   - `src/gameplay/gatheringActivityRuntime.js`: compatibility re-export only.
 - Inspect/resource perception:
@@ -65,12 +67,15 @@ Self-contained prototype for top-down terrain rendering and survival-gameplay ex
   - `src/gameplay/swarmGameplayRuntime.js`: gameplay composition.
   - `src/gameplay/swarmAgentStateMutator.js`: agent buffer mutations and stable IDs.
   - `src/gameplay/swarmRenderSetupRuntime.js`: render/overlay composition.
+- Slime Lab:
+  - `src/slime/slimeGpuRuntime.js`: GPU Physarum-style dev workspace. Terrain coupling defaults on and samples height/slope/water plus a mutable GPU plant-resource texture. Source map `ImageData` rows are top-left ordered and must be Y-flipped when uploaded into Slime GL textures so simulation UVs match main terrain UVs and map-pixel coordinates. The plant regeneration base is the authored plant potential, while the mutable plant stock can be seeded from true live plant stock; do not use gameplay live stock as the regeneration cap or Slime will ratchet its own base downward after depletion sync. Slime plant consumption/regeneration mutates the GPU plant-availability texture and, in gameplay time mode, renders that texture into the small resource-stock grid as a plant stock factor before syncing it into `resourceStockRuntime` on the Slime availability/update cadence; this sync is depletion-only for gameplay stock and can only lower already-known stock, so it cannot overwrite gathering depletion, reveal unknown resources, or replace the normal slow resource-stock regeneration path. Do not reinitialize mutable GPU plant stock on same-size plant source refreshes, and do not reintroduce full-map plant-stock CPU readback for this cadence path. By default Slime advances from the existing global game-time tick stream used by the gameplay diorama; `gameTicksPerSlimeStep` is an integer `1-10` cadence interval for gameplay time, defaults to `3`, and `stepsPerGameTick` remains the per-interval Slime step batch size. On map load, enabled Slime settings run a synchronous GPU warmup of `warmupSteps` direct simulation steps, default `3000`, after sidecars and terrain/resource textures are available. Slime Lab speed buttons dispatch the same global game-speed commands as the gameplay diorama (`1x`, `5x`, `20x`, `100x`). Free-run remains a dev-only escape hatch. The visual Slime trail overlay follows the normal terrain renderer texture-layer path: the Slime trail is colorized in the Slime GPU context, read as an RGBA byte raster only to bridge its separate WebGL context, then uploaded as a nearest-neighbor main-renderer texture and composited in the terrain shader. Free/dev Slime frames must refresh this bridged overlay raster on a throttled cadence while the trail overlay is visible; game-tick mode refreshes through the normal Slime update cadence. Inspect Tracks (`T`) samples the full-resolution trail overlay raster under the cursor and gates rendering through a separate `tracks` discovery map initialized clear/black on new game or map reset; player movement reveals tracks knowledge, scout birds do not. RD Slime exposes `Clear`, `Fill`, `Noise`, and a render-only knowledge cutoff for this tracks map. The low-resolution availability grid is rendered/read at grid resolution, flipped into top-left map coordinates, and is for Hunting, sampling, and numeric readout, not the primary visual overlay. Its values use the same threshold/gain/gamma normalization as the visible track overlay so Hunting availability matches what the player sees. Hunting uses the hot/top half of cells inside the activity circle for availability instead of a fully diluted all-cell average. Settings persist through `slime.json`; named presets use the shared module preset runtime with built-ins under `assets/presets/slime` and browser/dev saves mirrored to local browser storage.
+  - `src/slime/slimeAvailabilityRuntime.js`: pure downsample/sampling helpers for Slime trail availability readback.
 - UI:
   - `src/ui/gameplayHudRuntime.js`: bottom player HUD and condition bars.
   - `src/ui/infoPanelRuntime.js`: compact activity/travel/inspect side-panel updates.
   - `src/ui/resourceDebugPanelRuntime.js`: RD panel.
   - `src/ui/inventoryPanelRuntime.js`: inventory panel.
-  - `src/ui/overlays/drawOverlay.js`: overlay canvas drawing.
+  - `src/ui/overlays/drawOverlay.js`: overlay canvas drawing for markers, vectors, UI gizmos, and fallback/debug rasters. It is not the default path for full-map render-time texture layers.
 - Animated overlay redraws are capped to a 60 Hz cadence when the overlay is clean; explicit dirty redraws still happen immediately.
 - Water particle trail simulation/upload accumulates frame time and runs at a 60 Hz cadence instead of every render frame.
 
@@ -78,7 +83,7 @@ Self-contained prototype for top-down terrain rendering and survival-gameplay ex
 
 - Runtime modes: title, gameplay, dev.
 - Gameplay mode blocks no-mode teleporting; movement destinations should be chosen through `PF`.
-- Primary activities are mutually exclusive: `PF`, `G`, `W`, `SC`, `R`.
+- Primary activities are mutually exclusive: `PF`, `G`, `W`, `HU`, `SC`, `R`.
 - Inspect is a secondary perception toggle and can coexist with most primary activities. It is blocked/hidden during rest and scout.
 - Utility actions: inventory and center camera on player.
 - Clicking a different primary activity switches immediately; clicking the active one cancels it.
@@ -109,6 +114,7 @@ Self-contained prototype for top-down terrain rendering and survival-gameplay ex
 - `G` gathers plants; `W` gathers water. Both use `assets/data/resource_search.json` through `resourceSearchRuntime`.
 - Plants and water currently sample wetness data for availability. Plants can later move to their own authored map without changing the search path.
 - Resource rewards support single items, `fillContainer`, and weighted banded loot tables.
+- `HU` Hunting is currently a prototype Slime-trail activity. It samples the full activity circle from the Slime trail availability grid, displays the normalized availability as a bar in the activity info panel, uses normalized availability as success chance input, grants `raw_meat` on success, and clears nearby Slime agents/trail to represent depletion.
 - Water gathering fills carried items tagged `water_container`; `water_skin` stack count is fill level. Empty waterskins remain in inventory.
 - Resource stock is runtime/grid based and persisted through `resource_stock.json` when saving map data.
 - Resource Debug (`RD`) has `Knowledge`, `Known View`, `NAV`, and `Stock` tabs. `Knowledge` owns explicit edits to the shared world Knowledge Map. `Known View` controls contour presentation for known water, plants, height, and slope without mutating knowledge. `NAV` controls NAV-only terrain visibility, route rules, and route visualization. `Stock` edits/debugs live/known stock and recovery for resources.
@@ -118,7 +124,7 @@ Self-contained prototype for top-down terrain rendering and survival-gameplay ex
 
 ## Inspect/Discovery
 
-- Inspect HUD exposes `W/P/H/S` buttons and a selected-layer bar.
+- Inspect HUD exposes mutually exclusive `T/W/P/H/S` buttons and a selected-layer bar. Clicking the active exclusive button turns it off. `R` is an independent route overlay toggle.
 - Player-facing resource bars use known availability/known stock by default. RD stock mode can override to live/ignore stock for testing.
 - Resource contours are drawn only where the shared Knowledge Map allows it unless dev/debug overrides are active.
 - Movement, idle tick batches, and scout possession can reveal the shared Knowledge Map and refresh known stock. Knowledge reveal supports a tunable grayscale falloff; `0` preserves the hard full-white reveal brush, `1` is linear falloff.
@@ -139,6 +145,7 @@ See `docs/UI_LAYOUT_GRID.md` for the full contract.
 Current CSS variables in `styles.css`:
 
 ```css
+--player-ui-width: 1024px;
 --player-ui-height: 108px;
 --player-ui-row: calc(var(--player-ui-height) / 3);
 --side-slot-height: calc(var(--player-ui-height) / 2);
@@ -177,9 +184,10 @@ Common sidecars:
 - `waterfx.json`
 - `watertrails.json`
 - `detail.json`
-- `camera.json`
+- `camera.json` can include camera bounds plus optional startup pose. Use `pixelX`, `pixelY`, and `zoom` to center the camera on a map pixel at load; `panX`, `panY`, and `zoom` are also supported for direct world-space camera saves.
 - `audio.json`
 - `swarm.json`
+- `slime.json`
 - `pointlights.json`
 - `resource_debug.json`
 - `resource_stock.json`

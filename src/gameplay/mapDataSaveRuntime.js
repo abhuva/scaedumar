@@ -9,6 +9,7 @@ export function createMapDataSaveRuntime(deps) {
     serializeCloudSettings: deps.serializeCloudSettings,
     serializeWaterSettings: deps.serializeWaterSettings,
     serializeWaterTrailSettings: deps.serializeWaterTrailSettings,
+    serializeSlimeSettings: deps.serializeSlimeSettings,
     serializeDetailSettings: deps.serializeDetailSettings,
     serializeCameraSettings: deps.serializeCameraSettings,
     serializeAudioSettings: deps.serializeAudioSettings,
@@ -31,5 +32,6 @@ export function createMapDataSaveRuntime(deps) {
     createMapDataFileTexts: () => controller.createMapDataFileTexts(),
     downloadTextFile: (fileName, text) => controller.downloadTextFile(fileName, text),
     saveAllMapDataFiles: () => controller.saveAllMapDataFiles(),
+    saveMapDataFile: (fileName) => controller.saveMapDataFile(fileName),
   };
 }

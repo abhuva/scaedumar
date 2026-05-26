@@ -10,6 +10,19 @@ export function bindSlimeControls(deps) {
   deps.slimeAgentCountInput.addEventListener("change", () => dispatchSettings({ agentCount: Number(deps.slimeAgentCountInput.value) }));
   deps.slimeSimSizeInput.addEventListener("change", () => dispatchSettings({ simSize: Number(deps.slimeSimSizeInput.value) }));
   deps.slimeStepsPerFrameInput.addEventListener("input", () => dispatchSettings({ stepsPerFrame: Number(deps.slimeStepsPerFrameInput.value) }));
+  deps.slimeTimeModeInput.addEventListener("change", () => dispatchSettings({ timeMode: deps.slimeTimeModeInput.value }));
+  deps.slimeStepsPerGameTickInput.addEventListener("input", () => dispatchSettings({ stepsPerGameTick: Number(deps.slimeStepsPerGameTickInput.value) }));
+  for (const button of deps.slimeGameSpeedBtns || []) {
+    button.addEventListener("click", () => {
+      deps.commandBus.dispatch({
+        type: "core/time/setCycleSpeed",
+        cycleSpeed: Number(button.dataset.cycleSpeed),
+      });
+    });
+  }
+  deps.slimeAvailabilityGridSizeInput.addEventListener("input", () => dispatchSettings({ availabilityGridSize: Number(deps.slimeAvailabilityGridSizeInput.value) }));
+  deps.slimeAvailabilityEffectiveMaxInput.addEventListener("input", () => dispatchSettings({ availabilityEffectiveMax: Number(deps.slimeAvailabilityEffectiveMaxInput.value) }));
+  deps.slimeAvailabilityUpdateTickIntervalInput.addEventListener("input", () => dispatchSettings({ availabilityUpdateTickInterval: Number(deps.slimeAvailabilityUpdateTickIntervalInput.value) }));
   deps.slimeSensorDistanceInput.addEventListener("input", () => dispatchSettings({ sensorDistance: Number(deps.slimeSensorDistanceInput.value) }));
   deps.slimeSensorAngleInput.addEventListener("input", () => dispatchSettings({ sensorAngleDeg: Number(deps.slimeSensorAngleInput.value) }));
   deps.slimeSensorSizeInput.addEventListener("input", () => dispatchSettings({ sensorSize: Number(deps.slimeSensorSizeInput.value) }));
@@ -41,6 +54,12 @@ export function bindSlimeControls(deps) {
   }));
   deps.slimeHeightBandWeightInput.addEventListener("input", () => dispatchSettings({ heightBandWeight: Number(deps.slimeHeightBandWeightInput.value) }));
   deps.slimeWaterBiasInput.addEventListener("input", () => dispatchSettings({ waterBias: Number(deps.slimeWaterBiasInput.value) }));
+  deps.slimePlantBiasInput.addEventListener("input", () => dispatchSettings({ plantBias: Number(deps.slimePlantBiasInput.value) }));
+  deps.slimePlantFloorInput.addEventListener("input", () => dispatchSettings({ plantFloor: Number(deps.slimePlantFloorInput.value) }));
+  deps.slimePlantEatAmountInput.addEventListener("input", () => dispatchSettings({ plantEatAmount: Number(deps.slimePlantEatAmountInput.value) }));
+  deps.slimePlantEatTickIntervalInput.addEventListener("input", () => dispatchSettings({ plantEatTickInterval: Number(deps.slimePlantEatTickIntervalInput.value) }));
+  deps.slimePlantRegenAmountInput.addEventListener("input", () => dispatchSettings({ plantRegenAmount: Number(deps.slimePlantRegenAmountInput.value) }));
+  deps.slimePlantRegenTickIntervalInput.addEventListener("input", () => dispatchSettings({ plantRegenTickInterval: Number(deps.slimePlantRegenTickIntervalInput.value) }));
   deps.slimeBrushRadiusInput.addEventListener("input", () => dispatchSettings({ brushRadius: Number(deps.slimeBrushRadiusInput.value) }));
   deps.slimeBrushTrailClearInput.addEventListener("input", () => dispatchSettings({ brushTrailClear: Number(deps.slimeBrushTrailClearInput.value) }));
   deps.slimeSeedInput.addEventListener("change", () => dispatchSettings({ seed: Number(deps.slimeSeedInput.value) }));

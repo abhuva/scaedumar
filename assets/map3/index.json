@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "kind": "slime",
+  "presets": [
+    {
+      "id": "normal",
+      "label": "normal",
+      "file": "normal.json"
+    }
+  ]
+}

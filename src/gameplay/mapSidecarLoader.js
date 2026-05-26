@@ -5,6 +5,12 @@ export function createMapSidecarLoader(deps) {
       : deps.defaultWaterTrailSettings;
   }
 
+  function slimeDefaults() {
+    return typeof deps.getSettingsDefaults === "function"
+      ? deps.getSettingsDefaults("slime", deps.defaultSlimeSettings)
+      : deps.defaultSlimeSettings;
+  }
+
   function isMissingOptionalJsonError(err) {
     return Boolean(err && err.code === "MISSING_OPTIONAL_JSON");
   }
@@ -40,6 +46,7 @@ export function createMapSidecarLoader(deps) {
       clouds: false,
       waterFx: false,
       waterTrails: false,
+      slime: false,
       detail: false,
       camera: false,
       audio: false,
@@ -120,6 +127,13 @@ export function createMapSidecarLoader(deps) {
         applyFn: (rawData) => deps.applyWaterTrailSettings(rawData),
         onAbsentOrFailed: () => deps.applyWaterTrailSettings(waterTrailDefaults()),
         onErrorLabel: `Failed to load watertrails.json from ${folder}`,
+      },
+      {
+        key: "slime",
+        loadJson: loadOptionalUrlJson(jsonPath("slime.json")),
+        applyFn: (rawData) => deps.applySlimeSettings(rawData),
+        onAbsentOrFailed: () => deps.applySlimeSettings(slimeDefaults()),
+        onErrorLabel: `Failed to load slime.json from ${folder}`,
       },
       {
         key: "detail",
@@ -225,6 +239,13 @@ export function createMapSidecarLoader(deps) {
         applyFn: (rawData) => deps.applyWaterTrailSettings(rawData),
         onAbsentOrFailed: () => deps.applyWaterTrailSettings(waterTrailDefaults()),
         onErrorLabel: "Failed to parse watertrails.json from selected folder",
+      },
+      {
+        key: "slime",
+        loadJson: loadOptionalFileJson("slime.json"),
+        applyFn: (rawData) => deps.applySlimeSettings(rawData),
+        onAbsentOrFailed: () => deps.applySlimeSettings(slimeDefaults()),
+        onErrorLabel: "Failed to parse slime.json from selected folder",
       },
       {
         key: "detail",

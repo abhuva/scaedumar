@@ -21,6 +21,7 @@ uniform sampler2D uWaterTrailTex;
 uniform sampler2D uMaterialSplat;
 uniform sampler2D uDetailMicroColor;
 uniform sampler2D uDiscoveryMask;
+uniform sampler2D uSlimeTrailOverlay;
 uniform float uUseCursorLight;
 uniform vec2 uCursorLightUv;
 uniform vec3 uCursorLightColor;
@@ -52,6 +53,7 @@ uniform float uDetailMinWeight;
 uniform vec4 uDetailMaterialPriority;
 uniform float uDiscoveryVisibilityEnabled;
 uniform float uDiscoveryVisibilityMode;
+uniform float uSlimeTrailOverlayEnabled;
 uniform float uDiscoveryDitherScale;
 uniform float uDiscoveryKnowledgeGamma;
 uniform float uDiscoveryUnknownDarkness;
@@ -697,6 +699,10 @@ void main() {
   lit = applyWaterFx(uv, lit, n, waterTimeSec, sunVisibility);
   float localLight = max(lit.r, max(lit.g, lit.b));
   lit = applyWaterParticleTrail(uv, lit, localLight);
+  if (uSlimeTrailOverlayEnabled > 0.5) {
+    vec4 slimeTrail = texture(uSlimeTrailOverlay, uv);
+    lit = mix(lit, slimeTrail.rgb, clamp(slimeTrail.a, 0.0, 1.0));
+  }
 
   float fogAmount = fogAmountAtUv(uv);
   float fogAlpha = fogAlphaFromAmount(fogAmount);

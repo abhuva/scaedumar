@@ -56,6 +56,21 @@
     },
     "resourceSearch": "water"
   },
+  "hunting": {
+    "id": "hunting",
+    "label": "Hunting",
+    "buttonLabel": "HU",
+    "title": "Hunt",
+    "panel": true,
+    "exclusive": true,
+    "command": "core/activity/startHunting",
+    "cancelLabel": "Hunting canceled.",
+    "costKeys": {
+      "work": "hunting.search",
+      "movement": "movement.step",
+      "upkeep": "idle.tick"
+    }
+  },
   "inspect": {
     "id": "inspect",
     "label": "Inspect Terrain",

@@ -40,6 +40,8 @@ export function createPlayerActivityState(idleType = "idle") {
     resourceId: "",
     lastResourceValue: null,
     lastSearchChance: null,
+    huntingAvailability: null,
+    huntingRawAvailability: null,
   };
 }
 
@@ -76,6 +78,8 @@ export function resetPlayerActivityState(runtime, idleType = "idle", lastMessage
   runtime.resourceId = "";
   runtime.lastResourceValue = null;
   runtime.lastSearchChance = null;
+  runtime.huntingAvailability = null;
+  runtime.huntingRawAvailability = null;
 }
 
 export function startBaseActivityState(runtime, type, message, playerState) {
@@ -111,6 +115,8 @@ export function startBaseActivityState(runtime, type, message, playerState) {
   runtime.resourceId = "";
   runtime.lastResourceValue = null;
   runtime.lastSearchChance = null;
+  runtime.huntingAvailability = null;
+  runtime.huntingRawAvailability = null;
 }
 
 export function getPlayerActivitySnapshot(runtime, activityDefinitions = {}) {
@@ -146,5 +152,7 @@ export function getPlayerActivitySnapshot(runtime, activityDefinitions = {}) {
     resourceId: runtime.resourceId,
     lastResourceValue: runtime.lastResourceValue,
     lastSearchChance: runtime.lastSearchChance,
+    huntingAvailability: runtime.huntingAvailability,
+    huntingRawAvailability: runtime.huntingRawAvailability,
   };
 }

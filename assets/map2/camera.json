@@ -1,5 +1,8 @@
 {
   "version": 1,
+  "pixelX": 374,
+  "pixelY": 833,
+  "zoom": 25,
   "zoomMin": 0.5,
   "zoomMax": 128
 }

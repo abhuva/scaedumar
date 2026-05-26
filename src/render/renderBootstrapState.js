@@ -8,6 +8,12 @@ export function createRenderBootstrapState(deps) {
   const materialSplatTex = deps.createLinearTexture();
   const detailMicroColorTex = deps.createLinearTexture();
   const discoveryMaskTex = deps.createTexture();
+  const slimeTrailOverlayTex = deps.createTexture();
+  const slimeTrailOverlayTextureState = {
+    width: 0,
+    height: 0,
+    version: 0,
+  };
   const discoveryMaskTextureState = {
     width: 0,
     height: 0,
@@ -51,6 +57,8 @@ export function createRenderBootstrapState(deps) {
     materialSplatTex,
     detailMicroColorTex,
     discoveryMaskTex,
+    slimeTrailOverlayTex,
+    slimeTrailOverlayTextureState,
     discoveryMaskTextureState,
     detailAtlasState,
     pointLightTex,

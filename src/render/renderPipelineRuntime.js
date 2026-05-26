@@ -28,6 +28,8 @@ export function createRenderPipelineRuntime(deps) {
     materialSplatTex: deps.materialSplatTex,
     detailMicroColorTex: deps.detailMicroColorTex,
     discoveryMaskTex: deps.discoveryMaskTex,
+    slimeTrailOverlayTex: deps.slimeTrailOverlayTex,
+    slimeTrailOverlayTextureState: deps.slimeTrailOverlayTextureState,
     discoveryMaskTextureState: deps.discoveryMaskTextureState,
     detailAtlasState: deps.detailAtlasState,
     heightSize: deps.heightSize,
@@ -38,6 +40,7 @@ export function createRenderPipelineRuntime(deps) {
     applyPointLightUsagePass: deps.applyPointLightUsagePass,
     getDiscoveryVisibilitySettings: deps.getDiscoveryVisibilitySettings,
     getDiscoveryVisibilitySnapshot: deps.getDiscoveryVisibilitySnapshot,
+    getSlimeTrailOverlaySnapshot: deps.getSlimeTrailOverlaySnapshot,
   });
 
   renderer.registerPass("shadow", createShadowPass({

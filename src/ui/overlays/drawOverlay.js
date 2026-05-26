@@ -2,6 +2,7 @@ import { drawResourceContourOverlay } from "./resourceContourOverlay.js";
 import { drawDiscoveryMaskOverlay } from "./discoveryMaskOverlay.js";
 import { drawDiscoveryTerrainVisibilityOverlay } from "./discoveryTerrainVisibilityOverlay.js";
 import { drawRoutePlanningOverlay } from "./routePlanningOverlay.js";
+import { drawSlimeAvailabilityOverlay } from "./slimeAvailabilityOverlay.js";
 
 export function createOverlayDrawer(deps) {
   return function drawOverlay() {
@@ -160,6 +161,21 @@ export function createOverlayDrawer(deps) {
       drawDiscoveryMaskOverlay({
         ctx: deps.overlayCtx,
         snapshot: discoveryMaskOverlay,
+        mapPixelToWorld: deps.mapPixelToWorld,
+        worldToScreen: deps.worldToScreen,
+      });
+    }
+    const slimeAvailabilityOverlay = typeof deps.getSlimeAvailabilityOverlaySnapshot === "function"
+      ? deps.getSlimeAvailabilityOverlaySnapshot()
+      : null;
+    if (slimeAvailabilityOverlay) {
+      drawSlimeAvailabilityOverlay({
+        ctx: deps.overlayCtx,
+        grid: slimeAvailabilityOverlay.grid,
+        trailRaster: slimeAvailabilityOverlay.trailRaster,
+        settings: slimeAvailabilityOverlay.settings,
+        mapWidth: deps.splatSize.width,
+        mapHeight: deps.splatSize.height,
         mapPixelToWorld: deps.mapPixelToWorld,
         worldToScreen: deps.worldToScreen,
       });
