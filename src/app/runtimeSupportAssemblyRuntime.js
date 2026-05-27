@@ -53,6 +53,8 @@ export function createMapSupportAssemblyRuntime(deps) {
     getSplatTex: deps.getSplatTex,
     getNormalsTex: deps.getNormalsTex,
     getHeightTex: deps.getHeightTex,
+    getSlopeTex: deps.getSlopeTex,
+    getWetnessTex: deps.getWetnessTex,
     getWaterTex: deps.getWaterTex,
     getHeightImageData: deps.getHeightImageData,
     swarmZMax: deps.swarmZMax,

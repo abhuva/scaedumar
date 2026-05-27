@@ -2,8 +2,7 @@ export function createRenderFxSettingsSyncRuntime(deps) {
   return {
     syncLightingUi: () => {
       deps.updateShadowBlurLabel();
-      deps.updateVolumetricLabels();
-      deps.updateVolumetricUi();
+      deps.updateLightingBalanceLabels();
       deps.updatePointFlickerLabels();
       deps.updatePointFlickerUi();
     },

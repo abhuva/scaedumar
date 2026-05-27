@@ -18,6 +18,8 @@ export function createRenderPipelineRuntime(deps) {
     splatTex: deps.splatTex,
     normalsTex: deps.normalsTex,
     heightTex: deps.heightTex,
+    slopeTex: deps.slopeTex,
+    wetnessTex: deps.wetnessTex,
     pointLightTex: deps.pointLightTex,
     cloudNoiseTex: deps.cloudNoiseTex,
     shadowBlurTex: deps.shadowBlurTex,
@@ -43,6 +45,7 @@ export function createRenderPipelineRuntime(deps) {
     getDiscoveryVisibilitySettings: deps.getDiscoveryVisibilitySettings,
     getDiscoveryVisibilitySnapshot: deps.getDiscoveryVisibilitySnapshot,
     getSlimeTrailOverlaySnapshot: deps.getSlimeTrailOverlaySnapshot,
+    getSlimeTerrainUnderlaySnapshot: deps.getSlimeTerrainUnderlaySnapshot,
   });
 
   renderer.registerPass("shadow", createShadowPass({

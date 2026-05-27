@@ -16,6 +16,7 @@ Self-contained prototype for top-down terrain rendering and survival-gameplay ex
 - Rendering is WebGL2 terrain plus 2D overlay canvas for gameplay markers.
 - Render-time map texture layers must use the established main WebGL renderer texture-compositing path by default: allocate/upload the texture in the render pipeline, bind it through `src/render/uniformUploader.js`, and composite it in `src/render/shaders.js`. Do not introduce a separate canvas/readback visualization architecture for full-map texture layers unless it is explicitly a marker/vector UI layer or a justified fallback. CPU/readback grids are acceptable for gameplay sampling and diagnostics, but the visual layer belongs in the existing render-time texture pipeline.
 - Current active refactor: `docs/SLIME_MAIN_RENDER_SUBSYSTEM_REFACTOR.md`. Read and update that file when changing Slime rendering, Slime gameplay readbacks, Tracks overlays, or Slime performance architecture. The refactor goal is to move Slime into the main WebGL renderer context and remove full-resolution trail readback from normal gameplay rendering.
+- Current UI/mode migration plan: `docs/UNIFIED_GAME_MODE_RD_DEV_MIGRATION.md`. Read and update that file when migrating dev-mode/workspace/topic controls into the in-game RD-dev panel or changing the user-facing runtime mode model.
 - Runtime change notifications use a small event layer:
   - `src/core/eventBus.js` defines `createEventBus` and `RuntimeEvents`.
   - `src/core/runtimeEventHandlers.js` centralizes refresh/invalidation fan-out.
@@ -83,8 +84,8 @@ Self-contained prototype for top-down terrain rendering and survival-gameplay ex
 
 ## Gameplay State
 
-- Runtime modes: title, gameplay, dev.
-- Gameplay mode blocks no-mode teleporting; movement destinations should be chosen through `PF`.
+- Runtime modes: title, gameplay, dev. `dev` remains an internal compatibility mode during migration; the title screen exposes only the normal game path.
+- Plain no-mode map clicks do not teleport the player in any runtime mode. Movement destinations should be chosen through `PF`.
 - Primary activities are mutually exclusive: `PF`, `G`, `W`, `HU`, `SC`, `R`.
 - Inspect is a secondary perception toggle and can coexist with most primary activities. It is blocked/hidden during rest and scout.
 - Utility actions: inventory and center camera on player.
@@ -120,7 +121,7 @@ Self-contained prototype for top-down terrain rendering and survival-gameplay ex
 - `HU` Hunting is currently a prototype Slime-trail activity. It samples the full activity circle from the Slime trail availability grid, displays the normalized availability as a bar in the activity info panel, uses normalized availability as success chance input, grants `raw_meat` on success, and removes/respawns killed local Slime agents while the existing trail decays naturally.
 - Water gathering fills carried items tagged `water_container`; `water_skin` stack count is fill level. Empty waterskins remain in inventory.
 - Resource stock is runtime/grid based and persisted through `resource_stock.json` when saving map data.
-- Resource Debug (`RD`) has `Knowledge`, `Known View`, `NAV`, and `Stock` tabs. `Knowledge` owns explicit edits to the shared world Knowledge Map. `Known View` controls contour presentation for known water, plants, height, and slope without mutating knowledge. `NAV` controls NAV-only terrain visibility, route rules, and route visualization. `Stock` edits/debugs live/known stock and recovery for resources.
+- Resource Debug (`RD`) gameplay tabs are `Knowledge`, `Known View`, and `Stock`. `Knowledge` owns explicit edits to the shared world Knowledge Map. `Known View` controls contour presentation for known water, plants, height, and slope without mutating knowledge. `Stock` edits/debugs live/known stock and recovery for resources. Local pathfinding, NAV terrain visibility/rules, and route drawing/debug visualization live under top-level `RD > Pathing`.
 - The shared world Knowledge Map is owned by `resourceDiscoveryRuntime`. Water, plants, terrain visibility, and NAV currently resolve to this same map. Slider changes must not repaint or reset it; only explicit Knowledge actions and gameplay reveal movement mutate it. See `docs/KNOWLEDGE_MAP.md`.
 - NAV terrain visibility can draw a pixel-stable dithered layer from NAV Knowledge before gameplay overlays. This visibility layer is gated to active `Nav` so normal observation keeps the full terrain view. The earlier WebGL sampler path is disabled until the discovery texture upload path is corrected.
 - NAV terrain visibility skips raster/draw work when non-debug visibility would be fully transparent because all Knowledge Map cells meet the configured full-visibility threshold.
@@ -145,6 +146,8 @@ See `docs/UI_LAYOUT_GRID.md` for the full contract.
 - Bottom side slot: Inspect panel.
 - Content adapts to slots; slots do not resize to content.
 
+`RD` also owns a right-edge debug-overlay shortcut rail while the resource-debug topic is open. The rail is a narrow full-height strip of small square buttons attached to the RD panel; buttons route through existing controls/selects instead of owning duplicate state. Current shortcuts include raw terrain texture views (`H/S/We/W`), water flow/trail debug, detail RGBA/channel debug, Slime terrain/trail overlays, Knowledge Map, and route cost/NAV knowledge overlays. Rail base diagnostic shortcuts are mutually exclusive and clear the other base debug states before enabling the requested view; `TR`/Slime trail overlay is the additive exception and can remain enabled on top. Raw terrain texture debug belongs to the main WebGL render path: `heightTex`, `slopeTex`, `wetnessTex`, and `waterTex` are uploaded through the normal map image plumbing and the selected debug mode is forwarded through the render-shell frame-loop assembly. The fragment shader must stay within WebGL2's 16 sampler limit; wetness debug reuses the existing `uFlowMap` sampler binding while `Texture View = Wetness` instead of adding another sampler uniform. Route cost/NAV knowledge debug overlays are intentionally decoupled from active NAV interaction: selecting a route debug overlay can rebuild the route field while route mode is inactive, and the overlay drawer renders debug overlays regardless of `routePlanning.active`.
+
 Current CSS variables in `styles.css`:
 
 ```css
@@ -153,11 +156,13 @@ Current CSS variables in `styles.css`:
 --player-ui-row: calc(var(--player-ui-height) / 3);
 --side-slot-height: calc(var(--player-ui-height) / 2);
 --side-stack-gap: 0px;
---player-ui-bottom: 12px;
+--player-ui-bottom: 0px;
 --side-stack-x: calc(50% + 512px);
 ```
 
-Gameplay HUD blocks use square corners and zero inter-block gap. The time diorama/time-speed controls live inside the bottom player HUD between condition bars and activity buttons; `0x` is a real game pause. Condition stats are a fixed compact left-anchored stack of vertical label/bar rows without visible numeric values; the time diorama and activity controls are right-anchored, leaving an expandable center cap for future stats. Projected travel/activity costs appear as red/green bar overlays.
+Title screen uses the title image as a fullscreen cover background, with compact text-fit square-corner pixel buttons vertically centered on the left side. Startup status includes a progress bar driven by staged map loading, sidecar loading, gameplay initialization, and chunked Slime warmup updates so long preprocessing does not appear frozen.
+
+Gameplay HUD blocks use square corners, zero inter-block gap, and no bottom viewport margin. The time diorama/time-speed controls live inside the bottom player HUD between the system-action column and activity buttons; `0x` is a real game pause. Condition stats are a fixed compact left-anchored stack of vertical label/bar rows without visible numeric values. The `RD` resource-debug topic button, `O` performance overlay button, and `Exit` button live in a separated vertical system-action column immediately left of the diorama. In gameplay mode, the RD topic panel is a fixed-height left rail anchored to the top/left viewport edges above the player HUD. Save RD Settings lives in the RD panel title row; RD-dev top-level and nested tab strips stay in the non-scrolling header area with horizontal separators, while only the active content panel scrolls. RD-dev uses top-level tabs for Terrain, Agents, Trail, Gameplay, Audio, Pathing, and IO, with scoped nested tab groups using `data-rd-tab-group`. Existing resource-debug knowledge/stock panels currently live under the top-level Gameplay tab; local PF pathfinding tuning lives under Pathing > Local, NAV terrain visibility/rules live under Pathing > NAV, route drawing/debug controls live under Pathing > Route; main lighting controls live under Terrain > Lighting, point-light editor controls and point-light flicker controls live under Terrain > Point Lights, the Point Lights `Show Gizmos` toggle activates/deactivates the existing point-light placement/selection interaction, cursor-follow light controls and cursor-light gizmo visibility live under Terrain > Cursor Light, fog controls live under Terrain > Fog, cloud controls live under Terrain > Clouds, water FX controls live under Terrain > Water, water particle trail controls live under Terrain > Water Trails, detail controls live under Terrain > Detail, camera actions live under Terrain > Camera, swarm simulation/render controls live under Agents > Swarm, swarm follow controls live under Agents > Follow, swarm stats and hawk-range gizmo visibility live under Agents > Overlays, Slime controls live under Trail > Runtime/Motion/Visual/Terrain/Plants/Brush/Tracks and visualize through the world-space terrain overlay path, Audio controls live under Audio > Spectrogram/Synthesis/Soundscape with collapsible square-corner synthesis oscillator and soundscape layer cards, and map/pointlights/Slime sidecar load-save controls live under IO. Redundant `RD > Info`, `RD > Overlays > Performance`, and `RD > Overlays > Textures` panels are removed from visible navigation; their required DOM state targets remain hidden where existing bindings or the overlay rail still need them. Volumetric scatter and cloud sun projection/offset have been removed from the active renderer and settings UI. `RD > Audio` uses a `Show Audio View` toggle to launch/close the Audio tool viewport as a bounded gameplay overlay above the terrain for spectrogram/waveform surfaces. The detached legacy Slime comparison viewport is no longer exposed from RD or gameplay; Slime visualization belongs on top of the terrain through the main renderer overlay path. `RD > Trail > Runtime` has an opt-in `Terrain Underlay` toggle above `Agents`; it renders a clean diagnostic backdrop where `slope.png` maps directly to red, live Slime plant stock maps directly to green, and `water.png` maps directly to blue. Height is not included, and Slime trail color rendering remains a separate overlay that can be enabled on top. Workspace switching no longer closes RD, but it still clears active interaction modes when leaving the map workspace. Camera panel actions dispatch existing core camera/player commands and do not own camera state. The system-action column, time diorama, and activity controls are right-anchored, leaving an expandable center cap for future stats. Projected travel/activity costs appear as red/green bar overlays.
 
 ## Data Files And Map Sidecars
 
@@ -204,6 +209,7 @@ Shared gameplay data lives under `assets/data/`.
 - `docs/EVENT_NOTIFICATION_ARCHITECTURE.md`: event bus boundaries and migration notes.
 - `docs/UI_LAYOUT_GRID.md`: fixed gameplay HUD/side-panel layout vocabulary.
 - `docs/KNOWLEDGE_MAP.md`: shared Knowledge Map naming and mutation rules.
+- `docs/UNIFIED_GAME_MODE_RD_DEV_MIGRATION.md`: plan and progress tracker for removing the user-facing gameplay/dev-mode split.
 
 ## Verification
 

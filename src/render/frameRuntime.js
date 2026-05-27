@@ -68,6 +68,9 @@ export function createFrameRuntime(deps) {
       waterTrailState: typeof deps.getWaterParticleTrailUniformState === "function"
         ? deps.getWaterParticleTrailUniformState()
         : null,
+      terrainDebugViewMode: typeof deps.getTerrainDebugViewMode === "function"
+        ? deps.getTerrainDebugViewMode()
+        : "none",
       weatherState: simulationWeather,
       cloudTimeSec: smoothCloudTimeSec,
       waterTimeSec: routedTime.water.timeSec,

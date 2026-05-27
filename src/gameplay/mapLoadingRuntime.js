@@ -24,6 +24,7 @@ export function createMapLoadingRuntime(deps) {
     defaultPlayer: deps.defaultPlayer,
     defaultWaterTrailSettings: deps.defaultWaterTrailSettings,
     defaultSlimeSettings: deps.defaultSlimeSettings,
+    setStatus: deps.setStatus,
   });
   const mapLoader = createMapLoader({
     normalizeMapFolderPath: deps.normalizeMapFolderPath,

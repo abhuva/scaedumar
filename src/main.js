@@ -202,6 +202,7 @@ import { createDetailPanelRuntime } from "./ui/detailPanelRuntime.js";
 import { createModulePresetRuntime } from "./ui/modulePresetRuntime.js";
 import { createInventoryPanelRuntime } from "./ui/inventoryPanelRuntime.js";
 import { createResourceDebugPanelRuntime } from "./ui/resourceDebugPanelRuntime.js";
+import { createRdOverlayShortcutRailRuntime } from "./ui/rdOverlayShortcutRailRuntime.js";
 import { createGameplayHudRuntime } from "./ui/gameplayHudRuntime.js";
 
 const ITEM_DEFINITIONS = await loadItemDefinitions();
@@ -247,6 +248,7 @@ const titleNewGameBtn = getRequiredElementById("titleNewGameBtn");
 const titleDevModeBtn = getRequiredElementById("titleDevModeBtn");
 const titleQuitGameBtn = getRequiredElementById("titleQuitGameBtn");
 const titleStatusEl = getRequiredElementById("titleStatus");
+const titleProgressFillEl = getRequiredElementById("titleProgressFill");
 const dockExitToTitleBtn = getRequiredElementById("dockExitToTitleBtn");
 const canvas = getRequiredElementById("glCanvas");
 const overlayCanvas = getRequiredElementById("overlayCanvas");
@@ -259,6 +261,7 @@ const topicButtons = getRequiredElements(".topic-btn");
 const topicPanelEl = getRequiredElementById("topicPanel");
 const topicPanelTitleEl = getRequiredElementById("topicPanelTitle");
 const perfOverlayToggleBtn = getRequiredElementById("perfOverlayToggleBtn");
+const rdPerformanceOverlayToggleBtn = getRequiredElementById("rdPerformanceOverlayToggleBtn");
 const topicPanelCloseBtn = getRequiredElementById("topicPanelClose");
 const performanceOverlayPanelEl = getRequiredElementById("performanceOverlayPanel");
 const performanceOverlayCopyBtn = getRequiredElementById("performanceOverlayCopyBtn");
@@ -266,7 +269,7 @@ const performanceOverlayGraphEl = getRequiredElementById("performanceOverlayGrap
 const performanceOverlayTextEl = getRequiredElementById("performanceOverlayText");
 const topicCards = getRequiredElements(".topic-card");
 const statusEl = getRequiredElementById("status");
-const statusRuntime = createStatusRuntime({ statusEl, titleStatusEl });
+const statusRuntime = createStatusRuntime({ statusEl, titleStatusEl, titleProgressFillEl });
 const cycleInfoEl = getRequiredElementById("cycleInfo");
 const frameInfoEl = getRequiredElementById("frameInfo");
 const frameProfileInfoEl = getRequiredElementById("frameProfileInfo");
@@ -321,8 +324,16 @@ const hudScoutBtn = getRequiredElementById("hudScoutBtn");
 const hudRestBtn = getRequiredElementById("hudRestBtn");
 const hudInventoryBtn = getRequiredElementById("hudInventoryBtn");
 const hudShowPlayerBtn = getRequiredElementById("hudShowPlayerBtn");
+const cameraResetViewBtn = getRequiredElementById("cameraResetViewBtn");
+const cameraCenterPlayerBtn = getRequiredElementById("cameraCenterPlayerBtn");
+const cameraZoomOutBtn = getRequiredElementById("cameraZoomOutBtn");
+const cameraZoomInBtn = getRequiredElementById("cameraZoomInBtn");
+const resourceDebugDevTabButtons = getRequiredElements(".rd-dev-tab");
+const resourceDebugDevTabPanels = getRequiredElements(".rd-dev-panel");
+const resourceDebugTabGroups = getRequiredElements("[data-rd-tab-group]");
 const resourceDebugTabButtons = getRequiredElements(".rd-tab");
 const resourceDebugTabPanels = getRequiredElements(".rd-tab-panel");
+const rdOverlayRailEl = getRequiredElementById("rdOverlayRail");
 const resourceDebugLayerInput = getRequiredElementById("resourceDebugLayer");
 const resourceDebugTintColorInput = getRequiredElementById("resourceDebugTintColor");
 const resourceDebugDiscoveryGridInput = getRequiredElementById("resourceDebugDiscoveryGrid");
@@ -449,6 +460,7 @@ const routePlanningSlopeCutoffAddInput = getRequiredElementById("routePlanningSl
 const routePlanningSlopeCutoffAddValue = getRequiredElementById("routePlanningSlopeCutoffAddValue");
 const routeDebugOverlayModeInput = getRequiredElementById("routeDebugOverlayMode");
 const routeClearBtn = getRequiredElementById("routeClearBtn");
+const terrainDebugViewModeInput = getRequiredElementById("terrainDebugViewMode");
 const inspectLayerControlsEl = getRequiredElementById("inspectLayerControls");
 const inspectTracksLayerBtn = getRequiredElementById("inspectTracksLayerBtn");
 const inspectWetnessLayerBtn = getRequiredElementById("inspectWetnessLayerBtn");
@@ -603,9 +615,6 @@ const cloudSpeed1Value = getRequiredElementById("cloudSpeed1Value");
 const cloudSpeed2Input = getRequiredElementById("cloudSpeed2");
 const cloudSpeed2Value = getRequiredElementById("cloudSpeed2Value");
 const cloudTimeRoutingInput = getRequiredElementById("cloudTimeRouting");
-const cloudSunParallaxInput = getRequiredElementById("cloudSunParallax");
-const cloudSunParallaxValue = getRequiredElementById("cloudSunParallaxValue");
-const cloudSunProjectToggle = getRequiredElementById("cloudSunProjectToggle");
 const waterPresetSelect = getRequiredElementById("waterPresetSelect");
 const waterPresetNameInput = getRequiredElementById("waterPresetName");
 const waterPresetApplyBtn = getRequiredElementById("waterPresetApplyBtn");
@@ -670,6 +679,7 @@ const waterTintColorInput = getRequiredElementById("waterTintColor");
 const waterTintStrengthInput = getRequiredElementById("waterTintStrength");
 const waterTintStrengthValue = getRequiredElementById("waterTintStrengthValue");
 const waterTimeRoutingInput = getRequiredElementById("waterTimeRouting");
+const waterTrailDebugToggle = getRequiredElementById("waterTrailDebugToggle");
 const waterTrailPresetSelect = getRequiredElementById("waterTrailPresetSelect");
 const waterTrailPresetNameInput = getRequiredElementById("waterTrailPresetName");
 const waterTrailPresetApplyBtn = getRequiredElementById("waterTrailPresetApplyBtn");
@@ -683,19 +693,11 @@ const heightScaleInput = getRequiredElementById("heightScale");
 const shadowStrengthInput = getRequiredElementById("shadowStrength");
 const shadowBlurInput = getRequiredElementById("shadowBlur");
 const shadowBlurValue = getRequiredElementById("shadowBlurValue");
+const detailDebugChannelInput = getRequiredElementById("detailDebugChannel");
 const ambientInput = getRequiredElementById("ambient");
+const ambientValue = getRequiredElementById("ambientValue");
 const diffuseInput = getRequiredElementById("diffuse");
-const volumetricToggle = getRequiredElementById("volumetricToggle");
-const volumetricStrengthInput = getRequiredElementById("volumetricStrength");
-const volumetricStrengthValue = getRequiredElementById("volumetricStrengthValue");
-const volumetricDensityInput = getRequiredElementById("volumetricDensity");
-const volumetricDensityValue = getRequiredElementById("volumetricDensityValue");
-const volumetricAnisotropyInput = getRequiredElementById("volumetricAnisotropy");
-const volumetricAnisotropyValue = getRequiredElementById("volumetricAnisotropyValue");
-const volumetricLengthInput = getRequiredElementById("volumetricLength");
-const volumetricLengthValue = getRequiredElementById("volumetricLengthValue");
-const volumetricSamplesInput = getRequiredElementById("volumetricSamples");
-const volumetricSamplesValue = getRequiredElementById("volumetricSamplesValue");
+const diffuseValue = getRequiredElementById("diffuseValue");
 const pointFlickerToggle = getRequiredElementById("pointFlickerToggle");
 const pointFlickerStrengthInput = getRequiredElementById("pointFlickerStrength");
 const pointFlickerStrengthValue = getRequiredElementById("pointFlickerStrengthValue");
@@ -717,6 +719,7 @@ const pointLightFlickerInput = getRequiredElementById("pointLightFlicker");
 const pointLightFlickerValue = getRequiredElementById("pointLightFlickerValue");
 const pointLightFlickerSpeedInput = getRequiredElementById("pointLightFlickerSpeed");
 const pointLightFlickerSpeedValue = getRequiredElementById("pointLightFlickerSpeedValue");
+const pointLightGizmoToggle = getRequiredElementById("pointLightGizmoToggle");
 const pointLightLiveUpdateToggle = getRequiredElementById("pointLightLiveUpdateToggle");
 const lightSaveBtn = getRequiredElementById("lightSaveBtn");
 const lightCancelBtn = getRequiredElementById("lightCancelBtn");
@@ -879,6 +882,7 @@ const slimeStatsValue = getRequiredElementById("slimeStatsValue");
 const interactionModeUiRuntime = createInteractionModeUiRuntime({
   dockLightingModeToggle,
   dockPathfindingModeToggle,
+  pointLightGizmoToggle,
 });
 const pointLightIoUiRuntime = createPointLightIoUiRuntime({
   pointLightsLoadInput,
@@ -988,6 +992,8 @@ const mapSupportRuntime = createMapSupportRuntime(createMapSupportAssemblyRuntim
   getSplatTex: () => splatTex,
   getNormalsTex: () => normalsTex,
   getHeightTex: () => heightTex,
+  getSlopeTex: () => slopeTex,
+  getWetnessTex: () => wetnessTex,
   getWaterTex: () => waterTex,
   getHeightImageData: () => heightImageData,
   swarmZMax: 256,
@@ -1610,6 +1616,20 @@ function getSlimeTrailOverlaySnapshot() {
   return null;
 }
 
+function getSlimeTerrainUnderlaySnapshot() {
+  const settings = getSlimeSettings();
+  if (!settings || settings.enabled !== true || settings.showTerrainUnderlay !== true) return null;
+  const runtime = getGameplaySlimeRuntime();
+  const plantTexture = runtime && typeof runtime.getPlantTexture === "function"
+    ? runtime.getPlantTexture()
+    : null;
+  if (!plantTexture) return null;
+  return {
+    enabled: true,
+    plantTexture,
+  };
+}
+
 const slimeGpuRuntime = createSlimeGpuRuntime({
   canvas: slimeCanvas,
   state: slimeDevSimulationState,
@@ -1748,7 +1768,17 @@ function updateSlimeForGameTicks(ctx = {}) {
   }
 }
 
-function warmupSlimeOnMapLoaded() {
+function waitForStartupPaint() {
+  return new Promise((resolve) => {
+    if (typeof window.requestAnimationFrame === "function") {
+      window.requestAnimationFrame(() => resolve());
+      return;
+    }
+    window.setTimeout(resolve, 0);
+  });
+}
+
+async function warmupSlimeOnMapLoaded() {
   const settings = getSlimeSettings();
   if (!settings.enabled) return false;
   const steps = Math.max(0, Math.round(Number(settings.warmupSteps) || 0));
@@ -1756,13 +1786,25 @@ function warmupSlimeOnMapLoaded() {
   if (steps <= 0 || typeof runtime.warmupSteps !== "function") return false;
   try {
     runtime.start(settings);
-    const completed = runtime.warmupSteps(steps, settings);
+    let completed = 0;
+    const chunkSize = Math.max(50, Math.min(250, Math.ceil(steps / 20)));
+    while (completed < steps) {
+      const requested = Math.min(chunkSize, steps - completed);
+      const chunkCompleted = runtime.warmupSteps(requested, settings);
+      if (chunkCompleted <= 0) break;
+      completed += chunkCompleted;
+      const progress = 0.72 + (0.22 * (completed / steps));
+      setStatus(`Warming Slime trails: ${completed}/${steps} steps...`, { progress });
+      await waitForStartupPaint();
+    }
     if (completed <= 0) return false;
     slimeAvailabilityTickCounter = 0;
     slimePlantSyncTickCounter = 0;
+    setStatus("Syncing Slime plant stock...", { progress: 0.95 });
     syncSlimePlantStockToGameplay();
+    setStatus("Reading Slime trail availability...", { progress: 0.97 });
     refreshSlimeAvailabilityGrid(true);
-    setStatus(`Slime warmup completed: ${completed} steps.`);
+    setStatus(`Slime warmup completed: ${completed} steps.`, { progress: 0.99 });
     return true;
   } catch (error) {
     const message = setSlimeRuntimeError(slimeGameplaySimulationState, error);
@@ -1772,9 +1814,10 @@ function warmupSlimeOnMapLoaded() {
   }
 }
 
-function finalizeMapGameplayState() {
+async function finalizeMapGameplayState() {
+  setStatus("Initializing gameplay knowledge map...", { progress: 0.71 });
   resetKnowledgeMapForConfig();
-  warmupSlimeOnMapLoaded();
+  await warmupSlimeOnMapLoaded();
 }
 
 function handleSlimeRuntimeFrame() {
@@ -2329,8 +2372,8 @@ function getCurrentMapFolderPath() {
   return mapLifecycleRuntime.getCurrentMapFolderPath();
 }
 
-function setStatus(text) {
-  statusRuntime.setStatus(text);
+function setStatus(text, options = {}) {
+  statusRuntime.setStatus(text, options);
 }
 const {
   clamp,
@@ -2362,8 +2405,14 @@ function setPerformanceOverlayEnabled(enabled) {
   performanceOverlayPanelEl.classList.toggle("hidden", !performanceOverlayEnabled);
   perfOverlayToggleBtn.classList.toggle("active", performanceOverlayEnabled);
   perfOverlayToggleBtn.setAttribute("aria-pressed", performanceOverlayEnabled ? "true" : "false");
+  rdPerformanceOverlayToggleBtn.classList.toggle("active", performanceOverlayEnabled);
+  rdPerformanceOverlayToggleBtn.setAttribute("aria-pressed", performanceOverlayEnabled ? "true" : "false");
+  rdPerformanceOverlayToggleBtn.textContent = performanceOverlayEnabled ? "Hide" : "Show";
 }
 perfOverlayToggleBtn.addEventListener("click", () => {
+  setPerformanceOverlayEnabled(!performanceOverlayEnabled);
+});
+rdPerformanceOverlayToggleBtn.addEventListener("click", () => {
   setPerformanceOverlayEnabled(!performanceOverlayEnabled);
 });
 setPerformanceOverlayEnabled(false);
@@ -2408,6 +2457,40 @@ performanceOverlayCopyBtn.addEventListener("click", async () => {
   }, 900);
 });
 
+function getCameraPoseForUi() {
+  const camera = runtimeCore.store.getState().camera || {};
+  return {
+    panX: Number.isFinite(Number(camera.panX)) ? Number(camera.panX) : 0,
+    panY: Number.isFinite(Number(camera.panY)) ? Number(camera.panY) : 0,
+    zoom: Number.isFinite(Number(camera.zoom)) ? Number(camera.zoom) : 1,
+  };
+}
+
+function zoomCameraFromPanel(multiplier) {
+  const camera = getCameraPoseForUi();
+  const bounds = getZoomBounds();
+  dispatchCoreCommand({
+    type: "core/camera/setPose",
+    panX: camera.panX,
+    panY: camera.panY,
+    zoom: clamp(camera.zoom * multiplier, bounds.min, bounds.max),
+  });
+}
+
+cameraResetViewBtn.addEventListener("click", () => {
+  dispatchCoreCommand({ type: "core/camera/reset" });
+  setStatus("Camera view reset.");
+});
+cameraCenterPlayerBtn.addEventListener("click", () => {
+  dispatchCoreCommand({ type: "core/player/show" });
+});
+cameraZoomOutBtn.addEventListener("click", () => {
+  zoomCameraFromPanel(0.8);
+});
+cameraZoomInBtn.addEventListener("click", () => {
+  zoomCameraFromPanel(1.25);
+});
+
 const sampleSunAtHour = sampleSunAtHourModel;
 
 const program = createProgram(VERT_SRC, FRAG_SRC);
@@ -2420,6 +2503,7 @@ const uniforms = {
   uSplat: gl.getUniformLocation(program, "uSplat"),
   uNormals: gl.getUniformLocation(program, "uNormals"),
   uHeight: gl.getUniformLocation(program, "uHeight"),
+  uSlope: gl.getUniformLocation(program, "uSlope"),
   uPointLightTex: gl.getUniformLocation(program, "uPointLightTex"),
   uCloudNoiseTex: gl.getUniformLocation(program, "uCloudNoiseTex"),
   uShadowTex: gl.getUniformLocation(program, "uShadowTex"),
@@ -2431,6 +2515,7 @@ const uniforms = {
   uDiscoveryMask: gl.getUniformLocation(program, "uDiscoveryMask"),
   uSlimeTrailOverlay: gl.getUniformLocation(program, "uSlimeTrailOverlay"),
   uSlimeTracksMask: gl.getUniformLocation(program, "uSlimeTracksMask"),
+  uSlimeTerrainUnderlayPlant: gl.getUniformLocation(program, "uSlimeTerrainUnderlayPlant"),
   uUseCursorLight: gl.getUniformLocation(program, "uUseCursorLight"),
   uCursorLightUv: gl.getUniformLocation(program, "uCursorLightUv"),
   uCursorLightColor: gl.getUniformLocation(program, "uCursorLightColor"),
@@ -2470,6 +2555,8 @@ const uniforms = {
   uSlimeTrailOverlayOpacity: gl.getUniformLocation(program, "uSlimeTrailOverlayOpacity"),
   uSlimeTracksMaskEnabled: gl.getUniformLocation(program, "uSlimeTracksMaskEnabled"),
   uSlimeTracksKnowledgeCutoff: gl.getUniformLocation(program, "uSlimeTracksKnowledgeCutoff"),
+  uSlimeTerrainUnderlayEnabled: gl.getUniformLocation(program, "uSlimeTerrainUnderlayEnabled"),
+  uTerrainDebugViewMode: gl.getUniformLocation(program, "uTerrainDebugViewMode"),
   uDiscoveryDitherScale: gl.getUniformLocation(program, "uDiscoveryDitherScale"),
   uDiscoveryKnowledgeGamma: gl.getUniformLocation(program, "uDiscoveryKnowledgeGamma"),
   uDiscoveryUnknownDarkness: gl.getUniformLocation(program, "uDiscoveryUnknownDarkness"),
@@ -2486,12 +2573,6 @@ const uniforms = {
   uFogFalloff: gl.getUniformLocation(program, "uFogFalloff"),
   uFogStartOffset: gl.getUniformLocation(program, "uFogStartOffset"),
   uCameraHeightNorm: gl.getUniformLocation(program, "uCameraHeightNorm"),
-  uUseVolumetric: gl.getUniformLocation(program, "uUseVolumetric"),
-  uVolumetricStrength: gl.getUniformLocation(program, "uVolumetricStrength"),
-  uVolumetricDensity: gl.getUniformLocation(program, "uVolumetricDensity"),
-  uVolumetricAnisotropy: gl.getUniformLocation(program, "uVolumetricAnisotropy"),
-  uVolumetricLength: gl.getUniformLocation(program, "uVolumetricLength"),
-  uVolumetricSamples: gl.getUniformLocation(program, "uVolumetricSamples"),
   uMapAspect: gl.getUniformLocation(program, "uMapAspect"),
   uViewHalfExtents: gl.getUniformLocation(program, "uViewHalfExtents"),
   uPanWorld: gl.getUniformLocation(program, "uPanWorld"),
@@ -2509,8 +2590,6 @@ const uniforms = {
   uCloudScale: gl.getUniformLocation(program, "uCloudScale"),
   uCloudSpeed1: gl.getUniformLocation(program, "uCloudSpeed1"),
   uCloudSpeed2: gl.getUniformLocation(program, "uCloudSpeed2"),
-  uCloudSunParallax: gl.getUniformLocation(program, "uCloudSunParallax"),
-  uCloudUseSunProjection: gl.getUniformLocation(program, "uCloudUseSunProjection"),
   uUseWaterFx: gl.getUniformLocation(program, "uUseWaterFx"),
   uWaterFlowSource: gl.getUniformLocation(program, "uWaterFlowSource"),
   uWaterFlowRenderMode: gl.getUniformLocation(program, "uWaterFlowRenderMode"),
@@ -2586,12 +2665,6 @@ const swarmUniforms = {
   uFogFalloff: gl.getUniformLocation(swarmProgram, "uFogFalloff"),
   uFogStartOffset: gl.getUniformLocation(swarmProgram, "uFogStartOffset"),
   uCameraHeightNorm: gl.getUniformLocation(swarmProgram, "uCameraHeightNorm"),
-  uUseVolumetric: gl.getUniformLocation(swarmProgram, "uUseVolumetric"),
-  uVolumetricStrength: gl.getUniformLocation(swarmProgram, "uVolumetricStrength"),
-  uVolumetricDensity: gl.getUniformLocation(swarmProgram, "uVolumetricDensity"),
-  uVolumetricAnisotropy: gl.getUniformLocation(swarmProgram, "uVolumetricAnisotropy"),
-  uVolumetricLength: gl.getUniformLocation(swarmProgram, "uVolumetricLength"),
-  uVolumetricSamples: gl.getUniformLocation(swarmProgram, "uVolumetricSamples"),
   uMapAspect: gl.getUniformLocation(swarmProgram, "uMapAspect"),
   uMapTexelSize: gl.getUniformLocation(swarmProgram, "uMapTexelSize"),
   uMapSize: gl.getUniformLocation(swarmProgram, "uMapSize"),
@@ -2611,8 +2684,6 @@ const swarmUniforms = {
   uCloudScale: gl.getUniformLocation(swarmProgram, "uCloudScale"),
   uCloudSpeed1: gl.getUniformLocation(swarmProgram, "uCloudSpeed1"),
   uCloudSpeed2: gl.getUniformLocation(swarmProgram, "uCloudSpeed2"),
-  uCloudSunParallax: gl.getUniformLocation(swarmProgram, "uCloudSunParallax"),
-  uCloudUseSunProjection: gl.getUniformLocation(swarmProgram, "uCloudUseSunProjection"),
   uHawkColor: gl.getUniformLocation(swarmProgram, "uHawkColor"),
   uSwarmHeightMax: gl.getUniformLocation(swarmProgram, "uSwarmHeightMax"),
   uPointLightEdgeMin: gl.getUniformLocation(swarmProgram, "uPointLightEdgeMin"),
@@ -2665,6 +2736,8 @@ const {
   splatTex,
   normalsTex,
   heightTex,
+  slopeTex,
+  wetnessTex,
   waterTex,
   flowMapTex,
   waterTrailTex,
@@ -2905,6 +2978,8 @@ initializeDefaultMapImagesRuntime({
   uploadImageToTexture,
   normalsTex,
   heightTex,
+  slopeTex,
+  wetnessTex,
   splatTex,
   waterTex,
   setSplatSizeFromImage: (img) => getMapImageRuntime().setSplatSizeFromImage(img),
@@ -2997,14 +3072,13 @@ const updatePathSlopeCutoffLabel = (...args) => pathfindingLabelRuntime.updatePa
 const updatePathBaseCostLabel = (...args) => pathfindingLabelRuntime.updatePathBaseCostLabel(...args);
 
 const updateShadowBlurLabel = (...args) => renderFxUiRuntime.updateShadowBlurLabel(...args);
+const updateLightingBalanceLabels = (...args) => renderFxUiRuntime.updateLightingBalanceLabels(...args);
 const updateSimTickLabel = (...args) => renderFxUiRuntime.updateSimTickLabel(...args);
 const updateFogAlphaLabels = (...args) => renderFxUiRuntime.updateFogAlphaLabels(...args);
 const updateFogFalloffLabel = (...args) => renderFxUiRuntime.updateFogFalloffLabel(...args);
 const updateFogStartOffsetLabel = (...args) => renderFxUiRuntime.updateFogStartOffsetLabel(...args);
 const updatePointFlickerLabels = (...args) => renderFxUiRuntime.updatePointFlickerLabels(...args);
 const updatePointFlickerUi = (...args) => renderFxUiRuntime.updatePointFlickerUi(...args);
-const updateVolumetricLabels = (...args) => renderFxUiRuntime.updateVolumetricLabels(...args);
-const updateVolumetricUi = (...args) => renderFxUiRuntime.updateVolumetricUi(...args);
 const updateCloudLabels = (...args) => renderFxUiRuntime.updateCloudLabels(...args);
 const updateWaterLabels = (...args) => renderFxUiRuntime.updateWaterLabels(...args);
 const updateFogUi = (...args) => renderFxUiRuntime.updateFogUi(...args);
@@ -3107,9 +3181,7 @@ const updateCursorLightHeightOffsetLabel = (...args) => lightLabelRuntime.update
       .filter(Boolean);
     return [...new Set(names)];
   },
-  onMapLoaded: () => {
-    finalizeMapGameplayState();
-  },
+  onMapLoaded: () => finalizeMapGameplayState(),
   serializeLightingSettings: (...args) => serializeLightingSettings(...args),
   serializeInteractionSettings: (...args) => serializeInteractionSettings(...args),
   serializeFogSettings: (...args) => serializeFogSettings(...args),
@@ -3312,10 +3384,12 @@ let resourceStockRuntime = null;
 let resourceDiscoveryRuntime = null;
 let gameplayHudRuntime = null;
 let resourceDebugPanelRuntime = null;
+let rdOverlayShortcutRailRuntime = null;
 let inspectPerceptionRuntime = null;
 let resourceContourOverlayVersion = 0;
 let resourceStockOverlayMode = "known";
 let resourceDebugOverlayResourceId = "water";
+let terrainDebugViewMode = "none";
 let slimePlantBaseResourceCache = null;
 let slimePlantResourceCache = null;
 
@@ -3393,6 +3467,7 @@ function getResourceDebugLayerSettings(layer = getInspectOverlayLayer()) {
 
 function syncResourceDebugPanel() {
   resourceDebugPanelRuntime?.sync();
+  rdOverlayShortcutRailRuntime?.sync();
 }
 
 function resetKnowledgeMapForConfig() {
@@ -4241,6 +4316,9 @@ if (!resourceStockResourceInput.value) {
   resourceStockResourceInput.appendChild(option);
 }
 resourceDebugPanelRuntime = createResourceDebugPanelRuntime({
+  devTabButtons: resourceDebugDevTabButtons,
+  devTabPanels: resourceDebugDevTabPanels,
+  tabGroups: resourceDebugTabGroups,
   tabButtons: resourceDebugTabButtons,
   tabPanels: resourceDebugTabPanels,
   layerInput: resourceDebugLayerInput,
@@ -4468,6 +4546,26 @@ resourceDebugPanelRuntime = createResourceDebugPanelRuntime({
   },
   saveSettings: () => saveAllMapDataFiles(),
 });
+
+terrainDebugViewModeInput.addEventListener("change", () => {
+  const next = terrainDebugViewModeInput.value;
+  terrainDebugViewMode = next === "height" || next === "slope" || next === "wetness" || next === "water" ? next : "none";
+  terrainDebugViewModeInput.value = terrainDebugViewMode;
+  rdOverlayShortcutRailRuntime?.sync();
+});
+
+rdOverlayShortcutRailRuntime = createRdOverlayShortcutRailRuntime({
+  railEl: rdOverlayRailEl,
+  terrainDebugViewModeInput,
+  waterFlowDebugToggle,
+  waterTrailDebugToggle,
+  detailDebugChannelInput,
+  slimeShowTerrainUnderlayToggle,
+  slimeAvailabilityOverlayEnabledInput,
+  resourceDebugShowMaskOverlayInput,
+  routeDebugOverlayModeInput,
+});
+
 for (const [layer, button] of [
   ["tracks", inspectTracksLayerBtn],
   ["water", inspectWetnessLayerBtn],
@@ -4886,6 +4984,8 @@ const renderPipelineRuntime = createRenderPipelineRuntime(createRenderPipelineAs
   splatTex,
   normalsTex,
   heightTex,
+  slopeTex,
+  wetnessTex,
   pointLightTex,
   cloudNoiseTex,
   shadowBlurTex,
@@ -4910,6 +5010,7 @@ const renderPipelineRuntime = createRenderPipelineRuntime(createRenderPipelineAs
   getDiscoveryVisibilitySettings,
   getDiscoveryVisibilitySnapshot,
   getSlimeTrailOverlaySnapshot,
+  getSlimeTerrainUnderlaySnapshot,
   renderShadowPipeline,
   shadowSize,
   shadowBlurFbo,
@@ -5110,6 +5211,28 @@ registerMainCommands(runtimeCore.commandBus, createMainCommandAssemblyRuntime({
   syncCycleSpeedInput: (value) => syncCycleSpeedInput(value),
   syncRoutingInput: (target, mode) => syncRoutingInput(target, mode),
 }));
+
+pointLightGizmoToggle.addEventListener("change", () => {
+  if (!pointLightGizmoToggle.checked) {
+    runtimeCore.commandBus.dispatch({ type: "core/interaction/setMode", mode: "none" });
+    setStatus("Point-light gizmos hidden.");
+    return;
+  }
+  if (playerActivityRuntime.isActivityActive()) {
+    runtimeCore.commandBus.dispatch({ type: "core/interaction/setMode", mode: "none" });
+    setStatus("Stop the current activity before editing point lights.");
+    return;
+  }
+  if (!canUseInteractionInCurrentMode("lighting")) {
+    runtimeCore.commandBus.dispatch({ type: "core/interaction/setMode", mode: "none" });
+    setStatus("Point-light gizmos are unavailable in current runtime mode.");
+    return;
+  }
+  runtimeCore.commandBus.dispatch({ type: "core/interaction/setMode", mode: "lighting" });
+  travelPlanningRuntime.clearPreview("point-light-gizmos");
+  setStatus("Point-light gizmos shown: click terrain to add/select point lights.");
+});
+
 let previousMode = normalizeRuntimeMode(runtimeCore.store.getState().mode);
 runtimeCore.store.subscribe((nextState) => {
   const nextMode = normalizeRuntimeMode(nextState ? nextState.mode : previousMode);
@@ -5421,12 +5544,6 @@ const swarmIntegrationSetupRuntime = createSwarmIntegrationSetupRuntime(
       shadowBlurInput,
       ambientInput,
       diffuseInput,
-      volumetricToggle,
-      volumetricStrengthInput,
-      volumetricDensityInput,
-      volumetricAnisotropyInput,
-      volumetricLengthInput,
-      volumetricSamplesInput,
       cycleState,
       cycleSpeedInput,
       simTickHoursInput,
@@ -5450,8 +5567,6 @@ const swarmIntegrationSetupRuntime = createSwarmIntegrationSetupRuntime(
       cloudScaleInput,
       cloudSpeed1Input,
       cloudSpeed2Input,
-      cloudSunParallaxInput,
-      cloudSunProjectToggle,
       cloudTimeRoutingInput,
       waterFxToggle,
       waterFlowSourceInput,
@@ -5494,9 +5609,8 @@ const swarmIntegrationSetupRuntime = createSwarmIntegrationSetupRuntime(
       normalizeSimTickHours,
       normalizeRoutingMode,
       rgbToHex,
-      updateVolumetricLabels,
-      updateVolumetricUi,
       updateShadowBlurLabel,
+      updateLightingBalanceLabels,
       updatePointFlickerLabels,
       updatePointFlickerUi,
       updateSimTickLabel,
@@ -5775,6 +5889,8 @@ const interactionUiSetupRuntime = createInteractionUiSetupRuntime(createInteract
   serializeCloudSettings,
   serializeWaterSettings,
   shadowBlurValue,
+  ambientValue,
+  diffuseValue,
   simTickHoursValue,
   fogMinAlphaValue,
   fogMaxAlphaValue,
@@ -5783,18 +5899,12 @@ const interactionUiSetupRuntime = createInteractionUiSetupRuntime(createInteract
   pointFlickerStrengthValue,
   pointFlickerSpeedValue,
   pointFlickerSpatialValue,
-  volumetricStrengthValue,
-  volumetricDensityValue,
-  volumetricAnisotropyValue,
-  volumetricLengthValue,
-  volumetricSamplesValue,
   cloudCoverageValue,
   cloudSoftnessValue,
   cloudOpacityValue,
   cloudScaleValue,
   cloudSpeed1Value,
   cloudSpeed2Value,
-  cloudSunParallaxValue,
   waterFlowDirectionValue,
   waterLocalFlowMixValue,
   waterDownhillBoostValue,
@@ -5822,11 +5932,6 @@ const interactionUiSetupRuntime = createInteractionUiSetupRuntime(createInteract
   pointFlickerStrengthInput,
   pointFlickerSpeedInput,
   pointFlickerSpatialInput,
-  volumetricStrengthInput,
-  volumetricDensityInput,
-  volumetricAnisotropyInput,
-  volumetricLengthInput,
-  volumetricSamplesInput,
   fogColorInput,
   fogMinAlphaInput,
   fogMaxAlphaInput,
@@ -5838,8 +5943,6 @@ const interactionUiSetupRuntime = createInteractionUiSetupRuntime(createInteract
   cloudScaleInput,
   cloudSpeed1Input,
   cloudSpeed2Input,
-  cloudSunParallaxInput,
-  cloudSunProjectToggle,
   waterFlowSourceInput,
       waterFlowRenderModeInput,
       waterFlowChannelPairInput,
@@ -5875,8 +5978,7 @@ const interactionUiSetupRuntime = createInteractionUiSetupRuntime(createInteract
   waterTintColorInput,
   waterTintStrengthInput,
   updateShadowBlurLabel,
-  updateVolumetricLabels,
-  updateVolumetricUi,
+  updateLightingBalanceLabels,
   updatePointFlickerLabels,
   updatePointFlickerUi,
   updateFogAlphaLabels,
@@ -5961,6 +6063,7 @@ const renderShellSetupRuntime = createRenderShellSetupRuntime(createRenderShellA
   updateGameTimeDiorama: (hour, cycleSpeed) => gameTimeDioramaRuntime.update(hour, cycleSpeed),
   updateWaterParticleTrails: (dtSec) => waterParticleTrailRuntime.update(dtSec),
   getWaterParticleTrailUniformState: () => waterParticleTrailRuntime.getUniformState(),
+  getTerrainDebugViewMode: () => terrainDebugViewMode,
   updateWeatherFieldMeta,
   renderResources,
   renderFrameSwarmLayers,
@@ -6034,31 +6137,54 @@ runAppShellLifecycleRuntime(createAppShellLifecycleAssemblyRuntime({
     swarmStatsPanelToggle,
     swarmBackgroundColorInput,
     swarmAgentCountInput,
+    swarmAgentCountValue,
     swarmUpdateIntervalInput,
+    swarmUpdateIntervalValue,
     swarmMaxSpeedInput,
+    swarmMaxSpeedValue,
     swarmSteeringMaxInput,
+    swarmSteeringMaxValue,
     swarmVariationStrengthInput,
+    swarmVariationStrengthValue,
     swarmNeighborRadiusInput,
+    swarmNeighborRadiusValue,
     swarmMinHeightInput,
+    swarmMinHeightValue,
     swarmMaxHeightInput,
+    swarmMaxHeightValue,
     swarmSeparationRadiusInput,
+    swarmSeparationRadiusValue,
     swarmAlignmentWeightInput,
+    swarmAlignmentWeightValue,
     swarmCohesionWeightInput,
+    swarmCohesionWeightValue,
     swarmSeparationWeightInput,
+    swarmSeparationWeightValue,
     swarmWanderWeightInput,
+    swarmWanderWeightValue,
     swarmRestChanceInput,
+    swarmRestChanceValue,
     swarmRestTicksInput,
+    swarmRestTicksValue,
     swarmBreedingThresholdInput,
+    swarmBreedingThresholdValue,
     swarmBreedingSpawnChanceInput,
+    swarmBreedingSpawnChanceValue,
     swarmCursorModeInput,
     swarmCursorStrengthInput,
+    swarmCursorStrengthValue,
     swarmCursorRadiusInput,
+    swarmCursorRadiusValue,
     swarmHawkEnabledToggle,
     swarmHawkCountInput,
+    swarmHawkCountValue,
     swarmHawkColorInput,
     swarmHawkSpeedInput,
+    swarmHawkSpeedValue,
     swarmHawkSteeringInput,
+    swarmHawkSteeringValue,
     swarmHawkTargetRangeInput,
+    swarmHawkTargetRangeValue,
     swarmTimeRoutingInput,
     swarmEnabledToggle,
     swarmState,
@@ -6147,12 +6273,6 @@ runAppShellLifecycleRuntime(createAppShellLifecycleAssemblyRuntime({
     shadowBlurInput,
     ambientInput,
     diffuseInput,
-    volumetricStrengthInput,
-    volumetricDensityInput,
-    volumetricAnisotropyInput,
-    volumetricLengthInput,
-    volumetricSamplesInput,
-    volumetricToggle,
     pointFlickerStrengthInput,
     pointFlickerSpeedInput,
     pointFlickerSpatialInput,
@@ -6169,8 +6289,6 @@ runAppShellLifecycleRuntime(createAppShellLifecycleAssemblyRuntime({
     cloudScaleInput,
     cloudSpeed1Input,
     cloudSpeed2Input,
-    cloudSunParallaxInput,
-    cloudSunProjectToggle,
     cloudToggle,
     cloudTimeRoutingInput,
     waterFlowDirectionInput,
@@ -6210,8 +6328,7 @@ runAppShellLifecycleRuntime(createAppShellLifecycleAssemblyRuntime({
     waterFlowDebugToggle,
     waterTimeRoutingInput,
           updateShadowBlurLabel,
-    updateVolumetricLabels,
-    updateVolumetricUi,
+    updateLightingBalanceLabels,
     updatePointFlickerLabels,
     updatePointFlickerUi,
     updateFogAlphaLabels,
@@ -6289,6 +6406,7 @@ runAppShellLifecycleRuntime(createAppShellLifecycleAssemblyRuntime({
     slimeResetBtn,
     slimeRandomizeBtn,
     slimeAgentCountInput,
+    slimeAgentCountValue,
     slimeSimSizeInput,
     slimeStepsPerFrameInput,
     slimeTimeModeInput,
@@ -6353,7 +6471,7 @@ runAppShellLifecycleRuntime(createAppShellLifecycleAssemblyRuntime({
   updateSwarmStatsPanel,
   updateSwarmFollowButtonUi,
   updateShadowBlurLabel,
-  updateVolumetricLabels,
+  updateLightingBalanceLabels,
   updatePointFlickerLabels,
   updateSimTickLabel,
   updateFogAlphaLabels,
@@ -6374,7 +6492,6 @@ runAppShellLifecycleRuntime(createAppShellLifecycleAssemblyRuntime({
   currentMapFolderPath: getCurrentMapFolderPath(),
   updateLightEditorUi,
   updateCursorLightModeUi,
-  updateVolumetricUi,
   updatePointFlickerUi,
   updateFogUi,
   updateCloudUi,

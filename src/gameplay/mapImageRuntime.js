@@ -95,6 +95,12 @@ export function createMapImageRuntime(deps) {
     deps.uploadImageToTexture(deps.getHeightTex(), heightImage);
     setHeightSizeFromImage(heightImage);
     deps.setHeightImageData(deps.extractImageData(heightImage));
+    if (typeof deps.getSlopeTex === "function") {
+      deps.uploadImageToTexture(deps.getSlopeTex(), slopeImage);
+    }
+    if (typeof deps.getWetnessTex === "function") {
+      deps.uploadImageToTexture(deps.getWetnessTex(), wetnessImage || waterImage);
+    }
     if (typeof deps.setFlowMapImage === "function") {
       deps.setFlowMapImage(flowImage);
     }

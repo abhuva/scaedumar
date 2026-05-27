@@ -1,8 +1,10 @@
 {
   "version": 1,
+  "zoomMin": 0.1,
+  "zoomMax": 512,
+  "zoom": 10.164241493514968,
   "pixelX": 374,
   "pixelY": 833,
-  "zoom": 25,
-  "zoomMin": 0.1,
-  "zoomMax": 512
+  "panX": -0.08696089464658263,
+  "panY": -0.36565926576031377
 }

@@ -322,7 +322,7 @@ export function drawRoutePlanningOverlay(deps) {
   if (!snapshot) return;
   const settings = snapshot.settings || {};
   const previewPointRadius = finitePositive(settings.previewPointRadius, 1);
-  if (snapshot.active && snapshot.debugOverlay) {
+  if (snapshot.debugOverlay) {
     drawTextureOverMap(deps.ctx, deps, renderDebugOverlayTexture(snapshot.debugOverlay, snapshot.version));
   }
   if (deps.drawFinalTexture !== false && snapshot.showFinalOverlay === true) {

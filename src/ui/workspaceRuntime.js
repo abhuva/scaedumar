@@ -1,4 +1,4 @@
-import { normalizeWorkspaceId } from "./workspaceRegistry.js";
+import { isWorkspaceId, normalizeWorkspaceId } from "./workspaceRegistry.js";
 
 export function createWorkspaceRuntime(deps) {
   function normalizeWorkspace(workspace) {
@@ -8,15 +8,16 @@ export function createWorkspaceRuntime(deps) {
   function syncWorkspaceUi(workspace) {
     const activeWorkspace = normalizeWorkspace(workspace);
     for (const panel of deps.workspacePanels || []) {
-      panel.classList.toggle("active", normalizeWorkspace(panel.dataset.workspacePanel) === activeWorkspace);
+      const panelWorkspace = panel.dataset.workspacePanel;
+      panel.classList.toggle("active", isWorkspaceId(panelWorkspace) && panelWorkspace === activeWorkspace);
     }
     for (const btn of deps.workspaceButtons) {
-      const active = normalizeWorkspace(btn.dataset.workspace) === activeWorkspace;
+      const buttonWorkspace = btn.dataset.workspace;
+      const active = isWorkspaceId(buttonWorkspace) && buttonWorkspace === activeWorkspace;
       btn.classList.toggle("active", active);
       btn.setAttribute("aria-pressed", active ? "true" : "false");
     }
     if (activeWorkspace !== "map") {
-      deps.setActiveTopic("");
       deps.setInteractionMode("none");
     }
   }

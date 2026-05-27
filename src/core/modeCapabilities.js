@@ -8,8 +8,8 @@ const MODE_CAPABILITIES = {
   dev: FULL_CAPABILITIES,
   gameplay: {
     topics: ["resource-debug"],
-    interactionModes: ["none", "pathfinding", "routePlanning"],
-    overlays: ["pathPreview", "routePlanning"],
+    interactionModes: ["none", "lighting", "pathfinding", "routePlanning"],
+    overlays: ["pathPreview", "routePlanning", "pointLights"],
   },
   hybrid: FULL_CAPABILITIES,
 };

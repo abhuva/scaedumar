@@ -24,6 +24,8 @@ export function createMapSupportRuntime(deps) {
   const getSplatTex = () => (typeof deps.getSplatTex === "function" ? deps.getSplatTex() : deps.splatTex);
   const getNormalsTex = () => (typeof deps.getNormalsTex === "function" ? deps.getNormalsTex() : deps.normalsTex);
   const getHeightTex = () => (typeof deps.getHeightTex === "function" ? deps.getHeightTex() : deps.heightTex);
+  const getSlopeTex = () => (typeof deps.getSlopeTex === "function" ? deps.getSlopeTex() : deps.slopeTex);
+  const getWetnessTex = () => (typeof deps.getWetnessTex === "function" ? deps.getWetnessTex() : deps.wetnessTex);
   const getWaterTex = () => (typeof deps.getWaterTex === "function" ? deps.getWaterTex() : deps.waterTex);
   const setSplatSize = (width, height) => {
     if (typeof deps.setSplatSize === "function") {
@@ -82,8 +84,10 @@ export function createMapSupportRuntime(deps) {
       setHeightSize,
       getSplatTex,
       getNormalsTex,
-      getHeightTex,
-      getWaterTex,
+    getHeightTex,
+    getSlopeTex,
+    getWetnessTex,
+    getWaterTex,
       uploadImageToTexture: deps.uploadImageToTexture,
       setFlowMapImage: deps.setFlowMapImage,
       applyMapSizeChangeIfNeeded: deps.applyMapSizeChangeIfNeeded,

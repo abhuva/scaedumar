@@ -7,6 +7,9 @@ export function createInteractionModeUiRuntime(deps) {
       deps.dockLightingModeToggle.classList.toggle("active", isLighting);
       deps.dockLightingModeToggle.setAttribute("aria-pressed", isLighting ? "true" : "false");
     }
+    if (deps.pointLightGizmoToggle) {
+      deps.pointLightGizmoToggle.checked = isLighting;
+    }
     if (deps.dockPathfindingModeToggle) {
       deps.dockPathfindingModeToggle.classList.toggle("active", isPathfinding);
       deps.dockPathfindingModeToggle.setAttribute("aria-pressed", isPathfinding ? "true" : "false");

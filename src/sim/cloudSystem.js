@@ -30,8 +30,6 @@ export function createCloudSystem(deps) {
         cloudScale: deps.clamp(finite(input.cloudScale, 2.2), 0.5, 8),
         cloudSpeed1: deps.clamp(finite(input.cloudSpeed1, 0.018), -0.3, 0.3),
         cloudSpeed2: deps.clamp(finite(input.cloudSpeed2, -0.012), -0.3, 0.3),
-        cloudSunParallax: deps.clamp(finite(input.cloudSunParallax, 0.45), 0, 2),
-        cloudUseSunProjection: Boolean(input.cloudUseSunProjection),
       };
       deps.setCloudState(value);
       if (typeof deps.updateStoreClouds === "function") {

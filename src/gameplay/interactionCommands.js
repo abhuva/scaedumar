@@ -1,4 +1,3 @@
-export const RUNTIME_MODE_DEV = "dev";
 export const RUNTIME_MODE_GAMEPLAY = "gameplay";
 
 export function registerInteractionCommands(commandBus, deps) {
@@ -289,21 +288,8 @@ export function registerInteractionCommands(commandBus, deps) {
       return;
     }
 
-    const runtimeMode = typeof deps.getRuntimeMode === "function" ? deps.getRuntimeMode() : RUNTIME_MODE_DEV;
-    if (runtimeMode === RUNTIME_MODE_GAMEPLAY) {
-      clearTravelPreview("gameplay-no-mode-click");
-      deps.setStatus("Use PF to choose a destination.");
-      return;
-    }
-
-    deps.setPlayerPosition(pixel.x, pixel.y);
-    if (typeof deps.cancelMovementQueue === "function") {
-      deps.cancelMovementQueue();
-    }
-    syncPlayerToStore();
-    deps.rebuildMovementField();
-    clearTravelPlanning("dev-player-moved");
-    deps.setStatus(`Player moved to (${deps.playerState.pixelX}, ${deps.playerState.pixelY})`);
+    clearTravelPreview("no-mode-click");
+    deps.setStatus("Use PF to choose a destination.");
   });
 
   commandBus.register("core/interaction/hoverMapPixel", (command) => {

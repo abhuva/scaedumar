@@ -28,8 +28,7 @@ export function createInteractionUiSetupRuntime(deps) {
   const renderFxUiRuntime = createRenderFxUiBindingRuntime(deps.renderFxUi);
   const renderFxSettingsSyncRuntime = createRenderFxSettingsSyncRuntime({
     updateShadowBlurLabel: deps.renderFxUi.updateShadowBlurLabel,
-    updateVolumetricLabels: deps.renderFxUi.updateVolumetricLabels,
-    updateVolumetricUi: deps.renderFxUi.updateVolumetricUi,
+    updateLightingBalanceLabels: deps.renderFxUi.updateLightingBalanceLabels,
     updatePointFlickerLabels: deps.renderFxUi.updatePointFlickerLabels,
     updatePointFlickerUi: deps.renderFxUi.updatePointFlickerUi,
     updateFogAlphaLabels: deps.renderFxUi.updateFogAlphaLabels,

@@ -96,12 +96,6 @@ export function createSwarmLitRenderer(deps) {
     gl.uniform1f(swarmUniforms.uFogFalloff, deps.clamp(Number(uniformInput && uniformInput.fogFalloff), 0.2, 4));
     gl.uniform1f(swarmUniforms.uFogStartOffset, deps.clamp(Number(uniformInput && uniformInput.fogStartOffset), 0, 1));
     gl.uniform1f(swarmUniforms.uCameraHeightNorm, params.cameraHeightNorm);
-    gl.uniform1f(swarmUniforms.uUseVolumetric, uniformInput && uniformInput.useVolumetric ? 1 : 0);
-    gl.uniform1f(swarmUniforms.uVolumetricStrength, deps.clamp(Number(uniformInput && uniformInput.volumetricStrength), 0, 1));
-    gl.uniform1f(swarmUniforms.uVolumetricDensity, deps.clamp(Number(uniformInput && uniformInput.volumetricDensity), 0, 2));
-    gl.uniform1f(swarmUniforms.uVolumetricAnisotropy, deps.clamp(Number(uniformInput && uniformInput.volumetricAnisotropy), 0, 0.95));
-    gl.uniform1f(swarmUniforms.uVolumetricLength, Math.round(deps.clamp(Number(uniformInput && uniformInput.volumetricLength), 8, 160)));
-    gl.uniform1f(swarmUniforms.uVolumetricSamples, Math.round(deps.clamp(Number(uniformInput && uniformInput.volumetricSamples), 4, 24)));
     gl.uniform1f(swarmUniforms.uMapAspect, deps.getMapAspect());
     gl.uniform2f(swarmUniforms.uMapTexelSize, 1 / deps.heightSize.width, 1 / deps.heightSize.height);
     gl.uniform2f(swarmUniforms.uMapSize, deps.splatSize.width, deps.splatSize.height);
@@ -121,8 +115,6 @@ export function createSwarmLitRenderer(deps) {
     gl.uniform1f(swarmUniforms.uCloudScale, deps.clamp(Number(uniformInput && uniformInput.cloudScale), 0.5, 8));
     gl.uniform1f(swarmUniforms.uCloudSpeed1, deps.clamp(Number(uniformInput && uniformInput.cloudSpeed1), -0.3, 0.3));
     gl.uniform1f(swarmUniforms.uCloudSpeed2, deps.clamp(Number(uniformInput && uniformInput.cloudSpeed2), -0.3, 0.3));
-    gl.uniform1f(swarmUniforms.uCloudSunParallax, deps.clamp(Number(uniformInput && uniformInput.cloudSunParallax), 0, 2));
-    gl.uniform1f(swarmUniforms.uCloudUseSunProjection, uniformInput && uniformInput.cloudUseSunProjection ? 1 : 0);
     gl.uniform3f(swarmUniforms.uHawkColor, hawkColor[0], hawkColor[1], hawkColor[2]);
     gl.uniform1f(swarmUniforms.uSwarmHeightMax, deps.swarmHeightMax);
     gl.uniform1f(swarmUniforms.uPointLightEdgeMin, deps.pointLightEdgeMin);

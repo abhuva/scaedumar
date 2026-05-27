@@ -7,7 +7,5 @@
   "cloudScale": 2.2,
   "cloudSpeed1": 0.045,
   "cloudSpeed2": -0.03,
-  "cloudSunParallax": 0.45,
-  "cloudUseSunProjection": true,
   "timeRouting": "global"
 }

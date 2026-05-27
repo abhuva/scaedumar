@@ -1,4 +1,10 @@
 export function bindSlimeControls(deps) {
+  function setText(el, value) {
+    if (el) {
+      el.textContent = value;
+    }
+  }
+
   function dispatchSettings(patch) {
     deps.commandBus.dispatch({ type: "core/slime/settingsChanged", patch });
   }
@@ -7,6 +13,9 @@ export function bindSlimeControls(deps) {
   deps.slimeStopBtn.addEventListener("click", () => deps.commandBus.dispatch({ type: "slime/stop" }));
   deps.slimeResetBtn.addEventListener("click", () => deps.commandBus.dispatch({ type: "slime/reset" }));
   deps.slimeRandomizeBtn.addEventListener("click", () => deps.commandBus.dispatch({ type: "slime/randomizeSeed" }));
+  deps.slimeAgentCountInput.addEventListener("input", () => {
+    setText(deps.slimeAgentCountValue, String(Math.round(Number(deps.slimeAgentCountInput.value) || 0)));
+  });
   deps.slimeAgentCountInput.addEventListener("change", () => dispatchSettings({ agentCount: Number(deps.slimeAgentCountInput.value) }));
   deps.slimeSimSizeInput.addEventListener("change", () => dispatchSettings({ simSize: Number(deps.slimeSimSizeInput.value) }));
   deps.slimeStepsPerFrameInput.addEventListener("input", () => dispatchSettings({ stepsPerFrame: Number(deps.slimeStepsPerFrameInput.value) }));

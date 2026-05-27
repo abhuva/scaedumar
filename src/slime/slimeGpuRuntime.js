@@ -1449,6 +1449,7 @@ export function createSlimeGpuRuntime(deps) {
     readTrailAvailabilityGrid,
     readPlantStockFactorImageData,
     getTrailTexture: () => (resources ? resources.trailTextures[resources.trailIndex] : null),
+    getPlantTexture: () => (resources ? resources.plantStockTextures[resources.plantStockIndex] : null),
     getTrailTextureVersion: () => availabilityVersion + frameCounter,
     stepGameTicks,
     warmupSteps,

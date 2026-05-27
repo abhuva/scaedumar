@@ -281,6 +281,19 @@ test("route planning reports outside hover state", () => {
   assert.equal(snapshot.hoverPathPixels.length, 0);
 });
 
+test("route planning debug overlay builds while route mode is inactive", () => {
+  const runtime = createRuntime();
+
+  runtime.updateSettings({ debugOverlayMode: "dijkstra" });
+  const snapshot = runtime.getSnapshot();
+
+  assert.equal(snapshot.active, false);
+  assert.equal(snapshot.debugOverlay.mode, "dijkstra");
+  assert.equal(snapshot.debugOverlay.width, 8);
+  assert.equal(snapshot.debugOverlay.height, 8);
+  assert.equal(snapshot.debugOverlay.values.length, 64);
+});
+
 test("route planning uses active pathfinding movement weights for cost", () => {
   const map = { width: 16, height: 16 };
   const water = imageData(map.width, map.height, 255);

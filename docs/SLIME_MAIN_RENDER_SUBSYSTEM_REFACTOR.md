@@ -84,6 +84,7 @@ Dependencies:
 - [x] T2.6 Disable the overlay-canvas full-map Slime visual path for normal rendering.
 - [x] T2.7 Add shader-side Y flip for raw Slime trail sampling so the direct texture path matches the old CPU readback row-flip convention.
 - [x] T2.8 Browser-verify alignment against terrain rivers/plants after shader-side coordinate changes.
+- [x] T2.9 Preserve the legacy Slime terrain underlay visual in the main terrain shader by sampling height, slope, water, and live Slime plant stock directly in the main WebGL context. Live plant stock is sampled with the same render-boundary Y flip as the raw Slime trail texture.
 
 Dependencies:
 
@@ -213,6 +214,7 @@ Dependencies:
 - [x] T9.6 Forward new Slime controls through all binding assembly layers.
 - [x] T9.7 Update current map/preset JSON for changed defaults.
 - [x] T9.8 Browser-verify Save Settings and preset round-trip after new cadence fields.
+- [~] T9.9 Move Slime UI access into `RD > Trail`: full lab controls are now split across `Trail > Runtime`, `Motion`, `Visual`, `Terrain`, `Plants`, and `Brush`, while trail overlay, Hunting flee, Tracks knowledge, and availability readout controls are under `Trail > Tracks`. Browser validation of the moved controls is still pending.
 
 Dependencies:
 
@@ -229,7 +231,8 @@ Dependencies:
 
 Decision:
 
-- Keep the legacy dev canvas runtime for now as a comparison/test path. Gameplay uses the main-context headless runtime and no longer depends on the legacy canvas.
+- Keep the legacy dev canvas runtime for now as an internal comparison/test path. Gameplay uses the main-context headless runtime and no longer depends on or exposes the legacy canvas.
+- Slime is not a user-facing workspace in unified game mode. `RD > Trail` controls the main-context Slime simulation and the world-space terrain overlay; trails render over the existing terrain map instead of opening a detached placeholder Slime view.
 
 Dependencies:
 
@@ -258,7 +261,7 @@ Dependencies:
 - Low-resolution `readPixels` can still stall the CPU because it synchronizes with queued GPU work.
 - Plant stock sync may still be too expensive if it runs during heavy GPU work.
 - Hunting success still reads the full agent state texture and may spike on successful hunts.
-- Legacy dev canvas and main-context gameplay runtime state are now separate, but settings are still shared by design.
+- Legacy dev canvas and main-context gameplay runtime state are now separate, but settings are still shared by design. The legacy canvas path is not user-facing in unified game mode.
 - Y-axis alignment can regress if future changes move coordinate flips between simulation, readback, and shader paths.
 
 ## Shared GL State Audit

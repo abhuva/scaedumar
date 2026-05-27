@@ -21,7 +21,7 @@ These variables live in `styles.css`:
 --player-ui-row: calc(var(--player-ui-height) / 3);
 --side-slot-height: calc(var(--player-ui-height) / 2);
 --side-stack-gap: 0px;
---player-ui-bottom: 12px;
+--player-ui-bottom: 0px;
 --side-stack-x: calc(50% + 512px);
 ```
 
@@ -31,9 +31,12 @@ HUD blocks should align as fixed blocks, not as soft cards with spacing. The gam
 
 ## Current Gameplay Panels
 
-- The bottom-center player HUD owns stats, active condition effects, the time diorama/time-speed controls, utility actions, primary activities, and the Inspect toggle.
+- The title screen uses a fullscreen cover image, compact text-fit square-corner pixel buttons vertically centered on the left side, and a staged startup progress bar.
+- The bottom-center player HUD owns stats, active condition effects, system actions, the time diorama/time-speed controls, utility actions, primary activities, and the Inspect toggle.
 - Condition stats are compact left-anchored label/bar rows without visible numeric values.
-- The time diorama and activity/action buttons are right-anchored, leaving an expandable center cap for future stat blocks.
+- The `RD` resource-debug topic button, `O` performance overlay button, and `Exit` button sit in a separated vertical system-action column immediately left of the time diorama.
+- In gameplay mode, the RD topic panel is a fixed-height left rail anchored to the top/left viewport edges above the player HUD. Save RD Settings lives in the panel title row; first-order and second-order RD tab strips stay fixed below the title row, and only the active tab content panel scrolls.
+- The system-action column, time diorama, and activity/action buttons are right-anchored, leaving an expandable center cap for future stat blocks.
 - The time diorama sits between the center cap and action buttons. Its speed controls are inside the top of the diorama and include `0x` real pause.
 - The top side slot shows primary activity state or pathfinding travel planning.
 - The bottom side slot shows Inspect overlay controls and the selected resource/layer bar.

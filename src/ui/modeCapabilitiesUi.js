@@ -7,6 +7,7 @@ export function createModeCapabilitiesUi(deps) {
     if (!topicName) {
       for (const btn of deps.topicButtons) btn.classList.remove("active");
       for (const card of deps.topicCards) card.classList.remove("active");
+      deps.topicPanelEl.dataset.activeTopic = "";
       setTopicPanelVisible(false);
       return;
     }
@@ -23,6 +24,7 @@ export function createModeCapabilitiesUi(deps) {
         deps.topicPanelTitleEl.textContent = card.dataset.title || "Settings";
       }
     }
+    deps.topicPanelEl.dataset.activeTopic = opened ? topicName : "";
     setTopicPanelVisible(opened);
   }
 

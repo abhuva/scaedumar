@@ -15,7 +15,7 @@ export function runStartupUiSync(deps) {
   deps.updateSwarmStatsPanel();
   deps.updateSwarmFollowButtonUi();
   deps.updateShadowBlurLabel();
-  deps.updateVolumetricLabels();
+  deps.updateLightingBalanceLabels();
   deps.updatePointFlickerLabels();
   deps.updateSimTickLabel();
   deps.updateFogAlphaLabels();
@@ -35,7 +35,6 @@ export function runStartupUiSync(deps) {
   deps.syncMapPathInput(deps.currentMapFolderPath);
   deps.updateLightEditorUi();
   deps.updateCursorLightModeUi();
-  deps.updateVolumetricUi();
   deps.updatePointFlickerUi();
   deps.updateFogUi();
   deps.updateCloudUi();

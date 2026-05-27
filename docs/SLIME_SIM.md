@@ -2,9 +2,9 @@
 
 ## Purpose
 
-Slime Lab is a dev workspace for GPU Physarum-style transport experiments. It is
-currently isolated from core gameplay and exists to test high-density field
-simulation, terrain coupling, and future GPU-texture-driven gameplay systems.
+Slime is a GPU Physarum-style transport simulation exposed through `RD > Trail`.
+It runs as a gameplay/main-render subsystem so trails can be visualized directly
+over the existing terrain map instead of in a detached placeholder workspace.
 
 The implementation is intentionally WebGL2-first for the current browser/Tauri
 prototype. If the experiment becomes gameplay-critical at larger scale, the
@@ -13,7 +13,9 @@ backend without rewriting UI or settings integration.
 
 ## Runtime Ownership
 
-- Workspace entry: `Slime` in the top workspace switcher.
+- Primary UI entry: `RD > Trail`.
+- Primary visualization: main-context world-space terrain overlay.
+- Legacy dev canvas: internal comparison/compatibility path only, not a user-facing workspace.
 - Runtime owner: `src/slime/slimeGpuRuntime.js`.
 - Settings/defaults: `DEFAULT_SLIME_SETTINGS` in
   `src/core/mainSettingsContracts.js`.
@@ -183,8 +185,11 @@ Terrain controls:
   attraction.
 - `Hunt Flee Radius`: map-pixel radius around the player where the flee field
   affects agents.
-- `Terrain Underlay`: blends a height/slope/water/plant diagnostic under the
-  trail in the display pass.
+- `Terrain Underlay`: shows a clean diagnostic terrain backdrop in the main
+  terrain renderer. `slope.png` maps directly to red, live Slime plant stock
+  maps directly to green, and `water.png` maps directly to blue. Height is not
+  included. Slime trail color rendering remains a separate overlay that can be
+  enabled on top.
 
 Terrain UVs currently map simulation coordinates directly to normalized texture
 coordinates. This makes Slime Lab a same-sized field experiment, not a full
@@ -205,13 +210,14 @@ response, and attractor recovery.
 
 ## Gameplay Trail Overlay
 
-The gameplay/debug visual trail overlay must use the same render-time texture
-layer architecture as the existing terrain overlays. The Slime runtime owns the
-simulation texture. In gameplay, a headless Slime runtime instance runs inside
-the main terrain WebGL context, so the terrain shader samples the full-resolution
-trail texture directly. Shader-side colorization applies the configured
-threshold, gain, gamma, opacity, and palette-style ramp. The trail texture uses
-nearest-neighbor filtering to preserve the pixel-sharp map style.
+The gameplay/debug visual trail and terrain-underlay overlays must use the same
+render-time texture layer architecture as the existing terrain overlays. The
+Slime runtime owns the simulation textures. In gameplay, a headless Slime
+runtime instance runs inside the main terrain WebGL context, so the terrain
+shader samples the full-resolution trail texture and live plant-stock texture
+directly. Shader-side colorization applies the configured threshold, gain,
+gamma, opacity, and palette-style ramp. The trail texture uses nearest-neighbor
+filtering to preserve the pixel-sharp map style.
 
 Tracks knowledge masking also happens in the terrain shader by sampling the
 renderer-owned `tracks` discovery texture and applying the configured knowledge
@@ -223,6 +229,9 @@ Raw Slime framebuffer textures are sampled with a Y flip in
 `sampleSlimeTrailOverlay()` to match the row flip that the former CPU
 `readPixels` bridge performed. Keep that correction at the render-composite
 boundary; do not compensate by changing map-pixel-to-simulation coordinate math.
+The terrain-underlay plant-stock sample follows the same rule because it also
+samples a raw Slime simulation texture; authored height/slope/water samples stay
+in normal terrain UV space.
 
 Do not replace this with a parallel 2D canvas overlay for the full trail map.
 Canvas overlays are appropriate for markers, vectors, UI gizmos, or explicit

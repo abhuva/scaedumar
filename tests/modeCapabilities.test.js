@@ -18,8 +18,9 @@ test("normalizeRuntimeMode falls back to dev", () => {
 test("gameplay mode gates topics and interaction modes", () => {
   assert.equal(canUseTopic("gameplay", "lighting"), false);
   assert.equal(canUseTopic("gameplay", "map"), false);
-  assert.equal(canUseInteractionMode("gameplay", "lighting"), false);
+  assert.equal(canUseInteractionMode("gameplay", "lighting"), true);
   assert.equal(canUseInteractionMode("gameplay", "pathfinding"), true);
+  assert.equal(canUseOverlay("gameplay", "pointLights"), true);
 });
 
 test("dev mode exposes overlays and topics", () => {
