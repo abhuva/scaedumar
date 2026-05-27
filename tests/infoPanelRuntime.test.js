@@ -5,9 +5,10 @@ import { createInfoPanelRuntime } from "../src/ui/infoPanelRuntime.js";
 
 function makeElement() {
   const classes = new Set();
-  return {
+  const element = {
     textContent: "",
     innerHTML: "",
+    children: [],
     style: {},
     title: "",
     disabled: false,
@@ -24,7 +25,21 @@ function makeElement() {
     setAttribute(name, value) {
       this.attributes[name] = value;
     },
+    replaceChildren(...children) {
+      this.children = children;
+      this.textContent = children.map((child) => (
+        typeof child === "string" ? child : child.textContent
+      )).join("");
+    },
   };
+  element.ownerDocument = {
+    createElement: (tagName) => ({
+      tagName: String(tagName).toUpperCase(),
+      className: "",
+      textContent: "",
+    }),
+  };
+  return element;
 }
 
 function makeDeps(overrides = {}) {
@@ -87,7 +102,8 @@ test("hunting panel displays sampled availability as a bar", () => {
   update();
 
   assert.equal(deps.huntingAvailabilityRowEl.classList.contains("hidden"), false);
-  assert.equal(deps.huntingAvailabilityLabelEl.innerHTML, 'Tracks <span class="activity-meter-label-value">42%</span>');
+  assert.equal(deps.huntingAvailabilityLabelEl.textContent, "Tracks 42%");
+  assert.equal(deps.huntingAvailabilityLabelEl.children[1].className, "activity-meter-label-value");
   assert.equal(deps.huntingAvailabilityBarFillEl.style.width, "42%");
   assert.equal(deps.huntingAvailabilityRowEl.title, "Hunting chance 21%");
   assert.equal(deps.movementStatusDetailEl.textContent, "Loot: 1");

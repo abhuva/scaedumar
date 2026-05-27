@@ -40,3 +40,18 @@ test("camera settings applier centers pixel pose through map transform", () => {
 
   assert.deepEqual(calls, [[3.74, 8.33, 25]]);
 });
+
+test("camera settings applier ignores invalid pixel transform result", () => {
+  const calls = [];
+  const serializer = createCameraSettingsSerializer({
+    getCameraSettings: () => ({ zoomMin: 0.1, zoomMax: 512 }),
+    defaultCameraSettings: { zoomMin: 0.1, zoomMax: 512 },
+    getCameraState: () => ({ zoom: 1 }),
+    mapPixelToWorld: () => null,
+    setCameraPoseToStore: (...args) => calls.push(args),
+  });
+
+  serializer.applyCameraSettingsCompat({ pixelX: 374, pixelY: 833, zoom: 25 });
+
+  assert.deepEqual(calls, []);
+});

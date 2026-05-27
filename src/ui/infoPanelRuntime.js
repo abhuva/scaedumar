@@ -332,7 +332,10 @@ export function createInfoPanelRuntime(deps) {
     const availability = clamp01(activitySnapshot.huntingAvailability);
     const chance = clamp01(activitySnapshot.lastSearchChance);
     if (deps.huntingAvailabilityLabelEl) {
-      deps.huntingAvailabilityLabelEl.innerHTML = `Tracks <span class="activity-meter-label-value">${Math.round(availability * 100)}%</span>`;
+      const valueEl = deps.huntingAvailabilityLabelEl.ownerDocument.createElement("span");
+      valueEl.className = "activity-meter-label-value";
+      valueEl.textContent = `${Math.round(availability * 100)}%`;
+      deps.huntingAvailabilityLabelEl.replaceChildren("Tracks ", valueEl);
     }
     if (deps.huntingAvailabilityBarFillEl) {
       deps.huntingAvailabilityBarFillEl.style.width = `${Math.round(availability * 100)}%`;
@@ -560,8 +563,9 @@ export function createInfoPanelRuntime(deps) {
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     let started = false;
-    const denom = Math.max(1, history.length - 1);
     const startIndex = Math.max(0, history.length - perfOverlayState.graphMaxSamples);
+    const visibleCount = history.length - startIndex;
+    const denom = Math.max(1, visibleCount - 1);
     for (let i = startIndex; i < history.length; i++) {
       const value = history[i] ? Number(history[i][key]) : NaN;
       if (!Number.isFinite(value)) {

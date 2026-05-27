@@ -93,11 +93,9 @@ export function createInspectPerceptionRuntime(deps = {}) {
           deps.revealResourceKnowledge?.(resourceId);
         }
       }
-      const debugLayer = getInspectOverlayDebugLayer(state.layer);
-      if (debugLayer) {
-        deps.onDebugLayerSelected?.(debugLayer);
-      }
     }
+    const debugLayer = getInspectOverlayDebugLayer(state.layer);
+    deps.onDebugLayerSelected?.(debugLayer);
     syncLayerButtons();
     deps.syncDebugPanel?.();
     if (options.emit !== false) {

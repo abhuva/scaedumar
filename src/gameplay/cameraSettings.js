@@ -60,8 +60,14 @@ export function createCameraSettingsSerializer(deps) {
       && typeof deps.setCameraPoseToStore === "function"
     ) {
       const world = deps.mapPixelToWorld(settings.pixelX, settings.pixelY);
-      deps.setCameraPoseToStore(world.x, world.y, zoom ?? getCurrentZoom(settings));
-      return;
+      if (
+        world
+        && Number.isFinite(Number(world.x))
+        && Number.isFinite(Number(world.y))
+      ) {
+        deps.setCameraPoseToStore(world.x, world.y, zoom ?? getCurrentZoom(settings));
+        return;
+      }
     }
     if (
       Number.isFinite(Number(settings.panX))

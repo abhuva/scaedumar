@@ -313,6 +313,11 @@ export function createResourceStockRuntime(deps = {}) {
     const sourceWidth = Math.max(1, Math.round(finite(imageData.width, 1)));
     const sourceHeight = Math.max(1, Math.round(finite(imageData.height, 1)));
     const source = imageData.data;
+    const requiredLength = sourceWidth * sourceHeight * 4;
+    const sourceLength = Number.isFinite(Number(source.length))
+      ? Number(source.length)
+      : Number(source.byteLength);
+    if (!Number.isFinite(sourceLength) || sourceLength < requiredLength) return false;
     const channelOffset = Math.max(0, Math.min(3, Math.round(finite(options.channelOffset, 0))));
     const updateKnown = options.updateKnown !== false;
     const lowerKnownOnly = options.updateKnown === "lower";

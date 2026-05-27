@@ -1741,7 +1741,6 @@ function updateSlimeForGameTicks(ctx = {}) {
   if (slimeAvailabilityTickCounter >= interval) {
     slimeAvailabilityTickCounter = 0;
     refreshSlimeAvailabilityGrid(true);
-    return;
   }
   if (slimePlantSyncTickCounter >= plantInterval) {
     slimePlantSyncTickCounter = 0;
@@ -4007,7 +4006,10 @@ function syncHuntingAvailabilityPanel(activitySnapshot = null) {
   }
   const availability = clampUtil(Number(activitySnapshot.huntingAvailability) || 0, 0, 1);
   const chance = clampUtil(Number(activitySnapshot.lastSearchChance) || 0, 0, 1);
-  huntingAvailabilityLabelEl.innerHTML = `Tracks <span class="activity-meter-label-value">${Math.round(availability * 100)}%</span>`;
+  const valueEl = document.createElement("span");
+  valueEl.className = "activity-meter-label-value";
+  valueEl.textContent = `${Math.round(availability * 100)}%`;
+  huntingAvailabilityLabelEl.replaceChildren("Tracks ", valueEl);
   huntingAvailabilityBarFillEl.style.width = `${Math.round(availability * 100)}%`;
   huntingAvailabilityRowEl.title = `Hunting chance ${Math.round(chance * 100)}%`;
 }

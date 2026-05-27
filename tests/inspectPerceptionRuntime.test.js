@@ -57,6 +57,7 @@ test("inspect perception tracks layer samples tracks without resource or debug s
   runtime.sampleAt(4, 6);
   assert.equal(runtime.getLayerBarValue("tracks"), 0.5);
   assert.deepEqual(calls, [
+    ["debug", null],
     ["sync"],
     ["changed", "tracks", "layer-changed"],
   ]);

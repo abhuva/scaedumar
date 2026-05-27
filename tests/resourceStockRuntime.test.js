@@ -118,6 +118,19 @@ test("resource stock can sync live and known stock from image data", () => {
   assert.equal(runtime.sampleKnownFactor("water", 63, 63), 1);
 });
 
+test("resource stock rejects short image data buffers", () => {
+  const runtime = createRuntime();
+  runtime.fill("water", 128, "both");
+  const changed = runtime.applyStockImageData("water", {
+    width: 2,
+    height: 2,
+    data: new Uint8ClampedArray([0, 0, 0, 255]),
+  });
+
+  assert.equal(changed, false);
+  assert.equal(runtime.sampleFactor("water", 32, 32), 128 / 255);
+});
+
 test("resource stock image sync can leave known stock unchanged", () => {
   const runtime = createRuntime();
   runtime.applyStockImageData("water", {
