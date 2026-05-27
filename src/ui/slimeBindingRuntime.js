@@ -23,6 +23,7 @@ export function bindSlimeControls(deps) {
   deps.slimeAvailabilityGridSizeInput.addEventListener("input", () => dispatchSettings({ availabilityGridSize: Number(deps.slimeAvailabilityGridSizeInput.value) }));
   deps.slimeAvailabilityEffectiveMaxInput.addEventListener("input", () => dispatchSettings({ availabilityEffectiveMax: Number(deps.slimeAvailabilityEffectiveMaxInput.value) }));
   deps.slimeAvailabilityUpdateTickIntervalInput.addEventListener("input", () => dispatchSettings({ availabilityUpdateTickInterval: Number(deps.slimeAvailabilityUpdateTickIntervalInput.value) }));
+  deps.slimePlantStockSyncTickIntervalInput.addEventListener("input", () => dispatchSettings({ plantStockSyncTickInterval: Number(deps.slimePlantStockSyncTickIntervalInput.value) }));
   deps.slimeSensorDistanceInput.addEventListener("input", () => dispatchSettings({ sensorDistance: Number(deps.slimeSensorDistanceInput.value) }));
   deps.slimeSensorAngleInput.addEventListener("input", () => dispatchSettings({ sensorAngleDeg: Number(deps.slimeSensorAngleInput.value) }));
   deps.slimeSensorSizeInput.addEventListener("input", () => dispatchSettings({ sensorSize: Number(deps.slimeSensorSizeInput.value) }));

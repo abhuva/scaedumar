@@ -62,6 +62,15 @@ agent sensors -> steering -> movement -> deposit -> trail diffuse/decay -> displ
 - `Steps / Frame`: simulation ticks per animation frame.
 - `Game Ticks / Slime Step`: gameplay-mode cadence interval, default `3`.
   Slime advances only after this many game ticks have accumulated.
+- `Max Game Steps / Frame`: hidden/default gameplay work budget, default `2`.
+  At high game speeds Slime discards excess elapsed intervals instead of
+  queueing a catch-up backlog. This keeps 20x/100x fast-forward responsive and
+  intentionally trades away smooth ecological simulation at fast-forward speed.
+- `Grid Tick`: low-resolution availability readback cadence in actual Slime
+  steps, default `10`.
+- `Plant Sync Tick`: low-resolution plant stock factor sync cadence in actual
+  Slime steps, default `120`. It is staggered away from availability readback so
+  both `readPixels` calls do not stall the same update frame.
 - `Warmup Steps`: startup GPU simulation steps, default `3000`, run once after
   map sidecars and terrain/resource textures are loaded when Slime is enabled.
 - `Sensor Distance`: distance from an agent to its left/front/right sensor
@@ -167,6 +176,13 @@ Terrain controls:
 - `Plant Regen`: flat plant stock amount restored toward the base plant texture
   on regen ticks.
 - `Regen Tick`: slime simulation-step interval for plant regeneration.
+- `Hunt Flee Steps`: number of Slime simulation steps that the player repulsion
+  field remains active after a successful Hunting kill.
+- `Hunt Flee Weight`: strength of that temporary player repulsion field. It is
+  added directly to sensor scoring so high values can override terrain/resource
+  attraction.
+- `Hunt Flee Radius`: map-pixel radius around the player where the flee field
+  affects agents.
 - `Terrain Underlay`: blends a height/slope/water/plant diagnostic under the
   trail in the display pass.
 
@@ -191,17 +207,22 @@ response, and attractor recovery.
 
 The gameplay/debug visual trail overlay must use the same render-time texture
 layer architecture as the existing terrain overlays. The Slime runtime owns the
-simulation texture, but because it runs in a separate WebGL context from the
-main terrain renderer, the integration colorizes it in the Slime GPU context,
-bridges the result as an RGBA byte raster, and uploads that raster into a
-main-renderer texture. The terrain shader then composites that texture with the
-rest of the map layers. The uploaded trail texture uses nearest-neighbor
-filtering to preserve the pixel-sharp map style.
+simulation texture. In gameplay, a headless Slime runtime instance runs inside
+the main terrain WebGL context, so the terrain shader samples the full-resolution
+trail texture directly. Shader-side colorization applies the configured
+threshold, gain, gamma, opacity, and palette-style ramp. The trail texture uses
+nearest-neighbor filtering to preserve the pixel-sharp map style.
 
-In gameplay time mode, the bridged overlay raster refreshes through the normal
-Slime update cadence. In free/dev mode, Slime frames refresh the bridged raster
-only while the trail overlay is visible and on a throttled cadence, so the
-overlay stays live without restoring an every-frame full-map readback.
+Tracks knowledge masking also happens in the terrain shader by sampling the
+renderer-owned `tracks` discovery texture and applying the configured knowledge
+cutoff. Normal gameplay rendering must not use full-resolution Slime trail
+`readPixels`, CPU masking, or an overlay-canvas full-map fallback. Low-resolution
+readbacks remain acceptable for gameplay statistics and diagnostics.
+
+Raw Slime framebuffer textures are sampled with a Y flip in
+`sampleSlimeTrailOverlay()` to match the row flip that the former CPU
+`readPixels` bridge performed. Keep that correction at the render-composite
+boundary; do not compensate by changing map-pixel-to-simulation coordinate math.
 
 Do not replace this with a parallel 2D canvas overlay for the full trail map.
 Canvas overlays are appropriate for markers, vectors, UI gizmos, or explicit
@@ -214,12 +235,27 @@ availability follows what the player sees instead of raw internal trail energy.
 Hunting uses a hotspot aggregate, currently the top half of cells inside the
 activity circle, so strong blobs are not erased by empty edge cells.
 
-Inspect exposes Tracks as the `T` layer. Its readout samples the full-resolution
-trail overlay raster at the cursor, while rendering gates visibility through a
-separate `tracks` discovery map. That map initializes clear/black on new game
-or map reset; player movement updates the tracks discovery map, while scout
-birds do not. Future hawk possession can reveal/update the same tracks map
-without coupling it to the shared world Knowledge Map.
+On a Hunting success, gameplay reads the current GPU agent positions once,
+counts agents inside the hunt circle, and awards loot only for agents actually
+present. Killed agents are locally removed by respawning them outside the hunt
+circle. If the probabilistic hunt succeeds but no agents are in the circle, no
+loot is awarded and the panel reports a missed shot/no game. After at least one
+kill, the player activates a temporary Slime flee field for the configured
+number of steps so nearby agents visibly scatter instead of the system relying
+on immediate trail deletion. Existing trail is left to decay naturally. That
+flee field is registered as a temporary condition effect, so its player-facing
+status lives in the normal buff/debuff strip and its remaining duration is
+decremented by actual Slime simulation steps. The flee field is radius-limited:
+agents inside the radius penalize sensor samples near the player and also apply
+a direct away-from-player steering force with a proximity-scaled temporary
+speed boost.
+
+Inspect exposes Tracks as the `T` layer. Its readout samples the low-resolution
+availability grid, while rendering gates visibility through a separate `tracks`
+discovery map in the terrain shader. That map initializes clear/black on new
+game or map reset; player movement updates the tracks discovery map, while
+scout birds do not. Future hawk possession can reveal/update the same tracks
+map without coupling it to the shared world Knowledge Map.
 
 The RD Slime tab can initialize/test the tracks discovery map directly:
 

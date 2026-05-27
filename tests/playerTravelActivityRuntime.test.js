@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { createPlayerActivityState } from "../src/gameplay/playerActivityStateRuntime.js";
+import { ACTIVITY_TIME_SPEED_20X } from "../src/gameplay/playerActivityRuntime.js";
 import { createTravelActivityController } from "../src/gameplay/playerTravelActivityRuntime.js";
 
 function createTravelHarness(overrides = {}) {
@@ -22,6 +23,9 @@ function createTravelHarness(overrides = {}) {
     },
     setActivitySpeed1x: () => {
       cycleSpeed = 0.01;
+    },
+    setActivitySpeed20x: () => {
+      cycleSpeed = ACTIVITY_TIME_SPEED_20X;
     },
     syncStore: () => {
       syncCalls.push({ ...runtime });
@@ -52,7 +56,7 @@ test("travel controller starts explicit travel from queued movement", () => {
   assert.equal(runtime.active, true);
   assert.equal(runtime.type, "travel");
   assert.equal(runtime.lastMessage, "Traveling.");
-  assert.equal(cycleSpeed(), 0.01);
+  assert.equal(cycleSpeed(), ACTIVITY_TIME_SPEED_20X);
   assert.equal(syncCalls.length, 1);
 });
 

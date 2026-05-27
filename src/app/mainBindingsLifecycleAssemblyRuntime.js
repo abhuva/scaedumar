@@ -303,6 +303,7 @@ export function createMainBindingsLifecycleAssemblyRuntime(deps) {
     slimeAvailabilityGridSizeInput: deps.slimeAvailabilityGridSizeInput,
     slimeAvailabilityEffectiveMaxInput: deps.slimeAvailabilityEffectiveMaxInput,
     slimeAvailabilityUpdateTickIntervalInput: deps.slimeAvailabilityUpdateTickIntervalInput,
+    slimePlantStockSyncTickIntervalInput: deps.slimePlantStockSyncTickIntervalInput,
     slimeSensorDistanceInput: deps.slimeSensorDistanceInput,
     slimeSensorAngleInput: deps.slimeSensorAngleInput,
     slimeSensorSizeInput: deps.slimeSensorSizeInput,

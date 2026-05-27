@@ -2,6 +2,9 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  ACTIVITY_TIME_SPEED_20X,
+} from "../src/gameplay/playerActivityRuntime.js";
+import {
   buildDirectHuntingPath,
   chooseHuntingPatrolTarget,
   createHuntingActivityController,
@@ -47,6 +50,7 @@ test("hunting activity samples availability and applies success depletion", () =
   const successes = [];
   const snapshots = [];
   const randomValues = [0.25, 1, 0];
+  let cycleSpeed = 0.01;
   const controller = createHuntingActivityController({
     runtime,
     playerState,
@@ -59,17 +63,25 @@ test("hunting activity samples availability and applies success depletion", () =
       trailEffectiveMax: 0.7,
       maxChance: 1,
       depletionRadius: 20,
-      depletionTrailClear: 0.5,
+      killCount: 1,
+      fleeSteps: 100,
+      fleeWeight: 80,
     }),
     sampleHuntingAvailability: () => ({ availability: 0.8, rawAverage: 0.56 }),
     onHuntingSearch: () => {},
-    onHuntingSuccess: (payload) => successes.push(payload),
+    onHuntingSuccess: (payload) => {
+      successes.push(payload);
+      return { killed: 1 };
+    },
     replaceMovementQueue: (path) => {
       queuedPaths.push(path);
       return true;
     },
     random: () => randomValues.shift() ?? 0,
     setActivitySpeed1x: () => {},
+    setActivitySpeed20x: () => {
+      cycleSpeed = ACTIVITY_TIME_SPEED_20X;
+    },
     syncStore: () => snapshots.push({ ...runtime }),
     stopActivity: () => false,
     setStatus: () => {},
@@ -78,6 +90,7 @@ test("hunting activity samples availability and applies success depletion", () =
   assert.equal(controller.startHunting().ok, true);
   assert.equal(runtime.active, true);
   assert.equal(runtime.type, "hunting");
+  assert.equal(cycleSpeed, ACTIVITY_TIME_SPEED_20X);
   assert.equal(queuedPaths.length, 1);
 
   controller.onStepCompleted({ toX: 11, toY: 10 });
@@ -85,6 +98,6 @@ test("hunting activity samples availability and applies success depletion", () =
   assert.equal(runtime.huntingAvailability, 0.8);
   assert.equal(runtime.huntingRawAvailability, 0.56);
   assert.equal(runtime.foundCount, 1);
-  assert.deepEqual(successes, [{ x: 11, y: 10, radius: 20, trailClear: 0.5 }]);
+  assert.deepEqual(successes, [{ x: 11, y: 10, radius: 20, killCount: 1, fleeSteps: 100, fleeWeight: 80 }]);
   assert.ok(snapshots.length >= 2);
 });

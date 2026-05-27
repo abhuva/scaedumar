@@ -21,6 +21,8 @@ export function createSlimePanelRuntime(deps) {
     setText(deps.slimeAvailabilityEffectiveMaxValue, Number(settings.availabilityEffectiveMax).toFixed(2));
     deps.slimeAvailabilityUpdateTickIntervalInput.value = String(settings.availabilityUpdateTickInterval);
     setText(deps.slimeAvailabilityUpdateTickIntervalValue, String(settings.availabilityUpdateTickInterval));
+    deps.slimePlantStockSyncTickIntervalInput.value = String(settings.plantStockSyncTickInterval);
+    setText(deps.slimePlantStockSyncTickIntervalValue, String(settings.plantStockSyncTickInterval));
     deps.slimeSensorDistanceInput.value = String(settings.sensorDistance);
     setText(deps.slimeSensorDistanceValue, Number(settings.sensorDistance).toFixed(1));
     deps.slimeSensorAngleInput.value = String(settings.sensorAngleDeg);

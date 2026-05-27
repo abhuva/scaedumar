@@ -41,6 +41,10 @@ uniform float uHeightBandWeight;
 uniform float uWaterBias;
 uniform float uPlantBias;
 uniform float uPlantFloor;
+uniform bool uFleeActive;
+uniform vec2 uFleeCenter;
+uniform float uFleeWeight;
+uniform float uFleeRadius;
 uniform bool uWrapEdges;
 uniform float uFrame;
 in vec2 vUv;
@@ -50,6 +54,18 @@ float hash(vec3 p) {
   p = fract(p * vec3(443.8975, 397.2973, 491.1871));
   p += dot(p, p.yxz + 19.19);
   return fract((p.x + p.y) * p.z);
+}
+
+float fleeSensorScore(vec2 center) {
+  if (!uFleeActive || uFleeRadius <= 0.0 || uFleeWeight <= 0.0) {
+    return 0.0;
+  }
+  float dist = distance(center, uFleeCenter);
+  if (dist >= uFleeRadius) {
+    return 0.0;
+  }
+  float proximity = 1.0 - dist / uFleeRadius;
+  return -proximity * proximity * uFleeWeight;
 }
 
 float sampleTrail(vec2 pos, float angle) {
@@ -67,7 +83,7 @@ float sampleTrail(vec2 pos, float angle) {
     }
   }
   if (!uUseTerrain) {
-    return sum;
+    return sum + fleeSensorScore(center);
   }
   vec2 terrainUv = uWrapEdges ? fract(center / uSimSize) : clamp(center / uSimSize, vec2(0.0), vec2(1.0));
   float slope = texture(uSlope, terrainUv).r;
@@ -86,7 +102,7 @@ float sampleTrail(vec2 pos, float angle) {
   if (slope > uSlopeCutoff) {
     terrainScore -= 1000.0;
   }
-  return sum + terrainScore * uTerrainMix;
+  return sum + terrainScore * uTerrainMix + fleeSensorScore(center);
 }
 
 void main() {
@@ -124,8 +140,28 @@ void main() {
     angle += randomTurn * uTurnAngle;
   }
 
+  float stepMultiplier = 1.0;
+  if (uFleeActive && uFleeRadius > 0.0 && uFleeWeight > 0.0) {
+    vec2 away = pos - uFleeCenter;
+    float dist = length(away);
+    if (dist < uFleeRadius) {
+      if (dist < 0.001) {
+        float fallbackAngle = angle + randomC * 6.2831853;
+        away = vec2(cos(fallbackAngle), sin(fallbackAngle));
+        dist = 1.0;
+      }
+      float proximity = 1.0 - dist / uFleeRadius;
+      float force = proximity * proximity * uFleeWeight;
+      float fleeAngle = atan(away.y, away.x);
+      float delta = atan(sin(fleeAngle - angle), cos(fleeAngle - angle));
+      float maxTurn = min(3.14159265, uTurnAngle + force * 0.03);
+      angle += clamp(delta, -maxTurn, maxTurn);
+      stepMultiplier += clamp(force * 0.02, 0.0, 4.0);
+    }
+  }
+
   vec2 prevPos = pos;
-  pos += vec2(cos(angle), sin(angle)) * uStepSize;
+  pos += vec2(cos(angle), sin(angle)) * uStepSize * stepMultiplier;
   if (uWrapEdges) {
     pos = mod(pos + uSimSize, uSimSize);
   } else {
@@ -334,26 +370,6 @@ void main() {
 }
 `;
 
-const TRAIL_OVERLAY_READBACK_FRAG = `#version 300 es
-precision highp float;
-uniform sampler2D uTrail;
-uniform float uGain;
-uniform float uGamma;
-uniform float uThreshold;
-uniform float uOpacity;
-in vec2 vUv;
-out vec4 outColor;
-void main() {
-  float raw = max(0.0, texture(uTrail, vUv).r);
-  if (raw <= uThreshold) {
-    outColor = vec4(0.0);
-    return;
-  }
-  float value = pow(min(1.0, raw * max(0.001, uGain)), 1.0 / max(0.001, uGamma));
-  outColor = vec4(value, (92.0 + 150.0 * value) / 255.0, (18.0 + 52.0 * value) / 255.0, uOpacity * max(0.18, value));
-}
-`;
-
 const PLANT_STOCK_FACTOR_READBACK_FRAG = `#version 300 es
 precision highp float;
 uniform sampler2D uPlantStock;
@@ -412,7 +428,10 @@ void main() {
 export function createSlimeGpuRuntime(deps) {
   const canvas = deps.canvas;
   const state = deps.state;
-  let gl = null;
+  const externalGl = deps.gl || null;
+  const headless = deps.headless === true;
+  let gl = externalGl;
+  let extensionChecked = false;
   let settings = null;
   let frameId = null;
   let frameCounter = 0;
@@ -424,12 +443,18 @@ export function createSlimeGpuRuntime(deps) {
   let simulationTick = 0;
   let gameTickAccumulator = 0;
   let availabilityVersion = 0;
+  const fleeState = {
+    stepsRemaining: 0,
+    centerX: 0,
+    centerY: 0,
+    weight: 0,
+  };
 
   function start(rawSettings) {
     state.running = true;
     state.error = "";
     if (!tryEnsureInitialized(rawSettings)) return;
-    if (settings.timeMode === "free") schedule();
+    if (!headless && settings.timeMode === "free") schedule();
   }
 
   function stop() {
@@ -442,6 +467,7 @@ export function createSlimeGpuRuntime(deps) {
 
   function reset(rawSettings) {
     stop();
+    clearFleeState();
     disposeResources();
     if (!tryEnsureInitialized(rawSettings)) return false;
     renderDisplay();
@@ -479,7 +505,7 @@ export function createSlimeGpuRuntime(deps) {
       return;
     }
     if (state.initialized) renderDisplay();
-    if (state.running && settings.timeMode === "free") {
+    if (!headless && state.running && settings.timeMode === "free") {
       schedule();
     } else if (settings.timeMode === "gameTick" && frameId !== null) {
       cancelAnimationFrame(frameId);
@@ -510,9 +536,12 @@ export function createSlimeGpuRuntime(deps) {
         preserveDrawingBuffer: false,
       });
       if (!gl) throwRuntimeError("WebGL2 is not available.");
+    }
+    if (!extensionChecked) {
       if (!gl.getExtension("EXT_color_buffer_float")) {
         throwRuntimeError("EXT_color_buffer_float is required for GPU slime state.");
       }
+      extensionChecked = true;
     }
     if (!resources) {
       resources = createResources(settings);
@@ -564,6 +593,9 @@ export function createSlimeGpuRuntime(deps) {
     depositAgents();
     diffuseTrail();
     updatePlantStockFromTrail();
+    if (fleeState.stepsRemaining > 0) {
+      fleeState.stepsRemaining -= 1;
+    }
   }
 
   function markFrameAdvanced() {
@@ -580,7 +612,9 @@ export function createSlimeGpuRuntime(deps) {
     const elapsedIntervals = Math.floor(gameTickAccumulator / gameTicksPerStep);
     if (elapsedIntervals <= 0) return 0;
     gameTickAccumulator -= elapsedIntervals * gameTicksPerStep;
-    const steps = elapsedIntervals * Math.max(1, Math.round(Number(settings.stepsPerGameTick) || 1));
+    const requestedSteps = elapsedIntervals * Math.max(1, Math.round(Number(settings.stepsPerGameTick) || 1));
+    const maxSteps = Math.max(1, Math.round(Number(settings.maxGameStepsPerFrame) || 1));
+    const steps = Math.min(requestedSteps, maxSteps);
     if (steps <= 0) {
       renderDisplay();
       return 0;
@@ -678,6 +712,10 @@ export function createSlimeGpuRuntime(deps) {
     gl.uniform1f(r.agentProgram.uWaterBias, settings.waterBias);
     gl.uniform1f(r.agentProgram.uPlantBias, settings.plantBias);
     gl.uniform1f(r.agentProgram.uPlantFloor, settings.plantFloor);
+    gl.uniform1i(r.agentProgram.uFleeActive, fleeState.stepsRemaining > 0 && fleeState.weight > 0 ? 1 : 0);
+    gl.uniform2f(r.agentProgram.uFleeCenter, fleeState.centerX, fleeState.centerY);
+    gl.uniform1f(r.agentProgram.uFleeWeight, fleeState.weight);
+    gl.uniform1f(r.agentProgram.uFleeRadius, settings.huntingFleeRadius);
     gl.uniform1i(r.agentProgram.uWrapEdges, settings.wrapEdges ? 1 : 0);
     gl.uniform1f(r.agentProgram.uFrame, frameCounter);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
@@ -780,6 +818,121 @@ export function createSlimeGpuRuntime(deps) {
     return true;
   }
 
+  function activateFleeAtMapPixel(pixelX, pixelY, mapWidth, mapHeight, options = {}) {
+    if (!tryEnsureInitialized(settings)) return false;
+    const center = mapPixelToSimPoint(pixelX, pixelY, mapWidth, mapHeight);
+    fleeState.centerX = center.x;
+    fleeState.centerY = center.y;
+    fleeState.stepsRemaining = Math.max(0, Math.round(Number(options.steps) || 0));
+    fleeState.weight = Math.max(0, Number(options.weight) || 0);
+    return fleeState.stepsRemaining > 0 && fleeState.weight > 0;
+  }
+
+  function clearFleeState() {
+    fleeState.stepsRemaining = 0;
+    fleeState.centerX = 0;
+    fleeState.centerY = 0;
+    fleeState.weight = 0;
+  }
+
+  function huntAgentsAtMapPixel(pixelX, pixelY, mapWidth, mapHeight, options = {}) {
+    if (!tryEnsureInitialized(settings)) return { available: 0, killed: 0 };
+    const r = resources;
+    const width = Math.max(1, Number(mapWidth) || 1);
+    const height = Math.max(1, Number(mapHeight) || 1);
+    const radius = Math.max(0, Number(options.radius) || 0);
+    const maxKills = Math.max(0, Math.round(Number(options.maxKills) || 0));
+    if (radius <= 0 || maxKills <= 0) return { available: 0, killed: 0 };
+    const targetX = Number(pixelX) || 0;
+    const targetY = Number(pixelY) || 0;
+    const radiusSq = radius * radius;
+    const data = new Float32Array(r.agentTexSize * r.agentTexSize * 4);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, r.agentFramebuffers[r.agentIndex]);
+    gl.readPixels(0, 0, r.agentTexSize, r.agentTexSize, gl.RGBA, gl.FLOAT, data);
+    const candidates = [];
+    for (let i = 0; i < settings.agentCount; i++) {
+      const offset = i * 4;
+      const mapX = data[offset] / settings.simSize * width;
+      const mapY = (1 - data[offset + 1] / settings.simSize) * height;
+      const dx = mapX - targetX;
+      const dy = mapY - targetY;
+      const distSq = dx * dx + dy * dy;
+      if (distSq <= radiusSq) {
+        candidates.push({ index: i, distSq });
+      }
+    }
+    candidates.sort((a, b) => a.distSq - b.distSq);
+    const killed = Math.min(maxKills, candidates.length);
+    brushSeed += 1;
+    for (let i = 0; i < killed; i++) {
+      respawnAgentOutsideCircle(data, candidates[i].index, targetX, targetY, width, height, radiusSq);
+    }
+    if (killed > 0) {
+      gl.bindTexture(gl.TEXTURE_2D, r.agentTextures[r.agentIndex]);
+      for (let i = 0; i < killed; i++) {
+        const agentIndex = candidates[i].index;
+        const offset = agentIndex * 4;
+        const texX = agentIndex % r.agentTexSize;
+        const texY = Math.floor(agentIndex / r.agentTexSize);
+        gl.texSubImage2D(
+          gl.TEXTURE_2D,
+          0,
+          texX,
+          texY,
+          1,
+          1,
+          gl.RGBA,
+          gl.FLOAT,
+          data.subarray(offset, offset + 4),
+        );
+      }
+      renderDisplay();
+    }
+    return { available: candidates.length, killed };
+  }
+
+  function mapPixelToSimPoint(pixelX, pixelY, mapWidth, mapHeight) {
+    const width = Math.max(1, Number(mapWidth) || 1);
+    const height = Math.max(1, Number(mapHeight) || 1);
+    return {
+      x: Math.max(0, Math.min(settings.simSize - 1, (Number(pixelX) || 0) / width * settings.simSize)),
+      y: Math.max(0, Math.min(settings.simSize - 1, (1 - (Number(pixelY) || 0) / height) * settings.simSize)),
+    };
+  }
+
+  function respawnAgentOutsideCircle(data, agentIndex, targetX, targetY, mapWidth, mapHeight, radiusSq) {
+    let seed = ((settings.seed + 1) * 2654435761 + (brushSeed + 17) * 1013904223 + agentIndex * 374761393) >>> 0;
+    function rand() {
+      seed = (seed * 1664525 + 1013904223) >>> 0;
+      return seed / 4294967296;
+    }
+    const center = settings.simSize * 0.5;
+    const spawnRadius = settings.simSize * 0.18;
+    let position = null;
+    for (let attempt = 0; attempt < 32; attempt++) {
+      const candidate = sampleSpawnPosition(settings, rand, center, spawnRadius);
+      const mapX = candidate.x / settings.simSize * mapWidth;
+      const mapY = (1 - candidate.y / settings.simSize) * mapHeight;
+      const dx = mapX - targetX;
+      const dy = mapY - targetY;
+      if (dx * dx + dy * dy > radiusSq) {
+        position = candidate;
+        break;
+      }
+    }
+    if (!position) {
+      position = {
+        x: targetX < mapWidth * 0.5 ? settings.simSize - 1 : 0,
+        y: targetY < mapHeight * 0.5 ? 0 : settings.simSize - 1,
+      };
+    }
+    const offset = agentIndex * 4;
+    data[offset] = position.x;
+    data[offset + 1] = position.y;
+    data[offset + 2] = rand() * Math.PI * 2;
+    data[offset + 3] = rand();
+  }
+
   function readTrailAvailabilityGrid(options = {}) {
     if (!tryEnsureInitialized(settings)) {
       return null;
@@ -818,26 +971,6 @@ export function createSlimeGpuRuntime(deps) {
     return { width: gridSize, height: gridSize, data, rawData, version: availabilityVersion, effectiveMax };
   }
 
-  function readPlantStockImageData() {
-    if (!tryEnsureInitialized(settings) || !resources || !resources.hasTerrain) {
-      return null;
-    }
-    const r = resources;
-    const width = Math.max(1, Math.round(r.plantMapWidth || 1));
-    const height = Math.max(1, Math.round(r.plantMapHeight || 1));
-    const raw = new Uint8Array(width * height * 4);
-    const data = new Uint8ClampedArray(width * height * 4);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, r.plantStockFramebuffers[r.plantStockIndex]);
-    gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, raw);
-    for (let y = 0; y < height; y++) {
-      const targetY = height - y - 1;
-      const sourceRow = y * width * 4;
-      const targetRow = targetY * width * 4;
-      data.set(raw.subarray(sourceRow, sourceRow + width * 4), targetRow);
-    }
-    return { width, height, data };
-  }
-
   function readPlantStockFactorImageData(options = {}) {
     if (!tryEnsureInitialized(settings) || !resources || !resources.hasTerrain) {
       return null;
@@ -867,51 +1000,8 @@ export function createSlimeGpuRuntime(deps) {
     return { width, height, data };
   }
 
-  function readTrailOverlayRaster(options = {}) {
-    if (!tryEnsureInitialized(settings)) {
-      return null;
-    }
-    const r = resources;
-    const width = Math.max(1, Math.round(settings.simSize));
-    const height = Math.max(1, Math.round(settings.simSize));
-    const data = new Uint8ClampedArray(width * height * 4);
-    const gain = Math.max(0.001, Number(options.gain ?? settings.trailGain) || 1);
-    const gamma = Math.max(0.001, Number(options.gamma ?? settings.trailGamma) || 1);
-    const threshold = Math.max(0, Number(options.threshold ?? 0) || 0);
-    const opacity = Math.max(0, Math.min(1, Number(options.opacity ?? 0.65) || 0.65));
-
-    ensureReadbackTarget(width, height);
-    gl.useProgram(r.trailOverlayReadbackProgram.program);
-    bindFramebuffer(r.readbackFramebuffer, width, height);
-    gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(gl.TEXTURE_2D, r.trailTextures[r.trailIndex]);
-    gl.uniform1i(r.trailOverlayReadbackProgram.uTrail, 0);
-    gl.uniform1f(r.trailOverlayReadbackProgram.uGain, gain);
-    gl.uniform1f(r.trailOverlayReadbackProgram.uGamma, gamma);
-    gl.uniform1f(r.trailOverlayReadbackProgram.uThreshold, threshold);
-    gl.uniform1f(r.trailOverlayReadbackProgram.uOpacity, opacity);
-    gl.drawArrays(gl.TRIANGLES, 0, 3);
-
-    const raw = new Uint8Array(width * height * 4);
-    gl.readPixels(0, 0, width, height, gl.RGBA, gl.UNSIGNED_BYTE, raw);
-    for (let y = 0; y < height; y++) {
-      const targetY = height - y - 1;
-      const sourceRow = y * width * 4;
-      const targetRow = targetY * width * 4;
-      data.set(raw.subarray(sourceRow, sourceRow + width * 4), targetRow);
-    }
-
-    availabilityVersion += 1;
-    return {
-      width,
-      height,
-      data,
-      version: availabilityVersion,
-    };
-  }
-
   function renderDisplay() {
-    if (!gl || !resources) return;
+    if (!gl || !resources || headless) return;
     resizeCanvas();
     const r = resources;
     gl.useProgram(r.displayProgram.program);
@@ -972,7 +1062,7 @@ export function createSlimeGpuRuntime(deps) {
         "uAgents", "uTrail", "uHeight", "uSlope", "uWater", "uPlant", "uAgentCount", "uAgentTexSize", "uSimSize", "uSensorDistance", "uSensorAngle",
         "uSensorSize", "uSensorNoise", "uStepSize", "uTurnAngle", "uWanderChance", "uWanderStrength",
         "uUseTerrain", "uTerrainMix", "uSlopeBias", "uSlopeCutoff", "uHeightBias", "uHeightMin", "uHeightMax",
-        "uHeightBandWeight", "uWaterBias", "uPlantBias", "uPlantFloor", "uWrapEdges", "uFrame",
+        "uHeightBandWeight", "uWaterBias", "uPlantBias", "uPlantFloor", "uFleeActive", "uFleeCenter", "uFleeWeight", "uFleeRadius", "uWrapEdges", "uFrame",
       ]),
       depositProgram: createProgramInfo(DEPOSIT_VERT, DEPOSIT_FRAG, [
         "uAgents", "uAgentCount", "uAgentTexSize", "uSimSize", "uDepositSize", "uDepositAmount",
@@ -991,9 +1081,6 @@ export function createSlimeGpuRuntime(deps) {
       ]),
       trailAvailabilityReadbackProgram: createProgramInfo(FULLSCREEN_VERT, TRAIL_AVAILABILITY_READBACK_FRAG, [
         "uTrail", "uGain", "uGamma", "uThreshold",
-      ]),
-      trailOverlayReadbackProgram: createProgramInfo(FULLSCREEN_VERT, TRAIL_OVERLAY_READBACK_FRAG, [
-        "uTrail", "uGain", "uGamma", "uThreshold", "uOpacity",
       ]),
       plantStockFactorReadbackProgram: createProgramInfo(FULLSCREEN_VERT, PLANT_STOCK_FACTOR_READBACK_FRAG, [
         "uPlantStock", "uPlantBase",
@@ -1278,6 +1365,7 @@ export function createSlimeGpuRuntime(deps) {
   }
 
   function resizeCanvas() {
+    if (headless) return;
     const rect = canvas.getBoundingClientRect();
     const width = Math.max(1, Math.floor(rect.width * window.devicePixelRatio));
     const height = Math.max(1, Math.floor(rect.height * window.devicePixelRatio));
@@ -1319,7 +1407,6 @@ export function createSlimeGpuRuntime(deps) {
       resources.diffuseProgram,
       resources.plantStockProgram,
       resources.trailAvailabilityReadbackProgram,
-      resources.trailOverlayReadbackProgram,
       resources.plantStockFactorReadbackProgram,
       resources.displayProgram,
     ]) {
@@ -1329,8 +1416,12 @@ export function createSlimeGpuRuntime(deps) {
     terrainRefs = null;
     simulationTick = 0;
     gameTickAccumulator = 0;
+    clearFleeState();
     state.initialized = false;
     state.capabilities = "Not initialized";
+    if (externalGl) {
+      gl = externalGl;
+    }
   }
 
   function paletteIndex(palette) {
@@ -1353,10 +1444,12 @@ export function createSlimeGpuRuntime(deps) {
     applySettings,
     brushResetAtClient,
     brushResetAtMapPixel,
+    huntAgentsAtMapPixel,
+    activateFleeAtMapPixel,
     readTrailAvailabilityGrid,
-    readPlantStockImageData,
     readPlantStockFactorImageData,
-    readTrailOverlayRaster,
+    getTrailTexture: () => (resources ? resources.trailTextures[resources.trailIndex] : null),
+    getTrailTextureVersion: () => availabilityVersion + frameCounter,
     stepGameTicks,
     warmupSteps,
     renderDisplay,

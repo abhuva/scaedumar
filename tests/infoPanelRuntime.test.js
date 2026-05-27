@@ -90,6 +90,7 @@ test("hunting panel displays sampled availability as a bar", () => {
   assert.equal(deps.huntingAvailabilityLabelEl.innerHTML, 'Tracks <span class="activity-meter-label-value">42%</span>');
   assert.equal(deps.huntingAvailabilityBarFillEl.style.width, "42%");
   assert.equal(deps.huntingAvailabilityRowEl.title, "Hunting chance 21%");
+  assert.equal(deps.movementStatusDetailEl.textContent, "Loot: 1");
 });
 
 test("travel preview panel keeps unreachable message compact", () => {

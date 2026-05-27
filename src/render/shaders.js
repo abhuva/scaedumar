@@ -22,6 +22,7 @@ uniform sampler2D uMaterialSplat;
 uniform sampler2D uDetailMicroColor;
 uniform sampler2D uDiscoveryMask;
 uniform sampler2D uSlimeTrailOverlay;
+uniform sampler2D uSlimeTracksMask;
 uniform float uUseCursorLight;
 uniform vec2 uCursorLightUv;
 uniform vec3 uCursorLightColor;
@@ -54,6 +55,13 @@ uniform vec4 uDetailMaterialPriority;
 uniform float uDiscoveryVisibilityEnabled;
 uniform float uDiscoveryVisibilityMode;
 uniform float uSlimeTrailOverlayEnabled;
+uniform float uSlimeTrailOverlayRaw;
+uniform float uSlimeTrailOverlayGain;
+uniform float uSlimeTrailOverlayGamma;
+uniform float uSlimeTrailOverlayThreshold;
+uniform float uSlimeTrailOverlayOpacity;
+uniform float uSlimeTracksMaskEnabled;
+uniform float uSlimeTracksKnowledgeCutoff;
 uniform float uDiscoveryDitherScale;
 uniform float uDiscoveryKnowledgeGamma;
 uniform float uDiscoveryUnknownDarkness;
@@ -168,6 +176,34 @@ vec2 decodeImageFlowDir(vec4 sampleValue) {
   if (len <= 0.00002) return vec2(0.0);
   float magnitude = mix(1.0, clamp(sampleValue.b, 0.0, 1.0), step(0.5, uWaterFlowUseMagnitude));
   return (dir / len) * magnitude * max(0.0, uWaterFlowMapStrength);
+}
+
+vec3 slimeTrailPalette(float v) {
+  vec3 low = vec3(0.08, 0.18, 0.10);
+  vec3 mid = vec3(0.20, 0.82, 0.20);
+  vec3 high = vec3(1.0, 0.96, 0.38);
+  return mix(mix(low, mid, smoothstep(0.0, 0.72, v)), high, smoothstep(0.62, 1.0, v));
+}
+
+vec4 sampleSlimeTrailOverlay(vec2 uv) {
+  if (uSlimeTrailOverlayRaw < 0.5) {
+    return texture(uSlimeTrailOverlay, uv);
+  }
+  // Raw Slime textures are framebuffer/simulation-space data. The old CPU
+  // bridge flipped readPixels rows into map-space; the direct texture path must
+  // do the equivalent flip here so Tracks align with terrain textures.
+  vec2 slimeUv = vec2(uv.x, 1.0 - uv.y);
+  float raw = texture(uSlimeTrailOverlay, slimeUv).r;
+  float value = 0.0;
+  if (raw > uSlimeTrailOverlayThreshold) {
+    value = pow(clamp(raw * max(0.001, uSlimeTrailOverlayGain), 0.0, 1.0), 1.0 / max(0.001, uSlimeTrailOverlayGamma));
+  }
+  float alpha = value * clamp(uSlimeTrailOverlayOpacity, 0.0, 1.0);
+  if (uSlimeTracksMaskEnabled > 0.5) {
+    float knowledge = clamp(texture(uSlimeTracksMask, uv).r, 0.0, 1.0);
+    alpha *= step(uSlimeTracksKnowledgeCutoff, knowledge) * knowledge;
+  }
+  return vec4(slimeTrailPalette(value), alpha);
 }
 
 vec2 detailAtlasUv(vec2 mapPixel, float scaleMeters, vec4 rect) {
@@ -700,7 +736,7 @@ void main() {
   float localLight = max(lit.r, max(lit.g, lit.b));
   lit = applyWaterParticleTrail(uv, lit, localLight);
   if (uSlimeTrailOverlayEnabled > 0.5) {
-    vec4 slimeTrail = texture(uSlimeTrailOverlay, uv);
+    vec4 slimeTrail = sampleSlimeTrailOverlay(uv);
     lit = mix(lit, slimeTrail.rgb, clamp(slimeTrail.a, 0.0, 1.0));
   }
 

@@ -9,12 +9,18 @@ export function createRenderBootstrapState(deps) {
   const detailMicroColorTex = deps.createLinearTexture();
   const discoveryMaskTex = deps.createTexture();
   const slimeTrailOverlayTex = deps.createTexture();
+  const slimeTracksMaskTex = deps.createTexture();
   const slimeTrailOverlayTextureState = {
     width: 0,
     height: 0,
     version: 0,
   };
   const discoveryMaskTextureState = {
+    width: 0,
+    height: 0,
+    versionKey: "",
+  };
+  const slimeTracksMaskTextureState = {
     width: 0,
     height: 0,
     versionKey: "",
@@ -58,8 +64,10 @@ export function createRenderBootstrapState(deps) {
     detailMicroColorTex,
     discoveryMaskTex,
     slimeTrailOverlayTex,
+    slimeTracksMaskTex,
     slimeTrailOverlayTextureState,
     discoveryMaskTextureState,
+    slimeTracksMaskTextureState,
     detailAtlasState,
     pointLightTex,
     cloudNoiseTex,

@@ -187,6 +187,7 @@ import {
 import { createAudioScribbleInputRuntime } from "./audio/audioScribbleInputRuntime.js";
 import { createAudioPanelRuntime } from "./ui/audioPanelRuntime.js";
 import { createSlimeGpuRuntime } from "./slime/slimeGpuRuntime.js";
+import { createSlimeMainRenderRuntime } from "./slime/slimeMainRenderRuntime.js";
 import { DEFAULT_SLIME_SIMULATION_STATE, normalizeSlimeSettings } from "./slime/slimeState.js";
 import {
   createEmptySlimeAvailabilityGrid,
@@ -213,12 +214,15 @@ const RESOURCE_STOCK_SETTINGS = await loadResourceStockSettings({ resourceIds: O
 const DISCOVERY_SETTINGS = await loadDiscoverySettings();
 const WORLD_KNOWLEDGE_MAP_ID = "world";
 const TRACKS_KNOWLEDGE_MAP_ID = "tracks";
+const SLIME_HUNT_FLEE_EFFECT_ID = "slime_hunt_flee";
 const DEFAULT_HUNTING_SETTINGS = {
   radius: 30,
   trailEffectiveMax: 0.7,
   maxChance: 0.35,
   depletionRadius: 45,
-  depletionTrailClear: 0.85,
+  killCount: 1,
+  fleeSteps: 100,
+  fleeWeight: 80,
 };
 const DEFAULT_RESOURCE_DEBUG_SETTINGS = createDefaultResourceDebugSettings(RESOURCE_SEARCHES, "water", DISCOVERY_SETTINGS);
 let resourceDebugSettings = normalizeResourceDebugSettings(null, DEFAULT_RESOURCE_DEBUG_SETTINGS);
@@ -258,6 +262,7 @@ const perfOverlayToggleBtn = getRequiredElementById("perfOverlayToggleBtn");
 const topicPanelCloseBtn = getRequiredElementById("topicPanelClose");
 const performanceOverlayPanelEl = getRequiredElementById("performanceOverlayPanel");
 const performanceOverlayCopyBtn = getRequiredElementById("performanceOverlayCopyBtn");
+const performanceOverlayGraphEl = getRequiredElementById("performanceOverlayGraph");
 const performanceOverlayTextEl = getRequiredElementById("performanceOverlayText");
 const topicCards = getRequiredElements(".topic-card");
 const statusEl = getRequiredElementById("status");
@@ -407,6 +412,12 @@ const slimeAvailabilityOverlayThresholdInput = getRequiredElementById("slimeAvai
 const slimeAvailabilityOverlayThresholdValue = getRequiredElementById("slimeAvailabilityOverlayThresholdValue");
 const slimeGameTicksPerSlimeStepInput = getRequiredElementById("slimeGameTicksPerSlimeStep");
 const slimeGameTicksPerSlimeStepValue = getRequiredElementById("slimeGameTicksPerSlimeStepValue");
+const slimeHuntingFleeStepsInput = getRequiredElementById("slimeHuntingFleeSteps");
+const slimeHuntingFleeStepsValue = getRequiredElementById("slimeHuntingFleeStepsValue");
+const slimeHuntingFleeWeightInput = getRequiredElementById("slimeHuntingFleeWeight");
+const slimeHuntingFleeWeightValue = getRequiredElementById("slimeHuntingFleeWeightValue");
+const slimeHuntingFleeRadiusInput = getRequiredElementById("slimeHuntingFleeRadius");
+const slimeHuntingFleeRadiusValue = getRequiredElementById("slimeHuntingFleeRadiusValue");
 const slimeTracksKnowledgeCutoffInput = getRequiredElementById("slimeTracksKnowledgeCutoff");
 const slimeTracksKnowledgeCutoffValue = getRequiredElementById("slimeTracksKnowledgeCutoffValue");
 const slimeTracksClearBtn = getRequiredElementById("slimeTracksClearBtn");
@@ -795,6 +806,8 @@ const slimeAvailabilityEffectiveMaxInput = getRequiredElementById("slimeAvailabi
 const slimeAvailabilityEffectiveMaxValue = getRequiredElementById("slimeAvailabilityEffectiveMaxValue");
 const slimeAvailabilityUpdateTickIntervalInput = getRequiredElementById("slimeAvailabilityUpdateTickInterval");
 const slimeAvailabilityUpdateTickIntervalValue = getRequiredElementById("slimeAvailabilityUpdateTickIntervalValue");
+const slimePlantStockSyncTickIntervalInput = getRequiredElementById("slimePlantStockSyncTickInterval");
+const slimePlantStockSyncTickIntervalValue = getRequiredElementById("slimePlantStockSyncTickIntervalValue");
 const slimeSensorDistanceInput = getRequiredElementById("slimeSensorDistance");
 const slimeSensorDistanceValue = getRequiredElementById("slimeSensorDistanceValue");
 const slimeSensorAngleInput = getRequiredElementById("slimeSensorAngle");
@@ -1055,10 +1068,9 @@ const settingsCompatRuntime = settingsCoreSetupRuntime.settingsCompatRuntime;
 const audioSimulationState = { ...DEFAULT_AUDIO_SIMULATION_STATE };
 const audioRuntimeState = createAudioRuntimeState();
 const audioScribbleRuntime = createScribbleCanvasRuntime(256, 256);
-const slimeSimulationState = { ...DEFAULT_SLIME_SIMULATION_STATE };
+const slimeDevSimulationState = { ...DEFAULT_SLIME_SIMULATION_STATE };
+const slimeGameplaySimulationState = { ...DEFAULT_SLIME_SIMULATION_STATE };
 let slimeAvailabilityGrid = createEmptySlimeAvailabilityGrid(DEFAULT_SLIME_SETTINGS.availabilityGridSize);
-let slimeTrailOverlayRaster = null;
-let slimeTrailMaskedOverlayRaster = null;
 let slimeAvailabilityOverlaySettings = {
   enabled: false,
   opacity: 1,
@@ -1066,6 +1078,7 @@ let slimeAvailabilityOverlaySettings = {
   tracksKnowledgeCutoff: 0.2,
 };
 let slimeAvailabilityTickCounter = 0;
+let slimePlantSyncTickCounter = 0;
 let slimeFreeOverlayRefreshCounter = 0;
 let tracksDiscoveryInitialized = false;
 
@@ -1266,7 +1279,16 @@ function syncDetailUi() {
 }
 
 function getSlimeSimulationState() {
-  return slimeSimulationState;
+  return slimeDevSimulationState;
+}
+
+function getGameplaySlimeSimulationState() {
+  return slimeGameplaySimulationState;
+}
+
+function setSlimeRuntimeError(state, error) {
+  state.error = error instanceof Error ? error.message : String(error);
+  return state.error;
 }
 
 const audioEngineRuntime = createAudioEngineRuntime({
@@ -1406,6 +1428,8 @@ const slimePanelRuntime = createSlimePanelRuntime({
   slimeAvailabilityEffectiveMaxValue,
   slimeAvailabilityUpdateTickIntervalInput,
   slimeAvailabilityUpdateTickIntervalValue,
+  slimePlantStockSyncTickIntervalInput,
+  slimePlantStockSyncTickIntervalValue,
   slimeSensorDistanceInput,
   slimeSensorDistanceValue,
   slimeSensorAngleInput,
@@ -1503,6 +1527,24 @@ function syncSlimeAvailabilityDebugUi() {
   if (slimeGameTicksPerSlimeStepValue) {
     slimeGameTicksPerSlimeStepValue.textContent = String(Math.round(Number(slimeSettings.gameTicksPerSlimeStep) || 1));
   }
+  if (slimeHuntingFleeStepsInput) {
+    slimeHuntingFleeStepsInput.value = String(slimeSettings.huntingFleeSteps);
+  }
+  if (slimeHuntingFleeStepsValue) {
+    slimeHuntingFleeStepsValue.textContent = String(Math.round(Number(slimeSettings.huntingFleeSteps) || 0));
+  }
+  if (slimeHuntingFleeWeightInput) {
+    slimeHuntingFleeWeightInput.value = String(slimeSettings.huntingFleeWeight);
+  }
+  if (slimeHuntingFleeWeightValue) {
+    slimeHuntingFleeWeightValue.textContent = Number(slimeSettings.huntingFleeWeight || 0).toFixed(1);
+  }
+  if (slimeHuntingFleeRadiusInput) {
+    slimeHuntingFleeRadiusInput.value = String(slimeSettings.huntingFleeRadius);
+  }
+  if (slimeHuntingFleeRadiusValue) {
+    slimeHuntingFleeRadiusValue.textContent = String(Math.round(Number(slimeSettings.huntingFleeRadius) || 1));
+  }
   if (slimeTracksKnowledgeCutoffInput) {
     slimeTracksKnowledgeCutoffInput.value = String(slimeAvailabilityOverlaySettings.tracksKnowledgeCutoff);
   }
@@ -1520,25 +1562,17 @@ function syncSlimeAvailabilityDebugUi() {
         if (value > max) max = value;
         if (value >= threshold) activeCells += 1;
       }
-      const rasterText = slimeTrailOverlayRaster
-        ? ` | trail ${slimeTrailOverlayRaster.width}x${slimeTrailOverlayRaster.height} v${slimeTrailOverlayRaster.version}`
+      const runtime = getGameplaySlimeRuntime();
+      const textureVersion = runtime && typeof runtime.getTrailTextureVersion === "function"
+        ? ` | trail tex v${runtime.getTrailTextureVersion()}`
         : "";
-      slimeAvailabilityReadout.textContent = `${grid.width}x${grid.height} | max ${max.toFixed(3)} | cells ${activeCells} | v${grid.version}${rasterText}`;
+      slimeAvailabilityReadout.textContent = `${grid.width}x${grid.height} | max ${max.toFixed(3)} | cells ${activeCells} | v${grid.version}${textureVersion}`;
     } else {
-      slimeAvailabilityReadout.textContent = slimeSimulationState.running
+      slimeAvailabilityReadout.textContent = getGameplaySlimeSimulationState().running
         ? "waiting for first trail readback"
         : "not running";
     }
   }
-}
-
-function getSlimeAvailabilityOverlaySnapshot() {
-  if (!slimeAvailabilityOverlaySettings.enabled || (!slimeTrailOverlayRaster && (!slimeAvailabilityGrid || !slimeAvailabilityGrid.data))) return null;
-  return {
-    grid: slimeAvailabilityGrid,
-    trailRaster: slimeTrailOverlayRaster,
-    settings: { ...slimeAvailabilityOverlaySettings },
-  };
 }
 
 function isInspectTracksOverlayActive() {
@@ -1551,58 +1585,47 @@ function shouldRenderSlimeTrailOverlay() {
   return slimeAvailabilityOverlaySettings.enabled === true || isInspectTracksOverlayActive();
 }
 
-function applyTracksDiscoveryMaskToSlimeRaster(raster) {
-  if (!raster || !raster.data || !isInspectTracksOverlayActive()) return raster;
-  initializeTracksDiscoveryMap();
-  const discoveryVersion = resourceDiscoveryRuntime?.getVersion(TRACKS_KNOWLEDGE_MAP_ID) || 0;
-  const cutoff = clampUtil(Number(slimeAvailabilityOverlaySettings.tracksKnowledgeCutoff) || 0, 0, 1);
-  const cutoffVersion = Math.round(cutoff * 1000);
-  const maskedVersion = raster.version + discoveryVersion * 100000 + cutoffVersion * 1000000000;
-  if (
-    slimeTrailMaskedOverlayRaster
-    && slimeTrailMaskedOverlayRaster.sourceRaster === raster
-    && slimeTrailMaskedOverlayRaster.discoveryVersion === discoveryVersion
-    && slimeTrailMaskedOverlayRaster.cutoff === cutoff
-  ) {
-    return slimeTrailMaskedOverlayRaster.raster;
-  }
-  const data = new Uint8ClampedArray(raster.data);
-  const width = Math.max(1, Math.round(Number(raster.width) || 1));
-  const height = Math.max(1, Math.round(Number(raster.height) || 1));
-  const mapWidth = Math.max(1, Math.round(Number(splatSize.width) || width));
-  const mapHeight = Math.max(1, Math.round(Number(splatSize.height) || height));
-  for (let y = 0; y < height; y++) {
-    const mapY = height > 1 ? y / (height - 1) * (mapHeight - 1) : 0;
-    for (let x = 0; x < width; x++) {
-      const index = (y * width + x) * 4 + 3;
-      if (data[index] <= 0) continue;
-      const mapX = width > 1 ? x / (width - 1) * (mapWidth - 1) : 0;
-      const knowledge = resourceDiscoveryRuntime?.sampleKnowledge(TRACKS_KNOWLEDGE_MAP_ID, mapX, mapY) ?? 0;
-      data[index] = knowledge < cutoff ? 0 : Math.round(data[index] * clampUtil(knowledge, 0, 1));
-    }
-  }
-  const maskedRaster = {
-    ...raster,
-    data,
-    version: maskedVersion,
-  };
-  slimeTrailMaskedOverlayRaster = {
-    sourceRaster: raster,
-    discoveryVersion,
-    cutoff,
-    raster: maskedRaster,
-  };
-  return maskedRaster;
-}
-
 function getSlimeTrailOverlaySnapshot() {
-  if (!shouldRenderSlimeTrailOverlay() || !slimeTrailOverlayRaster) return null;
-  return applyTracksDiscoveryMaskToSlimeRaster(slimeTrailOverlayRaster);
+  if (!shouldRenderSlimeTrailOverlay()) return null;
+  const settings = getSlimeSettings();
+  const runtime = getGameplaySlimeRuntime();
+  const texture = typeof runtime.getTrailTexture === "function" ? runtime.getTrailTexture() : null;
+  if (texture) {
+    return {
+      texture,
+      rawTrail: true,
+      width: settings.simSize,
+      height: settings.simSize,
+      version: typeof runtime.getTrailTextureVersion === "function" ? runtime.getTrailTextureVersion() : 0,
+      gain: settings.trailGain,
+      gamma: settings.trailGamma,
+      threshold: slimeAvailabilityOverlaySettings.threshold,
+      opacity: slimeAvailabilityOverlaySettings.opacity,
+      tracksMask: isInspectTracksOverlayActive()
+        ? resourceDiscoveryRuntime?.getSnapshot(TRACKS_KNOWLEDGE_MAP_ID)
+        : null,
+      tracksKnowledgeCutoff: slimeAvailabilityOverlaySettings.tracksKnowledgeCutoff,
+    };
+  }
+  return null;
 }
 
 const slimeGpuRuntime = createSlimeGpuRuntime({
   canvas: slimeCanvas,
-  state: slimeSimulationState,
+  state: slimeDevSimulationState,
+  getTerrainSource: () => ({
+    heightImageData,
+    slopeImageData,
+    waterImageData,
+    plantBaseImageData: getSlimePlantBaseResourceImageData(),
+    plantStockImageData: getSlimePlantResourceImageData(),
+  }),
+  onFrame: () => handleSlimeRuntimeFrame(),
+});
+const slimeMainRenderRuntime = createSlimeMainRenderRuntime({
+  canvas,
+  gl,
+  state: slimeGameplaySimulationState,
   getTerrainSource: () => ({
     heightImageData,
     slopeImageData,
@@ -1613,6 +1636,10 @@ const slimeGpuRuntime = createSlimeGpuRuntime({
   onFrame: () => handleSlimeRuntimeFrame(),
 });
 
+function getGameplaySlimeRuntime() {
+  return slimeMainRenderRuntime;
+}
+
 function serializeSlimeSettingsCompatImpl() {
   return getSlimeSettings();
 }
@@ -1621,9 +1648,11 @@ function applySlimeSettingsCompatImpl(rawData) {
   const next = normalizeSlimeSettings(rawData, getSlimeSettings());
   settingsApplyRuntime.updateStoreFromAppliedSettings("slime", next);
   slimeGpuRuntime.applySettings(next);
+  slimeMainRenderRuntime.applySettings(next);
   if (next.enabled) {
-    slimeGpuRuntime.start(next);
+    slimeMainRenderRuntime.start(next);
   } else {
+    slimeMainRenderRuntime.stop();
     slimeGpuRuntime.stop();
   }
   syncSlimeUi();
@@ -1638,9 +1667,11 @@ function patchSlimeSettings(patch) {
   settingsApplyRuntime.updateStoreFromAppliedSettings("slime", next);
   try {
     slimeGpuRuntime.applySettings(next);
+    slimeMainRenderRuntime.applySettings(next);
   } catch (error) {
-    slimeSimulationState.error = error instanceof Error ? error.message : String(error);
-    setStatus(`Slime settings failed: ${slimeSimulationState.error}`);
+    const message = setSlimeRuntimeError(slimeGameplaySimulationState, error);
+    setSlimeRuntimeError(slimeDevSimulationState, error);
+    setStatus(`Slime settings failed: ${message}`);
   }
   syncSlimeUi();
   syncSlimeAvailabilityDebugUi();
@@ -1650,7 +1681,8 @@ function refreshSlimeAvailabilityGrid(force = false) {
   const settings = getSlimeSettings();
   if (!force && settings.timeMode !== "gameTick") return false;
   try {
-    const grid = slimeGpuRuntime.readTrailAvailabilityGrid({
+    const runtime = getGameplaySlimeRuntime();
+    const grid = runtime.readTrailAvailabilityGrid({
       gridSize: settings.availabilityGridSize,
       effectiveMax: settings.availabilityEffectiveMax,
       threshold: slimeAvailabilityOverlaySettings.threshold,
@@ -1659,21 +1691,12 @@ function refreshSlimeAvailabilityGrid(force = false) {
     });
     if (!grid) return false;
     slimeAvailabilityGrid = grid;
-    if (shouldRenderSlimeTrailOverlay()) {
-      slimeTrailOverlayRaster = slimeGpuRuntime.readTrailOverlayRaster({
-        threshold: slimeAvailabilityOverlaySettings.threshold,
-        opacity: slimeAvailabilityOverlaySettings.opacity,
-        gain: settings.trailGain,
-        gamma: settings.trailGamma,
-      });
-      slimeTrailMaskedOverlayRaster = null;
-    }
     syncSlimeAvailabilityDebugUi();
     overlayDirtyRuntime.requestOverlayDraw();
     return true;
   } catch (error) {
-    slimeSimulationState.error = error instanceof Error ? error.message : String(error);
-    setStatus(`Slime availability readback failed: ${slimeSimulationState.error}`);
+    const message = setSlimeRuntimeError(slimeGameplaySimulationState, error);
+    setStatus(`Slime availability readback failed: ${message}`);
     syncSlimeUi();
     return false;
   }
@@ -1684,16 +1707,13 @@ function syncSlimePlantStockToGameplay() {
   const stockSnapshot = typeof resourceStockRuntime.getSnapshot === "function"
     ? resourceStockRuntime.getSnapshot("plants")
     : null;
-  const plantStockFactor = typeof slimeGpuRuntime.readPlantStockFactorImageData === "function"
-    ? slimeGpuRuntime.readPlantStockFactorImageData({
+  const runtime = getGameplaySlimeRuntime();
+  const plantStockFactor = typeof runtime.readPlantStockFactorImageData === "function"
+    ? runtime.readPlantStockFactorImageData({
       width: stockSnapshot?.width || getSlimeSettings().availabilityGridSize,
       height: stockSnapshot?.height || getSlimeSettings().availabilityGridSize,
     })
-    : createPlantStockFactorImageData(
-      typeof slimeGpuRuntime.readPlantStockImageData === "function"
-        ? slimeGpuRuntime.readPlantStockImageData()
-        : null,
-    );
+    : null;
   if (!plantStockFactor || !plantStockFactor.data) return false;
   const changed = resourceStockRuntime.applyStockImageData("plants", plantStockFactor, {
     channelOffset: 0,
@@ -1706,47 +1726,26 @@ function syncSlimePlantStockToGameplay() {
   return changed;
 }
 
-function createPlantStockFactorImageData(plantAvailability) {
-  if (!plantAvailability || !plantAvailability.data || !plantAvailability.width || !plantAvailability.height) return null;
-  const resourceId = "plants";
-  const search = resourceSearchRuntime?.getSearch(resourceId);
-  const baseImageData = getResourceMapImageDataByName(search && search.map);
-  if (!baseImageData || !baseImageData.data || !baseImageData.width || !baseImageData.height) return plantAvailability;
-  const width = Math.max(1, Math.round(Number(plantAvailability.width) || 1));
-  const height = Math.max(1, Math.round(Number(plantAvailability.height) || 1));
-  const baseWidth = Math.max(1, Math.round(Number(baseImageData.width) || 1));
-  const baseHeight = Math.max(1, Math.round(Number(baseImageData.height) || 1));
-  const data = new Uint8ClampedArray(width * height * 4);
-  for (let y = 0; y < height; y++) {
-    const baseY = clampUtil(Math.floor(((y + 0.5) / height) * baseHeight), 0, baseHeight - 1);
-    for (let x = 0; x < width; x++) {
-      const baseX = clampUtil(Math.floor(((x + 0.5) / width) * baseWidth), 0, baseWidth - 1);
-      const index = (y * width + x) * 4;
-      const base = Number(baseImageData.data[(baseY * baseWidth + baseX) * 4]) || 0;
-      const availability = Number(plantAvailability.data[index]) || 0;
-      const factor = base > 0 ? clampUtil(Math.round((availability / base) * 255), 0, 255) : 255;
-      data[index] = factor;
-      data[index + 1] = factor;
-      data[index + 2] = factor;
-      data[index + 3] = 255;
-    }
-  }
-  return { width, height, data };
-}
-
 function updateSlimeForGameTicks(ctx = {}) {
   const settings = getSlimeSettings();
-  if (!slimeSimulationState.running || settings.timeMode !== "gameTick") return;
+  if (!getGameplaySlimeSimulationState().running || settings.timeMode !== "gameTick") return;
   const ticks = Math.max(0, Math.round(Number(ctx.time && ctx.time.ticksProcessed) || 0));
   if (ticks <= 0) return;
-  const steps = slimeGpuRuntime.stepGameTicks(ticks, settings);
+  const steps = getGameplaySlimeRuntime().stepGameTicks(ticks, settings);
   if (steps <= 0) return;
-  slimeAvailabilityTickCounter += ticks;
+  conditionEffectRuntime?.tickTemporaryEffects?.(steps);
+  slimeAvailabilityTickCounter += steps;
+  slimePlantSyncTickCounter += steps;
   const interval = Math.max(1, Math.round(Number(settings.availabilityUpdateTickInterval) || 1));
+  const plantInterval = Math.max(10, Math.round(Number(settings.plantStockSyncTickInterval) || 120));
   if (slimeAvailabilityTickCounter >= interval) {
     slimeAvailabilityTickCounter = 0;
-    syncSlimePlantStockToGameplay();
     refreshSlimeAvailabilityGrid(true);
+    return;
+  }
+  if (slimePlantSyncTickCounter >= plantInterval) {
+    slimePlantSyncTickCounter = 0;
+    syncSlimePlantStockToGameplay();
   }
 }
 
@@ -1754,19 +1753,21 @@ function warmupSlimeOnMapLoaded() {
   const settings = getSlimeSettings();
   if (!settings.enabled) return false;
   const steps = Math.max(0, Math.round(Number(settings.warmupSteps) || 0));
-  if (steps <= 0 || typeof slimeGpuRuntime.warmupSteps !== "function") return false;
+  const runtime = getGameplaySlimeRuntime();
+  if (steps <= 0 || typeof runtime.warmupSteps !== "function") return false;
   try {
-    slimeGpuRuntime.start(settings);
-    const completed = slimeGpuRuntime.warmupSteps(steps, settings);
+    runtime.start(settings);
+    const completed = runtime.warmupSteps(steps, settings);
     if (completed <= 0) return false;
     slimeAvailabilityTickCounter = 0;
+    slimePlantSyncTickCounter = 0;
     syncSlimePlantStockToGameplay();
     refreshSlimeAvailabilityGrid(true);
     setStatus(`Slime warmup completed: ${completed} steps.`);
     return true;
   } catch (error) {
-    slimeSimulationState.error = error instanceof Error ? error.message : String(error);
-    setStatus(`Slime warmup failed: ${slimeSimulationState.error}`);
+    const message = setSlimeRuntimeError(slimeGameplaySimulationState, error);
+    setStatus(`Slime warmup failed: ${message}`);
     syncSlimeUi();
     return false;
   }
@@ -1780,7 +1781,7 @@ function finalizeMapGameplayState() {
 function handleSlimeRuntimeFrame() {
   syncSlimeUi();
   const settings = getSlimeSettings();
-  if (!slimeSimulationState.running || settings.timeMode === "gameTick" || !shouldRenderSlimeTrailOverlay()) return;
+  if (!getGameplaySlimeSimulationState().running || settings.timeMode === "gameTick" || !shouldRenderSlimeTrailOverlay()) return;
   slimeFreeOverlayRefreshCounter += 1;
   const interval = Math.max(3, Math.round(Number(settings.availabilityUpdateTickInterval) || 1));
   if (slimeFreeOverlayRefreshCounter < interval) return;
@@ -1820,6 +1821,21 @@ slimeGameTicksPerSlimeStepInput.addEventListener("input", () => {
   patchSlimeSettings({ gameTicksPerSlimeStep: value });
   syncSlimeAvailabilityDebugUi();
 });
+slimeHuntingFleeStepsInput.addEventListener("input", () => {
+  const value = Math.round(clampUtil(Number(slimeHuntingFleeStepsInput.value) || 0, 0, 1000));
+  patchSlimeSettings({ huntingFleeSteps: value });
+  syncSlimeAvailabilityDebugUi();
+});
+slimeHuntingFleeWeightInput.addEventListener("input", () => {
+  const value = clampUtil(Number(slimeHuntingFleeWeightInput.value) || 0, 0, 200);
+  patchSlimeSettings({ huntingFleeWeight: value });
+  syncSlimeAvailabilityDebugUi();
+});
+slimeHuntingFleeRadiusInput.addEventListener("input", () => {
+  const value = Math.round(clampUtil(Number(slimeHuntingFleeRadiusInput.value) || 1, 1, 512));
+  patchSlimeSettings({ huntingFleeRadius: value });
+  syncSlimeAvailabilityDebugUi();
+});
 slimeTracksKnowledgeCutoffInput.addEventListener("input", () => {
   slimeAvailabilityOverlaySettings.tracksKnowledgeCutoff = clampUtil(Number(slimeTracksKnowledgeCutoffInput.value) || 0, 0, 1);
   updateTracksDiscoveryOverlayState();
@@ -1845,17 +1861,20 @@ function startSlimeExperiment() {
   try {
     const settings = getSlimeSettings();
     slimeGpuRuntime.start(settings);
+    slimeMainRenderRuntime.start(settings);
     if (settings.timeMode === "gameTick") {
-      slimeGpuRuntime.stepGameTicks(1, settings);
+      slimeMainRenderRuntime.stepGameTicks(1, settings);
       refreshSlimeAvailabilityGrid(true);
     }
   } catch (error) {
-    slimeSimulationState.error = error instanceof Error ? error.message : String(error);
-    setStatus(`Slime start failed: ${slimeSimulationState.error}`);
+    const message = setSlimeRuntimeError(slimeGameplaySimulationState, error);
+    setSlimeRuntimeError(slimeDevSimulationState, error);
+    setStatus(`Slime start failed: ${message}`);
   }
 }
 
 function stopSlimeExperiment() {
+  slimeMainRenderRuntime.stop();
   slimeGpuRuntime.stop();
 }
 
@@ -1863,12 +1882,14 @@ function resetSlimeExperiment() {
   try {
     const settings = getSlimeSettings();
     slimeGpuRuntime.reset(settings);
+    slimeMainRenderRuntime.reset(settings);
     if (settings.enabled) {
-      slimeGpuRuntime.start(settings);
+      slimeMainRenderRuntime.start(settings);
     }
   } catch (error) {
-    slimeSimulationState.error = error instanceof Error ? error.message : String(error);
-    setStatus(`Slime reset failed: ${slimeSimulationState.error}`);
+    const message = setSlimeRuntimeError(slimeGameplaySimulationState, error);
+    setSlimeRuntimeError(slimeDevSimulationState, error);
+    setStatus(`Slime reset failed: ${message}`);
   }
 }
 
@@ -2410,6 +2431,7 @@ const uniforms = {
   uDetailMicroColor: gl.getUniformLocation(program, "uDetailMicroColor"),
   uDiscoveryMask: gl.getUniformLocation(program, "uDiscoveryMask"),
   uSlimeTrailOverlay: gl.getUniformLocation(program, "uSlimeTrailOverlay"),
+  uSlimeTracksMask: gl.getUniformLocation(program, "uSlimeTracksMask"),
   uUseCursorLight: gl.getUniformLocation(program, "uUseCursorLight"),
   uCursorLightUv: gl.getUniformLocation(program, "uCursorLightUv"),
   uCursorLightColor: gl.getUniformLocation(program, "uCursorLightColor"),
@@ -2442,6 +2464,13 @@ const uniforms = {
   uDiscoveryVisibilityEnabled: gl.getUniformLocation(program, "uDiscoveryVisibilityEnabled"),
   uDiscoveryVisibilityMode: gl.getUniformLocation(program, "uDiscoveryVisibilityMode"),
   uSlimeTrailOverlayEnabled: gl.getUniformLocation(program, "uSlimeTrailOverlayEnabled"),
+  uSlimeTrailOverlayRaw: gl.getUniformLocation(program, "uSlimeTrailOverlayRaw"),
+  uSlimeTrailOverlayGain: gl.getUniformLocation(program, "uSlimeTrailOverlayGain"),
+  uSlimeTrailOverlayGamma: gl.getUniformLocation(program, "uSlimeTrailOverlayGamma"),
+  uSlimeTrailOverlayThreshold: gl.getUniformLocation(program, "uSlimeTrailOverlayThreshold"),
+  uSlimeTrailOverlayOpacity: gl.getUniformLocation(program, "uSlimeTrailOverlayOpacity"),
+  uSlimeTracksMaskEnabled: gl.getUniformLocation(program, "uSlimeTracksMaskEnabled"),
+  uSlimeTracksKnowledgeCutoff: gl.getUniformLocation(program, "uSlimeTracksKnowledgeCutoff"),
   uDiscoveryDitherScale: gl.getUniformLocation(program, "uDiscoveryDitherScale"),
   uDiscoveryKnowledgeGamma: gl.getUniformLocation(program, "uDiscoveryKnowledgeGamma"),
   uDiscoveryUnknownDarkness: gl.getUniformLocation(program, "uDiscoveryUnknownDarkness"),
@@ -2644,8 +2673,10 @@ const {
   detailMicroColorTex,
   discoveryMaskTex,
   slimeTrailOverlayTex,
+  slimeTracksMaskTex,
   slimeTrailOverlayTextureState,
   discoveryMaskTextureState,
+  slimeTracksMaskTextureState,
   detailAtlasState,
   pointLightTex,
   cloudNoiseTex,
@@ -3388,7 +3419,6 @@ function initializeTracksDiscoveryMap(options = {}) {
 }
 
 function updateTracksDiscoveryOverlayState(message = "") {
-  slimeTrailMaskedOverlayRaster = null;
   if (shouldRenderSlimeTrailOverlay()) {
     refreshSlimeAvailabilityGrid(true);
   }
@@ -3505,8 +3535,6 @@ function getInspectResourceReadings(pixelX, pixelY) {
 }
 
 function sampleInspectTracks(pixelX, pixelY) {
-  const rasterSample = sampleSlimeTrailOverlayRaster(pixelX, pixelY);
-  if (rasterSample != null) return rasterSample;
   const sample = sampleSlimeAvailabilityCircle(slimeAvailabilityGrid, {
     x: pixelX,
     y: pixelY,
@@ -3516,18 +3544,6 @@ function sampleInspectTracks(pixelX, pixelY) {
     effectiveMax: getSlimeSettings().availabilityEffectiveMax,
   });
   return sample.availability;
-}
-
-function sampleSlimeTrailOverlayRaster(pixelX, pixelY) {
-  const raster = slimeTrailOverlayRaster;
-  if (!raster || !raster.data || !raster.width || !raster.height) return null;
-  const mapWidth = Math.max(1, Math.round(Number(splatSize.width) || 1));
-  const mapHeight = Math.max(1, Math.round(Number(splatSize.height) || 1));
-  const x = clampUtil(Math.round((Number(pixelX) || 0) / mapWidth * raster.width), 0, raster.width - 1);
-  const y = clampUtil(Math.round((Number(pixelY) || 0) / mapHeight * raster.height), 0, raster.height - 1);
-  const index = (y * raster.width + x) * 4;
-  if ((Number(raster.data[index + 3]) || 0) <= 0) return 0;
-  return clampUtil((Number(raster.data[index]) || 0) / 255, 0, 1);
 }
 
 function getKnowledgeMapId(resourceId = "") {
@@ -4592,9 +4608,12 @@ function restoreCameraAfterScout() {
 }
 
 function getHuntingSettings() {
+  const slimeSettings = getSlimeSettings();
   return {
     ...DEFAULT_HUNTING_SETTINGS,
-    trailEffectiveMax: getSlimeSettings().availabilityEffectiveMax || DEFAULT_HUNTING_SETTINGS.trailEffectiveMax,
+    trailEffectiveMax: slimeSettings.availabilityEffectiveMax || DEFAULT_HUNTING_SETTINGS.trailEffectiveMax,
+    fleeSteps: slimeSettings.huntingFleeSteps,
+    fleeWeight: slimeSettings.huntingFleeWeight,
   };
 }
 
@@ -4612,24 +4631,74 @@ function sampleHuntingAvailability(input) {
   };
 }
 
+function activateSlimeHuntFleeEffect(steps, weight) {
+  const duration = Math.max(0, Math.round(Number(steps) || 0));
+  if (duration <= 0 || !conditionEffectRuntime?.addTemporaryEffect) return false;
+  const fleeWeight = Math.max(0, Number(weight) || 0);
+  return conditionEffectRuntime.addTemporaryEffect({
+    id: SLIME_HUNT_FLEE_EFFECT_ID,
+    category: "slime_hunt_flee",
+    label: "Tracks Scattering",
+    description: "Nearby slime agents are fleeing the player after the hunt.",
+    severity: "warning",
+    icon: "T",
+    priority: 10,
+    modifiers: {},
+    effectsText: [
+      `Flee weight ${fleeWeight.toFixed(1)}.`,
+    ],
+  }, duration);
+}
+
 function applyHuntingSuccess(input = {}) {
-  const changed = slimeGpuRuntime.brushResetAtMapPixel(
-    input.x,
-    input.y,
-    splatSize.width,
-    splatSize.height,
-    {
-      radius: input.radius,
-      trailClear: input.trailClear,
-    },
-  );
-  refreshSlimeAvailabilityGrid(true);
-  const result = inventoryRuntime.addToPlayer("raw_meat", 1);
-  if (!result.ok) {
-    setStatus(`Hunted game, but could not carry Raw Meat: ${result.reason}`);
-    return;
+  const killCount = Math.max(1, Math.round(Number(input.killCount) || DEFAULT_HUNTING_SETTINGS.killCount));
+  const runtime = getGameplaySlimeRuntime();
+  const huntResult = typeof runtime.huntAgentsAtMapPixel === "function"
+    ? runtime.huntAgentsAtMapPixel(
+      input.x,
+      input.y,
+      splatSize.width,
+      splatSize.height,
+      {
+        radius: input.radius,
+        maxKills: killCount,
+      },
+    )
+    : { available: 0, killed: 0 };
+  const killed = Math.max(0, Math.round(Number(huntResult && huntResult.killed) || 0));
+  if (killed <= 0) {
+    refreshSlimeAvailabilityGrid(true);
+    const message = "Shot missed; no game was inside the track circle.";
+    setStatus(message);
+    return { killed: 0, available: huntResult.available || 0, message };
   }
-  setStatus(changed ? "Hunted game and disrupted local tracks." : "Hunted game.");
+  const fleeStarted = typeof runtime.activateFleeAtMapPixel === "function"
+    ? runtime.activateFleeAtMapPixel(
+      playerState.pixelX,
+      playerState.pixelY,
+      splatSize.width,
+      splatSize.height,
+      {
+        steps: input.fleeSteps,
+        weight: input.fleeWeight,
+      },
+    )
+    : false;
+  if (fleeStarted) {
+    activateSlimeHuntFleeEffect(input.fleeSteps, input.fleeWeight);
+  }
+  refreshSlimeAvailabilityGrid(true);
+  const result = inventoryRuntime.addToPlayer("raw_meat", killed);
+  if (!result.ok) {
+    const message = `Hunted ${killed}, but could not carry Raw Meat: ${result.reason}`;
+    setStatus(message);
+    return { killed, available: huntResult.available || killed, message };
+  }
+  const message = fleeStarted
+    ? `Hunted ${killed}; nearby tracks are scattering.`
+    : `Hunted ${killed}.`;
+  setStatus(message);
+  return { killed, available: huntResult.available || killed, message };
 }
 
 playerActivityRuntime = createPlayerActivityRuntime({
@@ -4826,8 +4895,10 @@ const renderPipelineRuntime = createRenderPipelineRuntime(createRenderPipelineAs
   detailMicroColorTex,
   discoveryMaskTex,
   slimeTrailOverlayTex,
+  slimeTracksMaskTex,
   slimeTrailOverlayTextureState,
   discoveryMaskTextureState,
+  slimeTracksMaskTextureState,
   detailAtlasState,
   heightSize,
   splatSize,
@@ -5006,8 +5077,8 @@ registerMainCommands(runtimeCore.commandBus, createMainCommandAssemblyRuntime({
     try {
       slimeGpuRuntime.brushResetAtClient(clientX, clientY, getSlimeSettings());
     } catch (error) {
-      slimeSimulationState.error = error instanceof Error ? error.message : String(error);
-      setStatus(`Slime brush failed: ${slimeSimulationState.error}`);
+      const message = setSlimeRuntimeError(slimeDevSimulationState, error);
+      setStatus(`Slime brush failed: ${message}`);
     }
   },
   syncSlimeUi,
@@ -5498,6 +5569,7 @@ const swarmIntegrationSetupRuntime = createSwarmIntegrationSetupRuntime(
       frameProfileInfoEl,
       gpuProfileInfoEl,
       performanceOverlayPanelEl,
+      performanceOverlayGraphEl,
       performanceOverlayTextEl,
       isPerformanceOverlayEnabled: () => performanceOverlayEnabled,
       detailInfoEl,
@@ -5850,7 +5922,6 @@ const renderShellSetupRuntime = createRenderShellSetupRuntime(createRenderShellA
   getResourceContourOverlaySnapshot,
   getDiscoveryMaskOverlaySnapshot,
   getDiscoveryTerrainVisibilityOverlaySnapshot,
-  getSlimeAvailabilityOverlaySnapshot,
   getInventoryBundles: () => inventoryRuntime.listBundles(),
   playerState,
   drawSwarmUnlitOverlay,
@@ -6224,6 +6295,7 @@ runAppShellLifecycleRuntime(createAppShellLifecycleAssemblyRuntime({
     slimeAvailabilityGridSizeInput,
     slimeAvailabilityEffectiveMaxInput,
     slimeAvailabilityUpdateTickIntervalInput,
+    slimePlantStockSyncTickIntervalInput,
     slimeSensorDistanceInput,
     slimeSensorAngleInput,
     slimeSensorSizeInput,

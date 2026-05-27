@@ -133,9 +133,9 @@ export function createHuntingActivityController(deps) {
     runtime.lastSearchChance = null;
     runtime.huntingAvailability = null;
     runtime.huntingRawAvailability = null;
-    deps.setActivitySpeed1x();
     deps.syncStore();
     if (!queueNextPatrol()) return { ok: false, reason: runtime.lastMessage || "Unable to start Hunting." };
+    deps.setActivitySpeed20x?.();
     deps.setStatus?.(`Hunting started within radius ${runtime.radius}.`);
     return { ok: true };
   }
@@ -161,16 +161,17 @@ export function createHuntingActivityController(deps) {
     runtime.lastResourceValue = availability;
     runtime.lastSearchChance = chance;
     if ((deps.random || Math.random)() < chance) {
-      runtime.foundCount += 1;
-      runtime.lastMessage = `Hunting success (${Math.round(availability * 100)}% availability).`;
-      deps.onHuntingSuccess?.({
+      const result = deps.onHuntingSuccess?.({
         x,
         y,
         radius: finite(settings.depletionRadius, 45),
-        trailClear: finite(settings.depletionTrailClear, 0.85),
+        killCount: finite(settings.killCount, 1),
+        fleeSteps: finite(settings.fleeSteps, 100),
+        fleeWeight: finite(settings.fleeWeight, 80),
       });
-    } else {
-      runtime.lastMessage = `Tracking (${Math.round(availability * 100)}% availability).`;
+      const killed = Math.max(0, Math.round(finite(result && result.killed, 0)));
+      runtime.foundCount += killed;
+      runtime.lastMessage = killed > 0 ? `Loot: ${runtime.foundCount}` : runtime.lastMessage;
     }
     deps.syncStore();
     return true;

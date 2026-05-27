@@ -80,28 +80,78 @@ export function createTerrainUniformUploader(deps) {
     const snapshot = typeof deps.getSlimeTrailOverlaySnapshot === "function"
       ? deps.getSlimeTrailOverlaySnapshot()
       : null;
-    if (!deps.slimeTrailOverlayTex || !snapshot || !snapshot.data || !snapshot.width || !snapshot.height) {
+    if (!snapshot) {
       deps.gl.uniform1f(deps.uniforms.uSlimeTrailOverlayEnabled, 0);
       return;
     }
-    const width = Math.max(1, Math.round(finite(snapshot.width, 1)));
-    const height = Math.max(1, Math.round(finite(snapshot.height, 1)));
-    const version = Math.max(0, Math.round(finite(snapshot.version, 0)));
-    const state = deps.slimeTrailOverlayTextureState || {};
+    const isDirectTexture = snapshot.texture && snapshot.rawTrail === true;
     deps.gl.activeTexture(deps.gl.TEXTURE12);
-    deps.gl.bindTexture(deps.gl.TEXTURE_2D, deps.slimeTrailOverlayTex);
-    deps.gl.texParameteri(deps.gl.TEXTURE_2D, deps.gl.TEXTURE_MIN_FILTER, deps.gl.NEAREST);
-    deps.gl.texParameteri(deps.gl.TEXTURE_2D, deps.gl.TEXTURE_MAG_FILTER, deps.gl.NEAREST);
-    if (state.width !== width || state.height !== height || state.version !== version) {
-      deps.gl.pixelStorei(deps.gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
-      deps.gl.pixelStorei(deps.gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, deps.gl.NONE);
-      deps.gl.texImage2D(deps.gl.TEXTURE_2D, 0, deps.gl.RGBA, width, height, 0, deps.gl.RGBA, deps.gl.UNSIGNED_BYTE, snapshot.data);
-      state.width = width;
-      state.height = height;
-      state.version = version;
+    if (isDirectTexture) {
+      deps.gl.bindTexture(deps.gl.TEXTURE_2D, snapshot.texture);
+    } else {
+      if (!deps.slimeTrailOverlayTex || !snapshot.data || !snapshot.width || !snapshot.height) {
+        deps.gl.uniform1f(deps.uniforms.uSlimeTrailOverlayEnabled, 0);
+        return;
+      }
+      const width = Math.max(1, Math.round(finite(snapshot.width, 1)));
+      const height = Math.max(1, Math.round(finite(snapshot.height, 1)));
+      const version = Math.max(0, Math.round(finite(snapshot.version, 0)));
+      const state = deps.slimeTrailOverlayTextureState || {};
+      deps.gl.bindTexture(deps.gl.TEXTURE_2D, deps.slimeTrailOverlayTex);
+      deps.gl.texParameteri(deps.gl.TEXTURE_2D, deps.gl.TEXTURE_MIN_FILTER, deps.gl.NEAREST);
+      deps.gl.texParameteri(deps.gl.TEXTURE_2D, deps.gl.TEXTURE_MAG_FILTER, deps.gl.NEAREST);
+      if (state.width !== width || state.height !== height || state.version !== version) {
+        deps.gl.pixelStorei(deps.gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+        deps.gl.pixelStorei(deps.gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, deps.gl.NONE);
+        deps.gl.texImage2D(deps.gl.TEXTURE_2D, 0, deps.gl.RGBA, width, height, 0, deps.gl.RGBA, deps.gl.UNSIGNED_BYTE, snapshot.data);
+        state.width = width;
+        state.height = height;
+        state.version = version;
+      }
+    }
+    let hasTracksMask = false;
+    const tracksSnapshot = snapshot.tracksMask;
+    if (tracksSnapshot && tracksSnapshot.cells && tracksSnapshot.width && tracksSnapshot.height) {
+      hasTracksMask = uploadSlimeTracksMask(tracksSnapshot);
     }
     deps.gl.uniform1i(deps.uniforms.uSlimeTrailOverlay, 12);
+    deps.gl.uniform1f(deps.uniforms.uSlimeTrailOverlayRaw, isDirectTexture ? 1 : 0);
+    deps.gl.uniform1f(deps.uniforms.uSlimeTrailOverlayGain, Math.max(0.001, finite(snapshot.gain, 1)));
+    deps.gl.uniform1f(deps.uniforms.uSlimeTrailOverlayGamma, Math.max(0.001, finite(snapshot.gamma, 1)));
+    deps.gl.uniform1f(deps.uniforms.uSlimeTrailOverlayThreshold, Math.max(0, finite(snapshot.threshold, 0)));
+    deps.gl.uniform1f(deps.uniforms.uSlimeTrailOverlayOpacity, clamp(finite(snapshot.opacity, 1), 0, 1));
+    deps.gl.uniform1f(deps.uniforms.uSlimeTracksMaskEnabled, hasTracksMask ? 1 : 0);
+    deps.gl.uniform1f(deps.uniforms.uSlimeTracksKnowledgeCutoff, clamp(finite(snapshot.tracksKnowledgeCutoff, 0), 0, 1));
     deps.gl.uniform1f(deps.uniforms.uSlimeTrailOverlayEnabled, 1);
+  }
+
+  function uploadSlimeTracksMask(snapshot) {
+    if (!deps.slimeTracksMaskTex || !snapshot || !snapshot.cells || !snapshot.width || !snapshot.height) return false;
+    const width = Math.max(1, Math.round(finite(snapshot.width, 1)));
+    const height = Math.max(1, Math.round(finite(snapshot.height, 1)));
+    const version = snapshot.version == null ? 0 : snapshot.version;
+    const versionKey = `${snapshot.resourceId || "tracks"}|${width}x${height}|${version}`;
+    const state = deps.slimeTracksMaskTextureState || {};
+    deps.gl.activeTexture(deps.gl.TEXTURE13);
+    if (state.versionKey !== versionKey) {
+      const pixelCount = width * height;
+      const upload = new Uint8Array(pixelCount * 4);
+      for (let i = 0, j = 0; i < pixelCount; i += 1, j += 4) {
+        const value = snapshot.cells[i] || 0;
+        upload[j] = value;
+        upload[j + 1] = value;
+        upload[j + 2] = value;
+        upload[j + 3] = 255;
+      }
+      deps.gl.bindTexture(deps.gl.TEXTURE_2D, deps.slimeTracksMaskTex);
+      deps.gl.texImage2D(deps.gl.TEXTURE_2D, 0, deps.gl.RGBA, width, height, 0, deps.gl.RGBA, deps.gl.UNSIGNED_BYTE, upload);
+      state.width = width;
+      state.height = height;
+      state.versionKey = versionKey;
+    }
+    deps.gl.bindTexture(deps.gl.TEXTURE_2D, deps.slimeTracksMaskTex);
+    deps.gl.uniform1i(deps.uniforms.uSlimeTracksMask, 13);
+    return true;
   }
 
   return function uploadUniforms(params, frameTime, input, frameCamera = null) {

@@ -104,6 +104,7 @@ export function createSwarmIntegrationAssemblyRuntime(deps) {
       frameProfileInfoEl: deps.frameProfileInfoEl,
       gpuProfileInfoEl: deps.gpuProfileInfoEl,
       performanceOverlayPanelEl: deps.performanceOverlayPanelEl,
+      performanceOverlayGraphEl: deps.performanceOverlayGraphEl,
       performanceOverlayTextEl: deps.performanceOverlayTextEl,
       isPerformanceOverlayEnabled: deps.isPerformanceOverlayEnabled,
       detailInfoEl: deps.detailInfoEl,

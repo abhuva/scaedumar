@@ -9,6 +9,8 @@ export function createInfoPanelRuntime(deps) {
   const perfOverlayState = {
     lastUpdateMs: 0,
     lastText: "",
+    graphHistory: [],
+    graphMaxSamples: 240,
   };
 
   function formatGameDuration(hoursValue) {
@@ -282,7 +284,11 @@ export function createInfoPanelRuntime(deps) {
       }
       if (deps.movementStatusDetailEl) {
         const found = Math.max(0, Math.round(Number(activitySnapshot.foundCount) || 0));
-        deps.movementStatusDetailEl.textContent = found > 0 ? `Found: ${found}` : "";
+        if (activitySnapshot.type === "hunting") {
+          deps.movementStatusDetailEl.textContent = `Loot: ${found}`;
+        } else {
+          deps.movementStatusDetailEl.textContent = found > 0 ? `Found: ${found}` : "";
+        }
       }
       return;
     }
@@ -431,6 +437,13 @@ export function createInfoPanelRuntime(deps) {
     const gpuTerrain = gpuPasses ? (Number(gpuPasses.mainTerrain) || 0) : 0;
     const gpuBg = gpuPasses ? (Number(gpuPasses.backgroundClear) || 0) : 0;
     const gpuTotal = gpuPasses ? (gpuShadow + gpuBlur + gpuTerrain + gpuBg) : 0;
+    recordPerformanceGraphSample({
+      cpu,
+      update,
+      render,
+      gpu: gpuPasses ? gpuTotal : null,
+    });
+    drawPerformanceOverlayGraph();
 
     const movement = typeof deps.getMovementSnapshot === "function" ? deps.getMovementSnapshot() : null;
     const route = typeof deps.getRoutePlanningSnapshot === "function" ? deps.getRoutePlanningSnapshot() : null;
@@ -453,6 +466,133 @@ export function createInfoPanelRuntime(deps) {
       deps.performanceOverlayTextEl.textContent = text;
       perfOverlayState.lastText = text;
     }
+  }
+
+  function recordPerformanceGraphSample(sample) {
+    const next = {
+      cpu: Math.max(0, Number(sample.cpu) || 0),
+      update: Math.max(0, Number(sample.update) || 0),
+      render: Math.max(0, Number(sample.render) || 0),
+      gpu: Number.isFinite(Number(sample.gpu)) ? Math.max(0, Number(sample.gpu)) : null,
+    };
+    perfOverlayState.graphHistory.push(next);
+    if (perfOverlayState.graphHistory.length > perfOverlayState.graphMaxSamples) {
+      perfOverlayState.graphHistory.splice(0, perfOverlayState.graphHistory.length - perfOverlayState.graphMaxSamples);
+    }
+  }
+
+  function drawPerformanceOverlayGraph() {
+    const canvas = deps.performanceOverlayGraphEl;
+    if (!canvas || typeof canvas.getContext !== "function") return;
+    const rect = typeof canvas.getBoundingClientRect === "function" ? canvas.getBoundingClientRect() : null;
+    const cssWidth = Math.max(1, Math.round(Number(rect && rect.width) || canvas.clientWidth || 400));
+    const cssHeight = Math.max(1, Math.round(Number(rect && rect.height) || canvas.clientHeight || 120));
+    const dpr = Math.max(1, Math.min(2, Number(globalThis.devicePixelRatio) || 1));
+    const targetWidth = Math.max(1, Math.round(cssWidth * dpr));
+    const targetHeight = Math.max(1, Math.round(cssHeight * dpr));
+    if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
+      canvas.width = targetWidth;
+      canvas.height = targetHeight;
+    }
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.save();
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, cssWidth, cssHeight);
+    ctx.fillStyle = "rgba(2, 5, 8, 0.78)";
+    ctx.fillRect(0, 0, cssWidth, cssHeight);
+
+    const history = perfOverlayState.graphHistory;
+    const paddingLeft = 30;
+    const paddingRight = 6;
+    const paddingTop = 10;
+    const paddingBottom = 18;
+    const plotWidth = Math.max(1, cssWidth - paddingLeft - paddingRight);
+    const plotHeight = Math.max(1, cssHeight - paddingTop - paddingBottom);
+    const maxObserved = history.reduce((max, item) => Math.max(max, item.cpu, item.update, item.render, item.gpu || 0), 0);
+    const scaleMax = choosePerformanceGraphScale(maxObserved);
+
+    drawPerformanceGrid(ctx, paddingLeft, paddingTop, plotWidth, plotHeight, scaleMax);
+    drawPerformanceSeries(ctx, history, "cpu", "#ff6b4a", paddingLeft, paddingTop, plotWidth, plotHeight, scaleMax);
+    drawPerformanceSeries(ctx, history, "update", "#ffd166", paddingLeft, paddingTop, plotWidth, plotHeight, scaleMax);
+    drawPerformanceSeries(ctx, history, "gpu", "#62d2ff", paddingLeft, paddingTop, plotWidth, plotHeight, scaleMax);
+
+    const latest = history[history.length - 1] || {};
+    ctx.font = "11px Consolas, SFMono-Regular, Menlo, monospace";
+    ctx.fillStyle = "#d6e2ea";
+    ctx.fillText(`${Math.round(scaleMax)} ms`, 4, paddingTop + 4);
+    ctx.fillText("0", 18, paddingTop + plotHeight + 3);
+    ctx.fillStyle = "#ff6b4a";
+    ctx.fillText(`CPU ${formatPerfValue(latest.cpu)}`, paddingLeft, cssHeight - 5);
+    ctx.fillStyle = "#ffd166";
+    ctx.fillText(`UPD ${formatPerfValue(latest.update)}`, paddingLeft + 86, cssHeight - 5);
+    ctx.fillStyle = "#62d2ff";
+    ctx.fillText(`GPU ${latest.gpu === null ? "--" : formatPerfValue(latest.gpu)}`, paddingLeft + 174, cssHeight - 5);
+    ctx.restore();
+  }
+
+  function choosePerformanceGraphScale(maxObserved) {
+    const safeMax = Math.max(16.7, Number(maxObserved) || 0);
+    if (safeMax <= 50) return 50;
+    if (safeMax <= 100) return 100;
+    if (safeMax <= 200) return 200;
+    return Math.ceil(safeMax / 100) * 100;
+  }
+
+  function drawPerformanceGrid(ctx, x, y, width, height, scaleMax) {
+    ctx.strokeStyle = "rgba(214, 226, 234, 0.12)";
+    ctx.lineWidth = 1;
+    for (const ms of [16.7, 33.3, 50, 100, 200]) {
+      if (ms > scaleMax) continue;
+      const yy = y + height - (ms / scaleMax) * height;
+      ctx.beginPath();
+      ctx.moveTo(x, yy);
+      ctx.lineTo(x + width, yy);
+      ctx.stroke();
+    }
+    ctx.strokeStyle = "rgba(214, 226, 234, 0.22)";
+    ctx.strokeRect(x, y, width, height);
+  }
+
+  function drawPerformanceSeries(ctx, history, key, color, x, y, width, height, scaleMax) {
+    if (!history.length) return;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    let started = false;
+    const denom = Math.max(1, history.length - 1);
+    const startIndex = Math.max(0, history.length - perfOverlayState.graphMaxSamples);
+    for (let i = startIndex; i < history.length; i++) {
+      const value = history[i] ? Number(history[i][key]) : NaN;
+      if (!Number.isFinite(value)) {
+        started = false;
+        continue;
+      }
+      const localIndex = i - startIndex;
+      const xx = x + (localIndex / denom) * width;
+      const yy = y + height - (Math.min(value, scaleMax) / scaleMax) * height;
+      if (!started) {
+        ctx.moveTo(xx, yy);
+        started = true;
+      } else {
+        ctx.lineTo(xx, yy);
+      }
+    }
+    ctx.stroke();
+    const latest = history[history.length - 1];
+    const latestValue = latest ? Number(latest[key]) : NaN;
+    if (Number.isFinite(latestValue)) {
+      const yy = y + height - (Math.min(latestValue, scaleMax) / scaleMax) * height;
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(x + width, yy, 2.4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  function formatPerfValue(value) {
+    const number = Number(value);
+    return Number.isFinite(number) ? number.toFixed(1) : "--";
   }
 
   function updateDetailInfo() {

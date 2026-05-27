@@ -31,6 +31,7 @@ export const ACTIVITY_INSPECT = "inspect";
 export const ACTIVITY_REST = "rest";
 export const ACTIVITY_SCOUT = "scout";
 export const ACTIVITY_TIME_SPEED_1X = 0.01;
+export const ACTIVITY_TIME_SPEED_20X = 0.2;
 
 export function createPlayerActivityRuntime(deps) {
   const activityDefinitions = deps && deps.activityDefinitions && typeof deps.activityDefinitions === "object"
@@ -57,6 +58,12 @@ export function createPlayerActivityRuntime(deps) {
   function setActivitySpeed1x() {
     if (typeof deps.setCycleSpeed === "function") {
       deps.setCycleSpeed(ACTIVITY_TIME_SPEED_1X);
+    }
+  }
+
+  function setActivitySpeed20x() {
+    if (typeof deps.setCycleSpeed === "function") {
+      deps.setCycleSpeed(ACTIVITY_TIME_SPEED_20X);
     }
   }
 
@@ -167,6 +174,7 @@ export function createPlayerActivityRuntime(deps) {
     onResourceSearch: deps.onResourceSearch,
     onResourceFound: deps.onResourceFound,
     setActivitySpeed1x,
+    setActivitySpeed20x,
     syncStore,
     stopActivity,
   });
@@ -192,6 +200,7 @@ export function createPlayerActivityRuntime(deps) {
     getCompleteLabel,
     startRuntimeActivity,
     setActivitySpeed1x,
+    setActivitySpeed20x,
     syncStore,
     stopActivity,
   });
@@ -237,6 +246,7 @@ export function createPlayerActivityRuntime(deps) {
     onHuntingSuccess: deps.onHuntingSuccess,
     random: deps.random,
     setActivitySpeed1x,
+    setActivitySpeed20x,
     syncStore,
     stopActivity,
     setStatus: deps.setStatus,

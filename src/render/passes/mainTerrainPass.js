@@ -17,6 +17,9 @@ export function createMainTerrainPass(deps) {
 
   return {
     execute(frame) {
+      if (deps.resources.gl && typeof deps.resources.gl.bindFramebuffer === "function") {
+        deps.resources.gl.bindFramebuffer(deps.resources.gl.FRAMEBUFFER, null);
+      }
       deps.resources.setViewport();
       deps.resources.clearColor(0, 0, 0, 1);
       deps.uploadUniforms(frame.lightingParams, frame.time, frame.uniformInput, frame.camera || null);
