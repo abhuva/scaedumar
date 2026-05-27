@@ -12,6 +12,7 @@ function createController(overrides = {}) {
     serializeCloudSettings: () => ({ clouds: true }),
     serializeWaterSettings: () => ({ waterfx: true }),
     serializeWaterTrailSettings: () => ({ watertrails: true }),
+    serializeSlimeSettings: () => ({ slime: true }),
     serializeDetailSettings: () => ({ detail: true }),
     serializeCameraSettings: () => ({ camera: true }),
     serializeAudioSettings: () => ({ audio: true }),
@@ -34,4 +35,6 @@ test("Save All includes map-local resource debug settings", () => {
   assert.deepEqual(JSON.parse(files["resource_debug.json"]), { resourceDebug: true });
   assert.ok(files["resource_stock.json"]);
   assert.deepEqual(JSON.parse(files["resource_stock.json"]), { resourceStock: true });
+  assert.ok(files["slime.json"]);
+  assert.deepEqual(JSON.parse(files["slime.json"]), { slime: true });
 });

@@ -1,8 +1,8 @@
 {
   "version": 1,
   "charID": "player",
-  "pixelX": 301,
-  "pixelY": 769,
+  "pixelX": 374,
+  "pixelY": 833,
   "color": "#ff69b4",
   "stats": {
     "gatherRadius": 30

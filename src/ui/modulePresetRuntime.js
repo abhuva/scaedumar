@@ -32,6 +32,20 @@ function normalizeIndex(kind, rawData) {
   };
 }
 
+function mergeIndexes(kind, primary, secondary) {
+  const merged = normalizeIndex(kind, primary);
+  for (const entry of normalizeIndex(kind, secondary).presets) {
+    const index = merged.presets.findIndex((item) => item.id === entry.id);
+    if (index >= 0) {
+      merged.presets[index] = entry;
+    } else {
+      merged.presets.push(entry);
+    }
+  }
+  merged.presets.sort((a, b) => String(a.label || a.id).localeCompare(String(b.label || b.id)));
+  return merged;
+}
+
 function dirname(path) {
   const text = String(path || "").replace(/[\\/]+$/, "");
   const index = Math.max(text.lastIndexOf("\\"), text.lastIndexOf("/"));
@@ -47,9 +61,15 @@ function nativePresetFolderFromMapFolder(mapFolder, kind, deps) {
   return deps.joinFsPath(presetsRoot, kind);
 }
 
+function storageKey(kind) {
+  return `terrain.modulePresets.${kind}`;
+}
+
 export function createModulePresetRuntime(deps) {
   const state = {
     index: normalizeIndex(deps.kind, null),
+    localEntries: new Map(),
+    localPresets: new Map(),
     loaded: false,
   };
 
@@ -97,18 +117,22 @@ export function createModulePresetRuntime(deps) {
   }
 
   async function loadIndex() {
+    let assetIndex = normalizeIndex(deps.kind, null);
     try {
       const rawData = await loadJson(`${deps.basePath}/index.json`);
-      state.index = normalizeIndex(deps.kind, rawData);
+      assetIndex = normalizeIndex(deps.kind, rawData);
       state.loaded = true;
     } catch {
-      state.index = normalizeIndex(deps.kind, null);
       state.loaded = false;
     }
+    state.index = mergeIndexes(deps.kind, assetIndex, loadLocalPresetIndex());
     refreshDropdown();
   }
 
   async function loadPresetFile(entry) {
+    if (state.localPresets.has(entry.id)) {
+      return state.localPresets.get(entry.id);
+    }
     const candidates = [
       entry.file,
       `${deps.kind}-${entry.file}`,
@@ -132,6 +156,58 @@ export function createModulePresetRuntime(deps) {
       return preset.settings;
     }
     return preset;
+  }
+
+  function loadLocalPresetIndex() {
+    state.localEntries.clear();
+    state.localPresets.clear();
+    if (!deps.storage || typeof deps.storage.getItem !== "function") {
+      return normalizeIndex(deps.kind, null);
+    }
+    try {
+      const rawText = deps.storage.getItem(storageKey(deps.kind));
+      const rawData = rawText ? JSON.parse(rawText) : null;
+      const source = rawData && typeof rawData === "object" ? rawData : {};
+      const items = Array.isArray(source.presets) ? source.presets : [];
+      const entries = [];
+      for (const item of items) {
+        if (!item || typeof item !== "object") continue;
+        const id = slugifyPresetId(item.id || item.file || item.label);
+        const file = String(item.file || `${id}.json`);
+        const label = String(item.label || item.id || id);
+        const preset = item.preset && typeof item.preset === "object" ? item.preset : null;
+        if (!preset) continue;
+        const entry = { id, label, file };
+        entries.push(entry);
+        state.localEntries.set(id, entry);
+        state.localPresets.set(id, preset);
+      }
+      return { version: 1, kind: deps.kind, presets: entries };
+    } catch (error) {
+      console.warn(`Failed to load local ${deps.label} presets`, error);
+      return normalizeIndex(deps.kind, null);
+    }
+  }
+
+  function saveLocalPreset(entry, preset) {
+    if (!deps.storage || typeof deps.storage.setItem !== "function") return;
+    state.localEntries.set(entry.id, entry);
+    state.localPresets.set(entry.id, preset);
+    const presets = [...state.localEntries.values()]
+      .sort((a, b) => String(a.label || a.id).localeCompare(String(b.label || b.id)))
+      .map((item) => ({
+        ...item,
+        preset: state.localPresets.get(item.id),
+      }));
+    try {
+      deps.storage.setItem(storageKey(deps.kind), JSON.stringify({
+        version: 1,
+        kind: deps.kind,
+        presets,
+      }));
+    } catch (error) {
+      console.warn(`Failed to save local ${deps.label} preset`, error);
+    }
   }
 
   async function applySelectedPreset() {
@@ -233,6 +309,7 @@ export function createModulePresetRuntime(deps) {
 
     try {
       const mode = await saveJsonFiles(files);
+      saveLocalPreset(entry, preset);
       upsertIndexEntry(entry);
       refreshDropdown();
       if (deps.select) deps.select.value = id;
@@ -241,8 +318,8 @@ export function createModulePresetRuntime(deps) {
         mode === "native"
           ? `Saved ${deps.label} preset "${id}".`
           : mode === "directory"
-            ? `Saved ${deps.label} preset "${id}" to selected folder.`
-            : `Downloaded ${deps.label} preset "${id}" and updated index. Move them to ${deps.basePath}.`,
+            ? `Saved ${deps.label} preset "${id}" to selected folder and local browser presets.`
+            : `Saved ${deps.label} preset "${id}" locally and downloaded export files.`,
       );
     } catch (error) {
       console.warn(`Failed to save ${deps.label} preset`, error);

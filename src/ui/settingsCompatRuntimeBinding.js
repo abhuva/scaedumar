@@ -227,8 +227,11 @@ export function createSettingsCompatRuntimeBinding(deps) {
   });
   const cameraSettingsSerializer = createCameraSettingsSerializer({
     getCameraSettings: deps.getCameraSettings,
+    getCameraState: deps.getCameraState,
     defaultCameraSettings: deps.defaultCameraSettings,
     clampCameraToBounds: deps.clampCameraToBounds,
+    mapPixelToWorld: deps.mapPixelToWorld,
+    setCameraPoseToStore: deps.setCameraPoseToStore,
   });
 
   return {

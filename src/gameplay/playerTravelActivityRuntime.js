@@ -11,7 +11,7 @@ export function createTravelActivityController(deps) {
       return { ok: false, reason: "No queued travel path." };
     }
     deps.startRuntimeActivity(activityType, "Traveling.");
-    deps.setActivitySpeed1x();
+    deps.setActivitySpeed20x?.();
     deps.syncStore();
     return { ok: true };
   }

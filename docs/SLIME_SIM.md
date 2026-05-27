@@ -55,10 +55,24 @@ agent sensors -> steering -> movement -> deposit -> trail diffuse/decay -> displ
 
 ## Core Controls
 
-- `Agents`: total active agents. Changing it resets GPU resources.
+- `Agents`: total active agents, capped to 20k in the dev slider. Changing it
+  resets GPU resources.
 - `Texture Size`: simulation/trail texture resolution. Changing it resets GPU
   resources.
 - `Steps / Frame`: simulation ticks per animation frame.
+- `Game Ticks / Slime Step`: gameplay-mode cadence interval, default `3`.
+  Slime advances only after this many game ticks have accumulated.
+- `Max Game Steps / Frame`: hidden/default gameplay work budget, default `2`.
+  At high game speeds Slime discards excess elapsed intervals instead of
+  queueing a catch-up backlog. This keeps 20x/100x fast-forward responsive and
+  intentionally trades away smooth ecological simulation at fast-forward speed.
+- `Grid Tick`: low-resolution availability readback cadence in actual Slime
+  steps, default `10`.
+- `Plant Sync Tick`: low-resolution plant stock factor sync cadence in actual
+  Slime steps, default `120`. It is staggered away from availability readback so
+  both `readPixels` calls do not stall the same update frame.
+- `Warmup Steps`: startup GPU simulation steps, default `3000`, run once after
+  map sidecars and terrain/resource textures are loaded when Slime is enabled.
 - `Sensor Distance`: distance from an agent to its left/front/right sensor
   sample points.
 - `Sensor Angle`: angular separation between front and side sensors.
@@ -98,6 +112,27 @@ current map textures as simulation fields when available:
 - `height.png`: height preference or avoidance.
 - `slope.png`: slope penalty and hard slope cutoff.
 - `water.png`: water preference or avoidance.
+- live plant resource field: plant attraction or avoidance. The Slime
+  regeneration base is generated from the configured plant resource map, while
+  the mutable stock texture can be initialized from that base multiplied by
+  live plant stock.
+
+Map `ImageData` rows are top-left ordered. Slime uploads terrain/resource
+fields into its own WebGL context with rows Y-flipped so simulation UVs,
+map-pixel coordinates, and the main terrain renderer agree. Do not remove this
+flip or river/plant shapes will appear mirrored relative to the terrain.
+- slime plant consumption/regeneration mutates a GPU plant-stock texture using
+  the trail texture as a pressure field. In gameplay time mode, this plant
+  availability is first rendered into the small resource-stock grid as a stock
+  factor and then applied to `resourceStockRuntime` for plants as a
+  depletion-only sync. Slime can lower gameplay plant stock, but it cannot raise
+  it above the current gameplay stock value. It can also lower already-known
+  stock so known plant contours reflect observed depletion, but it cannot raise
+  known stock or reveal unknown resources. Normal resource-stock regeneration
+  remains the gameplay regrowth owner. The gameplay cadence path must not read
+  back the full plant texture. Same-size plant source refreshes must not
+  reinitialize the mutable GPU plant stock, because that would erase the tuned
+  Slime depletion/regrowth pattern.
 
 When terrain coupling is enabled, each sensor score is:
 
@@ -107,6 +142,7 @@ trailScore
     -slope * slopeBias
     + height * heightBias
     - water * waterBias
+    + (plant - plantFloor) * plantBias
     - outsideHeightBand * heightBandWeight
   )
 ```
@@ -117,7 +153,8 @@ previous position and turns away.
 
 Terrain controls:
 
-- `Terrain Mix`: multiplier for terrain influence relative to trail intensity.
+- `Terrain Mix`: multiplier for terrain influence relative to trail intensity;
+  defaults to `10.0` for strong terrain/resource steering.
 - `Slope Bias`: positive values avoid steep slopes; negative values prefer
   steep slopes.
 - `Slope Cutoff`: hard maximum traversable slope sample.
@@ -127,8 +164,27 @@ Terrain controls:
 - `Height Band Weight`: penalty for sensor samples outside the preferred height
   band.
 - `Water Bias`: positive values avoid water; negative values prefer water.
-- `Terrain Underlay`: blends a height/slope/water diagnostic under the trail in
-  the display pass.
+- `Plant Bias`: positive values prefer plant-rich live resource areas; negative
+  values avoid them. Slime agents use the true live plant field for this dev
+  experiment, not the player's known resource map.
+- `Plant Floor`: normalized plant-stock threshold. Plant samples below this
+  value become repulsive when `Plant Bias` is positive.
+- `Eat Amount`: trail-weighted plant stock amount removed from the mutable GPU
+  plant texture on each eat tick.
+- `Eat Tick`: slime simulation-step interval for batched plant consumption.
+  Consumption is a fullscreen GPU pass driven by the existing trail texture.
+- `Plant Regen`: flat plant stock amount restored toward the base plant texture
+  on regen ticks.
+- `Regen Tick`: slime simulation-step interval for plant regeneration.
+- `Hunt Flee Steps`: number of Slime simulation steps that the player repulsion
+  field remains active after a successful Hunting kill.
+- `Hunt Flee Weight`: strength of that temporary player repulsion field. It is
+  added directly to sensor scoring so high values can override terrain/resource
+  attraction.
+- `Hunt Flee Radius`: map-pixel radius around the player where the flee field
+  affects agents.
+- `Terrain Underlay`: blends a height/slope/water/plant diagnostic under the
+  trail in the display pass.
 
 Terrain UVs currently map simulation coordinates directly to normalized texture
 coordinates. This makes Slime Lab a same-sized field experiment, not a full
@@ -147,21 +203,89 @@ Clicking the Slime Lab canvas runs a GPU brush operation.
 The brush is a local perturbation/reset tool for testing stability, terrain
 response, and attractor recovery.
 
+## Gameplay Trail Overlay
+
+The gameplay/debug visual trail overlay must use the same render-time texture
+layer architecture as the existing terrain overlays. The Slime runtime owns the
+simulation texture. In gameplay, a headless Slime runtime instance runs inside
+the main terrain WebGL context, so the terrain shader samples the full-resolution
+trail texture directly. Shader-side colorization applies the configured
+threshold, gain, gamma, opacity, and palette-style ramp. The trail texture uses
+nearest-neighbor filtering to preserve the pixel-sharp map style.
+
+Tracks knowledge masking also happens in the terrain shader by sampling the
+renderer-owned `tracks` discovery texture and applying the configured knowledge
+cutoff. Normal gameplay rendering must not use full-resolution Slime trail
+`readPixels`, CPU masking, or an overlay-canvas full-map fallback. Low-resolution
+readbacks remain acceptable for gameplay statistics and diagnostics.
+
+Raw Slime framebuffer textures are sampled with a Y flip in
+`sampleSlimeTrailOverlay()` to match the row flip that the former CPU
+`readPixels` bridge performed. Keep that correction at the render-composite
+boundary; do not compensate by changing map-pixel-to-simulation coordinate math.
+
+Do not replace this with a parallel 2D canvas overlay for the full trail map.
+Canvas overlays are appropriate for markers, vectors, UI gizmos, or explicit
+debug fallbacks. The low-resolution Slime availability grid is rendered and
+read at grid resolution, then flipped from WebGL `readPixels` row order into
+top-left map coordinates. It is for Hunting availability sampling and numeric
+readout, not the primary visual overlay. Its values use the same
+threshold/gain/gamma normalization as the visible track overlay, so Hunting
+availability follows what the player sees instead of raw internal trail energy.
+Hunting uses a hotspot aggregate, currently the top half of cells inside the
+activity circle, so strong blobs are not erased by empty edge cells.
+
+On a Hunting success, gameplay reads the current GPU agent positions once,
+counts agents inside the hunt circle, and awards loot only for agents actually
+present. Killed agents are locally removed by respawning them outside the hunt
+circle. If the probabilistic hunt succeeds but no agents are in the circle, no
+loot is awarded and the panel reports a missed shot/no game. After at least one
+kill, the player activates a temporary Slime flee field for the configured
+number of steps so nearby agents visibly scatter instead of the system relying
+on immediate trail deletion. Existing trail is left to decay naturally. That
+flee field is registered as a temporary condition effect, so its player-facing
+status lives in the normal buff/debuff strip and its remaining duration is
+decremented by actual Slime simulation steps. The flee field is radius-limited:
+agents inside the radius penalize sensor samples near the player and also apply
+a direct away-from-player steering force with a proximity-scaled temporary
+speed boost.
+
+Inspect exposes Tracks as the `T` layer. Its readout samples the low-resolution
+availability grid, while rendering gates visibility through a separate `tracks`
+discovery map in the terrain shader. That map initializes clear/black on new
+game or map reset; player movement updates the tracks discovery map, while
+scout birds do not. Future hawk possession can reveal/update the same tracks
+map without coupling it to the shared world Knowledge Map.
+
+The RD Slime tab can initialize/test the tracks discovery map directly:
+
+- `Clear`: fills tracks knowledge with `0`.
+- `Fill`: fills tracks knowledge with `1`.
+- `Noise`: populates tracks knowledge with the current discovery noise settings.
+- `Track Knowledge Cutoff`: render-only threshold; trail pixels below this
+  knowledge value are hidden without mutating the tracks map.
+
 ## Persistence
 
 Slime settings are registered in the core settings registry under the `slime`
-key, but Slime Lab does not currently have a map sidecar file in `Save All` or
-map loading. The current map sidecar set still saves terrain/gameplay/audio data,
-not Slime Lab experiment state.
+key. Map `Save All` writes `slime.json`, map loading applies `slime.json` when
+present and falls back to defaults when absent, and the Slime Lab panel has a
+dedicated `Save Map Settings` action for writing only `slime.json`.
 
-If Slime Lab becomes a gameplay system, add an explicit sidecar such as
-`slime.json` and decide whether it stores only settings, seeded initial state, or
-trail/agent snapshots.
+Slime Lab also uses the shared module preset flow, matching Water Trails:
+presets are indexed under `assets/presets/slime/index.json` and individual
+setup files live beside that index. In browser/dev mode, newly saved named
+presets are also stored in local browser storage so they remain available after
+reload even when the runtime cannot write directly into `assets/presets/slime`.
+Presets store settings only, not mutable GPU trail or agent snapshots.
 
 ## Integration Guardrails
 
-- Keep full GPU readback rare. Prefer passing trail or influence fields as GPU
-  textures to terrain, gameplay, or diagnostic render passes.
+- Keep full GPU readback rare. Prefer passing trail or influence fields as
+  renderer-owned textures to terrain, gameplay, or diagnostic render passes.
+- Full-map visual trail layers should be composited through the main terrain
+  shader. CPU/readback products should serve gameplay sampling, diagnostics, or
+  WebGL-context bridging only.
 - Keep the WebGL2 implementation behind `src/slime/` APIs.
 - Do not make core gameplay depend on WebGL2-only internals.
 - Treat current terrain coupling as an experiment; future scenario integration

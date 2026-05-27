@@ -187,7 +187,12 @@ import {
 import { createAudioScribbleInputRuntime } from "./audio/audioScribbleInputRuntime.js";
 import { createAudioPanelRuntime } from "./ui/audioPanelRuntime.js";
 import { createSlimeGpuRuntime } from "./slime/slimeGpuRuntime.js";
+import { createSlimeMainRenderRuntime } from "./slime/slimeMainRenderRuntime.js";
 import { DEFAULT_SLIME_SIMULATION_STATE, normalizeSlimeSettings } from "./slime/slimeState.js";
+import {
+  createEmptySlimeAvailabilityGrid,
+  sampleSlimeAvailabilityCircle,
+} from "./slime/slimeAvailabilityRuntime.js";
 import { createSlimePanelRuntime } from "./ui/slimePanelRuntime.js";
 import { createInteractionModeUiRuntime } from "./ui/interactionModeUiRuntime.js";
 import { createPointLightIoUiRuntime } from "./ui/pointLightIoUiRuntime.js";
@@ -208,6 +213,17 @@ const RESOURCE_SEARCHES = await loadResourceSearches();
 const RESOURCE_STOCK_SETTINGS = await loadResourceStockSettings({ resourceIds: Object.keys(RESOURCE_SEARCHES) });
 const DISCOVERY_SETTINGS = await loadDiscoverySettings();
 const WORLD_KNOWLEDGE_MAP_ID = "world";
+const TRACKS_KNOWLEDGE_MAP_ID = "tracks";
+const SLIME_HUNT_FLEE_EFFECT_ID = "slime_hunt_flee";
+const DEFAULT_HUNTING_SETTINGS = {
+  radius: 30,
+  trailEffectiveMax: 0.7,
+  maxChance: 0.35,
+  depletionRadius: 45,
+  killCount: 1,
+  fleeSteps: 100,
+  fleeWeight: 80,
+};
 const DEFAULT_RESOURCE_DEBUG_SETTINGS = createDefaultResourceDebugSettings(RESOURCE_SEARCHES, "water", DISCOVERY_SETTINGS);
 let resourceDebugSettings = normalizeResourceDebugSettings(null, DEFAULT_RESOURCE_DEBUG_SETTINGS);
 
@@ -246,6 +262,7 @@ const perfOverlayToggleBtn = getRequiredElementById("perfOverlayToggleBtn");
 const topicPanelCloseBtn = getRequiredElementById("topicPanelClose");
 const performanceOverlayPanelEl = getRequiredElementById("performanceOverlayPanel");
 const performanceOverlayCopyBtn = getRequiredElementById("performanceOverlayCopyBtn");
+const performanceOverlayGraphEl = getRequiredElementById("performanceOverlayGraph");
 const performanceOverlayTextEl = getRequiredElementById("performanceOverlayText");
 const topicCards = getRequiredElements(".topic-card");
 const statusEl = getRequiredElementById("status");
@@ -261,6 +278,9 @@ const movementStatusPanelEl = getRequiredElementById("movementStatusPanel");
 const movementStatusTitleEl = getRequiredElementById("movementStatusTitle");
 const movementStatusEtaEl = getRequiredElementById("movementStatusEta");
 const movementStatusDetailEl = getRequiredElementById("movementStatusDetail");
+const huntingAvailabilityRowEl = getRequiredElementById("huntingAvailabilityRow");
+const huntingAvailabilityLabelEl = getRequiredElementById("huntingAvailabilityLabel");
+const huntingAvailabilityBarFillEl = getRequiredElementById("huntingAvailabilityBarFill");
 const routePlanningControlsEl = getRequiredElementById("routePlanningControls");
 const routeSectionTimeValue = getRequiredElementById("routeSectionTimeValue");
 const routeTotalTimeValue = getRequiredElementById("routeTotalTimeValue");
@@ -283,6 +303,7 @@ const mapSaveAllBtn = getRequiredElementById("mapSaveAllBtn");
 const dockLightingModeToggle = getRequiredElementById("dockLightingModeToggle");
 const dockPathfindingModeToggle = getRequiredElementById("dockPathfindingModeToggle");
 const dockGatheringActivityBtn = getRequiredElementById("dockGatheringActivityBtn");
+const dockHuntingActivityBtn = getRequiredElementById("dockHuntingActivityBtn");
 const dockInspectActivityBtn = getRequiredElementById("dockInspectActivityBtn");
 const dockScoutActivityBtn = getRequiredElementById("dockScoutActivityBtn");
 const dockShowPlayerBtn = getRequiredElementById("dockShowPlayerBtn");
@@ -294,6 +315,7 @@ const hudPathfindingBtn = getRequiredElementById("hudPathfindingBtn");
 const hudRoutePlanningBtn = getRequiredElementById("hudRoutePlanningBtn");
 const hudGatheringBtn = getRequiredElementById("hudGatheringBtn");
 const hudGatherWaterBtn = getRequiredElementById("hudGatherWaterBtn");
+const hudHuntingBtn = getRequiredElementById("hudHuntingBtn");
 const hudInspectBtn = getRequiredElementById("hudInspectBtn");
 const hudScoutBtn = getRequiredElementById("hudScoutBtn");
 const hudRestBtn = getRequiredElementById("hudRestBtn");
@@ -383,6 +405,25 @@ const resourceStockRevealHereBtn = getRequiredElementById("resourceStockRevealHe
 const resourceStockFillFullBtn = getRequiredElementById("resourceStockFillFullBtn");
 const resourceStockFillEmptyBtn = getRequiredElementById("resourceStockFillEmptyBtn");
 const resourceStockResetBtn = getRequiredElementById("resourceStockResetBtn");
+const slimeAvailabilityOverlayEnabledInput = getRequiredElementById("slimeAvailabilityOverlayEnabled");
+const slimeAvailabilityOverlayOpacityInput = getRequiredElementById("slimeAvailabilityOverlayOpacity");
+const slimeAvailabilityOverlayOpacityValue = getRequiredElementById("slimeAvailabilityOverlayOpacityValue");
+const slimeAvailabilityOverlayThresholdInput = getRequiredElementById("slimeAvailabilityOverlayThreshold");
+const slimeAvailabilityOverlayThresholdValue = getRequiredElementById("slimeAvailabilityOverlayThresholdValue");
+const slimeGameTicksPerSlimeStepInput = getRequiredElementById("slimeGameTicksPerSlimeStep");
+const slimeGameTicksPerSlimeStepValue = getRequiredElementById("slimeGameTicksPerSlimeStepValue");
+const slimeHuntingFleeStepsInput = getRequiredElementById("slimeHuntingFleeSteps");
+const slimeHuntingFleeStepsValue = getRequiredElementById("slimeHuntingFleeStepsValue");
+const slimeHuntingFleeWeightInput = getRequiredElementById("slimeHuntingFleeWeight");
+const slimeHuntingFleeWeightValue = getRequiredElementById("slimeHuntingFleeWeightValue");
+const slimeHuntingFleeRadiusInput = getRequiredElementById("slimeHuntingFleeRadius");
+const slimeHuntingFleeRadiusValue = getRequiredElementById("slimeHuntingFleeRadiusValue");
+const slimeTracksKnowledgeCutoffInput = getRequiredElementById("slimeTracksKnowledgeCutoff");
+const slimeTracksKnowledgeCutoffValue = getRequiredElementById("slimeTracksKnowledgeCutoffValue");
+const slimeTracksClearBtn = getRequiredElementById("slimeTracksClearBtn");
+const slimeTracksFillBtn = getRequiredElementById("slimeTracksFillBtn");
+const slimeTracksNoiseBtn = getRequiredElementById("slimeTracksNoiseBtn");
+const slimeAvailabilityReadout = getRequiredElementById("slimeAvailabilityReadout");
 const routeArrowColorInput = getRequiredElementById("routeArrowColor");
 const routeArrowSpacingInput = getRequiredElementById("routeArrowSpacing");
 const routeArrowSpacingValue = getRequiredElementById("routeArrowSpacingValue");
@@ -409,6 +450,7 @@ const routePlanningSlopeCutoffAddValue = getRequiredElementById("routePlanningSl
 const routeDebugOverlayModeInput = getRequiredElementById("routeDebugOverlayMode");
 const routeClearBtn = getRequiredElementById("routeClearBtn");
 const inspectLayerControlsEl = getRequiredElementById("inspectLayerControls");
+const inspectTracksLayerBtn = getRequiredElementById("inspectTracksLayerBtn");
 const inspectWetnessLayerBtn = getRequiredElementById("inspectWetnessLayerBtn");
 const inspectPlantsLayerBtn = getRequiredElementById("inspectPlantsLayerBtn");
 const inspectHeightLayerBtn = getRequiredElementById("inspectHeightLayerBtn");
@@ -632,6 +674,11 @@ const waterTrailPresetSelect = getRequiredElementById("waterTrailPresetSelect");
 const waterTrailPresetNameInput = getRequiredElementById("waterTrailPresetName");
 const waterTrailPresetApplyBtn = getRequiredElementById("waterTrailPresetApplyBtn");
 const waterTrailPresetSaveBtn = getRequiredElementById("waterTrailPresetSaveBtn");
+const slimePresetSelect = getRequiredElementById("slimePresetSelect");
+const slimePresetNameInput = getRequiredElementById("slimePresetName");
+const slimePresetApplyBtn = getRequiredElementById("slimePresetApplyBtn");
+const slimePresetSaveBtn = getRequiredElementById("slimePresetSaveBtn");
+const slimeSaveBtn = getRequiredElementById("slimeSaveBtn");
 const heightScaleInput = getRequiredElementById("heightScale");
 const shadowStrengthInput = getRequiredElementById("shadowStrength");
 const shadowBlurInput = getRequiredElementById("shadowBlur");
@@ -749,6 +796,18 @@ const slimeAgentCountValue = getRequiredElementById("slimeAgentCountValue");
 const slimeSimSizeInput = getRequiredElementById("slimeSimSize");
 const slimeStepsPerFrameInput = getRequiredElementById("slimeStepsPerFrame");
 const slimeStepsPerFrameValue = getRequiredElementById("slimeStepsPerFrameValue");
+const slimeTimeModeInput = getRequiredElementById("slimeTimeMode");
+const slimeStepsPerGameTickInput = getRequiredElementById("slimeStepsPerGameTick");
+const slimeStepsPerGameTickValue = getRequiredElementById("slimeStepsPerGameTickValue");
+const slimeGameSpeedBtns = getRequiredElements(".slime-game-speed-btn");
+const slimeAvailabilityGridSizeInput = getRequiredElementById("slimeAvailabilityGridSize");
+const slimeAvailabilityGridSizeValue = getRequiredElementById("slimeAvailabilityGridSizeValue");
+const slimeAvailabilityEffectiveMaxInput = getRequiredElementById("slimeAvailabilityEffectiveMax");
+const slimeAvailabilityEffectiveMaxValue = getRequiredElementById("slimeAvailabilityEffectiveMaxValue");
+const slimeAvailabilityUpdateTickIntervalInput = getRequiredElementById("slimeAvailabilityUpdateTickInterval");
+const slimeAvailabilityUpdateTickIntervalValue = getRequiredElementById("slimeAvailabilityUpdateTickIntervalValue");
+const slimePlantStockSyncTickIntervalInput = getRequiredElementById("slimePlantStockSyncTickInterval");
+const slimePlantStockSyncTickIntervalValue = getRequiredElementById("slimePlantStockSyncTickIntervalValue");
 const slimeSensorDistanceInput = getRequiredElementById("slimeSensorDistance");
 const slimeSensorDistanceValue = getRequiredElementById("slimeSensorDistanceValue");
 const slimeSensorAngleInput = getRequiredElementById("slimeSensorAngle");
@@ -798,6 +857,18 @@ const slimeHeightBandWeightInput = getRequiredElementById("slimeHeightBandWeight
 const slimeHeightBandWeightValue = getRequiredElementById("slimeHeightBandWeightValue");
 const slimeWaterBiasInput = getRequiredElementById("slimeWaterBias");
 const slimeWaterBiasValue = getRequiredElementById("slimeWaterBiasValue");
+const slimePlantBiasInput = getRequiredElementById("slimePlantBias");
+const slimePlantBiasValue = getRequiredElementById("slimePlantBiasValue");
+const slimePlantFloorInput = getRequiredElementById("slimePlantFloor");
+const slimePlantFloorValue = getRequiredElementById("slimePlantFloorValue");
+const slimePlantEatAmountInput = getRequiredElementById("slimePlantEatAmount");
+const slimePlantEatAmountValue = getRequiredElementById("slimePlantEatAmountValue");
+const slimePlantEatTickIntervalInput = getRequiredElementById("slimePlantEatTickInterval");
+const slimePlantEatTickIntervalValue = getRequiredElementById("slimePlantEatTickIntervalValue");
+const slimePlantRegenAmountInput = getRequiredElementById("slimePlantRegenAmount");
+const slimePlantRegenAmountValue = getRequiredElementById("slimePlantRegenAmountValue");
+const slimePlantRegenTickIntervalInput = getRequiredElementById("slimePlantRegenTickInterval");
+const slimePlantRegenTickIntervalValue = getRequiredElementById("slimePlantRegenTickIntervalValue");
 const slimeBrushRadiusInput = getRequiredElementById("slimeBrushRadius");
 const slimeBrushRadiusValue = getRequiredElementById("slimeBrushRadiusValue");
 const slimeBrushTrailClearInput = getRequiredElementById("slimeBrushTrailClear");
@@ -997,7 +1068,19 @@ const settingsCompatRuntime = settingsCoreSetupRuntime.settingsCompatRuntime;
 const audioSimulationState = { ...DEFAULT_AUDIO_SIMULATION_STATE };
 const audioRuntimeState = createAudioRuntimeState();
 const audioScribbleRuntime = createScribbleCanvasRuntime(256, 256);
-const slimeSimulationState = { ...DEFAULT_SLIME_SIMULATION_STATE };
+const slimeDevSimulationState = { ...DEFAULT_SLIME_SIMULATION_STATE };
+const slimeGameplaySimulationState = { ...DEFAULT_SLIME_SIMULATION_STATE };
+let slimeAvailabilityGrid = createEmptySlimeAvailabilityGrid(DEFAULT_SLIME_SETTINGS.availabilityGridSize);
+let slimeAvailabilityOverlaySettings = {
+  enabled: false,
+  opacity: 1,
+  threshold: 0.061,
+  tracksKnowledgeCutoff: 0.2,
+};
+let slimeAvailabilityTickCounter = 0;
+let slimePlantSyncTickCounter = 0;
+let slimeFreeOverlayRefreshCounter = 0;
+let tracksDiscoveryInitialized = false;
 
 let frameUiRuntime = null;
 function getFrameUiRuntime() {
@@ -1196,7 +1279,16 @@ function syncDetailUi() {
 }
 
 function getSlimeSimulationState() {
-  return slimeSimulationState;
+  return slimeDevSimulationState;
+}
+
+function getGameplaySlimeSimulationState() {
+  return slimeGameplaySimulationState;
+}
+
+function setSlimeRuntimeError(state, error) {
+  state.error = error instanceof Error ? error.message : String(error);
+  return state.error;
 }
 
 const audioEngineRuntime = createAudioEngineRuntime({
@@ -1327,6 +1419,17 @@ const slimePanelRuntime = createSlimePanelRuntime({
   slimeSimSizeInput,
   slimeStepsPerFrameInput,
   slimeStepsPerFrameValue,
+  slimeTimeModeInput,
+  slimeStepsPerGameTickInput,
+  slimeStepsPerGameTickValue,
+  slimeAvailabilityGridSizeInput,
+  slimeAvailabilityGridSizeValue,
+  slimeAvailabilityEffectiveMaxInput,
+  slimeAvailabilityEffectiveMaxValue,
+  slimeAvailabilityUpdateTickIntervalInput,
+  slimeAvailabilityUpdateTickIntervalValue,
+  slimePlantStockSyncTickIntervalInput,
+  slimePlantStockSyncTickIntervalValue,
   slimeSensorDistanceInput,
   slimeSensorDistanceValue,
   slimeSensorAngleInput,
@@ -1376,6 +1479,18 @@ const slimePanelRuntime = createSlimePanelRuntime({
   slimeHeightBandWeightValue,
   slimeWaterBiasInput,
   slimeWaterBiasValue,
+  slimePlantBiasInput,
+  slimePlantBiasValue,
+  slimePlantFloorInput,
+  slimePlantFloorValue,
+  slimePlantEatAmountInput,
+  slimePlantEatAmountValue,
+  slimePlantEatTickIntervalInput,
+  slimePlantEatTickIntervalValue,
+  slimePlantRegenAmountInput,
+  slimePlantRegenAmountValue,
+  slimePlantRegenTickIntervalInput,
+  slimePlantRegenTickIntervalValue,
   slimeBrushRadiusInput,
   slimeBrushRadiusValue,
   slimeBrushTrailClearInput,
@@ -1389,16 +1504,141 @@ function syncSlimeUi() {
   slimePanelRuntime.syncSlimeUi();
 }
 
+function syncSlimeAvailabilityDebugUi() {
+  if (slimeAvailabilityOverlayEnabledInput) {
+    slimeAvailabilityOverlayEnabledInput.checked = slimeAvailabilityOverlaySettings.enabled === true;
+  }
+  if (slimeAvailabilityOverlayOpacityInput) {
+    slimeAvailabilityOverlayOpacityInput.value = String(slimeAvailabilityOverlaySettings.opacity);
+  }
+  if (slimeAvailabilityOverlayOpacityValue) {
+    slimeAvailabilityOverlayOpacityValue.textContent = Number(slimeAvailabilityOverlaySettings.opacity).toFixed(2);
+  }
+  if (slimeAvailabilityOverlayThresholdInput) {
+    slimeAvailabilityOverlayThresholdInput.value = String(slimeAvailabilityOverlaySettings.threshold);
+  }
+  if (slimeAvailabilityOverlayThresholdValue) {
+    slimeAvailabilityOverlayThresholdValue.textContent = Number(slimeAvailabilityOverlaySettings.threshold).toFixed(3);
+  }
+  const slimeSettings = getSlimeSettings();
+  if (slimeGameTicksPerSlimeStepInput) {
+    slimeGameTicksPerSlimeStepInput.value = String(slimeSettings.gameTicksPerSlimeStep);
+  }
+  if (slimeGameTicksPerSlimeStepValue) {
+    slimeGameTicksPerSlimeStepValue.textContent = String(Math.round(Number(slimeSettings.gameTicksPerSlimeStep) || 1));
+  }
+  if (slimeHuntingFleeStepsInput) {
+    slimeHuntingFleeStepsInput.value = String(slimeSettings.huntingFleeSteps);
+  }
+  if (slimeHuntingFleeStepsValue) {
+    slimeHuntingFleeStepsValue.textContent = String(Math.round(Number(slimeSettings.huntingFleeSteps) || 0));
+  }
+  if (slimeHuntingFleeWeightInput) {
+    slimeHuntingFleeWeightInput.value = String(slimeSettings.huntingFleeWeight);
+  }
+  if (slimeHuntingFleeWeightValue) {
+    slimeHuntingFleeWeightValue.textContent = Number(slimeSettings.huntingFleeWeight || 0).toFixed(1);
+  }
+  if (slimeHuntingFleeRadiusInput) {
+    slimeHuntingFleeRadiusInput.value = String(slimeSettings.huntingFleeRadius);
+  }
+  if (slimeHuntingFleeRadiusValue) {
+    slimeHuntingFleeRadiusValue.textContent = String(Math.round(Number(slimeSettings.huntingFleeRadius) || 1));
+  }
+  if (slimeTracksKnowledgeCutoffInput) {
+    slimeTracksKnowledgeCutoffInput.value = String(slimeAvailabilityOverlaySettings.tracksKnowledgeCutoff);
+  }
+  if (slimeTracksKnowledgeCutoffValue) {
+    slimeTracksKnowledgeCutoffValue.textContent = Number(slimeAvailabilityOverlaySettings.tracksKnowledgeCutoff).toFixed(2);
+  }
+  if (slimeAvailabilityReadout) {
+    const grid = slimeAvailabilityGrid;
+    if (grid && grid.version && grid.data) {
+      let max = 0;
+      let activeCells = 0;
+      const threshold = Number(slimeAvailabilityOverlaySettings.threshold) || 0;
+      for (let i = 0; i < grid.data.length; i++) {
+        const value = Number(grid.data[i]) || 0;
+        if (value > max) max = value;
+        if (value >= threshold) activeCells += 1;
+      }
+      const runtime = getGameplaySlimeRuntime();
+      const textureVersion = runtime && typeof runtime.getTrailTextureVersion === "function"
+        ? ` | trail tex v${runtime.getTrailTextureVersion()}`
+        : "";
+      slimeAvailabilityReadout.textContent = `${grid.width}x${grid.height} | max ${max.toFixed(3)} | cells ${activeCells} | v${grid.version}${textureVersion}`;
+    } else {
+      slimeAvailabilityReadout.textContent = getGameplaySlimeSimulationState().running
+        ? "waiting for first trail readback"
+        : "not running";
+    }
+  }
+}
+
+function isInspectTracksOverlayActive() {
+  const inspect = getInspectSnapshot();
+  if (!inspect || inspect.enabled !== true || inspect.layer !== "tracks") return false;
+  return !isInspectBlockedByActivity(getActivitySnapshot());
+}
+
+function shouldRenderSlimeTrailOverlay() {
+  return slimeAvailabilityOverlaySettings.enabled === true || isInspectTracksOverlayActive();
+}
+
+function getSlimeTrailOverlaySnapshot() {
+  if (!shouldRenderSlimeTrailOverlay()) return null;
+  const settings = getSlimeSettings();
+  const runtime = getGameplaySlimeRuntime();
+  const texture = typeof runtime.getTrailTexture === "function" ? runtime.getTrailTexture() : null;
+  if (texture) {
+    return {
+      texture,
+      rawTrail: true,
+      width: settings.simSize,
+      height: settings.simSize,
+      version: typeof runtime.getTrailTextureVersion === "function" ? runtime.getTrailTextureVersion() : 0,
+      gain: settings.trailGain,
+      gamma: settings.trailGamma,
+      threshold: slimeAvailabilityOverlaySettings.threshold,
+      opacity: slimeAvailabilityOverlaySettings.opacity,
+      tracksMask: isInspectTracksOverlayActive()
+        ? resourceDiscoveryRuntime?.getSnapshot(TRACKS_KNOWLEDGE_MAP_ID)
+        : null,
+      tracksKnowledgeCutoff: slimeAvailabilityOverlaySettings.tracksKnowledgeCutoff,
+    };
+  }
+  return null;
+}
+
 const slimeGpuRuntime = createSlimeGpuRuntime({
   canvas: slimeCanvas,
-  state: slimeSimulationState,
+  state: slimeDevSimulationState,
   getTerrainSource: () => ({
     heightImageData,
     slopeImageData,
     waterImageData,
+    plantBaseImageData: getSlimePlantBaseResourceImageData(),
+    plantStockImageData: getSlimePlantResourceImageData(),
   }),
-  onFrame: () => syncSlimeUi(),
+  onFrame: () => handleSlimeRuntimeFrame(),
 });
+const slimeMainRenderRuntime = createSlimeMainRenderRuntime({
+  canvas,
+  gl,
+  state: slimeGameplaySimulationState,
+  getTerrainSource: () => ({
+    heightImageData,
+    slopeImageData,
+    waterImageData,
+    plantBaseImageData: getSlimePlantBaseResourceImageData(),
+    plantStockImageData: getSlimePlantResourceImageData(),
+  }),
+  onFrame: () => handleSlimeRuntimeFrame(),
+});
+
+function getGameplaySlimeRuntime() {
+  return slimeMainRenderRuntime;
+}
 
 function serializeSlimeSettingsCompatImpl() {
   return getSlimeSettings();
@@ -1408,12 +1648,15 @@ function applySlimeSettingsCompatImpl(rawData) {
   const next = normalizeSlimeSettings(rawData, getSlimeSettings());
   settingsApplyRuntime.updateStoreFromAppliedSettings("slime", next);
   slimeGpuRuntime.applySettings(next);
+  slimeMainRenderRuntime.applySettings(next);
   if (next.enabled) {
-    slimeGpuRuntime.start(next);
+    slimeMainRenderRuntime.start(next);
   } else {
+    slimeMainRenderRuntime.stop();
     slimeGpuRuntime.stop();
   }
   syncSlimeUi();
+  syncSlimeAvailabilityDebugUi();
 }
 
 function patchSlimeSettings(patch) {
@@ -1424,23 +1667,213 @@ function patchSlimeSettings(patch) {
   settingsApplyRuntime.updateStoreFromAppliedSettings("slime", next);
   try {
     slimeGpuRuntime.applySettings(next);
+    slimeMainRenderRuntime.applySettings(next);
   } catch (error) {
-    slimeSimulationState.error = error instanceof Error ? error.message : String(error);
-    setStatus(`Slime settings failed: ${slimeSimulationState.error}`);
+    const message = setSlimeRuntimeError(slimeGameplaySimulationState, error);
+    setSlimeRuntimeError(slimeDevSimulationState, error);
+    setStatus(`Slime settings failed: ${message}`);
   }
   syncSlimeUi();
+  syncSlimeAvailabilityDebugUi();
 }
+
+function refreshSlimeAvailabilityGrid(force = false) {
+  const settings = getSlimeSettings();
+  if (!force && settings.timeMode !== "gameTick") return false;
+  try {
+    const runtime = getGameplaySlimeRuntime();
+    const grid = runtime.readTrailAvailabilityGrid({
+      gridSize: settings.availabilityGridSize,
+      effectiveMax: settings.availabilityEffectiveMax,
+      threshold: slimeAvailabilityOverlaySettings.threshold,
+      gain: settings.trailGain,
+      gamma: settings.trailGamma,
+    });
+    if (!grid) return false;
+    slimeAvailabilityGrid = grid;
+    syncSlimeAvailabilityDebugUi();
+    overlayDirtyRuntime.requestOverlayDraw();
+    return true;
+  } catch (error) {
+    const message = setSlimeRuntimeError(slimeGameplaySimulationState, error);
+    setStatus(`Slime availability readback failed: ${message}`);
+    syncSlimeUi();
+    return false;
+  }
+}
+
+function syncSlimePlantStockToGameplay() {
+  if (!resourceStockRuntime || typeof resourceStockRuntime.applyStockImageData !== "function") return false;
+  const stockSnapshot = typeof resourceStockRuntime.getSnapshot === "function"
+    ? resourceStockRuntime.getSnapshot("plants")
+    : null;
+  const runtime = getGameplaySlimeRuntime();
+  const plantStockFactor = typeof runtime.readPlantStockFactorImageData === "function"
+    ? runtime.readPlantStockFactorImageData({
+      width: stockSnapshot?.width || getSlimeSettings().availabilityGridSize,
+      height: stockSnapshot?.height || getSlimeSettings().availabilityGridSize,
+    })
+    : null;
+  if (!plantStockFactor || !plantStockFactor.data) return false;
+  const changed = resourceStockRuntime.applyStockImageData("plants", plantStockFactor, {
+    channelOffset: 0,
+    updateKnown: "lower",
+    onlyLower: true,
+  });
+  if (changed) {
+    slimePlantResourceCache = null;
+  }
+  return changed;
+}
+
+function updateSlimeForGameTicks(ctx = {}) {
+  const settings = getSlimeSettings();
+  if (!getGameplaySlimeSimulationState().running || settings.timeMode !== "gameTick") return;
+  const ticks = Math.max(0, Math.round(Number(ctx.time && ctx.time.ticksProcessed) || 0));
+  if (ticks <= 0) return;
+  const steps = getGameplaySlimeRuntime().stepGameTicks(ticks, settings);
+  if (steps <= 0) return;
+  conditionEffectRuntime?.tickTemporaryEffects?.(steps);
+  slimeAvailabilityTickCounter += steps;
+  slimePlantSyncTickCounter += steps;
+  const interval = Math.max(1, Math.round(Number(settings.availabilityUpdateTickInterval) || 1));
+  const plantInterval = Math.max(10, Math.round(Number(settings.plantStockSyncTickInterval) || 120));
+  if (slimeAvailabilityTickCounter >= interval) {
+    slimeAvailabilityTickCounter = 0;
+    refreshSlimeAvailabilityGrid(true);
+  }
+  if (slimePlantSyncTickCounter >= plantInterval) {
+    slimePlantSyncTickCounter = 0;
+    syncSlimePlantStockToGameplay();
+  }
+}
+
+function warmupSlimeOnMapLoaded() {
+  const settings = getSlimeSettings();
+  if (!settings.enabled) return false;
+  const steps = Math.max(0, Math.round(Number(settings.warmupSteps) || 0));
+  const runtime = getGameplaySlimeRuntime();
+  if (steps <= 0 || typeof runtime.warmupSteps !== "function") return false;
+  try {
+    runtime.start(settings);
+    const completed = runtime.warmupSteps(steps, settings);
+    if (completed <= 0) return false;
+    slimeAvailabilityTickCounter = 0;
+    slimePlantSyncTickCounter = 0;
+    syncSlimePlantStockToGameplay();
+    refreshSlimeAvailabilityGrid(true);
+    setStatus(`Slime warmup completed: ${completed} steps.`);
+    return true;
+  } catch (error) {
+    const message = setSlimeRuntimeError(slimeGameplaySimulationState, error);
+    setStatus(`Slime warmup failed: ${message}`);
+    syncSlimeUi();
+    return false;
+  }
+}
+
+function finalizeMapGameplayState() {
+  resetKnowledgeMapForConfig();
+  warmupSlimeOnMapLoaded();
+}
+
+function handleSlimeRuntimeFrame() {
+  syncSlimeUi();
+  const settings = getSlimeSettings();
+  if (!getGameplaySlimeSimulationState().running || settings.timeMode === "gameTick" || !shouldRenderSlimeTrailOverlay()) return;
+  slimeFreeOverlayRefreshCounter += 1;
+  const interval = Math.max(3, Math.round(Number(settings.availabilityUpdateTickInterval) || 1));
+  if (slimeFreeOverlayRefreshCounter < interval) return;
+  slimeFreeOverlayRefreshCounter = 0;
+  refreshSlimeAvailabilityGrid(true);
+}
+
+slimeSaveBtn.addEventListener("click", () => {
+  saveSlimeSettingsFile();
+});
+slimeAvailabilityOverlayEnabledInput.addEventListener("change", () => {
+  slimeAvailabilityOverlaySettings.enabled = slimeAvailabilityOverlayEnabledInput.checked;
+  if (slimeAvailabilityOverlaySettings.enabled) {
+    refreshSlimeAvailabilityGrid(true);
+  }
+  syncSlimeAvailabilityDebugUi();
+  overlayDirtyRuntime.requestOverlayDraw();
+});
+slimeAvailabilityOverlayOpacityInput.addEventListener("input", () => {
+  slimeAvailabilityOverlaySettings.opacity = clampUtil(Number(slimeAvailabilityOverlayOpacityInput.value) || 0, 0, 1);
+  if (shouldRenderSlimeTrailOverlay()) {
+    refreshSlimeAvailabilityGrid(true);
+  }
+  syncSlimeAvailabilityDebugUi();
+  overlayDirtyRuntime.requestOverlayDraw();
+});
+slimeAvailabilityOverlayThresholdInput.addEventListener("input", () => {
+  slimeAvailabilityOverlaySettings.threshold = clampUtil(Number(slimeAvailabilityOverlayThresholdInput.value) || 0, 0, 1);
+  if (shouldRenderSlimeTrailOverlay()) {
+    refreshSlimeAvailabilityGrid(true);
+  }
+  syncSlimeAvailabilityDebugUi();
+  overlayDirtyRuntime.requestOverlayDraw();
+});
+slimeGameTicksPerSlimeStepInput.addEventListener("input", () => {
+  const value = Math.round(clampUtil(Number(slimeGameTicksPerSlimeStepInput.value) || 1, 1, 10));
+  patchSlimeSettings({ gameTicksPerSlimeStep: value });
+  syncSlimeAvailabilityDebugUi();
+});
+slimeHuntingFleeStepsInput.addEventListener("input", () => {
+  const value = Math.round(clampUtil(Number(slimeHuntingFleeStepsInput.value) || 0, 0, 1000));
+  patchSlimeSettings({ huntingFleeSteps: value });
+  syncSlimeAvailabilityDebugUi();
+});
+slimeHuntingFleeWeightInput.addEventListener("input", () => {
+  const value = clampUtil(Number(slimeHuntingFleeWeightInput.value) || 0, 0, 200);
+  patchSlimeSettings({ huntingFleeWeight: value });
+  syncSlimeAvailabilityDebugUi();
+});
+slimeHuntingFleeRadiusInput.addEventListener("input", () => {
+  const value = Math.round(clampUtil(Number(slimeHuntingFleeRadiusInput.value) || 1, 1, 512));
+  patchSlimeSettings({ huntingFleeRadius: value });
+  syncSlimeAvailabilityDebugUi();
+});
+slimeTracksKnowledgeCutoffInput.addEventListener("input", () => {
+  slimeAvailabilityOverlaySettings.tracksKnowledgeCutoff = clampUtil(Number(slimeTracksKnowledgeCutoffInput.value) || 0, 0, 1);
+  updateTracksDiscoveryOverlayState();
+});
+slimeTracksClearBtn.addEventListener("click", () => {
+  tracksDiscoveryInitialized = true;
+  resourceDiscoveryRuntime?.fill(TRACKS_KNOWLEDGE_MAP_ID, 0);
+  updateTracksDiscoveryOverlayState("Track Knowledge cleared.");
+});
+slimeTracksFillBtn.addEventListener("click", () => {
+  tracksDiscoveryInitialized = true;
+  resourceDiscoveryRuntime?.fill(TRACKS_KNOWLEDGE_MAP_ID, 1);
+  updateTracksDiscoveryOverlayState("Track Knowledge filled.");
+});
+slimeTracksNoiseBtn.addEventListener("click", () => {
+  tracksDiscoveryInitialized = true;
+  seedDiscoveryNoise(TRACKS_KNOWLEDGE_MAP_ID);
+  updateTracksDiscoveryOverlayState("Track Knowledge noise populated.");
+});
+syncSlimeAvailabilityDebugUi();
 
 function startSlimeExperiment() {
   try {
-    slimeGpuRuntime.start(getSlimeSettings());
+    const settings = getSlimeSettings();
+    slimeGpuRuntime.start(settings);
+    slimeMainRenderRuntime.start(settings);
+    if (settings.timeMode === "gameTick") {
+      slimeMainRenderRuntime.stepGameTicks(1, settings);
+      refreshSlimeAvailabilityGrid(true);
+    }
   } catch (error) {
-    slimeSimulationState.error = error instanceof Error ? error.message : String(error);
-    setStatus(`Slime start failed: ${slimeSimulationState.error}`);
+    const message = setSlimeRuntimeError(slimeGameplaySimulationState, error);
+    setSlimeRuntimeError(slimeDevSimulationState, error);
+    setStatus(`Slime start failed: ${message}`);
   }
 }
 
 function stopSlimeExperiment() {
+  slimeMainRenderRuntime.stop();
   slimeGpuRuntime.stop();
 }
 
@@ -1448,12 +1881,14 @@ function resetSlimeExperiment() {
   try {
     const settings = getSlimeSettings();
     slimeGpuRuntime.reset(settings);
+    slimeMainRenderRuntime.reset(settings);
     if (settings.enabled) {
-      slimeGpuRuntime.start(settings);
+      slimeMainRenderRuntime.start(settings);
     }
   } catch (error) {
-    slimeSimulationState.error = error instanceof Error ? error.message : String(error);
-    setStatus(`Slime reset failed: ${slimeSimulationState.error}`);
+    const message = setSlimeRuntimeError(slimeGameplaySimulationState, error);
+    setSlimeRuntimeError(slimeDevSimulationState, error);
+    setStatus(`Slime reset failed: ${message}`);
   }
 }
 
@@ -1874,6 +2309,10 @@ function saveAllMapDataFiles() {
   return mapLifecycleRuntime.saveAllMapDataFiles();
 }
 
+function saveSlimeSettingsFile() {
+  return mapLifecycleRuntime.saveMapDataFile("slime.json");
+}
+
 function loadMapFromPath(mapFolderPath) {
   return mapLifecycleRuntime.loadMapFromPath(mapFolderPath);
 }
@@ -1990,6 +2429,8 @@ const uniforms = {
   uMaterialSplat: gl.getUniformLocation(program, "uMaterialSplat"),
   uDetailMicroColor: gl.getUniformLocation(program, "uDetailMicroColor"),
   uDiscoveryMask: gl.getUniformLocation(program, "uDiscoveryMask"),
+  uSlimeTrailOverlay: gl.getUniformLocation(program, "uSlimeTrailOverlay"),
+  uSlimeTracksMask: gl.getUniformLocation(program, "uSlimeTracksMask"),
   uUseCursorLight: gl.getUniformLocation(program, "uUseCursorLight"),
   uCursorLightUv: gl.getUniformLocation(program, "uCursorLightUv"),
   uCursorLightColor: gl.getUniformLocation(program, "uCursorLightColor"),
@@ -2021,6 +2462,14 @@ const uniforms = {
   uDetailMaterialPriority: gl.getUniformLocation(program, "uDetailMaterialPriority"),
   uDiscoveryVisibilityEnabled: gl.getUniformLocation(program, "uDiscoveryVisibilityEnabled"),
   uDiscoveryVisibilityMode: gl.getUniformLocation(program, "uDiscoveryVisibilityMode"),
+  uSlimeTrailOverlayEnabled: gl.getUniformLocation(program, "uSlimeTrailOverlayEnabled"),
+  uSlimeTrailOverlayRaw: gl.getUniformLocation(program, "uSlimeTrailOverlayRaw"),
+  uSlimeTrailOverlayGain: gl.getUniformLocation(program, "uSlimeTrailOverlayGain"),
+  uSlimeTrailOverlayGamma: gl.getUniformLocation(program, "uSlimeTrailOverlayGamma"),
+  uSlimeTrailOverlayThreshold: gl.getUniformLocation(program, "uSlimeTrailOverlayThreshold"),
+  uSlimeTrailOverlayOpacity: gl.getUniformLocation(program, "uSlimeTrailOverlayOpacity"),
+  uSlimeTracksMaskEnabled: gl.getUniformLocation(program, "uSlimeTracksMaskEnabled"),
+  uSlimeTracksKnowledgeCutoff: gl.getUniformLocation(program, "uSlimeTracksKnowledgeCutoff"),
   uDiscoveryDitherScale: gl.getUniformLocation(program, "uDiscoveryDitherScale"),
   uDiscoveryKnowledgeGamma: gl.getUniformLocation(program, "uDiscoveryKnowledgeGamma"),
   uDiscoveryUnknownDarkness: gl.getUniformLocation(program, "uDiscoveryUnknownDarkness"),
@@ -2222,7 +2671,11 @@ const {
   materialSplatTex,
   detailMicroColorTex,
   discoveryMaskTex,
+  slimeTrailOverlayTex,
+  slimeTracksMaskTex,
+  slimeTrailOverlayTextureState,
   discoveryMaskTextureState,
+  slimeTracksMaskTextureState,
   detailAtlasState,
   pointLightTex,
   cloudNoiseTex,
@@ -2322,6 +2775,7 @@ createModulePresetRuntime({
   isAbsoluteFsPath,
   joinFsPath,
   downloadTextFile,
+  storage: window.localStorage,
   showDirectoryPicker:
     typeof window.showDirectoryPicker === "function" ? window.showDirectoryPicker.bind(window) : null,
   confirm: (text) => window.confirm(text),
@@ -2345,6 +2799,31 @@ createModulePresetRuntime({
   isAbsoluteFsPath,
   joinFsPath,
   downloadTextFile,
+  storage: window.localStorage,
+  showDirectoryPicker:
+    typeof window.showDirectoryPicker === "function" ? window.showDirectoryPicker.bind(window) : null,
+  confirm: (text) => window.confirm(text),
+  setStatus,
+});
+createModulePresetRuntime({
+  kind: "slime",
+  label: "Slime",
+  basePath: "assets/presets/slime",
+  document,
+  select: slimePresetSelect,
+  nameInput: slimePresetNameInput,
+  applyButton: slimePresetApplyBtn,
+  saveButton: slimePresetSaveBtn,
+  loadJson: (path) => tryLoadJsonFromUrl(path),
+  serializeSettings: () => serializeSlimeSettingsCompatImpl(),
+  applySettings: (settings) => applySlimeSettingsCompatImpl(settings),
+  getCurrentMapFolderPath,
+  tauriInvoke,
+  invokeTauri,
+  isAbsoluteFsPath,
+  joinFsPath,
+  downloadTextFile,
+  storage: window.localStorage,
   showDirectoryPicker:
     typeof window.showDirectoryPicker === "function" ? window.showDirectoryPicker.bind(window) : null,
   confirm: (text) => window.confirm(text),
@@ -2593,6 +3072,7 @@ const updateCursorLightHeightOffsetLabel = (...args) => lightLabelRuntime.update
   defaultCloudSettings: DEFAULT_CLOUD_SETTINGS,
   defaultWaterSettings: DEFAULT_WATER_SETTINGS,
   defaultWaterTrailSettings: DEFAULT_WATER_TRAIL_SETTINGS,
+  defaultSlimeSettings: DEFAULT_SLIME_SETTINGS,
   defaultDetailSettings: DEFAULT_DETAIL_SETTINGS,
   defaultCameraSettings: DEFAULT_CAMERA_SETTINGS,
   defaultAudioSettings: DEFAULT_AUDIO_SETTINGS,
@@ -2603,6 +3083,7 @@ const updateCursorLightHeightOffsetLabel = (...args) => lightLabelRuntime.update
   applyCloudSettings: (...args) => applyCloudSettings(...args),
   applyWaterSettings: (...args) => applyWaterSettings(...args),
   applyWaterTrailSettings: (...args) => applyWaterTrailSettings(...args),
+  applySlimeSettings: (...args) => applySlimeSettingsCompatImpl(...args),
   applyDetailSettings: (...args) => applyDetailSettings(...args),
   applyCameraSettings: (...args) => applyCameraSettings(...args),
   applyAudioSettings: (...args) => applyAudioSettings(...args),
@@ -2627,7 +3108,7 @@ const updateCursorLightHeightOffsetLabel = (...args) => lightLabelRuntime.update
     return [...new Set(names)];
   },
   onMapLoaded: () => {
-    resetKnowledgeMapForConfig();
+    finalizeMapGameplayState();
   },
   serializeLightingSettings: (...args) => serializeLightingSettings(...args),
   serializeInteractionSettings: (...args) => serializeInteractionSettings(...args),
@@ -2635,6 +3116,7 @@ const updateCursorLightHeightOffsetLabel = (...args) => lightLabelRuntime.update
   serializeCloudSettings: (...args) => serializeCloudSettings(...args),
   serializeWaterSettings: (...args) => serializeWaterSettings(...args),
   serializeWaterTrailSettings: (...args) => serializeWaterTrailSettings(...args),
+  serializeSlimeSettings: (...args) => serializeSlimeSettingsCompatImpl(...args),
   serializeDetailSettings: (...args) => serializeDetailSettings(...args),
   serializeCameraSettings: (...args) => serializeCameraSettings(...args),
   serializeAudioSettings: (...args) => serializeAudioSettings(...args),
@@ -2834,6 +3316,8 @@ let inspectPerceptionRuntime = null;
 let resourceContourOverlayVersion = 0;
 let resourceStockOverlayMode = "known";
 let resourceDebugOverlayResourceId = "water";
+let slimePlantBaseResourceCache = null;
+let slimePlantResourceCache = null;
 
 function invalidateResourceContourOverlay() {
   resourceContourOverlayVersion += 1;
@@ -2913,14 +3397,33 @@ function syncResourceDebugPanel() {
 
 function resetKnowledgeMapForConfig() {
   resourceDiscoveryRuntime?.reset(WORLD_KNOWLEDGE_MAP_ID);
+  tracksDiscoveryInitialized = false;
   seedDiscoveryNoise(WORLD_KNOWLEDGE_MAP_ID);
   resourceDiscoveryRuntime?.revealMovement(WORLD_KNOWLEDGE_MAP_ID, playerState.pixelX, playerState.pixelY);
+  initializeTracksDiscoveryMap({ force: true });
   for (const resourceId of getResourceSearchIds()) {
     resourceStockRuntime?.revealKnown(resourceId, playerState.pixelX, playerState.pixelY, resolveDiscoveryRevealRadius(
       resourceId,
       getResourceMovementRevealRadius(resourceId),
     ));
   }
+}
+
+function initializeTracksDiscoveryMap(options = {}) {
+  if (!resourceDiscoveryRuntime || (tracksDiscoveryInitialized && options.force !== true)) return false;
+  const fillValue = Number.isFinite(Number(options.fillValue)) ? clampUtil(Number(options.fillValue), 0, 1) : 0;
+  const changed = resourceDiscoveryRuntime.fill(TRACKS_KNOWLEDGE_MAP_ID, fillValue) === true;
+  tracksDiscoveryInitialized = true;
+  return changed;
+}
+
+function updateTracksDiscoveryOverlayState(message = "") {
+  if (shouldRenderSlimeTrailOverlay()) {
+    refreshSlimeAvailabilityGrid(true);
+  }
+  syncSlimeAvailabilityDebugUi();
+  overlayDirtyRuntime.requestOverlayDraw();
+  if (message) setStatus(message);
 }
 
 function normalizeAndApplyResourceDebugSettings(nextSettings, options = {}) {
@@ -2981,7 +3484,14 @@ function getInspectOverlayLayer() {
 }
 
 function setInspectOverlayLayer(layer, options = {}) {
-  return inspectPerceptionRuntime?.setLayer(layer, options);
+  const nextLayer = inspectPerceptionRuntime?.setLayer(layer, options);
+  if (nextLayer === "tracks") {
+    initializeTracksDiscoveryMap();
+    refreshSlimeAvailabilityGrid(true);
+  } else if (layer === "tracks" || nextLayer === "none") {
+    overlayDirtyRuntime.requestOverlayDraw();
+  }
+  return nextLayer;
 }
 
 function getActivitySnapshot() {
@@ -3023,11 +3533,24 @@ function getInspectResourceReadings(pixelX, pixelY) {
     .filter(Boolean);
 }
 
-function getKnowledgeMapId() {
+function sampleInspectTracks(pixelX, pixelY) {
+  const sample = sampleSlimeAvailabilityCircle(slimeAvailabilityGrid, {
+    x: pixelX,
+    y: pixelY,
+    radius: 0,
+    mapWidth: splatSize.width,
+    mapHeight: splatSize.height,
+    effectiveMax: getSlimeSettings().availabilityEffectiveMax,
+  });
+  return sample.availability;
+}
+
+function getKnowledgeMapId(resourceId = "") {
+  if (resourceId === TRACKS_KNOWLEDGE_MAP_ID) return TRACKS_KNOWLEDGE_MAP_ID;
   return WORLD_KNOWLEDGE_MAP_ID;
 }
 
-function getResourceDiscoveryConfig() {
+function getResourceDiscoveryConfig(resourceId = "") {
   return {
     gridSize: resourceDebugSettings.discovery.gridSize,
     movementRevealRadius: resourceDebugSettings.discovery.movementRevealRadius,
@@ -3035,7 +3558,10 @@ function getResourceDiscoveryConfig() {
   };
 }
 
-function getResourceDiscoveryDecayConfig() {
+function getResourceDiscoveryDecayConfig(resourceId = "") {
+  if (resourceId === TRACKS_KNOWLEDGE_MAP_ID) {
+    return { enabled: false, intervalTicks: 1, amount: 0 };
+  }
   return resourceDebugSettings.discovery.decay;
 }
 
@@ -3075,10 +3601,15 @@ function revealResourceMovementKnowledge(resourceId, x, y) {
   return discoveryChanged || stockChanged;
 }
 
+function revealTrackMovementKnowledge(x, y) {
+  return resourceDiscoveryRuntime?.revealMovement(TRACKS_KNOWLEDGE_MAP_ID, x, y) === true;
+}
+
 function refreshPlayerLocalResourceKnowledgeForTicks(ctx = {}) {
   const ticks = Math.max(0, Math.round(Number(ctx.time && ctx.time.ticksProcessed) || 0));
   if (ticks <= 0) return false;
   let changed = false;
+  changed = revealTrackMovementKnowledge(playerState.pixelX, playerState.pixelY) || changed;
   for (const resourceId of getResourceSearchIds()) {
     changed = revealResourceMovementKnowledge(resourceId, playerState.pixelX, playerState.pixelY) || changed;
   }
@@ -3093,6 +3624,82 @@ function getResourceStockOverlayFactor(resourceId, x, y) {
     return 1;
   }
   return resourceStockRuntime?.sampleKnownFactor(resourceId, x, y) ?? 1;
+}
+
+function getResourceMapImageDataByName(mapName) {
+  if (mapName === "wetness") return wetnessImageData;
+  if (mapName === "water") return waterImageData;
+  return null;
+}
+
+function getSlimePlantBaseResourceImageData() {
+  const resourceId = "plants";
+  const search = resourceSearchRuntime?.getSearch(resourceId);
+  const sourceImageData = getResourceMapImageDataByName(search && search.map);
+  if (!resourceSearchRuntime || !search || !sourceImageData || !sourceImageData.data) return null;
+  if (
+    slimePlantBaseResourceCache
+    && slimePlantBaseResourceCache.sourceImageData === sourceImageData
+  ) {
+    return slimePlantBaseResourceCache.imageData;
+  }
+
+  const width = sourceImageData.width;
+  const height = sourceImageData.height;
+  const data = new Uint8Array(width * height * 4);
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const value = resourceSearchRuntime.sample(resourceId, x, y);
+      const byte = Math.max(0, Math.min(255, Math.round(value * 255)));
+      const index = (y * width + x) * 4;
+      data[index] = byte;
+      data[index + 1] = byte;
+      data[index + 2] = byte;
+      data[index + 3] = 255;
+    }
+  }
+  slimePlantBaseResourceCache = {
+    sourceImageData,
+    imageData: { width, height, data },
+  };
+  return slimePlantBaseResourceCache.imageData;
+}
+
+function getSlimePlantResourceImageData() {
+  const resourceId = "plants";
+  const search = resourceSearchRuntime?.getSearch(resourceId);
+  const sourceImageData = getResourceMapImageDataByName(search && search.map);
+  if (!resourceSearchRuntime || !search || !sourceImageData || !sourceImageData.data) return null;
+  const stockVersion = resourceStockRuntime?.getVersion(resourceId) || 0;
+  if (
+    slimePlantResourceCache
+    && slimePlantResourceCache.sourceImageData === sourceImageData
+    && slimePlantResourceCache.stockVersion === stockVersion
+  ) {
+    return slimePlantResourceCache.imageData;
+  }
+
+  const width = sourceImageData.width;
+  const height = sourceImageData.height;
+  const data = new Uint8Array(width * height * 4);
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const value = resourceSearchRuntime.sample(resourceId, x, y)
+        * (resourceStockRuntime?.sampleFactor(resourceId, x, y) ?? 1);
+      const byte = Math.max(0, Math.min(255, Math.round(value * 255)));
+      const index = (y * width + x) * 4;
+      data[index] = byte;
+      data[index + 1] = byte;
+      data[index + 2] = byte;
+      data[index + 3] = 255;
+    }
+  }
+  slimePlantResourceCache = {
+    sourceImageData,
+    stockVersion,
+    imageData: { width, height, data },
+  };
+  return slimePlantResourceCache.imageData;
 }
 
 function formatPct(value) {
@@ -3261,8 +3868,10 @@ function getDiscoveryVisibilitySettings() {
   const visibility = resourceDebugSettings.discovery && resourceDebugSettings.discovery.terrainVisibility
     ? resourceDebugSettings.discovery.terrainVisibility
     : {};
+  const navActive = routePlanningRuntime?.getSnapshot?.().active === true;
   return {
     ...visibility,
+    enabled: visibility.enabled === true && navActive,
     resourceId: WORLD_KNOWLEDGE_MAP_ID,
   };
 }
@@ -3299,7 +3908,6 @@ function seedDiscoveryNoise(resourceId = null) {
 function getDiscoveryTerrainVisibilityOverlaySnapshot() {
   const settings = getDiscoveryVisibilitySettings();
   if (settings.enabled !== true) return null;
-  if (routePlanningRuntime?.getSnapshot?.().active !== true) return null;
   const snapshot = getDiscoveryVisibilitySnapshot(settings.resourceId);
   if (!snapshot) return null;
   return {
@@ -3334,6 +3942,7 @@ function getInspectSnapshot() {
     inspectY: null,
     inspectHeight: null,
     inspectSlope: null,
+    inspectTracks: 0,
     inspectResources: [],
     stockOverlayMode: resourceStockOverlayMode,
   };
@@ -3388,10 +3997,28 @@ function getMovementDurationHours(movementSnapshot) {
   return totalTicks * simTickHours;
 }
 
+function syncHuntingAvailabilityPanel(activitySnapshot = null) {
+  const active = activitySnapshot && activitySnapshot.active && activitySnapshot.type === "hunting";
+  huntingAvailabilityRowEl.classList.toggle("hidden", !active);
+  if (!active) {
+    huntingAvailabilityBarFillEl.style.width = "0%";
+    return;
+  }
+  const availability = clampUtil(Number(activitySnapshot.huntingAvailability) || 0, 0, 1);
+  const chance = clampUtil(Number(activitySnapshot.lastSearchChance) || 0, 0, 1);
+  const valueEl = document.createElement("span");
+  valueEl.className = "activity-meter-label-value";
+  valueEl.textContent = `${Math.round(availability * 100)}%`;
+  huntingAvailabilityLabelEl.replaceChildren("Tracks ", valueEl);
+  huntingAvailabilityBarFillEl.style.width = `${Math.round(availability * 100)}%`;
+  huntingAvailabilityRowEl.title = `Hunting chance ${Math.round(chance * 100)}%`;
+}
+
 function updateMovementStatusPanel(movementSnapshot) {
   movementActionBtn.classList.add("hidden");
   movementActionBtn.disabled = true;
   const activitySnapshot = getActivitySnapshot();
+  syncHuntingAvailabilityPanel(activitySnapshot);
   updateInspectStatusPanel(activitySnapshot);
   if (activitySnapshot && activitySnapshot.active) {
     if (activitySnapshot.type === "inspect") {
@@ -3419,7 +4046,9 @@ function updateMovementStatusPanel(movementSnapshot) {
       movementStatusEtaEl.textContent = "Recovering fatigue";
       movementStatusDetailEl.textContent = "";
     } else {
-      movementStatusTitleEl.textContent = activitySnapshot.type === "gathering" ? "Gathering" : "Activity";
+      movementStatusTitleEl.textContent = activitySnapshot.type === "gathering"
+        ? "Gathering"
+        : (activitySnapshot.type === "hunting" ? "Hunting" : "Activity");
       movementStatusEtaEl.textContent = "";
       const found = Math.max(0, Math.round(Number(activitySnapshot.foundCount) || 0));
       movementStatusDetailEl.textContent = found > 0 ? `Found: ${found}` : "";
@@ -3544,11 +4173,7 @@ resourceStockRuntime = createResourceStockRuntime({
 });
 resourceSearchRuntime = createResourceSearchRuntime({
   resourceSearches: RESOURCE_SEARCHES,
-  getResourceMapImageData: (mapName) => {
-    if (mapName === "wetness") return wetnessImageData;
-    if (mapName === "water") return waterImageData;
-    return null;
-  },
+  getResourceMapImageData: getResourceMapImageDataByName,
   getResourceStockFactor: (resourceId, x, y) => resourceStockRuntime?.sampleFactor(resourceId, x, y) ?? 1,
 });
 resourceDiscoveryRuntime = createResourceDiscoveryRuntime({
@@ -3569,8 +4194,10 @@ inspectPerceptionRuntime = createInspectPerceptionRuntime({
   getFallbackPixel: () => ({ x: playerState.pixelX, y: playerState.pixelY }),
   sampleHeight: (pixelX, pixelY) => sampleInspectGray(heightImageData, pixelX, pixelY),
   sampleSlope: (pixelX, pixelY) => sampleInspectGray(slopeImageData, pixelX, pixelY),
+  sampleTracks: sampleInspectTracks,
   getResourceReadings: getInspectResourceReadings,
   getLayerButtons: () => [
+    ["tracks", inspectTracksLayerBtn],
     ["water", inspectWetnessLayerBtn],
     ["plants", inspectPlantsLayerBtn],
     ["height", inspectHeightLayerBtn],
@@ -3842,12 +4469,16 @@ resourceDebugPanelRuntime = createResourceDebugPanelRuntime({
   saveSettings: () => saveAllMapDataFiles(),
 });
 for (const [layer, button] of [
+  ["tracks", inspectTracksLayerBtn],
   ["water", inspectWetnessLayerBtn],
   ["plants", inspectPlantsLayerBtn],
   ["height", inspectHeightLayerBtn],
   ["slope", inspectSlopeLayerBtn],
 ]) {
-  button.addEventListener("click", () => setInspectOverlayLayer(layer));
+  button.addEventListener("click", () => {
+    const nextLayer = getInspectOverlayLayer() === layer ? "none" : layer;
+    setInspectOverlayLayer(nextLayer);
+  });
 }
 inspectRouteLayerBtn.addEventListener("click", () => {
   const visible = routePlanningRuntime?.getSnapshot?.().showCommittedOverlay !== false;
@@ -3978,6 +4609,100 @@ function restoreCameraAfterScout() {
   dispatchCoreCommand({ type: "core/player/show" });
 }
 
+function getHuntingSettings() {
+  const slimeSettings = getSlimeSettings();
+  return {
+    ...DEFAULT_HUNTING_SETTINGS,
+    trailEffectiveMax: slimeSettings.availabilityEffectiveMax || DEFAULT_HUNTING_SETTINGS.trailEffectiveMax,
+    fleeSteps: slimeSettings.huntingFleeSteps,
+    fleeWeight: slimeSettings.huntingFleeWeight,
+  };
+}
+
+function sampleHuntingAvailability(input) {
+  const sample = sampleSlimeAvailabilityCircle(slimeAvailabilityGrid, {
+    ...input,
+    mapWidth: splatSize.width,
+    mapHeight: splatSize.height,
+    hotSampleRatio: 0.5,
+  });
+  return {
+    ...sample,
+    availability: sample.hotAvailability ?? sample.availability,
+    rawAverage: sample.hotRawAverage ?? sample.rawAverage,
+  };
+}
+
+function activateSlimeHuntFleeEffect(steps, weight) {
+  const duration = Math.max(0, Math.round(Number(steps) || 0));
+  if (duration <= 0 || !conditionEffectRuntime?.addTemporaryEffect) return false;
+  const fleeWeight = Math.max(0, Number(weight) || 0);
+  return conditionEffectRuntime.addTemporaryEffect({
+    id: SLIME_HUNT_FLEE_EFFECT_ID,
+    category: "slime_hunt_flee",
+    label: "Tracks Scattering",
+    description: "Nearby slime agents are fleeing the player after the hunt.",
+    severity: "warning",
+    icon: "T",
+    priority: 10,
+    modifiers: {},
+    effectsText: [
+      `Flee weight ${fleeWeight.toFixed(1)}.`,
+    ],
+  }, duration);
+}
+
+function applyHuntingSuccess(input = {}) {
+  const killCount = Math.max(1, Math.round(Number(input.killCount) || DEFAULT_HUNTING_SETTINGS.killCount));
+  const runtime = getGameplaySlimeRuntime();
+  const huntResult = typeof runtime.huntAgentsAtMapPixel === "function"
+    ? runtime.huntAgentsAtMapPixel(
+      input.x,
+      input.y,
+      splatSize.width,
+      splatSize.height,
+      {
+        radius: input.radius,
+        maxKills: killCount,
+      },
+    )
+    : { available: 0, killed: 0 };
+  const killed = Math.max(0, Math.round(Number(huntResult && huntResult.killed) || 0));
+  if (killed <= 0) {
+    refreshSlimeAvailabilityGrid(true);
+    const message = "Shot missed; no game was inside the track circle.";
+    setStatus(message);
+    return { killed: 0, available: huntResult.available || 0, message };
+  }
+  const fleeStarted = typeof runtime.activateFleeAtMapPixel === "function"
+    ? runtime.activateFleeAtMapPixel(
+      playerState.pixelX,
+      playerState.pixelY,
+      splatSize.width,
+      splatSize.height,
+      {
+        steps: input.fleeSteps,
+        weight: input.fleeWeight,
+      },
+    )
+    : false;
+  if (fleeStarted) {
+    activateSlimeHuntFleeEffect(input.fleeSteps, input.fleeWeight);
+  }
+  refreshSlimeAvailabilityGrid(true);
+  const result = inventoryRuntime.addToPlayer("raw_meat", killed);
+  if (!result.ok) {
+    const message = `Hunted ${killed}, but could not carry Raw Meat: ${result.reason}`;
+    setStatus(message);
+    return { killed, available: huntResult.available || killed, message };
+  }
+  const message = fleeStarted
+    ? `Hunted ${killed}; nearby tracks are scattering.`
+    : `Hunted ${killed}.`;
+  setStatus(message);
+  return { killed, available: huntResult.available || killed, message };
+}
+
 playerActivityRuntime = createPlayerActivityRuntime({
   activityDefinitions: ACTIVITY_DEFINITIONS,
   playerState,
@@ -3991,6 +4716,9 @@ playerActivityRuntime = createPlayerActivityRuntime({
   getResourceValue: (resourceId, pixelX, pixelY) => resourceSearchRuntime.sample(resourceId, pixelX, pixelY),
   getResourceSearchChance: (resourceId, pixelX, pixelY) => resourceSearchRuntime.chance(resourceId, pixelX, pixelY),
   getResourceMovementBias: (resourceId, pixelX, pixelY) => resourceSearchRuntime.movementBias(resourceId, pixelX, pixelY),
+  getHuntingSettings,
+  sampleHuntingAvailability,
+  onHuntingSuccess: applyHuntingSuccess,
   getScoutSettings: () => DISCOVERY_SETTINGS.scout,
   resolveDiscoveryRevealRadius,
   findScoutBirdCandidate,
@@ -4008,6 +4736,14 @@ playerActivityRuntime = createPlayerActivityRuntime({
   onResourceSearch: ({ activityType }) => {
     const conditionModifiers = conditionEffectRuntime?.getModifiers() || {};
     activityEffectRuntime.apply(getActivityCostKey(activityType, "work", `${activityType}.search`), {
+      activityIntensity: 1,
+      load: conditionRuntime.getSnapshot().load || 0,
+      conditionModifiers,
+    });
+  },
+  onHuntingSearch: ({ activityType }) => {
+    const conditionModifiers = conditionEffectRuntime?.getModifiers() || {};
+    activityEffectRuntime.apply(getActivityCostKey(activityType, "work", "hunting.search"), {
       activityIntensity: 1,
       load: conditionRuntime.getSnapshot().load || 0,
       conditionModifiers,
@@ -4100,6 +4836,7 @@ gameplayHudRuntime = createGameplayHudRuntime({
   routePlanningBtn: hudRoutePlanningBtn,
   gatheringBtn: hudGatheringBtn,
   gatherWaterBtn: hudGatherWaterBtn,
+  huntingBtn: hudHuntingBtn,
   inspectBtn: hudInspectBtn,
   scoutBtn: hudScoutBtn,
   restBtn: hudRestBtn,
@@ -4159,7 +4896,11 @@ const renderPipelineRuntime = createRenderPipelineRuntime(createRenderPipelineAs
   materialSplatTex,
   detailMicroColorTex,
   discoveryMaskTex,
+  slimeTrailOverlayTex,
+  slimeTracksMaskTex,
+  slimeTrailOverlayTextureState,
   discoveryMaskTextureState,
+  slimeTracksMaskTextureState,
   detailAtlasState,
   heightSize,
   splatSize,
@@ -4168,6 +4909,7 @@ const renderPipelineRuntime = createRenderPipelineRuntime(createRenderPipelineAs
   applyPointLightUsagePass,
   getDiscoveryVisibilitySettings,
   getDiscoveryVisibilitySnapshot,
+  getSlimeTrailOverlaySnapshot,
   renderShadowPipeline,
   shadowSize,
   shadowBlurFbo,
@@ -4250,6 +4992,7 @@ registerMainCommands(runtimeCore.commandBus, createMainCommandAssemblyRuntime({
   getMovementStateSnapshot: () => movementSystem.getSnapshot(),
   startGatheringActivity: () => playerActivityRuntime.startGathering(),
   startGatherWaterActivity: () => playerActivityRuntime.startGatherWater(),
+  startHuntingActivity: () => playerActivityRuntime.startHunting(),
   startTravelActivity: () => playerActivityRuntime.startTravel(),
   startInspectActivity: () => toggleInspectRuntime(),
   startScoutActivity: () => {
@@ -4336,8 +5079,8 @@ registerMainCommands(runtimeCore.commandBus, createMainCommandAssemblyRuntime({
     try {
       slimeGpuRuntime.brushResetAtClient(clientX, clientY, getSlimeSettings());
     } catch (error) {
-      slimeSimulationState.error = error instanceof Error ? error.message : String(error);
-      setStatus(`Slime brush failed: ${slimeSimulationState.error}`);
+      const message = setSlimeRuntimeError(slimeDevSimulationState, error);
+      setStatus(`Slime brush failed: ${message}`);
     }
   },
   syncSlimeUi,
@@ -4665,7 +5408,10 @@ const swarmIntegrationSetupRuntime = createSwarmIntegrationSetupRuntime(
       getWaterSettings: () => getSimulationKnobSectionFromStore("waterFx") || getSettingsDefaults("waterfx", DEFAULT_WATER_SETTINGS),
       getDetailSettings,
       getCameraSettings,
+      getCameraState: () => runtimeCore.store.getState().camera || {},
       clampCameraToBounds,
+      mapPixelToWorld: (...args) => mapPixelToWorld(...args),
+      setCameraPoseToStore: (...args) => mainRuntimeStateBinding.setCameraPoseToStore(...args),
       rebuildDetailAtlas,
       syncDetailUi,
       getTimeState: () => runtimeCore.store.getState().systems.time || {},
@@ -4825,6 +5571,7 @@ const swarmIntegrationSetupRuntime = createSwarmIntegrationSetupRuntime(
       frameProfileInfoEl,
       gpuProfileInfoEl,
       performanceOverlayPanelEl,
+      performanceOverlayGraphEl,
       performanceOverlayTextEl,
       isPerformanceOverlayEnabled: () => performanceOverlayEnabled,
       detailInfoEl,
@@ -4834,6 +5581,9 @@ const swarmIntegrationSetupRuntime = createSwarmIntegrationSetupRuntime(
       movementStatusTitleEl,
       movementStatusEtaEl,
       movementStatusDetailEl,
+      huntingAvailabilityRowEl,
+      huntingAvailabilityLabelEl,
+      huntingAvailabilityBarFillEl,
       routePlanningControlsEl,
       routeSectionTimeValue,
       routeTotalTimeValue,
@@ -5189,6 +5939,7 @@ const renderShellSetupRuntime = createRenderShellSetupRuntime(createRenderShellA
   getRoutedSystemTime,
   getInterpolatedRoutedTimeSec,
   schedulerUpdateAll: (ctx, state) => {
+    updateSlimeForGameTicks(ctx);
     runtimeCore.scheduler.updateAll(ctx, state);
     resourceStockRuntime?.update(ctx, state);
     resourceDiscoveryRuntime?.update(ctx, state);
@@ -5331,6 +6082,7 @@ runAppShellLifecycleRuntime(createAppShellLifecycleAssemblyRuntime({
     dockLightingModeToggle,
     dockPathfindingModeToggle,
     dockGatheringActivityBtn,
+    dockHuntingActivityBtn,
     dockInspectActivityBtn,
     dockScoutActivityBtn,
     dockShowPlayerBtn,
@@ -5539,6 +6291,13 @@ runAppShellLifecycleRuntime(createAppShellLifecycleAssemblyRuntime({
     slimeAgentCountInput,
     slimeSimSizeInput,
     slimeStepsPerFrameInput,
+    slimeTimeModeInput,
+    slimeStepsPerGameTickInput,
+    slimeGameSpeedBtns,
+    slimeAvailabilityGridSizeInput,
+    slimeAvailabilityEffectiveMaxInput,
+    slimeAvailabilityUpdateTickIntervalInput,
+    slimePlantStockSyncTickIntervalInput,
     slimeSensorDistanceInput,
     slimeSensorAngleInput,
     slimeSensorSizeInput,
@@ -5553,19 +6312,25 @@ runAppShellLifecycleRuntime(createAppShellLifecycleAssemblyRuntime({
     slimeDecayInput,
     slimeTrailGainInput,
     slimeTrailGammaInput,
-  slimePaletteInput,
-  slimeWrapEdgesToggle,
-  slimeSpawnModeInput,
-  slimeUseTerrainToggle,
-  slimeShowTerrainUnderlayToggle,
-  slimeTerrainMixInput,
-  slimeSlopeBiasInput,
-  slimeSlopeCutoffInput,
-  slimeHeightBiasInput,
-  slimeHeightMinInput,
-  slimeHeightMaxInput,
-  slimeHeightBandWeightInput,
-  slimeWaterBiasInput,
+    slimePaletteInput,
+    slimeWrapEdgesToggle,
+    slimeSpawnModeInput,
+    slimeUseTerrainToggle,
+    slimeShowTerrainUnderlayToggle,
+    slimeTerrainMixInput,
+    slimeSlopeBiasInput,
+    slimeSlopeCutoffInput,
+    slimeHeightBiasInput,
+    slimeHeightMinInput,
+    slimeHeightMaxInput,
+    slimeHeightBandWeightInput,
+    slimeWaterBiasInput,
+    slimePlantBiasInput,
+    slimePlantFloorInput,
+    slimePlantEatAmountInput,
+    slimePlantEatTickIntervalInput,
+    slimePlantRegenAmountInput,
+    slimePlantRegenTickIntervalInput,
     slimeBrushRadiusInput,
     slimeBrushTrailClearInput,
     slimeSeedInput,

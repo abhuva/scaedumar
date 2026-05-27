@@ -307,6 +307,52 @@ export function createResourceStockRuntime(deps = {}) {
     return changed;
   }
 
+  function applyStockImageData(resourceId, imageData, options = {}) {
+    const field = getField(resourceId);
+    if (!field || !imageData || !imageData.data || !imageData.width || !imageData.height) return false;
+    const sourceWidth = Math.max(1, Math.round(finite(imageData.width, 1)));
+    const sourceHeight = Math.max(1, Math.round(finite(imageData.height, 1)));
+    const source = imageData.data;
+    const requiredLength = sourceWidth * sourceHeight * 4;
+    const sourceLength = Number.isFinite(Number(source.length))
+      ? Number(source.length)
+      : Number(source.byteLength);
+    if (!Number.isFinite(sourceLength) || sourceLength < requiredLength) return false;
+    const channelOffset = Math.max(0, Math.min(3, Math.round(finite(options.channelOffset, 0))));
+    const updateKnown = options.updateKnown !== false;
+    const lowerKnownOnly = options.updateKnown === "lower";
+    const onlyLower = options.onlyLower === true;
+    let changed = false;
+    for (let gy = 0; gy < field.height; gy++) {
+      const sy = clamp(Math.floor(((gy + 0.5) / field.height) * sourceHeight), 0, sourceHeight - 1);
+      for (let gx = 0; gx < field.width; gx++) {
+        const sx = clamp(Math.floor(((gx + 0.5) / field.width) * sourceWidth), 0, sourceWidth - 1);
+        const index = gy * field.width + gx;
+        const sampledValue = clampByte(source[(sy * sourceWidth + sx) * 4 + channelOffset]);
+        const value = onlyLower ? Math.min(field.stock[index], sampledValue) : sampledValue;
+        if (field.stock[index] !== value) {
+          field.stock[index] = value;
+          changed = true;
+        }
+        if (lowerKnownOnly) {
+          const knownValue = Math.min(field.knownStock[index], value);
+          if (field.knownStock[index] !== knownValue) {
+            field.knownStock[index] = knownValue;
+            changed = true;
+          }
+        } else if (updateKnown && field.knownStock[index] !== value) {
+          field.knownStock[index] = value;
+          changed = true;
+        }
+      }
+    }
+    if (changed) {
+      bumpVersion(resourceId);
+      if (typeof deps.onChange === "function") deps.onChange(resourceId);
+    }
+    return changed;
+  }
+
   function update(ctx = {}) {
     const ticks = Math.max(0, Math.round(finite(ctx.time && ctx.time.ticksProcessed, 0)));
     if (ticks <= 0) return false;
@@ -382,6 +428,7 @@ export function createResourceStockRuntime(deps = {}) {
     getResourceSettings,
     updateResourceSettings,
     fill,
+    applyStockImageData,
     sampleFactor,
     sampleKnownFactor,
     deplete,

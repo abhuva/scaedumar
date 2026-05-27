@@ -12,7 +12,7 @@ Build trails next, but keep the first version narrow.
 
 The goal should not be "fully integrate Slime Lab into gameplay." The better first goal is:
 
-> Add a first known-trails layer revealed by scout possession, visible through Inspect/RD overlays, with a simple terrain-biased trail field and focused tests.
+> Add a first known-trails layer visible through Inspect Tracks, backed by a separate tracks knowledge map and the current Slime trail bridge.
 
 This moves the prototype toward the intended fantasy: reading the living land, borrowing animal senses, and choosing where to travel based on imperfect knowledge.
 
@@ -26,7 +26,7 @@ Why it fits:
 
 - It directly supports animalism, scouting, terrain knowledge, and survival movement.
 - Existing systems already point in this direction: Slime Lab, scout possession, Knowledge Map, resource overlays, route planning, and activity systems.
-- It creates visible gameplay quickly: possess a bird or hawk, see trail signs, infer animal movement, then decide where to travel.
+- It creates visible gameplay quickly: inspect tracks, infer animal movement, then decide where to travel.
 - It can start as a field/knowledge system without needing full animal AI, hunting rewards, or event UI.
 
 Risks:
@@ -39,8 +39,8 @@ Recommended first slice:
 
 - Add a true trail field as a low-resolution gameplay field.
 - Add a separate known trail map or trail knowledge layer.
-- Reveal known trails through scout possession first, especially bird/hawk scouting.
-- Display known trails as an Inspect/RD overlay.
+- Reveal/update known tracks from player movement first. Scout birds must not reveal tracks; hawks can later.
+- Display known trails as the Inspect `T` layer.
 - Keep plant and water interactions out of the first slice except as future hooks.
 - Prefer CPU data for the first gameplay field unless a specific Slime Lab bridge is being tested.
 
@@ -172,14 +172,14 @@ Implement:
 
 - A true low-resolution trail field owned by a gameplay runtime.
 - A known trail knowledge layer separate from true trail values.
-- Scout possession reveal for trail knowledge, initially larger or different from ordinary player reveal.
-- Inspect/RD overlay for known trails and optional true-trail debug view.
+- Player movement reveal/update for trail knowledge, initially full-visible for prototype testing.
+- Inspect `T` overlay for known trails and optional RD true-trail debug view.
 - Tests for field creation, reveal behavior, snapshot isolation, and overlay gating.
 
 Player-facing result:
 
-- Possess a bird or hawk.
-- Reveal trail intensity or freshness in the surrounding area.
+- Enable Inspect Tracks.
+- Read trail intensity or freshness in the surrounding area.
 - Use that information to decide where to travel next.
 
 ## Phase 2: Slime Experiment Bridge
@@ -248,7 +248,7 @@ Keep the first renderer simple and static.
 ## Open Questions
 
 - Should the first trail field represent wildlife movement generally, a specific species, or generic `animal sign`?
-- Should hawk possession reveal trails directly, or reveal signs that then require ground inspection?
+- Should hawk possession reveal trails directly, or reveal signs that then require ground inspection? Birds should not update tracks.
 - Should trail knowledge decay over time like other knowledge layers?
 - Should trail intensity affect NAV route planning, or stay separate until hunting/tracking proves useful?
 - Should the first trail overlay use contour lines, raster bands, arrows, dots, or a distinct scent-like visual language?
@@ -260,6 +260,6 @@ Start with a `Trail Knowledge` branch.
 
 Keep the branch goal small enough to land:
 
-> Add a terrain-biased trail field and a scout-revealed known-trails overlay, without hunting rewards, event dialogs, sprite decals, or slime coupling yet.
+> Add a terrain-biased trail field and an Inspect Tracks overlay, without event dialogs or sprite decals yet.
 
 This is the most direct next step toward making Scaedumar feel like a game about reading the land rather than only tuning resource overlays.

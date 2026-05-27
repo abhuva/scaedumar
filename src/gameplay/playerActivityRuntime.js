@@ -14,6 +14,7 @@ import { createRestActivityController } from "./playerRestActivityRuntime.js";
 import { createScoutActivityController } from "./playerScoutActivityRuntime.js";
 import { createTravelActivityController } from "./playerTravelActivityRuntime.js";
 import { createPlayerActivityUpkeepController } from "./playerActivityUpkeepRuntime.js";
+import { createHuntingActivityController } from "./playerHuntingActivityRuntime.js";
 
 export {
   buildGatheringMoveCandidates,
@@ -25,10 +26,12 @@ export const ACTIVITY_NONE = ACTIVITY_IDLE;
 export const ACTIVITY_TRAVEL = "travel";
 export const ACTIVITY_GATHERING = "gathering";
 export const ACTIVITY_GATHER_WATER = "gather_water";
+export const ACTIVITY_HUNTING = "hunting";
 export const ACTIVITY_INSPECT = "inspect";
 export const ACTIVITY_REST = "rest";
 export const ACTIVITY_SCOUT = "scout";
 export const ACTIVITY_TIME_SPEED_1X = 0.01;
+export const ACTIVITY_TIME_SPEED_20X = 0.2;
 
 export function createPlayerActivityRuntime(deps) {
   const activityDefinitions = deps && deps.activityDefinitions && typeof deps.activityDefinitions === "object"
@@ -55,6 +58,12 @@ export function createPlayerActivityRuntime(deps) {
   function setActivitySpeed1x() {
     if (typeof deps.setCycleSpeed === "function") {
       deps.setCycleSpeed(ACTIVITY_TIME_SPEED_1X);
+    }
+  }
+
+  function setActivitySpeed20x() {
+    if (typeof deps.setCycleSpeed === "function") {
+      deps.setCycleSpeed(ACTIVITY_TIME_SPEED_20X);
     }
   }
 
@@ -94,6 +103,10 @@ export function createPlayerActivityRuntime(deps) {
 
   function startGatherWater() {
     return startResourceSearch(ACTIVITY_GATHER_WATER);
+  }
+
+  function startHunting() {
+    return huntingController.startHunting();
   }
 
   function startTravel() {
@@ -161,6 +174,7 @@ export function createPlayerActivityRuntime(deps) {
     onResourceSearch: deps.onResourceSearch,
     onResourceFound: deps.onResourceFound,
     setActivitySpeed1x,
+    setActivitySpeed20x,
     syncStore,
     stopActivity,
   });
@@ -186,6 +200,7 @@ export function createPlayerActivityRuntime(deps) {
     getCompleteLabel,
     startRuntimeActivity,
     setActivitySpeed1x,
+    setActivitySpeed20x,
     syncStore,
     stopActivity,
   });
@@ -217,6 +232,26 @@ export function createPlayerActivityRuntime(deps) {
     setStatus: deps.setStatus,
   });
 
+  const huntingController = createHuntingActivityController({
+    runtime,
+    playerState: deps.playerState,
+    activityType: ACTIVITY_HUNTING,
+    getMapWidth: deps.getMapWidth,
+    getMapHeight: deps.getMapHeight,
+    replaceMovementQueue: deps.replaceMovementQueue,
+    getMovementSnapshot: deps.getMovementSnapshot,
+    getHuntingSettings: deps.getHuntingSettings,
+    sampleHuntingAvailability: deps.sampleHuntingAvailability,
+    onHuntingSearch: deps.onHuntingSearch,
+    onHuntingSuccess: deps.onHuntingSuccess,
+    random: deps.random,
+    setActivitySpeed1x,
+    setActivitySpeed20x,
+    syncStore,
+    stopActivity,
+    setStatus: deps.setStatus,
+  });
+
   const upkeepController = createPlayerActivityUpkeepController({
     runtime,
     onUpkeepTick: deps.onUpkeepTick,
@@ -225,12 +260,14 @@ export function createPlayerActivityRuntime(deps) {
   function onStepCompleted(step) {
     if (!runtime.active || runtime.ending) return;
     if (travelController.onStepCompleted(step)) return;
+    if (huntingController.onStepCompleted(step)) return;
     resourceSearchController.onStepCompleted(step);
   }
 
   function onQueueCompleted() {
     if (!runtime.active || runtime.ending) return;
     if (travelController.onQueueCompleted()) return;
+    if (huntingController.onQueueCompleted()) return;
     resourceSearchController.onQueueCompleted();
   }
 
@@ -253,6 +290,7 @@ export function createPlayerActivityRuntime(deps) {
   return {
     startGathering,
     startGatherWater,
+    startHunting,
     startTravel,
     startInspect,
     startRest,

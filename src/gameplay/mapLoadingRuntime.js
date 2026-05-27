@@ -11,6 +11,7 @@ export function createMapLoadingRuntime(deps) {
     applyCloudSettings: deps.applyCloudSettings,
     applyWaterSettings: deps.applyWaterSettings,
     applyWaterTrailSettings: deps.applyWaterTrailSettings,
+    applySlimeSettings: deps.applySlimeSettings,
     applyDetailSettings: deps.applyDetailSettings,
     applyCameraSettings: deps.applyCameraSettings,
     applyAudioSettings: deps.applyAudioSettings,
@@ -22,6 +23,7 @@ export function createMapLoadingRuntime(deps) {
     getSettingsDefaults: deps.getSettingsDefaults,
     defaultPlayer: deps.defaultPlayer,
     defaultWaterTrailSettings: deps.defaultWaterTrailSettings,
+    defaultSlimeSettings: deps.defaultSlimeSettings,
   });
   const mapLoader = createMapLoader({
     normalizeMapFolderPath: deps.normalizeMapFolderPath,

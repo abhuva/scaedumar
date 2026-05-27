@@ -10,6 +10,7 @@ export function createRenderResources(deps) {
   };
 
   return {
+    gl: deps.gl,
     hasDrawableSurface() {
       return deps.canvas.width > 0 && deps.canvas.height > 0;
     },

@@ -46,6 +46,12 @@ export function bindInteractionAndCycleControls(deps) {
     });
   }
 
+  if (deps.dockHuntingActivityBtn) {
+    deps.dockHuntingActivityBtn.addEventListener("click", () => {
+      deps.dispatchCoreCommand({ type: "core/activity/startHunting" });
+    });
+  }
+
   if (deps.dockInspectActivityBtn) {
     deps.dockInspectActivityBtn.addEventListener("click", () => {
       deps.dispatchCoreCommand({ type: "core/activity/startInspect" });

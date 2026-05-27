@@ -10,12 +10,16 @@ import {
 
 test("inspect perception normalizes overlay layer helpers", () => {
   assert.equal(normalizeInspectOverlayLayer("plants"), "plants");
+  assert.equal(normalizeInspectOverlayLayer("tracks"), "tracks");
   assert.equal(normalizeInspectOverlayLayer("height"), "height");
   assert.equal(normalizeInspectOverlayLayer("unknown"), "water");
   assert.equal(getInspectOverlayDebugLayer("plants"), "plants");
+  assert.equal(getInspectOverlayDebugLayer("tracks"), null);
   assert.equal(getInspectOverlayDebugLayer("unknown"), "water");
   assert.equal(getInspectOverlayResourceId("plants"), "plants");
+  assert.equal(getInspectOverlayResourceId("tracks"), null);
   assert.equal(getInspectOverlayResourceId("height"), null);
+  assert.equal(getInspectOverlayDisplayLabel("tracks"), "Tracks");
   assert.equal(getInspectOverlayDisplayLabel("slope"), "Slope");
 });
 
@@ -34,6 +38,28 @@ test("inspect perception non-resource layers only notify debug owners", () => {
     ["debug", "height"],
     ["sync"],
     ["changed", "height", "layer-changed"],
+  ]);
+});
+
+test("inspect perception tracks layer samples tracks without resource or debug selection", () => {
+  const calls = [];
+  const runtime = createInspectPerceptionRuntime({
+    getMapSize: () => ({ width: 10, height: 10 }),
+    sampleTracks: (x, y) => (x + y) / 20,
+    onResourceLayerSelected: (resourceId) => calls.push(["resource", resourceId]),
+    revealResourceKnowledge: (resourceId) => calls.push(["reveal", resourceId]),
+    onDebugLayerSelected: (layer) => calls.push(["debug", layer]),
+    syncDebugPanel: () => calls.push(["sync"]),
+    onChanged: (payload) => calls.push(["changed", payload.layer, payload.reason]),
+  });
+
+  assert.equal(runtime.setLayer("tracks"), "tracks");
+  runtime.sampleAt(4, 6);
+  assert.equal(runtime.getLayerBarValue("tracks"), 0.5);
+  assert.deepEqual(calls, [
+    ["debug", null],
+    ["sync"],
+    ["changed", "tracks", "layer-changed"],
   ]);
 });
 

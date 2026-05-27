@@ -164,7 +164,6 @@ export function createOverlayDrawer(deps) {
         worldToScreen: deps.worldToScreen,
       });
     }
-
     if (inspectSnapshot && inspectSnapshot.enabled && !inspectBlocked) {
       const contour = typeof deps.getResourceContourOverlaySnapshot === "function"
         ? deps.getResourceContourOverlaySnapshot()

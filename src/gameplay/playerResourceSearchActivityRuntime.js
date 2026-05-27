@@ -196,11 +196,11 @@ export function createResourceSearchActivityController(deps) {
     runtime.lastMessage = `${definition.label} started.`;
     runtime.lastResourceValue = null;
     runtime.lastSearchChance = null;
-    deps.setActivitySpeed1x();
     deps.syncStore();
     if (!queueNextStep()) {
       return { ok: false, reason: runtime.lastMessage || `Unable to start ${definition.label}.` };
     }
+    deps.setActivitySpeed20x?.();
     if (typeof deps.setStatus === "function") {
       deps.setStatus(`${definition.label} started within radius ${runtime.radius}.`);
     }

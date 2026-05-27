@@ -8,6 +8,7 @@ export function createMapDataSaveController(deps) {
       "clouds.json": `${JSON.stringify(deps.serializeCloudSettings(), null, 2)}\n`,
       "waterfx.json": `${JSON.stringify(deps.serializeWaterSettings(), null, 2)}\n`,
       "watertrails.json": `${JSON.stringify(deps.serializeWaterTrailSettings(), null, 2)}\n`,
+      "slime.json": `${JSON.stringify(deps.serializeSlimeSettings(), null, 2)}\n`,
       "detail.json": `${JSON.stringify(deps.serializeDetailSettings(), null, 2)}\n`,
       "camera.json": `${JSON.stringify(deps.serializeCameraSettings(), null, 2)}\n`,
       "audio.json": `${JSON.stringify(deps.serializeAudioSettings(), null, 2)}\n`,
@@ -89,9 +90,69 @@ export function createMapDataSaveController(deps) {
     deps.setStatus(`Downloaded ${names}. Move them to ${folder}.`);
   }
 
+  async function saveMapDataFile(fileName) {
+    const files = createMapDataFileTexts();
+    const text = files[fileName];
+    if (!text) {
+      deps.setStatus(`Unknown map data file: ${fileName}.`);
+      return;
+    }
+    const folder = deps.normalizeMapFolderPath(deps.getCurrentMapFolderPath());
+    const confirmed = deps.confirm(`Save ${fileName} for ${folder}?`);
+    if (!confirmed) {
+      deps.setStatus("Save canceled.");
+      return;
+    }
+
+    if (deps.tauriInvoke) {
+      try {
+        let targetFolder = folder;
+        if (!deps.isAbsoluteFsPath(targetFolder)) {
+          targetFolder = await deps.pickMapFolderViaTauri();
+          if (!targetFolder) {
+            deps.setStatus("Save canceled.");
+            return;
+          }
+        }
+        await deps.invokeTauri("save_json_file", {
+          path: deps.joinFsPath(targetFolder, fileName),
+          content: text,
+        });
+        deps.setStatus(`Saved ${fileName} to ${targetFolder}.`);
+        return;
+      } catch (error) {
+        console.warn(`Native save failed for ${fileName}, falling back to browser flow.`, error);
+        deps.setStatus("Native save failed. Trying browser fallback...");
+      }
+    }
+
+    if (typeof deps.showDirectoryPicker === "function") {
+      try {
+        const dir = await deps.showDirectoryPicker();
+        const handle = await dir.getFileHandle(fileName, { create: true });
+        const writable = await handle.createWritable();
+        await writable.write(text);
+        await writable.close();
+        deps.setStatus(`Saved ${fileName} to selected folder. Recommended map path: ${folder}`);
+        return;
+      } catch (error) {
+        if (error && error.name === "AbortError") {
+          deps.setStatus("Save canceled by user.");
+          return;
+        }
+        console.warn(`Browser save failed for ${fileName}, falling back to download.`, error);
+        deps.setStatus("Browser save failed. Trying download fallback...");
+      }
+    }
+
+    downloadTextFile(fileName, text);
+    deps.setStatus(`Downloaded ${fileName}. Move it to ${folder}.`);
+  }
+
   return {
     createMapDataFileTexts,
     downloadTextFile,
     saveAllMapDataFiles,
+    saveMapDataFile,
   };
 }

@@ -158,6 +158,11 @@ export function registerInteractionCommands(commandBus, deps) {
     startPrimaryActivity(deps.startGatherWaterActivity, "Unable to start water gathering.");
   });
 
+  commandBus.register("core/activity/startHunting", () => {
+    if (typeof deps.startHuntingActivity !== "function") return;
+    startPrimaryActivity(deps.startHuntingActivity, "Unable to start hunting.");
+  });
+
   commandBus.register("core/activity/startInspect", () => {
     if (typeof deps.startInspectActivity !== "function") return;
     const result = deps.startInspectActivity();

@@ -31,6 +31,7 @@
       <button id="dockLightingModeToggle" class="mode-btn" type="button" title="Lighting Mode" aria-label="Lighting mode toggle">LM</button>
       <button id="dockPathfindingModeToggle" class="mode-btn" type="button" title="Pathfinding Mode" aria-label="Pathfinding mode toggle">PF</button>
       <button id="dockGatheringActivityBtn" class="mode-btn gameplay-only-action" type="button" title="Start Gathering" aria-label="Start gathering activity">GA</button>
+      <button id="dockHuntingActivityBtn" class="mode-btn gameplay-only-action" type="button" title="Start Hunting" aria-label="Start hunting activity">HU</button>
       <button id="dockInspectActivityBtn" class="mode-btn gameplay-only-action" type="button" title="Inspect Terrain" aria-label="Inspect terrain activity">I</button>
       <button id="dockScoutActivityBtn" class="mode-btn gameplay-only-action" type="button" title="Scout" aria-label="Scout activity">SC</button>
       <button id="dockShowPlayerBtn" class="mode-btn gameplay-only-action" type="button" title="Show Player" aria-label="Center camera on player">P</button>
@@ -1251,6 +1252,7 @@
             <button id="resourceDebugOverlayTab" class="rd-tab" type="button" role="tab" data-rd-tab="overlay" aria-selected="false" aria-controls="resourceDebugOverlayPanel" tabindex="-1">Known View</button>
             <button id="resourceDebugDiscoveryTab" class="rd-tab" type="button" role="tab" data-rd-tab="nav" aria-selected="false" aria-controls="resourceDebugDiscoveryPanel" tabindex="-1">NAV</button>
             <button id="resourceDebugStockTab" class="rd-tab" type="button" role="tab" data-rd-tab="stock" aria-selected="false" aria-controls="resourceDebugStockPanel" tabindex="-1">Stock</button>
+            <button id="resourceDebugSlimeTab" class="rd-tab" type="button" role="tab" data-rd-tab="slime" aria-selected="false" aria-controls="resourceDebugSlimePanel" tabindex="-1">Slime</button>
           </div>
           <div id="resourceDebugKnowledgePanel" class="rd-tab-panel active" role="tabpanel" data-rd-panel="knowledge" aria-labelledby="resourceDebugKnowledgeTab" aria-hidden="false">
             <p class="panel-note">Shared world Knowledge Map. Sliders change future reveals only; buttons below are the only direct map edits.</p>
@@ -1676,6 +1678,68 @@
               </div>
             </div>
           </div>
+          <div id="resourceDebugSlimePanel" class="rd-tab-panel" role="tabpanel" data-rd-panel="slime" aria-labelledby="resourceDebugSlimeTab" aria-hidden="true">
+            <p class="panel-note">Slime trail availability grid. Hunting samples this same field.</p>
+            <div class="row">
+              <label for="slimeAvailabilityOverlayEnabled">Trail Overlay</label>
+              <div class="inline-control">
+                <input id="slimeAvailabilityOverlayEnabled" type="checkbox" aria-label="Show Slime trail availability overlay" />
+                <input id="slimeAvailabilityOverlayOpacity" type="range" min="0" max="1" step="0.05" value="1" aria-label="Slime trail overlay opacity" />
+                <span id="slimeAvailabilityOverlayOpacityValue">1.00</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="slimeAvailabilityOverlayThreshold">Overlay Threshold</label>
+              <div class="inline-control">
+                <input id="slimeAvailabilityOverlayThreshold" type="range" min="0" max="1" step="0.001" value="0.061" />
+                <span id="slimeAvailabilityOverlayThresholdValue">0.061</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="slimeGameTicksPerSlimeStep">Game Ticks / Slime Step</label>
+              <div class="inline-control">
+                <input id="slimeGameTicksPerSlimeStep" type="range" min="1" max="10" step="1" value="3" />
+                <span id="slimeGameTicksPerSlimeStepValue">3</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="slimeHuntingFleeSteps">Hunt Flee Steps</label>
+              <div class="inline-control">
+                <input id="slimeHuntingFleeSteps" type="range" min="0" max="1000" step="1" value="100" />
+                <span id="slimeHuntingFleeStepsValue">100</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="slimeHuntingFleeWeight">Hunt Flee Weight</label>
+              <div class="inline-control">
+                <input id="slimeHuntingFleeWeight" type="range" min="0" max="200" step="1" value="80" />
+                <span id="slimeHuntingFleeWeightValue">80.0</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="slimeHuntingFleeRadius">Hunt Flee Radius</label>
+              <div class="inline-control">
+                <input id="slimeHuntingFleeRadius" type="range" min="1" max="512" step="1" value="120" />
+                <span id="slimeHuntingFleeRadiusValue">120</span>
+              </div>
+            </div>
+            <div class="row">
+              <label for="slimeTracksKnowledgeCutoff">Track Knowledge Cutoff</label>
+              <div class="inline-control">
+                <input id="slimeTracksKnowledgeCutoff" type="range" min="0" max="1" step="0.01" value="0.2" />
+                <span id="slimeTracksKnowledgeCutoffValue">0.20</span>
+              </div>
+            </div>
+            <div class="row">
+              <label>Track Knowledge</label>
+              <div class="inline-control">
+                <button id="slimeTracksClearBtn" class="row-action-btn" type="button">Clear</button>
+                <button id="slimeTracksFillBtn" class="row-action-btn" type="button">Fill</button>
+                <button id="slimeTracksNoiseBtn" class="row-action-btn" type="button">Noise</button>
+              </div>
+            </div>
+            <p>Slime Availability: <span id="slimeAvailabilityReadout">waiting for grid</span></p>
+          </div>
 
         </section>
 
@@ -1754,6 +1818,7 @@
 
     <aside id="performanceOverlayPanel" class="performance-overlay-panel hidden" aria-live="polite">
       <button id="performanceOverlayCopyBtn" class="performance-overlay-copy-btn" type="button">Copy</button>
+      <canvas id="performanceOverlayGraph" class="performance-overlay-graph" width="400" height="120" aria-label="CPU and GPU timing history"></canvas>
       <pre id="performanceOverlayText" class="performance-overlay-text">Performance overlay disabled.</pre>
     </aside>
 
@@ -1819,6 +1884,7 @@
           <button id="hudRoutePlanningBtn" class="hud-action-btn" type="button" title="Plan Route">Nav</button>
           <button id="hudGatheringBtn" class="hud-action-btn" type="button" title="Gather">G</button>
           <button id="hudGatherWaterBtn" class="hud-action-btn" type="button" title="Gather Water">W</button>
+          <button id="hudHuntingBtn" class="hud-action-btn" type="button" title="Hunt">HU</button>
           <button id="hudScoutBtn" class="hud-action-btn" type="button" title="Scout">SC</button>
           <button id="hudRestBtn" class="hud-action-btn" type="button" title="Rest">R</button>
         </div>
@@ -1828,6 +1894,7 @@
       <div class="inspect-panel-header">
         <h2 id="inspectStatusTitle">Inspect:</h2>
         <div id="inspectLayerControls" class="inspect-layer-controls" aria-label="Inspect overlay layer">
+        <button id="inspectTracksLayerBtn" class="inspect-layer-btn" type="button" title="Tracks overlay">T</button>
         <button id="inspectWetnessLayerBtn" class="inspect-layer-btn" type="button" title="Water availability overlay">W</button>
         <button id="inspectPlantsLayerBtn" class="inspect-layer-btn" type="button" title="Plant availability overlay">P</button>
         <button id="inspectHeightLayerBtn" class="inspect-layer-btn" type="button" title="Height overlay">H</button>
@@ -1846,6 +1913,10 @@
       <h2 id="movementStatusTitle">Player Moving</h2>
       <p id="movementStatusEta">Estimated arrival: --</p>
       <p id="movementStatusDetail">Path: --</p>
+      <div id="huntingAvailabilityRow" class="activity-meter-row hidden">
+        <span id="huntingAvailabilityLabel">Tracks</span>
+        <span class="activity-meter-bar" aria-hidden="true"><span id="huntingAvailabilityBarFill"></span></span>
+      </div>
       <div id="routePlanningControls" class="route-planning-controls hidden">
         <div class="route-time-readout" aria-label="Route time estimate">
           <span>SEC <strong id="routeSectionTimeValue">--</strong></span>
@@ -2120,6 +2191,21 @@
         <aside class="slime-control-panel" aria-label="Slime controls">
           <h1>Slime Lab</h1>
           <p class="slime-note">WebGL2 Physarum transport experiment. CPU readback should stay occasional; trail texture is the future terrain/game integration path.</p>
+          <div class="row">
+            <label for="slimePresetSelect">Preset</label>
+            <select id="slimePresetSelect">
+              <option value="">No presets</option>
+            </select>
+          </div>
+          <div class="row">
+            <label for="slimePresetName">Preset Name</label>
+            <input id="slimePresetName" type="text" placeholder="plant-seeker" />
+          </div>
+          <div class="light-editor-actions audio-actions">
+            <button id="slimePresetApplyBtn" type="button">Apply Preset</button>
+            <button id="slimePresetSaveBtn" type="button">Save Named Preset</button>
+            <button id="slimeSaveBtn" type="button">Save Map Settings</button>
+          </div>
           <div class="light-editor-actions audio-actions">
             <button id="slimeStartBtn" type="button">Start</button>
             <button id="slimeStopBtn" type="button">Stop</button>
@@ -2129,8 +2215,8 @@
           <div class="row">
             <label for="slimeAgentCount">Agents</label>
             <div class="inline-control">
-              <input id="slimeAgentCount" type="range" min="10000" max="2000000" step="10000" value="250000" />
-              <span id="slimeAgentCountValue">250000</span>
+              <input id="slimeAgentCount" type="range" min="1000" max="20000" step="1000" value="20000" />
+              <span id="slimeAgentCountValue">20000</span>
             </div>
           </div>
           <div class="row">
@@ -2146,6 +2232,55 @@
             <div class="inline-control">
               <input id="slimeStepsPerFrame" type="range" min="1" max="8" step="1" value="1" />
               <span id="slimeStepsPerFrameValue">1</span>
+            </div>
+          </div>
+          <h2>Time</h2>
+          <div class="row">
+            <label for="slimeTimeMode">Time Source</label>
+            <select id="slimeTimeMode">
+              <option value="gameTick" selected>Game Time</option>
+              <option value="free">Free Run</option>
+            </select>
+          </div>
+          <div class="row">
+            <label for="slimeStepsPerGameTick">Steps / Game Tick</label>
+            <div class="inline-control">
+              <input id="slimeStepsPerGameTick" type="range" min="1" max="10" step="1" value="1" />
+              <span id="slimeStepsPerGameTickValue">1</span>
+            </div>
+          </div>
+          <div class="light-editor-actions audio-actions">
+            <button class="slime-game-speed-btn" type="button" data-cycle-speed="0.01">1x</button>
+            <button class="slime-game-speed-btn" type="button" data-cycle-speed="0.05">5x</button>
+            <button class="slime-game-speed-btn" type="button" data-cycle-speed="0.2">20x</button>
+            <button class="slime-game-speed-btn" type="button" data-cycle-speed="1">100x</button>
+          </div>
+          <div class="row">
+            <label for="slimeAvailabilityGridSize">Availability Grid</label>
+            <div class="inline-control">
+              <input id="slimeAvailabilityGridSize" type="range" min="32" max="512" step="32" value="128" />
+              <span id="slimeAvailabilityGridSizeValue">128</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="slimeAvailabilityEffectiveMax">Trail Max</label>
+            <div class="inline-control">
+              <input id="slimeAvailabilityEffectiveMax" type="range" min="0.01" max="5" step="0.01" value="0.7" />
+              <span id="slimeAvailabilityEffectiveMaxValue">0.70</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="slimeAvailabilityUpdateTickInterval">Grid Tick</label>
+            <div class="inline-control">
+              <input id="slimeAvailabilityUpdateTickInterval" type="range" min="1" max="100" step="1" value="10" />
+              <span id="slimeAvailabilityUpdateTickIntervalValue">10</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="slimePlantStockSyncTickInterval">Plant Sync Tick</label>
+            <div class="inline-control">
+              <input id="slimePlantStockSyncTickInterval" type="range" min="10" max="1000" step="10" value="120" />
+              <span id="slimePlantStockSyncTickIntervalValue">120</span>
             </div>
           </div>
           <div class="row">
@@ -2271,7 +2406,7 @@
           </div>
           <div class="row">
             <label for="slimeUseTerrain">Use Terrain</label>
-            <input id="slimeUseTerrain" type="checkbox" />
+            <input id="slimeUseTerrain" type="checkbox" checked />
           </div>
           <div class="row">
             <label for="slimeShowTerrainUnderlay">Terrain Underlay</label>
@@ -2280,8 +2415,8 @@
           <div class="row">
             <label for="slimeTerrainMix">Terrain Mix</label>
             <div class="inline-control">
-              <input id="slimeTerrainMix" type="range" min="0" max="10" step="0.1" value="1" />
-              <span id="slimeTerrainMixValue">1.0</span>
+              <input id="slimeTerrainMix" type="range" min="0" max="10" step="0.1" value="10" />
+              <span id="slimeTerrainMixValue">10.0</span>
             </div>
           </div>
           <div class="row">
@@ -2331,6 +2466,48 @@
             <div class="inline-control">
               <input id="slimeWaterBias" type="range" min="-10" max="10" step="0.1" value="2" />
               <span id="slimeWaterBiasValue">2.0</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="slimePlantBias">Plant Bias</label>
+            <div class="inline-control">
+              <input id="slimePlantBias" type="range" min="-10" max="10" step="0.1" value="0" />
+              <span id="slimePlantBiasValue">0.0</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="slimePlantFloor">Plant Floor</label>
+            <div class="inline-control">
+              <input id="slimePlantFloor" type="range" min="0" max="1" step="0.01" value="0.25" />
+              <span id="slimePlantFloorValue">0.25</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="slimePlantEatAmount">Eat Amount</label>
+            <div class="inline-control">
+              <input id="slimePlantEatAmount" type="range" min="0" max="50" step="1" value="5" />
+              <span id="slimePlantEatAmountValue">5</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="slimePlantEatTickInterval">Eat Tick</label>
+            <div class="inline-control">
+              <input id="slimePlantEatTickInterval" type="range" min="1" max="60" step="1" value="10" />
+              <span id="slimePlantEatTickIntervalValue">10</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="slimePlantRegenAmount">Plant Regen</label>
+            <div class="inline-control">
+              <input id="slimePlantRegenAmount" type="range" min="0" max="50" step="1" value="1" />
+              <span id="slimePlantRegenAmountValue">1</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="slimePlantRegenTickInterval">Regen Tick</label>
+            <div class="inline-control">
+              <input id="slimePlantRegenTickInterval" type="range" min="1" max="20" step="1" value="5" />
+              <span id="slimePlantRegenTickIntervalValue">5</span>
             </div>
           </div>
           <div class="row">

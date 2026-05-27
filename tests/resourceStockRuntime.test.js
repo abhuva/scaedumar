@@ -101,6 +101,93 @@ test("resource stock debug fill can target live and known stock", () => {
   assert.equal(runtime.getSnapshot("water").knownStock[0], 128);
 });
 
+test("resource stock can sync live and known stock from image data", () => {
+  const runtime = createRuntime();
+  const changed = runtime.applyStockImageData("water", {
+    width: 2,
+    height: 2,
+    data: new Uint8ClampedArray([
+      0, 0, 0, 255, 64, 64, 64, 255,
+      128, 128, 128, 255, 255, 255, 255, 255,
+    ]),
+  });
+
+  assert.equal(changed, true);
+  assert.equal(runtime.sampleFactor("water", 0, 0), 0);
+  assert.equal(runtime.sampleFactor("water", 63, 63), 1);
+  assert.equal(runtime.sampleKnownFactor("water", 63, 63), 1);
+});
+
+test("resource stock rejects short image data buffers", () => {
+  const runtime = createRuntime();
+  runtime.fill("water", 128, "both");
+  const changed = runtime.applyStockImageData("water", {
+    width: 2,
+    height: 2,
+    data: new Uint8ClampedArray([0, 0, 0, 255]),
+  });
+
+  assert.equal(changed, false);
+  assert.equal(runtime.sampleFactor("water", 32, 32), 128 / 255);
+});
+
+test("resource stock image sync can leave known stock unchanged", () => {
+  const runtime = createRuntime();
+  runtime.applyStockImageData("water", {
+    width: 1,
+    height: 1,
+    data: new Uint8ClampedArray([128, 0, 0, 255]),
+  }, { updateKnown: false });
+
+  assert.equal(runtime.sampleFactor("water", 32, 32), 128 / 255);
+  assert.equal(runtime.sampleKnownFactor("water", 32, 32), 0);
+});
+
+test("resource stock image sync can be limited to depletion", () => {
+  const runtime = createRuntime();
+  runtime.fill("water", 128, "both");
+
+  runtime.applyStockImageData("water", {
+    width: 1,
+    height: 1,
+    data: new Uint8ClampedArray([255, 0, 0, 255]),
+  }, { onlyLower: true, updateKnown: false });
+
+  assert.equal(runtime.sampleFactor("water", 32, 32), 128 / 255);
+
+  runtime.applyStockImageData("water", {
+    width: 1,
+    height: 1,
+    data: new Uint8ClampedArray([64, 0, 0, 255]),
+  }, { onlyLower: true, updateKnown: false });
+
+  assert.equal(runtime.sampleFactor("water", 32, 32), 64 / 255);
+  assert.equal(runtime.sampleKnownFactor("water", 32, 32), 128 / 255);
+});
+
+test("resource stock image sync can lower known stock without revealing increases", () => {
+  const runtime = createRuntime();
+  runtime.fill("water", 128, "both");
+
+  runtime.applyStockImageData("water", {
+    width: 1,
+    height: 1,
+    data: new Uint8ClampedArray([255, 0, 0, 255]),
+  }, { onlyLower: true, updateKnown: "lower" });
+
+  assert.equal(runtime.sampleFactor("water", 32, 32), 128 / 255);
+  assert.equal(runtime.sampleKnownFactor("water", 32, 32), 128 / 255);
+
+  runtime.applyStockImageData("water", {
+    width: 1,
+    height: 1,
+    data: new Uint8ClampedArray([64, 0, 0, 255]),
+  }, { onlyLower: true, updateKnown: "lower" });
+
+  assert.equal(runtime.sampleFactor("water", 32, 32), 64 / 255);
+  assert.equal(runtime.sampleKnownFactor("water", 32, 32), 64 / 255);
+});
+
 test("resource stock serializes and restores live and known fields", () => {
   const runtime = createRuntime();
   runtime.deplete("water", 32, 32);

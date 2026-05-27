@@ -12,6 +12,7 @@ export function createMapRuntimeState(deps) {
     deps.applyCloudSettings(deps.getSettingsDefaults("clouds", deps.defaultCloudSettings));
     deps.applyWaterSettings(deps.getSettingsDefaults("waterfx", deps.defaultWaterSettings));
     deps.applyWaterTrailSettings(deps.getSettingsDefaults("watertrails", deps.defaultWaterTrailSettings));
+    deps.applySlimeSettings(deps.getSettingsDefaults("slime", deps.defaultSlimeSettings));
     deps.applyDetailSettings(deps.getSettingsDefaults("detail", deps.defaultDetailSettings));
     deps.applyCameraSettings(deps.getSettingsDefaults("camera", deps.defaultCameraSettings));
     deps.applyAudioSettings(deps.getSettingsDefaults("audio", deps.defaultAudioSettings));

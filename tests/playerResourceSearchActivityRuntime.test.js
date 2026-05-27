@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { createPlayerActivityState } from "../src/gameplay/playerActivityStateRuntime.js";
+import { ACTIVITY_TIME_SPEED_20X } from "../src/gameplay/playerActivityRuntime.js";
 import {
   buildGatheringMoveCandidates,
   chooseWeightedGatheringCandidate,
@@ -47,11 +48,15 @@ function createResourceSearchHarness(overrides = {}) {
     setActivitySpeed1x: () => {
       cycleSpeed = 0.01;
     },
+    setActivitySpeed20x: () => {
+      cycleSpeed = ACTIVITY_TIME_SPEED_20X;
+    },
     syncStore: () => {
       syncCalls.push({ ...runtime });
     },
     stopActivity: (options) => {
       stopCalls.push(options);
+      cycleSpeed = 0.01;
       runtime.active = false;
       runtime.type = "idle";
       runtime.lastMessage = options.reason;
@@ -123,7 +128,7 @@ test("chooseWeightedGatheringCandidate respects deterministic weighted pick", ()
 test("resource search controller uses configured plant search and emits reward", () => {
   const rewards = [];
   const searches = [];
-  const { controller, runtime } = createResourceSearchHarness({
+  const { controller, cycleSpeed, runtime } = createResourceSearchHarness({
     getResourceValue: () => 0.7,
     getResourceSearchChance: () => 1,
     onResourceSearch: (payload) => {
@@ -136,6 +141,7 @@ test("resource search controller uses configured plant search and emits reward",
   });
 
   assert.equal(controller.startResourceSearch("gathering").ok, true);
+  assert.equal(cycleSpeed(), ACTIVITY_TIME_SPEED_20X);
   controller.onStepCompleted({ toX: 5, toY: 5 });
 
   assert.equal(searches.length, 1);

@@ -110,6 +110,41 @@ test("condition effect runtime emits transition status after initialization", ()
   assert.equal(statuses[0], "Thirsty: Hydration is low.");
 });
 
+test("condition effect runtime tracks temporary explicit effects", () => {
+  const snapshots = [];
+  const runtime = createConditionEffectRuntime({
+    conditionEffects,
+    getConditionSnapshot: () => ({
+      hydration: 100,
+      fatigue: 0,
+    }),
+    onConditionEffectsSnapshot: (snapshot) => snapshots.push(snapshot),
+  });
+
+  assert.equal(runtime.addTemporaryEffect({
+    id: "tracks_scattering",
+    category: "slime_hunt_flee",
+    label: "Tracks Scattering",
+    description: "Nearby tracks are fleeing.",
+    priority: 10,
+    modifiers: {},
+  }, 3), true);
+  assert.deepEqual(runtime.getActiveEffects().map((effect) => effect.id), ["tracks_scattering"]);
+  assert.deepEqual(runtime.getActiveEffects()[0].effectsText, ["3 steps remaining."]);
+
+  assert.equal(runtime.tickTemporaryEffects(2), false);
+  assert.equal(runtime.getActiveEffects()[0].remainingTicks, 3);
+  assert.deepEqual(runtime.getActiveEffects()[0].effectsText, ["3 steps remaining."]);
+
+  assert.equal(runtime.tickTemporaryEffects(2), true);
+  assert.equal(runtime.getActiveEffects()[0].remainingTicks, 1);
+  assert.deepEqual(runtime.getActiveEffects()[0].effectsText, ["1 step remaining."]);
+
+  assert.equal(runtime.tickTemporaryEffects(1), true);
+  assert.deepEqual(runtime.getActiveEffects(), []);
+  assert.ok(snapshots.length >= 4);
+});
+
 test("compareConditionEffectSnapshots reports new and worsened projected effects", () => {
   const current = resolveConditionEffects(conditionEffects, {
     hydration: 20,

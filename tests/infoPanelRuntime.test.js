@@ -5,8 +5,13 @@ import { createInfoPanelRuntime } from "../src/ui/infoPanelRuntime.js";
 
 function makeElement() {
   const classes = new Set();
-  return {
+  const element = {
     textContent: "",
+    innerHTML: "",
+    children: [],
+    style: {},
+    title: "",
+    disabled: false,
     classList: {
       add: (name) => classes.add(name),
       remove: (name) => classes.delete(name),
@@ -20,7 +25,21 @@ function makeElement() {
     setAttribute(name, value) {
       this.attributes[name] = value;
     },
+    replaceChildren(...children) {
+      this.children = children;
+      this.textContent = children.map((child) => (
+        typeof child === "string" ? child : child.textContent
+      )).join("");
+    },
   };
+  element.ownerDocument = {
+    createElement: (tagName) => ({
+      tagName: String(tagName).toUpperCase(),
+      className: "",
+      textContent: "",
+    }),
+  };
+  return element;
 }
 
 function makeDeps(overrides = {}) {
@@ -29,6 +48,9 @@ function makeDeps(overrides = {}) {
     movementStatusTitleEl: makeElement(),
     movementStatusEtaEl: makeElement(),
     movementStatusDetailEl: makeElement(),
+    huntingAvailabilityRowEl: makeElement(),
+    huntingAvailabilityLabelEl: makeElement(),
+    huntingAvailabilityBarFillEl: makeElement(),
     movementActionBtn: makeElement(),
     playerInfoEl: makeElement(),
     pathInfoEl: makeElement(),
@@ -61,6 +83,30 @@ test("travel preview panel puts estimate in title and only shows predicted warni
   assert.equal(deps.movementStatusTitleEl.textContent, "Plan Travel: est. 1:03 hours");
   assert.equal(deps.movementStatusEtaEl.textContent, "Predicted: Thirsty");
   assert.equal(deps.movementStatusDetailEl.textContent, "");
+});
+
+test("hunting panel displays sampled availability as a bar", () => {
+  const deps = makeDeps({
+    getInteractionMode: () => "none",
+    getActivitySnapshot: () => ({
+      active: true,
+      type: "hunting",
+      label: "Hunting",
+      foundCount: 1,
+      huntingAvailability: 0.42,
+      lastSearchChance: 0.21,
+    }),
+  });
+  const update = createInfoPanelRuntime(deps);
+
+  update();
+
+  assert.equal(deps.huntingAvailabilityRowEl.classList.contains("hidden"), false);
+  assert.equal(deps.huntingAvailabilityLabelEl.textContent, "Tracks 42%");
+  assert.equal(deps.huntingAvailabilityLabelEl.children[1].className, "activity-meter-label-value");
+  assert.equal(deps.huntingAvailabilityBarFillEl.style.width, "42%");
+  assert.equal(deps.huntingAvailabilityRowEl.title, "Hunting chance 21%");
+  assert.equal(deps.movementStatusDetailEl.textContent, "Loot: 1");
 });
 
 test("travel preview panel keeps unreachable message compact", () => {

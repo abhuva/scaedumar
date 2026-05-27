@@ -48,6 +48,7 @@ export function createMainCommandAssemblyRuntime(deps) {
     getMovementStateSnapshot: deps.getMovementStateSnapshot,
     startGatheringActivity: deps.startGatheringActivity,
     startGatherWaterActivity: deps.startGatherWaterActivity,
+    startHuntingActivity: deps.startHuntingActivity,
     startTravelActivity: deps.startTravelActivity,
     startInspectActivity: deps.startInspectActivity,
     startScoutActivity: deps.startScoutActivity,

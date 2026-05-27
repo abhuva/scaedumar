@@ -70,6 +70,22 @@ owner modules.
 - `src/render/passes/*`: terrain/shadow/blur/point-light usage passes
 - `src/render/precompute/*`: flow-map and point-light bake precompute
 
+### Render-Time Texture Layers
+
+Full-map visual texture layers must follow the established terrain renderer
+path by default:
+
+- allocate or update a main-renderer texture in the render pipeline
+- bind texture units and uniforms through `src/render/uniformUploader.js`
+- composite the layer in `src/render/shaders.js`
+
+Do not build a parallel 2D canvas/readback visualization path for these layers
+when an existing render-time texture layer pattern applies. The overlay canvas
+is for markers, vectors, UI gizmos, and explicit fallbacks. CPU/readback grids
+are valid for gameplay sampling, low-frequency diagnostics, or bridging data
+between incompatible runtime contexts, but the visible map-space texture layer
+still belongs in the main renderer.
+
 ## Gameplay
 
 - `src/gameplay/mainRuntimeStateBinding.js`: store-backed runtime-state
@@ -156,8 +172,11 @@ owner modules.
   over-steep samples.
 - Canvas clicks run a GPU brush operation that respawns agents inside the brush
   radius using the active spawn mode and weakens nearby trail strength.
-- Slime settings are canonical store-backed settings, but there is no map
-  sidecar persistence yet; current `Save All` does not write `slime.json`.
+- Slime settings are canonical store-backed settings. Map `Save All` writes
+  `slime.json`, map loading applies `slime.json` when present and defaults when
+  absent, and Slime Lab also supports named presets through the shared module
+  preset runtime. Built-in preset files live under `assets/presets/slime`;
+  browser/dev-created presets are mirrored to local browser storage.
 - `src/ui/slimePanelRuntime.js` and `src/ui/slimeBindingRuntime.js` own
   Slime Lab UI reflection and command dispatch.
 - Long-term rendering direction: WebGL2 is the lightweight prototype backend.
@@ -165,7 +184,8 @@ owner modules.
   Rust/WGPU can replace the implementation if large agent counts or terrain
   coupling require compute shaders/storage buffers.
 - GPU readback should remain sparse and targeted. Gameplay/render integration
-  should prefer passing simulation fields such as trail maps as GPU textures.
+  should prefer passing simulation fields such as trail maps as renderer-owned
+  textures and compositing them through the normal terrain shader layer path.
 
 ## Simulation
 
