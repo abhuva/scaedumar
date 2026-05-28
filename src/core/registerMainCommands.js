@@ -423,11 +423,6 @@ export function registerMainCommands(commandBus, deps) {
     deps.syncSlimeUi();
   });
 
-  commandBus.register("slime/brush/resetAt", (command) => {
-    deps.brushResetSlimeAtClient(command.clientX, command.clientY);
-    deps.syncSlimeUi();
-  });
-
   commandBus.register("core/swarm/settingsChanged", (command) => {
     function updateSwarmSettings(patch) {
       deps.patchSwarmSettingsToStore(patch);

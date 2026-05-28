@@ -57,7 +57,6 @@ export function createAppShellLifecycleAssemblyRuntime(deps) {
       bodyEl: deps.bodyEl,
       titleScreenEl: deps.titleScreenEl,
       titleNewGameBtn: deps.titleNewGameBtn,
-      titleDevModeBtn: deps.titleDevModeBtn,
       titleQuitGameBtn: deps.titleQuitGameBtn,
       dockExitToTitleBtn: deps.dockExitToTitleBtn,
       initialMode: deps.initialMode,

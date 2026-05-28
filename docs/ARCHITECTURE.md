@@ -117,8 +117,8 @@ still belongs in the main renderer.
 - `src/ui/audioPanelRuntime.js` + `src/ui/audioBindingRuntime.js`: Audio Lab
   panel UI reflection and command dispatch wiring
 - `src/ui/workspaceRegistry.js`, `src/ui/workspaceRuntime.js`, and
-  `src/ui/workspaceBindingRuntime.js`: top-level workspace switching for
-  Map, Audio, Slime, and future dev workspaces
+  `src/ui/workspaceBindingRuntime.js`: tool-surface switching for Map, Audio,
+  and future large auxiliary workspaces
 
 ## Audio Domain
 
@@ -153,15 +153,17 @@ still belongs in the main renderer.
   the shared frequency mapper.
 - Audio map sidecar is `audio.json` and participates in map `Save All` and
   sidecar load flows.
-- Audio is exposed as a top-level workspace, not as a terrain topic panel.
+- Audio controls live under `RD > Audio`; the Audio workspace remains as a
+  large spectrogram/waveform tool surface.
 
 ## Slime Domain
 
 - Settings are registered through the `slime` key in
   `src/core/mainSettingsContracts.js`.
-- Slime Lab is exposed as a top-level dev workspace.
+- Slime controls live under `RD > Trail`, and Slime visualization renders
+  through the main terrain renderer rather than a detached workspace.
 - Mechanics are documented in `docs/SLIME_SIM.md`.
-- `src/slime/slimeGpuRuntime.js` owns the first WebGL2 Physarum backend:
+- `src/slime/slimeGpuRuntime.js` owns the shared WebGL2 Physarum backend:
   float texture agent state, trail/deposit textures, ping-pong update passes,
   diffusion/decay, and display.
 - Stochastic controls (`wanderChance`, `wanderStrengthDeg`, `sensorNoise`)
@@ -178,7 +180,7 @@ still belongs in the main renderer.
   preset runtime. Built-in preset files live under `assets/presets/slime`;
   browser/dev-created presets are mirrored to local browser storage.
 - `src/ui/slimePanelRuntime.js` and `src/ui/slimeBindingRuntime.js` own
-  Slime Lab UI reflection and command dispatch.
+  `RD > Trail` Slime UI reflection and command dispatch.
 - Long-term rendering direction: WebGL2 is the lightweight prototype backend.
   Keep simulation backends behind domain runtime APIs so WebGPU or native
   Rust/WGPU can replace the implementation if large agent counts or terrain

@@ -361,7 +361,7 @@ test("start gather water command clears map preview on success", () => {
   assert.equal(deps.calls.requestOverlayDraw, 1);
 });
 
-test("dev no-mode map clicks do not teleport the player", () => {
+test("legacy mode names do not re-enable no-mode teleport", () => {
   const commandBus = createCommandBus();
   const deps = createDeps({
     getRuntimeMode: () => "dev",

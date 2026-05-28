@@ -17,7 +17,7 @@ The target runtime has one normal user path: game mode. Developer/debug controls
 - Title screen starts the normal game path only.
 - No user-facing dev mode.
 - No separate dev topic dock.
-- No top workspace switcher as the primary tool access path.
+- The workspace/tool-surface concept stays for large auxiliary views such as Audio; it is no longer the primary settings access path.
 - All development, debug, tuning, IO, audio, and simulation controls live under the in-game `RD` panel.
 - Runtime owners stay modular. The RD panel is a navigation/control surface, not a new owner of gameplay, render, audio, or simulation state.
 
@@ -64,7 +64,7 @@ Planned sub-tabs:
 
 ## Migration Strategy
 
-Do not delete dev mode first. Migrate access in small slices, then remove the old shell when parity exists.
+Migration access first, then remove old shell pieces once parity exists.
 
 ### Phase 0: Baseline
 
@@ -92,7 +92,7 @@ Do not delete dev mode first. Migrate access in small slices, then remove the ol
 - [x] Keep map click behavior gameplay-safe.
 - [x] Remove legacy dev no-mode teleport behavior.
 - [x] Prevent accidental dev no-mode teleport behavior from entering unified mode.
-- [x] Decide whether `dev` remains an internal compatibility mode during migration.
+- [x] Remove `dev` as an internal runtime mode after RD parity.
 - [x] Update tests for intended unified-mode behavior.
 
 ### Phase 3: Terrain Controls Migration
@@ -114,7 +114,7 @@ Do not delete dev mode first. Migrate access in small slices, then remove the ol
 - [x] Move `swarm` controls into `Agents`.
 - [x] Move full Slime Lab controls into `Trail`.
 - [x] Merge current RD Slime controls with the full Slime Lab controls where appropriate.
-- [x] Keep gameplay/main-render Slime path separate from legacy dev-canvas comparison until explicitly removed.
+- [x] Remove the legacy detached Slime canvas/runtime after main-render Slime parity.
 - [x] Document any remaining duplicate Slime controls or compatibility paths.
 - [x] Split the first-pass Slime `Lab` tab into smaller Trail sub-tabs after the full control list proved too dense.
 
@@ -151,30 +151,29 @@ Do not delete dev mode first. Migrate access in small slices, then remove the ol
 
 ### Phase 7: Remove User-Facing Dev Mode
 
-- [x] Remove or hide title `dev mode` button.
-- [x] Remove or hide workspace switcher as the primary tool access path.
+- [x] Remove title `dev mode` button.
+- [x] Keep the workspace/tool-surface concept while removing it as the primary settings access path.
 - [x] Remove old topic dock once every needed topic is reachable from RD-dev.
 - [x] Simplify topic capability logic after migration parity.
-- [ ] Simplify remaining runtime mode compatibility logic.
-- [ ] Update README run/use instructions.
-- [ ] Update `AI_CONTEXT.md`.
+- [x] Simplify remaining runtime mode compatibility logic.
+- [ ] Update README run/use instructions if run/use steps change.
+- [x] Update `AI_CONTEXT.md`.
 
 ## Known Risks
 
 - Legacy dev no-mode map-click teleport has been removed. If direct repositioning is needed later, reintroduce it as an explicit RD/tool command with its own UI affordance.
-- Workspace switching currently clears topic panels and interaction modes. Removing workspace UI requires explicit replacement navigation for audio/tool surfaces; Slime visualization is not a workspace surface.
+- Workspace switching clears active interaction modes when leaving the map workspace. This is intentional for large auxiliary tool surfaces such as Audio; Slime visualization is not a workspace surface.
 - Many bindings depend on stable DOM IDs. Early migration should move existing elements instead of recreating controls.
 - Audio has large canvas surfaces and may need an explicit tool viewport, not only small RD panel rows.
-- Slime has both legacy dev-canvas and main-context gameplay runtime paths. The legacy dev-canvas path is no longer user-facing; do not collapse the internal code path until it is intentionally retired.
+- Slime now uses the main-context gameplay runtime path only. The detached legacy canvas/runtime has been removed.
 - The RD panel can become a giant `index.html` block if nested tabs are not kept structured.
-- Mode names may remain internally for compatibility longer than they remain visible to the user.
+- Legacy/unknown mode names normalize to gameplay; `title` is only a shell visibility state.
 
 ## Findings
 
 - `src/core/modeCapabilities.js` currently gates gameplay to only `resource-debug` topics and limited interaction modes.
 - Gameplay accesses migrated controls through the `resource-debug` topic only. This keeps the old dev topic names unavailable from gameplay while still exposing the nested RD-dev surface.
-- `dev` remains an internal compatibility mode during migration, but it is no longer a title-screen user path.
-- Title screen now exposes the normal game path only; the `dev mode` button remains in the DOM hidden for current lifecycle binding compatibility.
+- `dev` was removed as an internal runtime mode. Title screen now exposes the normal game path only.
 - The old dev topic dock and placeholder migrated-topic cards were removed. The only remaining topic panel target is `resource-debug`, opened from the gameplay HUD `RD` button.
 - Mode topic capabilities now expose only `resource-debug`; stale topic names such as `map`, `interaction`, `swarm`, `lighting`, `detail`, `fog`, `clouds`, `water`, `water-trails`, `editor`, and `info` are no longer valid panel targets.
 - Gameplay currently hides the workspace switcher through CSS; the old topic dock has been deleted.
@@ -199,7 +198,7 @@ Do not delete dev mode first. Migrate access in small slices, then remove the ol
 - Swarm DOM IDs were moved into `RD > Agents > Swarm`.
 - Swarm Follow controls were split into `RD > Agents > Follow`, and overlay-specific swarm controls were split into `RD > Agents > Overlays`.
 - Full Slime Lab controls were moved into `RD > Trail` and split into `Runtime`, `Motion`, `Visual`, `Terrain`, `Plants`, and `Brush` sub-tabs. Existing RD Slime trail overlay, game cadence, Hunting flee, Tracks knowledge, and availability readout controls were moved out of `Gameplay` and into `RD > Trail > Tracks`.
-- The legacy Slime workspace is no longer exposed from RD or the workspace switcher. Slime visualization is canonical in the main-context world-space terrain overlay path, while the separate dev-canvas runtime remains only as an internal compatibility/comparison path.
+- The legacy Slime workspace and detached canvas runtime were removed. Slime visualization is canonical in the main-context world-space terrain overlay path.
 - Slime Trail splitting preserves existing DOM IDs, so Slime UI binding and preset/save/runtime code continue to target the same elements.
 - `RD > Overlays > Performance` now exposes a full-size toggle for the floating performance overlay. The HUD `O` shortcut remains wired to the same state.
 - `RD > Overlays > Route` now owns route arrow/preview drawing controls and the NAV debug overlay selector. `Gameplay > NAV` keeps route rules and committed-route actions.
@@ -208,7 +207,7 @@ Do not delete dev mode first. Migrate access in small slices, then remove the ol
 - No separate pathfinding debug-overlay control currently exists; normal PF preview and pathing tuning remain under gameplay/pathing ownership.
 - `RD > IO` now owns map load/save-all, pointlights sidecar save/load, and Slime sidecar save. Feature-specific preset controls remain in their subsystem tabs because they are tuning workflow controls rather than map-level IO.
 - Audio controls were moved from the Audio workspace into `RD > Audio > Spectrogram/Synthesis/Soundscape`. The Audio workspace keeps the large visual surfaces for spectrogram/waveform inspection as an interim tool viewport.
-- `RD > Audio` now exposes `Open Audio View` / `Map View` workspace controls. In gameplay, the Audio workspace renders as a bounded tool overlay above the terrain instead of replacing the map view.
+- `RD > Audio` exposes a `Show Audio View` workspace toggle. In gameplay, the Audio workspace renders as a bounded tool overlay above the terrain instead of replacing the map view.
 - `RD > Trail` no longer exposes detached Slime workspace controls. Slime visual feedback uses the world-space terrain overlay controlled from `Trail > Visual` / `Trail > Tracks`, so trails render over the existing terrain instead of inside a placeholder map view.
 - `RD > Trail > Runtime` now exposes an opt-in `Terrain Underlay` toggle above `Agents`. It renders a clean diagnostic backdrop in the main terrain shader by sampling the authored height/slope/water textures and the live Slime plant-stock texture. Slime trail color rendering stays a separate overlay that can be enabled on top.
 - Workspace switching no longer closes the RD topic panel; it still clears active interaction modes when leaving the map workspace.
@@ -405,7 +404,7 @@ Do not delete dev mode first. Migrate access in small slices, then remove the ol
 - Targeted duplicate-ID check: no duplicate DOM IDs after adding RD Audio/Slime workspace launch controls.
 - `node --check src\ui\workspaceRuntime.js`: pass after preserving RD while switching workspaces.
 - `node --check src\main.js`: pass after adding RD workspace launch controls and gameplay tool-overlay CSS.
-- Targeted Slime workspace entry check: no `data-workspace="slime"`, `Open Slime`, or `Slime View` user-facing controls remain; the legacy `slimeCanvas` DOM remains only for current `main.js` required-element compatibility.
+- Targeted Slime workspace entry check: no `data-workspace="slime"`, `Open Slime`, `Slime View`, or `slimeCanvas` DOM remains.
 - `node --check src\ui\workspaceRegistry.js`: pass after unregistering `slime` as a user-facing workspace.
 - `node --check src\ui\workspaceRuntime.js`: pass after guarding unknown workspace panels/buttons from accidental activation.
 - `node --check tests\workspaceRuntime.test.js`: pass after adding regression coverage for unregistered legacy workspace panels.

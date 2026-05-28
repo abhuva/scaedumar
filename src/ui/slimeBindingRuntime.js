@@ -73,11 +73,4 @@ export function bindSlimeControls(deps) {
   deps.slimeBrushRadiusInput.addEventListener("input", () => dispatchSettings({ brushRadius: Number(deps.slimeBrushRadiusInput.value) }));
   deps.slimeBrushTrailClearInput.addEventListener("input", () => dispatchSettings({ brushTrailClear: Number(deps.slimeBrushTrailClearInput.value) }));
   deps.slimeSeedInput.addEventListener("change", () => dispatchSettings({ seed: Number(deps.slimeSeedInput.value) }));
-  deps.slimeCanvas.addEventListener("click", (event) => {
-    deps.commandBus.dispatch({
-      type: "slime/brush/resetAt",
-      clientX: event.clientX,
-      clientY: event.clientY,
-    });
-  });
 }

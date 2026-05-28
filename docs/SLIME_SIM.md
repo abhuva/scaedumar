@@ -15,8 +15,8 @@ backend without rewriting UI or settings integration.
 
 - Primary UI entry: `RD > Trail`.
 - Primary visualization: main-context world-space terrain overlay.
-- Legacy dev canvas: internal comparison/compatibility path only, not a user-facing workspace.
-- Runtime owner: `src/slime/slimeGpuRuntime.js`.
+- Runtime owner: `src/slime/slimeMainRenderRuntime.js`, backed by the shared
+  GPU implementation in `src/slime/slimeGpuRuntime.js`.
 - Settings/defaults: `DEFAULT_SLIME_SETTINGS` in
   `src/core/mainSettingsContracts.js`.
 - Normalization: `src/slime/slimeState.js`.
@@ -197,16 +197,8 @@ scenario-world simulation yet.
 
 ## Brush Interaction
 
-Clicking the Slime Lab canvas runs a GPU brush operation.
-
-- Agents inside `Brush Radius` are respawned using the active spawn mode.
-- The brush increments an internal seed so repeated clicks produce different
-  placements.
-- The trail texture inside the brush is weakened by `Brush Trail Clear`.
-- The operation happens on GPU textures; no full CPU readback is required.
-
-The brush is a local perturbation/reset tool for testing stability, terrain
-response, and attractor recovery.
+The old detached Slime canvas brush path has been removed. Brush controls now
+live in `RD > Trail > Brush` as settings for the main-render Slime subsystem.
 
 ## Gameplay Trail Overlay
 
@@ -278,12 +270,12 @@ The RD Slime tab can initialize/test the tracks discovery map directly:
 
 Slime settings are registered in the core settings registry under the `slime`
 key. Map `Save All` writes `slime.json`, map loading applies `slime.json` when
-present and falls back to defaults when absent, and the Slime Lab panel has a
-dedicated `Save Map Settings` action for writing only `slime.json`.
+present and falls back to defaults when absent, and `RD > IO` has a dedicated
+Slime save action for writing only `slime.json`.
 
-Slime Lab also uses the shared module preset flow, matching Water Trails:
+Slime also uses the shared module preset flow, matching Water Trails:
 presets are indexed under `assets/presets/slime/index.json` and individual
-setup files live beside that index. In browser/dev mode, newly saved named
+setup files live beside that index. In browser/Tauri runtime, newly saved named
 presets are also stored in local browser storage so they remain available after
 reload even when the runtime cannot write directly into `assets/presets/slime`.
 Presets store settings only, not mutable GPU trail or agent snapshots.

@@ -186,7 +186,6 @@ import {
 } from "./audio/soundscapeRuntime.js";
 import { createAudioScribbleInputRuntime } from "./audio/audioScribbleInputRuntime.js";
 import { createAudioPanelRuntime } from "./ui/audioPanelRuntime.js";
-import { createSlimeGpuRuntime } from "./slime/slimeGpuRuntime.js";
 import { createSlimeMainRenderRuntime } from "./slime/slimeMainRenderRuntime.js";
 import { DEFAULT_SLIME_SIMULATION_STATE, normalizeSlimeSettings } from "./slime/slimeState.js";
 import {
@@ -245,7 +244,6 @@ const entityStore = createEntityStore();
 const bodyEl = document.body;
 const titleScreenEl = getRequiredElementById("titleScreen");
 const titleNewGameBtn = getRequiredElementById("titleNewGameBtn");
-const titleDevModeBtn = getRequiredElementById("titleDevModeBtn");
 const titleQuitGameBtn = getRequiredElementById("titleQuitGameBtn");
 const titleStatusEl = getRequiredElementById("titleStatus");
 const titleProgressFillEl = getRequiredElementById("titleProgressFill");
@@ -781,7 +779,6 @@ const audioSoundscapeAddRumbleBtn = getRequiredElementById("audioSoundscapeAddRu
 const audioSoundscapeAddAirBtn = getRequiredElementById("audioSoundscapeAddAirBtn");
 const audioSoundscapeStopBtn = getRequiredElementById("audioSoundscapeStopBtn");
 const audioSoundscapeLayerList = getRequiredElementById("audioSoundscapeLayerList");
-const slimeCanvas = getRequiredElementById("slimeCanvas");
 const slimeStartBtn = getRequiredElementById("slimeStartBtn");
 const slimeStopBtn = getRequiredElementById("slimeStopBtn");
 const slimeResetBtn = getRequiredElementById("slimeResetBtn");
@@ -1064,7 +1061,6 @@ const settingsCompatRuntime = settingsCoreSetupRuntime.settingsCompatRuntime;
 const audioSimulationState = { ...DEFAULT_AUDIO_SIMULATION_STATE };
 const audioRuntimeState = createAudioRuntimeState();
 const audioScribbleRuntime = createScribbleCanvasRuntime(256, 256);
-const slimeDevSimulationState = { ...DEFAULT_SLIME_SIMULATION_STATE };
 const slimeGameplaySimulationState = { ...DEFAULT_SLIME_SIMULATION_STATE };
 let slimeAvailabilityGrid = createEmptySlimeAvailabilityGrid(DEFAULT_SLIME_SETTINGS.availabilityGridSize);
 let slimeAvailabilityOverlaySettings = {
@@ -1275,7 +1271,7 @@ function syncDetailUi() {
 }
 
 function getSlimeSimulationState() {
-  return slimeDevSimulationState;
+  return slimeGameplaySimulationState;
 }
 
 function getGameplaySlimeSimulationState() {
@@ -1620,18 +1616,6 @@ function getSlimeTerrainUnderlaySnapshot() {
   };
 }
 
-const slimeGpuRuntime = createSlimeGpuRuntime({
-  canvas: slimeCanvas,
-  state: slimeDevSimulationState,
-  getTerrainSource: () => ({
-    heightImageData,
-    slopeImageData,
-    waterImageData,
-    plantBaseImageData: getSlimePlantBaseResourceImageData(),
-    plantStockImageData: getSlimePlantResourceImageData(),
-  }),
-  onFrame: () => handleSlimeRuntimeFrame(),
-});
 const slimeMainRenderRuntime = createSlimeMainRenderRuntime({
   canvas,
   gl,
@@ -1657,13 +1641,11 @@ function serializeSlimeSettingsCompatImpl() {
 function applySlimeSettingsCompatImpl(rawData) {
   const next = normalizeSlimeSettings(rawData, getSlimeSettings());
   settingsApplyRuntime.updateStoreFromAppliedSettings("slime", next);
-  slimeGpuRuntime.applySettings(next);
   slimeMainRenderRuntime.applySettings(next);
   if (next.enabled) {
     slimeMainRenderRuntime.start(next);
   } else {
     slimeMainRenderRuntime.stop();
-    slimeGpuRuntime.stop();
   }
   syncSlimeUi();
   syncSlimeAvailabilityDebugUi();
@@ -1676,11 +1658,9 @@ function patchSlimeSettings(patch) {
   }, DEFAULT_SLIME_SETTINGS);
   settingsApplyRuntime.updateStoreFromAppliedSettings("slime", next);
   try {
-    slimeGpuRuntime.applySettings(next);
     slimeMainRenderRuntime.applySettings(next);
   } catch (error) {
     const message = setSlimeRuntimeError(slimeGameplaySimulationState, error);
-    setSlimeRuntimeError(slimeDevSimulationState, error);
     setStatus(`Slime settings failed: ${message}`);
   }
   syncSlimeUi();
@@ -1892,7 +1872,6 @@ syncSlimeAvailabilityDebugUi();
 function startSlimeExperiment() {
   try {
     const settings = getSlimeSettings();
-    slimeGpuRuntime.start(settings);
     slimeMainRenderRuntime.start(settings);
     if (settings.timeMode === "gameTick") {
       slimeMainRenderRuntime.stepGameTicks(1, settings);
@@ -1900,27 +1879,23 @@ function startSlimeExperiment() {
     }
   } catch (error) {
     const message = setSlimeRuntimeError(slimeGameplaySimulationState, error);
-    setSlimeRuntimeError(slimeDevSimulationState, error);
     setStatus(`Slime start failed: ${message}`);
   }
 }
 
 function stopSlimeExperiment() {
   slimeMainRenderRuntime.stop();
-  slimeGpuRuntime.stop();
 }
 
 function resetSlimeExperiment() {
   try {
     const settings = getSlimeSettings();
-    slimeGpuRuntime.reset(settings);
     slimeMainRenderRuntime.reset(settings);
     if (settings.enabled) {
       slimeMainRenderRuntime.start(settings);
     }
   } catch (error) {
     const message = setSlimeRuntimeError(slimeGameplaySimulationState, error);
-    setSlimeRuntimeError(slimeDevSimulationState, error);
     setStatus(`Slime reset failed: ${message}`);
   }
 }
@@ -5164,14 +5139,6 @@ registerMainCommands(runtimeCore.commandBus, createMainCommandAssemblyRuntime({
   startSlime: () => startSlimeExperiment(),
   stopSlime: () => stopSlimeExperiment(),
   resetSlime: () => resetSlimeExperiment(),
-  brushResetSlimeAtClient: (clientX, clientY) => {
-    try {
-      slimeGpuRuntime.brushResetAtClient(clientX, clientY, getSlimeSettings());
-    } catch (error) {
-      const message = setSlimeRuntimeError(slimeDevSimulationState, error);
-      setStatus(`Slime brush failed: ${message}`);
-    }
-  },
   syncSlimeUi,
   updateSwarmUi: () => updateSwarmUi(),
   updateSwarmLabels: () => updateSwarmLabels(),
@@ -6075,7 +6042,6 @@ runAppShellLifecycleRuntime(createAppShellLifecycleAssemblyRuntime({
   bodyEl,
   titleScreenEl,
   titleNewGameBtn,
-  titleDevModeBtn,
   titleQuitGameBtn,
   dockExitToTitleBtn,
   initialMode: normalizeRuntimeMode(runtimeCore.store.getState().mode),
@@ -6429,7 +6395,6 @@ runAppShellLifecycleRuntime(createAppShellLifecycleAssemblyRuntime({
     slimeBrushRadiusInput,
     slimeBrushTrailClearInput,
     slimeSeedInput,
-    slimeCanvas,
   }),
   tryAutoLoadDefaultMap,
   startNewGame: async () => {

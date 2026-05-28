@@ -398,7 +398,6 @@ export function createMainBindingsAssemblyRuntime(deps) {
       slimeBrushRadiusInput: deps.slimeBrushRadiusInput,
       slimeBrushTrailClearInput: deps.slimeBrushTrailClearInput,
       slimeSeedInput: deps.slimeSeedInput,
-      slimeCanvas: deps.slimeCanvas,
     },
   };
 }
