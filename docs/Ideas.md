@@ -536,3 +536,5 @@ Dual Grid System (Sprites / Textures) : https://www.youtube.com/watch?v=jEWFSv3i
 Flow Field https://www.youtube.com/watch?v=sZBfLgfsvSk
 Slime simulation https://www.youtube.com/watch?v=X-iSQQgOd1A  (used for trails, deers + wolves?)
 https://www.reddit.com/r/proceduralgeneration/comments/1sw31zi/i_build_a_fluid_simulation_based_on_the_navier/
+
+https://christophercarlson.com/portfolio/multi-scale-truchet-patterns/?fbclid=IwY2xjawSFah1leHRuA2FlbQIxMABicmlkETFPcW9wV3VTY01DdXcwVEIyc3J0YwZhcHBfaWQQMjIyMDM5MTc4ODIwMDg5MgABHilsvt0K603H4pXaQxOBT90A2hWiCJtZmrVK6TKPI8cCREbRJw-AVGE-vjUy_aem_YSqpUxI7an5Whk9VljzYGg

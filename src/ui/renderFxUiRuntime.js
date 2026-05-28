@@ -3,6 +3,12 @@ export function updateShadowBlurLabel(deps) {
   deps.shadowBlurValue.textContent = `${value.toFixed(2)} px`;
 }
 
+export function updateLightingBalanceLabels(deps) {
+  const lighting = deps.serializeLightingSettings();
+  deps.ambientValue.textContent = deps.clamp(Number(lighting.ambient), 0, 1).toFixed(2);
+  deps.diffuseValue.textContent = deps.clamp(Number(lighting.diffuse), 0, 2).toFixed(2);
+}
+
 export function updateSimTickLabel(deps) {
   const value = deps.normalizeSimTickHours(deps.serializeLightingSettings().simTickHours);
   deps.simTickHoursValue.textContent = value.toFixed(3);
@@ -37,23 +43,6 @@ export function updatePointFlickerUi(deps) {
   deps.pointFlickerSpatialInput.disabled = false;
 }
 
-export function updateVolumetricLabels(deps) {
-  const lighting = deps.serializeLightingSettings();
-  deps.volumetricStrengthValue.textContent = deps.clamp(Number(lighting.volumetricStrength), 0, 1).toFixed(2);
-  deps.volumetricDensityValue.textContent = deps.clamp(Number(lighting.volumetricDensity), 0, 2).toFixed(2);
-  deps.volumetricAnisotropyValue.textContent = deps.clamp(Number(lighting.volumetricAnisotropy), 0, 0.95).toFixed(2);
-  deps.volumetricLengthValue.textContent = `${Math.round(deps.clamp(Number(lighting.volumetricLength), 8, 160))} px`;
-  deps.volumetricSamplesValue.textContent = String(Math.round(deps.clamp(Number(lighting.volumetricSamples), 4, 24)));
-}
-
-export function updateVolumetricUi(deps) {
-  deps.volumetricStrengthInput.disabled = false;
-  deps.volumetricDensityInput.disabled = false;
-  deps.volumetricAnisotropyInput.disabled = false;
-  deps.volumetricLengthInput.disabled = false;
-  deps.volumetricSamplesInput.disabled = false;
-}
-
 export function updateCloudLabels(deps) {
   const clouds = deps.serializeCloudSettings();
   deps.cloudCoverageValue.textContent = deps.clamp(Number(clouds.cloudCoverage), 0, 1).toFixed(2);
@@ -62,7 +51,6 @@ export function updateCloudLabels(deps) {
   deps.cloudScaleValue.textContent = deps.clamp(Number(clouds.cloudScale), 0.5, 8).toFixed(2);
   deps.cloudSpeed1Value.textContent = deps.clamp(Number(clouds.cloudSpeed1), -0.3, 0.3).toFixed(3);
   deps.cloudSpeed2Value.textContent = deps.clamp(Number(clouds.cloudSpeed2), -0.3, 0.3).toFixed(3);
-  deps.cloudSunParallaxValue.textContent = deps.clamp(Number(clouds.cloudSunParallax), 0, 2).toFixed(2);
 }
 
 export function updateWaterLabels(deps) {
@@ -112,8 +100,6 @@ export function updateCloudUi(deps) {
   deps.cloudScaleInput.disabled = false;
   deps.cloudSpeed1Input.disabled = false;
   deps.cloudSpeed2Input.disabled = false;
-  deps.cloudSunParallaxInput.disabled = false;
-  deps.cloudSunProjectToggle.disabled = false;
 }
 
 export function updateWaterUi(deps) {

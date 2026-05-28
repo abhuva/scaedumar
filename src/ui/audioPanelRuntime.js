@@ -1,4 +1,6 @@
 export function createAudioPanelRuntime(deps) {
+  const collapsedCardIds = new Set();
+
   function syncAudioModeUi(settings) {
     const activeMode = ["spectrogram", "synthesis", "soundscape"].includes(settings.activeMode)
       ? settings.activeMode
@@ -7,12 +9,20 @@ export function createAudioPanelRuntime(deps) {
       const isActive = button.dataset.audioMode === activeMode;
       button.classList.toggle("active", isActive);
       button.setAttribute("aria-pressed", isActive ? "true" : "false");
+      if (button.classList.contains("rd-tab")) {
+        button.setAttribute("aria-selected", isActive ? "true" : "false");
+        button.tabIndex = isActive ? 0 : -1;
+      }
     }
     for (const panel of deps.audioModeSurfaces || []) {
       panel.classList.toggle("active", panel.dataset.audioModePanel === activeMode);
     }
     for (const panel of deps.audioControlPanels || []) {
-      panel.classList.toggle("active", panel.dataset.audioControlPanel === activeMode);
+      const isActive = panel.dataset.audioControlPanel === activeMode;
+      panel.classList.toggle("active", isActive);
+      if (panel.classList.contains("rd-tab-panel")) {
+        panel.setAttribute("aria-hidden", isActive ? "false" : "true");
+      }
     }
   }
 
@@ -20,7 +30,9 @@ export function createAudioPanelRuntime(deps) {
     const article = document.createElement("article");
     article.className = "oscillator-card";
     article.dataset.oscillatorId = oscillator.id;
-    appendHeader(article, `Oscillator ${index + 1}`);
+    const collapseId = `synthesis:${oscillator.id}`;
+    article.classList.toggle("collapsed", collapsedCardIds.has(collapseId));
+    appendHeader(article, `Oscillator ${index + 1}`, collapseId);
     appendSelectRow(article, "Wave", "type", [
       ["sine", "Sine"],
       ["square", "Square"],
@@ -50,10 +62,30 @@ export function createAudioPanelRuntime(deps) {
     return article;
   }
 
-  function appendHeader(article, title) {
+  function appendHeader(article, title, collapseId) {
     const header = document.createElement("header");
     const label = document.createElement("span");
+    label.className = "oscillator-card-title";
+    label.dataset.action = "toggle-collapse";
+    label.setAttribute("role", "button");
+    label.setAttribute("tabindex", "0");
+    label.setAttribute("aria-expanded", article.classList.contains("collapsed") ? "false" : "true");
     label.textContent = title;
+    const toggleCollapse = () => {
+      const collapsed = !article.classList.contains("collapsed");
+      article.classList.toggle("collapsed", collapsed);
+      label.setAttribute("aria-expanded", collapsed ? "false" : "true");
+      if (collapseId) {
+        if (collapsed) collapsedCardIds.add(collapseId);
+        else collapsedCardIds.delete(collapseId);
+      }
+    };
+    label.addEventListener("click", toggleCollapse);
+    label.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      toggleCollapse();
+    });
     const button = document.createElement("button");
     button.type = "button";
     button.dataset.action = "remove";
@@ -145,7 +177,9 @@ export function createAudioPanelRuntime(deps) {
     article.dataset.layerSource = layer.source;
     article.dataset.layerFilter = String(layer.filterFrequency);
     article.dataset.layerMotion = layer.motionMode;
-    appendHeader(article, `Layer ${index + 1} - ${headerMetric}`);
+    const collapseId = `soundscape:${layer.id}`;
+    article.classList.toggle("collapsed", collapsedCardIds.has(collapseId));
+    appendHeader(article, `Layer ${index + 1} - ${headerMetric}`, collapseId);
     appendSelectRow(article, "Role", "role", [
       ["drone", "Drone"],
       ["resonance", "Resonance"],

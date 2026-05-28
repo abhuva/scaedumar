@@ -2,6 +2,8 @@ export function createRenderBootstrapState(deps) {
   const splatTex = deps.createTexture();
   const normalsTex = deps.createTexture();
   const heightTex = deps.createTexture();
+  const slopeTex = deps.createTexture();
+  const wetnessTex = deps.createTexture();
   const waterTex = deps.createTexture();
   const flowMapTex = deps.createLinearTexture();
   const waterTrailTex = deps.createLinearTexture();
@@ -57,6 +59,8 @@ export function createRenderBootstrapState(deps) {
     splatTex,
     normalsTex,
     heightTex,
+    slopeTex,
+    wetnessTex,
     waterTex,
     flowMapTex,
     waterTrailTex,

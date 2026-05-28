@@ -33,7 +33,7 @@
     "wrapEdges": true,
     "spawnMode": "full",
     "useTerrain": true,
-    "showTerrainUnderlay": true,
+    "showTerrainUnderlay": false,
     "terrainMix": 10,
     "slopeBias": 1.5,
     "slopeCutoff": 0.85,

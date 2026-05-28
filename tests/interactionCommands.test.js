@@ -361,7 +361,7 @@ test("start gather water command clears map preview on success", () => {
   assert.equal(deps.calls.requestOverlayDraw, 1);
 });
 
-test("dev no-mode map clicks keep the existing teleport test behavior", () => {
+test("legacy mode names do not re-enable no-mode teleport", () => {
   const commandBus = createCommandBus();
   const deps = createDeps({
     getRuntimeMode: () => "dev",
@@ -370,11 +370,13 @@ test("dev no-mode map clicks keep the existing teleport test behavior", () => {
 
   commandBus.dispatch({ type: "core/interaction/clickMapPixel", x: 8, y: 9 });
 
-  assert.equal(deps.calls.setPlayerPosition, 1);
-  assert.equal(deps.calls.cancelMovementQueue, 1);
+  assert.equal(deps.calls.setPlayerPosition, 0);
+  assert.equal(deps.calls.cancelMovementQueue, 0);
+  assert.equal(deps.calls.requestOverlayDraw, 1);
+  assert.equal(deps.calls.status, "Use PF to choose a destination.");
 });
 
-test("missing runtime mode falls back to dev no-mode click behavior", () => {
+test("missing runtime mode does not enable no-mode teleport", () => {
   const commandBus = createCommandBus();
   const deps = createDeps({
     getRuntimeMode: undefined,
@@ -383,8 +385,10 @@ test("missing runtime mode falls back to dev no-mode click behavior", () => {
 
   commandBus.dispatch({ type: "core/interaction/clickMapPixel", x: 8, y: 9 });
 
-  assert.equal(deps.calls.setPlayerPosition, 1);
-  assert.equal(deps.calls.cancelMovementQueue, 1);
+  assert.equal(deps.calls.setPlayerPosition, 0);
+  assert.equal(deps.calls.cancelMovementQueue, 0);
+  assert.equal(deps.calls.requestOverlayDraw, 1);
+  assert.equal(deps.calls.status, "Use PF to choose a destination.");
 });
 
 test("pathfinding setting commands ignore non-finite values", () => {

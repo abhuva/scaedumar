@@ -154,8 +154,6 @@ export function createAppliedSettingsStoreSync(deps) {
           cloudScale: deps.clamp(finiteOr(normalized.cloudScale, finiteOr(prevClouds.cloudScale, 2.4)), 0.5, 8),
           cloudSpeed1: deps.clamp(finiteOr(normalized.cloudSpeed1, finiteOr(prevClouds.cloudSpeed1, 0.018)), -0.3, 0.3),
           cloudSpeed2: deps.clamp(finiteOr(normalized.cloudSpeed2, finiteOr(prevClouds.cloudSpeed2, -0.012)), -0.3, 0.3),
-          cloudSunParallax: deps.clamp(finiteOr(normalized.cloudSunParallax, finiteOr(prevClouds.cloudSunParallax, 0.45)), 0, 2),
-          cloudUseSunProjection: Boolean(normalized.cloudUseSunProjection),
           timeRouting: deps.normalizeRoutingMode(normalized.timeRouting, "global"),
         };
         return {

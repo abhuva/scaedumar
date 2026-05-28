@@ -11,12 +11,6 @@ export function createRenderFxDataSerializer(deps) {
       shadowBlur: deps.clampRound(Number(lighting.shadowBlur), 0, 3),
       ambient: deps.clampRound(Number(lighting.ambient), 0, 1),
       diffuse: deps.clampRound(Number(lighting.diffuse), 0, 2),
-      useVolumetric: Boolean(lighting.useVolumetric),
-      volumetricStrength: deps.clampRound(Number(lighting.volumetricStrength), 0, 1),
-      volumetricDensity: deps.clampRound(Number(lighting.volumetricDensity), 0, 2),
-      volumetricAnisotropy: deps.clampRound(Number(lighting.volumetricAnisotropy), 0, 0.95),
-      volumetricLength: Math.round(deps.clamp(Number(lighting.volumetricLength), 8, 160)),
-      volumetricSamples: Math.round(deps.clamp(Number(lighting.volumetricSamples), 4, 24)),
       cycleHour: deps.clampRound(Number(deps.cycleState.hour), 0, 24),
       cycleSpeed: deps.clampRound(Number(timeState.cycleSpeedHoursPerSec ?? lighting.cycleSpeed), 0, 1),
       simTickHours: deps.clampRound(Number(timeState.simTickHours ?? deps.getConfiguredSimTickHours()), 0.001, 0.1),
@@ -53,8 +47,6 @@ export function createRenderFxDataSerializer(deps) {
       cloudScale: deps.clamp(Number(clouds.cloudScale), 0.5, 8),
       cloudSpeed1: deps.clamp(Number(clouds.cloudSpeed1), -0.3, 0.3),
       cloudSpeed2: deps.clamp(Number(clouds.cloudSpeed2), -0.3, 0.3),
-      cloudSunParallax: deps.clamp(Number(clouds.cloudSunParallax), 0, 2),
-      cloudUseSunProjection: Boolean(clouds.cloudUseSunProjection),
       timeRouting: deps.normalizeRoutingMode(timeState.routing && timeState.routing.clouds, "global"),
     };
   }

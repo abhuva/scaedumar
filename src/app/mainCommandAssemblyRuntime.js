@@ -120,7 +120,6 @@ export function createMainCommandAssemblyRuntime(deps) {
     startSlime: deps.startSlime,
     stopSlime: deps.stopSlime,
     resetSlime: deps.resetSlime,
-    brushResetSlimeAtClient: deps.brushResetSlimeAtClient,
     syncSlimeUi: deps.syncSlimeUi,
     updateSwarmUi: deps.updateSwarmUi,
     updateSwarmLabels: deps.updateSwarmLabels,

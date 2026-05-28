@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "activeLayer": "plants",
+  "activeLayer": "water",
   "discovery": {
     "gridSize": 256,
     "movementRevealRadius": 80,
@@ -29,11 +29,9 @@
   },
   "layers": {
     "water": {
-      "renderMode": "marching",
       "sampleStep": 4,
       "knowledgeThreshold": 0.61,
       "lineWidth": 0.25,
-      "bandWidth": 0.018,
       "tintColor": "#63d6f0",
       "bands": [
         {
@@ -59,11 +57,9 @@
       ]
     },
     "plants": {
-      "renderMode": "marching",
       "sampleStep": 8,
       "knowledgeThreshold": 0.25,
       "lineWidth": 1.25,
-      "bandWidth": 0.018,
       "tintColor": "#7ddc84",
       "bands": [
         {
@@ -89,11 +85,9 @@
       ]
     },
     "height": {
-      "renderMode": "marching",
       "sampleStep": 8,
       "knowledgeThreshold": 0.6,
       "lineWidth": 4,
-      "bandWidth": 0.002,
       "tintColor": "#ff0000",
       "bands": [
         {
@@ -119,11 +113,9 @@
       ]
     },
     "slope": {
-      "renderMode": "marching",
       "sampleStep": 8,
       "knowledgeThreshold": 0.59,
       "lineWidth": 1.25,
-      "bandWidth": 0.018,
       "tintColor": "#ff0000",
       "bands": [
         {

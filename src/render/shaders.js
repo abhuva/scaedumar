@@ -12,6 +12,7 @@ out vec4 outColor;
 uniform sampler2D uSplat;
 uniform sampler2D uNormals;
 uniform sampler2D uHeight;
+uniform sampler2D uSlope;
 uniform sampler2D uPointLightTex;
 uniform sampler2D uCloudNoiseTex;
 uniform sampler2D uShadowTex;
@@ -23,6 +24,7 @@ uniform sampler2D uDetailMicroColor;
 uniform sampler2D uDiscoveryMask;
 uniform sampler2D uSlimeTrailOverlay;
 uniform sampler2D uSlimeTracksMask;
+uniform sampler2D uSlimeTerrainUnderlayPlant;
 uniform float uUseCursorLight;
 uniform vec2 uCursorLightUv;
 uniform vec3 uCursorLightColor;
@@ -62,6 +64,8 @@ uniform float uSlimeTrailOverlayThreshold;
 uniform float uSlimeTrailOverlayOpacity;
 uniform float uSlimeTracksMaskEnabled;
 uniform float uSlimeTracksKnowledgeCutoff;
+uniform float uSlimeTerrainUnderlayEnabled;
+uniform float uTerrainDebugViewMode;
 uniform float uDiscoveryDitherScale;
 uniform float uDiscoveryKnowledgeGamma;
 uniform float uDiscoveryUnknownDarkness;
@@ -78,12 +82,6 @@ uniform float uFogMaxAlpha;
 uniform float uFogFalloff;
 uniform float uFogStartOffset;
 uniform float uCameraHeightNorm;
-uniform float uUseVolumetric;
-uniform float uVolumetricStrength;
-uniform float uVolumetricDensity;
-uniform float uVolumetricAnisotropy;
-uniform float uVolumetricLength;
-uniform float uVolumetricSamples;
 uniform float uMapAspect;
 uniform vec2 uViewHalfExtents;
 uniform vec2 uPanWorld;
@@ -101,8 +99,6 @@ uniform float uCloudOpacity;
 uniform float uCloudScale;
 uniform float uCloudSpeed1;
 uniform float uCloudSpeed2;
-uniform float uCloudSunParallax;
-uniform float uCloudUseSunProjection;
 uniform float uUseWaterFx;
 uniform float uWaterFlowSource;
 uniform float uWaterFlowRenderMode;
@@ -204,6 +200,37 @@ vec4 sampleSlimeTrailOverlay(vec2 uv) {
     alpha *= step(uSlimeTracksKnowledgeCutoff, knowledge) * knowledge;
   }
   return vec4(slimeTrailPalette(value), alpha);
+}
+
+vec3 sampleSlimeTerrainUnderlay(vec2 uv) {
+  float slope = texture(uSlope, uv).r;
+  float water = texture(uWater, uv).r;
+  // Live Slime plant stock is a raw simulation texture, like the trail texture.
+  // Keep the coordinate correction at the render-composite boundary.
+  float plant = texture(uSlimeTerrainUnderlayPlant, vec2(uv.x, 1.0 - uv.y)).r;
+  return vec3(
+    clamp(slope, 0.0, 1.0),
+    clamp(plant, 0.0, 1.0),
+    clamp(water, 0.0, 1.0)
+  );
+}
+
+vec3 sampleTerrainDebugView(vec2 uv) {
+  if (uTerrainDebugViewMode < 0.5) return vec3(-1.0);
+  if (uTerrainDebugViewMode < 1.5) {
+    float height = texture(uHeight, uv).r;
+    return vec3(height);
+  }
+  if (uTerrainDebugViewMode < 2.5) {
+    float slope = texture(uSlope, uv).r;
+    return vec3(slope, 0.0, 0.0);
+  }
+  if (uTerrainDebugViewMode < 3.5) {
+    float wetness = texture(uFlowMap, uv).r;
+    return vec3(0.0, wetness, wetness * 0.35);
+  }
+  float water = texture(uWater, uv).r;
+  return vec3(0.0, 0.0, water);
 }
 
 vec2 detailAtlasUv(vec2 mapPixel, float scaleMeters, vec4 rect) {
@@ -314,13 +341,8 @@ float cloudMaskAtUv(vec2 uv, float timeSec, vec3 sunDir) {
   float cloudScale = max(0.05, uCloudScale);
   float soft = max(0.001, uCloudSoftness);
   float threshold = clamp(uCloudCoverage, 0.0, 1.0);
-  vec2 sunShift = vec2(0.0);
-  if (uCloudUseSunProjection > 0.5) {
-    float sunZ = max(0.12, sunDir.z);
-    sunShift = -sunDir.xy / sunZ * (uCloudSunParallax * 0.03);
-  }
-  vec2 cloudUvA = fract((uv + sunShift + vec2(timeSec * uCloudSpeed1, timeSec * uCloudSpeed1 * 0.63)) * cloudScale);
-  vec2 cloudUvB = fract((uv + sunShift * 1.55 + vec2(-timeSec * uCloudSpeed2 * 0.74, timeSec * uCloudSpeed2)) * (cloudScale * 1.93));
+  vec2 cloudUvA = fract((uv + vec2(timeSec * uCloudSpeed1, timeSec * uCloudSpeed1 * 0.63)) * cloudScale);
+  vec2 cloudUvB = fract((uv + vec2(-timeSec * uCloudSpeed2 * 0.74, timeSec * uCloudSpeed2)) * (cloudScale * 1.93));
   float noiseA = texture(uCloudNoiseTex, cloudUvA).r;
   float noiseB = texture(uCloudNoiseTex, cloudUvB).r;
   float maskA = smoothstep(threshold - soft, threshold + soft, noiseA);
@@ -605,45 +627,6 @@ vec3 applyDiscoveryVisibility(vec3 lit, vec2 uv, vec2 mapPixel) {
   return mix(unknown, lit, visible);
 }
 
-vec3 computeVolumetricScattering(vec2 uv, float timeSec, float sunVisibility) {
-  if (uUseVolumetric < 0.5 || uVolumetricStrength <= 0.0001 || sunVisibility <= 0.0001) return vec3(0.0);
-  float sunPlanarLen = length(uSunDir.xy);
-  if (sunPlanarLen < 0.0001) return vec3(0.0);
-  float sunLateral = clamp(sunPlanarLen, 0.0, 1.0);
-  float altitudeStretch = mix(0.18, 1.0, pow(sunLateral, 0.85));
-  float altitudeScatterGain = mix(0.22, 1.0, pow(sunLateral, 0.65));
-  float sampleCount = max(1.0, floor(clamp(uVolumetricSamples, 4.0, 24.0) + 0.5));
-  vec2 rayDir = -uSunDir.xy / sunPlanarLen;
-  float rayLengthPx = clamp(uVolumetricLength * altitudeStretch, 2.0, 160.0);
-  vec2 rayStepUv = rayDir * uMapTexelSize * (rayLengthPx / sampleCount);
-  float g = clamp(uVolumetricAnisotropy, 0.0, 0.95);
-  float cosTheta = clamp(uSunDir.z, 0.0, 1.0);
-  float phaseDenom = pow(max(0.001, 1.0 + g * g - 2.0 * g * cosTheta), 1.5);
-  float phase = (1.0 - g * g) / phaseDenom;
-  float extinctionScale = 0.08;
-  float accum = 0.0;
-  float transmittance = 1.0;
-  for (int i = 0; i < 24; i++) {
-    if (float(i) >= sampleCount) break;
-    vec2 sampleUv = uv + rayStepUv * (float(i) + 1.0);
-    if (sampleUv.x <= 0.0 || sampleUv.y <= 0.0 || sampleUv.x >= 1.0 || sampleUv.y >= 1.0) break;
-    float fogAmount = fogAmountAtUv(sampleUv);
-    float fogAlpha = fogAlphaFromAmount(fogAmount);
-    float localDensity = clamp(fogAlpha * uVolumetricDensity, 0.0, 1.5);
-    if (localDensity <= 0.0001) continue;
-    float localCloudMask = cloudMaskAtUv(sampleUv, timeSec, uSunDir);
-    float localSun = 1.0 - localCloudMask * clamp(uCloudOpacity, 0.0, 1.0) * sunVisibility;
-    float scatter = localSun * localDensity * phase;
-    accum += transmittance * scatter;
-    transmittance *= exp(-localDensity * extinctionScale);
-    if (transmittance <= 0.0005) break;
-  }
-  vec3 scatterColor = mix(uFogColor, uSunColor, 0.72);
-  float scatterEnergy = accum * uVolumetricStrength * altitudeScatterGain * 0.16;
-  float compressedEnergy = scatterEnergy / (1.0 + scatterEnergy * 1.85);
-  return scatterColor * compressedEnergy;
-}
-
 void main() {
   vec2 ndc = (gl_FragCoord.xy / uResolution) * 2.0 - 1.0;
   vec2 world = uPanWorld + ndc * uViewHalfExtents;
@@ -655,6 +638,12 @@ void main() {
   }
 
   vec2 uv = baseUv;
+
+  vec3 terrainDebug = sampleTerrainDebugView(uv);
+  if (terrainDebug.r >= 0.0) {
+    outColor = vec4(terrainDebug, 1.0);
+    return;
+  }
 
   if (uDetailDebugMode > 0.5) {
     vec4 materialSample = texture(uMaterialSplat, uv);
@@ -735,6 +724,9 @@ void main() {
   lit = applyWaterFx(uv, lit, n, waterTimeSec, sunVisibility);
   float localLight = max(lit.r, max(lit.g, lit.b));
   lit = applyWaterParticleTrail(uv, lit, localLight);
+  if (uSlimeTerrainUnderlayEnabled > 0.5) {
+    lit = sampleSlimeTerrainUnderlay(uv);
+  }
   if (uSlimeTrailOverlayEnabled > 0.5) {
     vec4 slimeTrail = sampleSlimeTrailOverlay(uv);
     lit = mix(lit, slimeTrail.rgb, clamp(slimeTrail.a, 0.0, 1.0));
@@ -742,13 +734,10 @@ void main() {
 
   float fogAmount = fogAmountAtUv(uv);
   float fogAlpha = fogAlphaFromAmount(fogAmount);
-  vec3 volumetricScatter = computeVolumetricScattering(uv, cloudTimeSec, sunVisibility);
 
   if (uUseFog > 0.5) {
     lit = mix(lit, uFogColor, fogAlpha);
   }
-
-  lit = clamp(lit + volumetricScatter * (1.0 - lit), 0.0, 1.0);
   lit = applyDiscoveryVisibility(lit, uv, mapPixel);
   outColor = vec4(lit, 1.0);
 }`;
@@ -820,12 +809,6 @@ uniform float uFogMaxAlpha;
 uniform float uFogFalloff;
 uniform float uFogStartOffset;
 uniform float uCameraHeightNorm;
-uniform float uUseVolumetric;
-uniform float uVolumetricStrength;
-uniform float uVolumetricDensity;
-uniform float uVolumetricAnisotropy;
-uniform float uVolumetricLength;
-uniform float uVolumetricSamples;
 uniform float uMapAspect;
 uniform vec2 uMapTexelSize;
 uniform float uTimeSec;
@@ -841,8 +824,6 @@ uniform float uCloudOpacity;
 uniform float uCloudScale;
 uniform float uCloudSpeed1;
 uniform float uCloudSpeed2;
-uniform float uCloudSunParallax;
-uniform float uCloudUseSunProjection;
 uniform vec3 uHawkColor;
 uniform float uSwarmHeightMax;
 uniform float uPointLightEdgeMin;
@@ -877,57 +858,13 @@ float cloudMaskAtUv(vec2 uv, float timeSec, vec3 sunDir) {
   float cloudScale = max(0.05, uCloudScale);
   float soft = max(0.001, uCloudSoftness);
   float threshold = clamp(uCloudCoverage, 0.0, 1.0);
-  vec2 sunShift = vec2(0.0);
-  if (uCloudUseSunProjection > 0.5) {
-    float sunZ = max(0.12, sunDir.z);
-    sunShift = -sunDir.xy / sunZ * (uCloudSunParallax * 0.03);
-  }
-  vec2 cloudUvA = fract((uv + sunShift + vec2(timeSec * uCloudSpeed1, timeSec * uCloudSpeed1 * 0.63)) * cloudScale);
-  vec2 cloudUvB = fract((uv + sunShift * 1.55 + vec2(-timeSec * uCloudSpeed2 * 0.74, timeSec * uCloudSpeed2)) * (cloudScale * 1.93));
+  vec2 cloudUvA = fract((uv + vec2(timeSec * uCloudSpeed1, timeSec * uCloudSpeed1 * 0.63)) * cloudScale);
+  vec2 cloudUvB = fract((uv + vec2(-timeSec * uCloudSpeed2 * 0.74, timeSec * uCloudSpeed2)) * (cloudScale * 1.93));
   float noiseA = texture(uCloudNoiseTex, cloudUvA).r;
   float noiseB = texture(uCloudNoiseTex, cloudUvB).r;
   float maskA = smoothstep(threshold - soft, threshold + soft, noiseA);
   float maskB = smoothstep(threshold - soft, threshold + soft, noiseB);
   return clamp(maskA * 0.66 + maskB * 0.34, 0.0, 1.0);
-}
-
-vec3 computeVolumetricScattering(vec2 uv, float timeSec, float sunVisibility) {
-  if (uUseVolumetric < 0.5 || uVolumetricStrength <= 0.0001 || sunVisibility <= 0.0001) return vec3(0.0);
-  float sunPlanarLen = length(uSunDir.xy);
-  if (sunPlanarLen < 0.0001) return vec3(0.0);
-  float sunLateral = clamp(sunPlanarLen, 0.0, 1.0);
-  float altitudeStretch = mix(0.18, 1.0, pow(sunLateral, 0.85));
-  float altitudeScatterGain = mix(0.22, 1.0, pow(sunLateral, 0.65));
-  float sampleCount = max(1.0, floor(clamp(uVolumetricSamples, 4.0, 24.0) + 0.5));
-  vec2 rayDir = -uSunDir.xy / sunPlanarLen;
-  float rayLengthPx = clamp(uVolumetricLength * altitudeStretch, 2.0, 160.0);
-  vec2 rayStepUv = rayDir * uMapTexelSize * (rayLengthPx / sampleCount);
-  float g = clamp(uVolumetricAnisotropy, 0.0, 0.95);
-  float cosTheta = clamp(uSunDir.z, 0.0, 1.0);
-  float phaseDenom = pow(max(0.001, 1.0 + g * g - 2.0 * g * cosTheta), 1.5);
-  float phase = (1.0 - g * g) / phaseDenom;
-  float extinctionScale = 0.08;
-  float accum = 0.0;
-  float transmittance = 1.0;
-  for (int i = 0; i < 24; i++) {
-    if (float(i) >= sampleCount) break;
-    vec2 sampleUv = uv + rayStepUv * (float(i) + 1.0);
-    if (sampleUv.x <= 0.0 || sampleUv.y <= 0.0 || sampleUv.x >= 1.0 || sampleUv.y >= 1.0) break;
-    float fogAmount = fogAmountAtUv(sampleUv);
-    float fogAlpha = fogAlphaFromAmount(fogAmount);
-    float localDensity = clamp(fogAlpha * uVolumetricDensity, 0.0, 1.5);
-    if (localDensity <= 0.0001) continue;
-    float localCloudMask = cloudMaskAtUv(sampleUv, timeSec, uSunDir);
-    float localSun = 1.0 - localCloudMask * clamp(uCloudOpacity, 0.0, 1.0) * sunVisibility;
-    float scatter = localSun * localDensity * phase;
-    accum += transmittance * scatter;
-    transmittance *= exp(-localDensity * extinctionScale);
-    if (transmittance <= 0.0005) break;
-  }
-  vec3 scatterColor = mix(uFogColor, uSunColor, 0.72);
-  float scatterEnergy = accum * uVolumetricStrength * altitudeScatterGain * 0.16;
-  float compressedEnergy = scatterEnergy / (1.0 + scatterEnergy * 1.85);
-  return scatterColor * compressedEnergy;
 }
 
 void main() {
@@ -982,11 +919,9 @@ void main() {
 
   float fogAmount = fogAmountAtUv(vUv);
   float fogAlpha = fogAlphaFromAmount(fogAmount);
-  vec3 volumetricScatter = computeVolumetricScattering(vUv, cloudTimeSec, sunVisibility);
   if (uUseFog > 0.5) {
     lit = mix(lit, uFogColor, fogAlpha);
   }
-  lit = clamp(lit + volumetricScatter * (1.0 - lit), 0.0, 1.0);
   outColor = vec4(lit, uSwarmAlpha);
 }`;
 

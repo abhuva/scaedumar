@@ -133,12 +133,6 @@ export function registerMainCommands(commandBus, deps) {
         shadowBlur: deps.clamp(Number(nextLighting.shadowBlur), 0, 3),
         ambient: deps.clamp(Number(nextLighting.ambient), 0, 1),
         diffuse: deps.clamp(Number(nextLighting.diffuse), 0, 2),
-        useVolumetric: Boolean(nextLighting.useVolumetric),
-        volumetricStrength: deps.clamp(Number(nextLighting.volumetricStrength), 0, 1),
-        volumetricDensity: deps.clamp(Number(nextLighting.volumetricDensity), 0, 2),
-        volumetricAnisotropy: deps.clamp(Number(nextLighting.volumetricAnisotropy), 0, 0.95),
-        volumetricLength: clampRound(nextLighting.volumetricLength, 8, 160),
-        volumetricSamples: clampRound(nextLighting.volumetricSamples, 4, 24),
         pointFlickerEnabled: Boolean(nextLighting.pointFlickerEnabled),
         pointFlickerStrength: deps.clamp(Number(nextLighting.pointFlickerStrength), 0, 1),
         pointFlickerSpeed: deps.clamp(Number(nextLighting.pointFlickerSpeed), 0.1, 12),
@@ -184,8 +178,6 @@ export function registerMainCommands(commandBus, deps) {
         cloudScale: deps.clamp(Number(nextClouds.cloudScale), 0.5, 8),
         cloudSpeed1: deps.clamp(Number(nextClouds.cloudSpeed1), -0.3, 0.3),
         cloudSpeed2: deps.clamp(Number(nextClouds.cloudSpeed2), -0.3, 0.3),
-        cloudSunParallax: deps.clamp(Number(nextClouds.cloudSunParallax), 0, 2),
-        cloudUseSunProjection: Boolean(nextClouds.cloudUseSunProjection),
       });
       deps.syncRenderFxCloudUi();
       return;
@@ -428,11 +420,6 @@ export function registerMainCommands(commandBus, deps) {
   commandBus.register("slime/randomizeSeed", () => {
     deps.patchSlimeSettings({ seed: Math.floor(Math.random() * 999999) + 1 });
     deps.resetSlime();
-    deps.syncSlimeUi();
-  });
-
-  commandBus.register("slime/brush/resetAt", (command) => {
-    deps.brushResetSlimeAtClient(command.clientX, command.clientY);
     deps.syncSlimeUi();
   });
 

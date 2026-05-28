@@ -136,7 +136,7 @@ export const DEFAULT_TIME_ROUTING = {
 
 export function createInitialState() {
   return {
-    mode: "dev",
+    mode: "title",
     clock: {
       nowSec: 0,
       timeScale: 1,

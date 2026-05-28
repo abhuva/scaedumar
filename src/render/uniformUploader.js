@@ -31,6 +31,14 @@ export function createTerrainUniformUploader(deps) {
     return 0;
   }
 
+  function terrainDebugViewModeToUniform(mode) {
+    if (mode === "height") return 1;
+    if (mode === "slope") return 2;
+    if (mode === "wetness") return 3;
+    if (mode === "water") return 4;
+    return 0;
+  }
+
   function uploadDiscoveryMask(snapshot) {
     if (!deps.discoveryMaskTex || !snapshot || !snapshot.cells || !snapshot.width || !snapshot.height) return false;
     const width = Math.max(1, Math.round(finite(snapshot.width, 1)));
@@ -154,6 +162,23 @@ export function createTerrainUniformUploader(deps) {
     return true;
   }
 
+  function uploadSlimeTerrainUnderlayUniforms() {
+    const snapshot = typeof deps.getSlimeTerrainUnderlaySnapshot === "function"
+      ? deps.getSlimeTerrainUnderlaySnapshot()
+      : null;
+    if (!snapshot || snapshot.enabled !== true || !snapshot.plantTexture) {
+      deps.gl.uniform1f(deps.uniforms.uSlimeTerrainUnderlayEnabled, 0);
+      return;
+    }
+    deps.gl.activeTexture(deps.gl.TEXTURE14);
+    deps.gl.bindTexture(deps.gl.TEXTURE_2D, deps.slopeTex);
+    deps.gl.uniform1i(deps.uniforms.uSlope, 14);
+    deps.gl.activeTexture(deps.gl.TEXTURE15);
+    deps.gl.bindTexture(deps.gl.TEXTURE_2D, snapshot.plantTexture);
+    deps.gl.uniform1i(deps.uniforms.uSlimeTerrainUnderlayPlant, 15);
+    deps.gl.uniform1f(deps.uniforms.uSlimeTerrainUnderlayEnabled, 1);
+  }
+
   return function uploadUniforms(params, frameTime, input, frameCamera = null) {
     const cameraZoom = frameCamera && Number.isFinite(Number(frameCamera.zoom))
       ? Number(frameCamera.zoom)
@@ -178,6 +203,10 @@ export function createTerrainUniformUploader(deps) {
     deps.gl.bindTexture(deps.gl.TEXTURE_2D, deps.heightTex);
     deps.gl.uniform1i(deps.uniforms.uHeight, 2);
 
+    deps.gl.activeTexture(deps.gl.TEXTURE14);
+    deps.gl.bindTexture(deps.gl.TEXTURE_2D, deps.slopeTex);
+    deps.gl.uniform1i(deps.uniforms.uSlope, 14);
+
     deps.applyPointLightUsagePass({
       gl: deps.gl,
       uniforms: deps.uniforms,
@@ -201,7 +230,7 @@ export function createTerrainUniformUploader(deps) {
     deps.gl.uniform1i(deps.uniforms.uWater, 6);
 
     deps.gl.activeTexture(deps.gl.TEXTURE7);
-    deps.gl.bindTexture(deps.gl.TEXTURE_2D, deps.flowMapTex);
+    deps.gl.bindTexture(deps.gl.TEXTURE_2D, input.terrainDebugViewMode === "wetness" ? deps.wetnessTex : deps.flowMapTex);
     deps.gl.uniform1i(deps.uniforms.uFlowMap, 7);
 
     deps.gl.activeTexture(deps.gl.TEXTURE8);
@@ -257,12 +286,14 @@ export function createTerrainUniformUploader(deps) {
     const detailPriorities = Array.isArray(input.detailMaterialPriorities) ? input.detailMaterialPriorities : [0, 0, 0, 0];
     deps.gl.uniform1f(deps.uniforms.uDetailBlendMode, detailBlendMode);
     deps.gl.uniform1f(deps.uniforms.uDetailDebugMode, detailDebugMode);
+    deps.gl.uniform1f(deps.uniforms.uTerrainDebugViewMode, terrainDebugViewModeToUniform(input.terrainDebugViewMode));
     deps.gl.uniform1f(deps.uniforms.uDetailWeightQuantization, input.detailQuantizationSteps);
     deps.gl.uniform1f(deps.uniforms.uDetailDitherScale, input.detailDitherScale);
     deps.gl.uniform1f(deps.uniforms.uDetailDitherStrength, input.detailDitherStrength);
     deps.gl.uniform1f(deps.uniforms.uDetailMinWeight, input.detailMinWeight);
     uploadDiscoveryVisibilityUniforms();
     uploadSlimeTrailOverlayUniforms();
+    uploadSlimeTerrainUnderlayUniforms();
     deps.gl.uniform4f(
       deps.uniforms.uDetailMaterialPriority,
       Number(detailPriorities[0]) || 0,
@@ -295,12 +326,6 @@ export function createTerrainUniformUploader(deps) {
     deps.gl.uniform1f(deps.uniforms.uFogFalloff, input.fogFalloff);
     deps.gl.uniform1f(deps.uniforms.uFogStartOffset, input.fogStartOffset);
     deps.gl.uniform1f(deps.uniforms.uCameraHeightNorm, params.cameraHeightNorm);
-    deps.gl.uniform1f(deps.uniforms.uUseVolumetric, input.useVolumetric ? 1 : 0);
-    deps.gl.uniform1f(deps.uniforms.uVolumetricStrength, input.volumetricStrength);
-    deps.gl.uniform1f(deps.uniforms.uVolumetricDensity, input.volumetricDensity);
-    deps.gl.uniform1f(deps.uniforms.uVolumetricAnisotropy, input.volumetricAnisotropy);
-    deps.gl.uniform1f(deps.uniforms.uVolumetricLength, input.volumetricLength);
-    deps.gl.uniform1f(deps.uniforms.uVolumetricSamples, input.volumetricSamples);
     deps.gl.uniform1f(deps.uniforms.uMapAspect, input.mapAspect);
     deps.gl.uniform1f(deps.uniforms.uUseCursorLight, input.useCursorLight ? 1 : 0);
     deps.gl.uniform2f(deps.uniforms.uCursorLightUv, deps.cursorLightState.uvX, deps.cursorLightState.uvY);
@@ -328,8 +353,6 @@ export function createTerrainUniformUploader(deps) {
     deps.gl.uniform1f(deps.uniforms.uCloudScale, input.cloudScale);
     deps.gl.uniform1f(deps.uniforms.uCloudSpeed1, input.cloudSpeed1);
     deps.gl.uniform1f(deps.uniforms.uCloudSpeed2, input.cloudSpeed2);
-    deps.gl.uniform1f(deps.uniforms.uCloudSunParallax, input.cloudSunParallax);
-    deps.gl.uniform1f(deps.uniforms.uCloudUseSunProjection, input.cloudUseSunProjection ? 1 : 0);
     deps.gl.uniform1f(deps.uniforms.uUseWaterFx, input.useWaterFx ? 1 : 0);
     const waterFlowSource = input.waterFlowSource === "image" ? 2 : (input.waterFlowSource === "height" ? 1 : 0);
     const waterFlowRenderMode = input.waterFlowRenderMode === "procedural" ? 0 : 1;

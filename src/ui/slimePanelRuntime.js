@@ -15,6 +15,9 @@ export function createSlimePanelRuntime(deps) {
     deps.slimeTimeModeInput.value = settings.timeMode || "gameTick";
     deps.slimeStepsPerGameTickInput.value = String(settings.stepsPerGameTick);
     setText(deps.slimeStepsPerGameTickValue, String(Math.round(settings.stepsPerGameTick)));
+    deps.slimeWarmupEnabledInput.checked = settings.warmupEnabled !== false;
+    deps.slimeWarmupStepsInput.value = String(settings.warmupSteps);
+    setText(deps.slimeWarmupStepsValue, String(Math.round(settings.warmupSteps)));
     deps.slimeAvailabilityGridSizeInput.value = String(settings.availabilityGridSize);
     setText(deps.slimeAvailabilityGridSizeValue, String(settings.availabilityGridSize));
     deps.slimeAvailabilityEffectiveMaxInput.value = String(settings.availabilityEffectiveMax);

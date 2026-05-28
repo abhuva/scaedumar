@@ -80,6 +80,63 @@ export function createResourceDebugPanelRuntime(deps) {
     { input: deps.band5Input, value: deps.band5Value, enabled: deps.band5EnabledInput },
   ];
 
+  function bindTabList(buttons, panels, buttonDatasetKey, panelDatasetKey, fallbackTab) {
+    if (!Array.isArray(buttons) || !Array.isArray(panels)) return;
+    const selectTab = (tab, options = {}) => {
+      for (const item of buttons) {
+        const active = item.dataset[buttonDatasetKey] === tab;
+        item.classList.toggle("active", active);
+        item.setAttribute("aria-selected", active ? "true" : "false");
+        item.setAttribute("tabindex", active ? "0" : "-1");
+      }
+      for (const panel of panels) {
+        const active = panel.dataset[panelDatasetKey] === tab;
+        panel.classList.toggle("active", active);
+        panel.setAttribute("aria-hidden", active ? "false" : "true");
+      }
+      if (options.focus) {
+        const activeButton = buttons.find((button) => button.dataset[buttonDatasetKey] === tab);
+        activeButton?.focus?.();
+      }
+    };
+    for (const button of buttons) {
+      button.addEventListener("click", () => {
+        selectTab(button.dataset[buttonDatasetKey] || fallbackTab);
+      });
+      button.addEventListener("keydown", (event) => {
+        const currentIndex = buttons.indexOf(button);
+        if (currentIndex < 0) return;
+        let nextIndex = currentIndex;
+        if (event.key === "ArrowRight") nextIndex = (currentIndex + 1) % buttons.length;
+        else if (event.key === "ArrowLeft") nextIndex = (currentIndex - 1 + buttons.length) % buttons.length;
+        else if (event.key === "Home") nextIndex = 0;
+        else if (event.key === "End") nextIndex = buttons.length - 1;
+        else return;
+        event.preventDefault();
+        selectTab(buttons[nextIndex].dataset[buttonDatasetKey] || fallbackTab, { focus: true });
+      });
+    }
+  }
+
+  function bindScopedTabGroups(groups) {
+    if (!Array.isArray(groups)) return false;
+    let boundAny = false;
+    for (const group of groups) {
+      const buttons = Array.from(group.querySelectorAll("[data-rd-tab]"));
+      const panels = buttons
+        .map((button) => {
+          const id = button.getAttribute("aria-controls");
+          return id ? document.getElementById(id) : null;
+        })
+        .filter(Boolean);
+      if (buttons.length === 0 || panels.length === 0) continue;
+      const fallbackTab = group.dataset.rdTabFallback || buttons[0].dataset.rdTab || "knowledge";
+      bindTabList(buttons, panels, "rdTab", "rdPanel", fallbackTab);
+      boundAny = true;
+    }
+    return boundAny;
+  }
+
   function sync() {
     const settings = deps.getSettings();
     const discovery = settings.discovery || {};
@@ -198,41 +255,9 @@ export function createResourceDebugPanelRuntime(deps) {
       deps.updateRouteSettings?.({ [key]: value });
     });
   });
-  if (Array.isArray(deps.tabButtons) && Array.isArray(deps.tabPanels)) {
-    const selectTab = (tab, options = {}) => {
-      for (const item of deps.tabButtons) {
-        const active = item.dataset.rdTab === tab;
-        item.classList.toggle("active", active);
-        item.setAttribute("aria-selected", active ? "true" : "false");
-        item.setAttribute("tabindex", active ? "0" : "-1");
-      }
-      for (const panel of deps.tabPanels) {
-        const active = panel.dataset.rdPanel === tab;
-        panel.classList.toggle("active", active);
-        panel.setAttribute("aria-hidden", active ? "false" : "true");
-      }
-      if (options.focus) {
-        const activeButton = deps.tabButtons.find((button) => button.dataset.rdTab === tab);
-        activeButton?.focus?.();
-      }
-    };
-    for (const button of deps.tabButtons) {
-      button.addEventListener("click", () => {
-        selectTab(button.dataset.rdTab || "overlay");
-      });
-      button.addEventListener("keydown", (event) => {
-        const currentIndex = deps.tabButtons.indexOf(button);
-        if (currentIndex < 0) return;
-        let nextIndex = currentIndex;
-        if (event.key === "ArrowRight") nextIndex = (currentIndex + 1) % deps.tabButtons.length;
-        else if (event.key === "ArrowLeft") nextIndex = (currentIndex - 1 + deps.tabButtons.length) % deps.tabButtons.length;
-        else if (event.key === "Home") nextIndex = 0;
-        else if (event.key === "End") nextIndex = deps.tabButtons.length - 1;
-        else return;
-        event.preventDefault();
-        selectTab(deps.tabButtons[nextIndex].dataset.rdTab || "overlay", { focus: true });
-      });
-    }
+  bindTabList(deps.devTabButtons, deps.devTabPanels, "rdDevTab", "rdDevPanel", "gameplay");
+  if (!bindScopedTabGroups(deps.tabGroups)) {
+    bindTabList(deps.tabButtons, deps.tabPanels, "rdTab", "rdPanel", "knowledge");
   }
 
   bandControls.forEach((control, index) => {

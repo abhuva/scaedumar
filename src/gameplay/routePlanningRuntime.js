@@ -434,7 +434,8 @@ export function createRoutePlanningRuntime(deps) {
       ...state.settings,
       ...(patch || {}),
     });
-    if (state.active) {
+    const debugOverlayMode = state.settings.debugOverlayMode || "none";
+    if (state.active || debugOverlayMode !== "none") {
       rebuildField(reason, state.anchor || playerPixel());
       return;
     }

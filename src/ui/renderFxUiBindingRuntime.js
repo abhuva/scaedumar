@@ -1,13 +1,12 @@
 import {
   updateShadowBlurLabel,
+  updateLightingBalanceLabels,
   updateSimTickLabel,
   updateFogAlphaLabels,
   updateFogFalloffLabel,
   updateFogStartOffsetLabel,
   updatePointFlickerLabels,
   updatePointFlickerUi,
-  updateVolumetricLabels,
-  updateVolumetricUi,
   updateCloudLabels,
   updateWaterLabels,
   updateFogUi,
@@ -21,6 +20,12 @@ export function createRenderFxUiBindingRuntime(deps) {
       clamp: deps.clamp,
       serializeLightingSettings: deps.serializeLightingSettings,
       shadowBlurValue: deps.shadowBlurValue,
+    }),
+    updateLightingBalanceLabels: () => updateLightingBalanceLabels({
+      clamp: deps.clamp,
+      serializeLightingSettings: deps.serializeLightingSettings,
+      ambientValue: deps.ambientValue,
+      diffuseValue: deps.diffuseValue,
     }),
     updateSimTickLabel: () => updateSimTickLabel({
       normalizeSimTickHours: deps.normalizeSimTickHours,
@@ -55,22 +60,6 @@ export function createRenderFxUiBindingRuntime(deps) {
       pointFlickerSpeedInput: deps.pointFlickerSpeedInput,
       pointFlickerSpatialInput: deps.pointFlickerSpatialInput,
     }),
-    updateVolumetricLabels: () => updateVolumetricLabels({
-      clamp: deps.clamp,
-      serializeLightingSettings: deps.serializeLightingSettings,
-      volumetricStrengthValue: deps.volumetricStrengthValue,
-      volumetricDensityValue: deps.volumetricDensityValue,
-      volumetricAnisotropyValue: deps.volumetricAnisotropyValue,
-      volumetricLengthValue: deps.volumetricLengthValue,
-      volumetricSamplesValue: deps.volumetricSamplesValue,
-    }),
-    updateVolumetricUi: () => updateVolumetricUi({
-      volumetricStrengthInput: deps.volumetricStrengthInput,
-      volumetricDensityInput: deps.volumetricDensityInput,
-      volumetricAnisotropyInput: deps.volumetricAnisotropyInput,
-      volumetricLengthInput: deps.volumetricLengthInput,
-      volumetricSamplesInput: deps.volumetricSamplesInput,
-    }),
     updateCloudLabels: () => updateCloudLabels({
       clamp: deps.clamp,
       serializeCloudSettings: deps.serializeCloudSettings,
@@ -80,7 +69,6 @@ export function createRenderFxUiBindingRuntime(deps) {
       cloudScaleValue: deps.cloudScaleValue,
       cloudSpeed1Value: deps.cloudSpeed1Value,
       cloudSpeed2Value: deps.cloudSpeed2Value,
-      cloudSunParallaxValue: deps.cloudSunParallaxValue,
     }),
     updateWaterLabels: () => updateWaterLabels({
       clamp: deps.clamp,
@@ -124,8 +112,6 @@ export function createRenderFxUiBindingRuntime(deps) {
       cloudScaleInput: deps.cloudScaleInput,
       cloudSpeed1Input: deps.cloudSpeed1Input,
       cloudSpeed2Input: deps.cloudSpeed2Input,
-      cloudSunParallaxInput: deps.cloudSunParallaxInput,
-      cloudSunProjectToggle: deps.cloudSunProjectToggle,
     }),
     updateWaterUi: () => updateWaterUi({
       serializeWaterSettings: deps.serializeWaterSettings,

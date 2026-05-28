@@ -1,13 +1,10 @@
 export function createTitleScreenRuntime(deps) {
-  const validModes = new Set(["dev", "gameplay"]);
-
   function setTitleVisible(visible) {
     deps.titleScreenEl.classList.toggle("hidden", !visible);
     deps.bodyEl.classList.toggle("shell-title", visible);
   }
 
   function setRuntimeModeClass(mode) {
-    deps.bodyEl.classList.toggle("runtime-dev", mode === "dev");
     deps.bodyEl.classList.toggle("runtime-gameplay", mode === "gameplay");
   }
 
@@ -16,14 +13,20 @@ export function createTitleScreenRuntime(deps) {
   async function startMode(mode) {
     if (starting) return;
     starting = true;
-    const nextMode = validModes.has(mode) ? mode : "dev";
+    const nextMode = "gameplay";
     try {
       if (deps.readyPromise && typeof deps.readyPromise.then === "function") {
-        deps.setStatus("Loading map...");
-        await deps.readyPromise;
+        deps.setStatus("Loading map...", { progress: 0.04 });
+        try {
+          await deps.readyPromise;
+        } catch (error) {
+          const message = error && error.message ? error.message : String(error);
+          deps.setStatus(`Failed to load map: ${message}`);
+          return;
+        }
       }
-      if (nextMode === "gameplay" && typeof deps.startNewGame === "function") {
-        deps.setStatus("Starting new game...");
+      if (typeof deps.startNewGame === "function") {
+        deps.setStatus("Starting new game...", { progress: 0.06 });
         await deps.startNewGame();
       }
       deps.dispatchCoreCommand({ type: "core/workspace/setActive", workspace: "map" });
@@ -32,10 +35,10 @@ export function createTitleScreenRuntime(deps) {
       deps.updateModeCapabilitiesUi();
       setRuntimeModeClass(nextMode);
       setTitleVisible(false);
-      deps.setStatus(nextMode === "gameplay" ? "New game started." : "Dev mode started.");
+      deps.setStatus("New game started.", { progress: 1 });
     } catch (error) {
       const message = error && error.message ? error.message : String(error);
-      deps.setStatus(`Failed to start ${nextMode === "gameplay" ? "new game" : "dev mode"}: ${message}`);
+      deps.setStatus(`Failed to start new game: ${message}`);
     } finally {
       starting = false;
     }
@@ -43,8 +46,10 @@ export function createTitleScreenRuntime(deps) {
 
   function exitToTitle() {
     deps.dispatchCoreCommand({ type: "core/interaction/setMode", mode: "none" });
+    deps.dispatchCoreCommand({ type: "core/setMode", mode: "title" });
     deps.setActiveTopic("");
     deps.updateModeCapabilitiesUi();
+    setRuntimeModeClass("title");
     setTitleVisible(true);
     deps.setStatus("Returned to title screen.");
   }
@@ -70,7 +75,6 @@ export function createTitleScreenRuntime(deps) {
 
   function bindTitleScreen() {
     deps.titleNewGameBtn.addEventListener("click", () => startMode("gameplay"));
-    deps.titleDevModeBtn.addEventListener("click", () => startMode("dev"));
     deps.titleQuitGameBtn.addEventListener("click", () => quitGame());
     if (deps.dockExitToTitleBtn) {
       deps.dockExitToTitleBtn.addEventListener("click", () => exitToTitle());

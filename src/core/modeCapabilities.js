@@ -1,25 +1,17 @@
-const FULL_CAPABILITIES = {
-  topics: ["map", "interaction", "swarm", "lighting", "detail", "fog", "clouds", "water", "water-trails", "resource-debug", "editor", "info"],
+const GAMEPLAY_CAPABILITIES = {
+  topics: ["resource-debug"],
   interactionModes: ["none", "lighting", "pathfinding", "routePlanning"],
   overlays: ["pathPreview", "routePlanning", "pointLights", "cursorLight", "swarmStats"],
 };
 
-const MODE_CAPABILITIES = {
-  dev: FULL_CAPABILITIES,
-  gameplay: {
-    topics: ["resource-debug"],
-    interactionModes: ["none", "pathfinding", "routePlanning"],
-    overlays: ["pathPreview", "routePlanning"],
-  },
-  hybrid: FULL_CAPABILITIES,
-};
-
 export function normalizeRuntimeMode(mode) {
-  return mode === "gameplay" || mode === "hybrid" ? mode : "dev";
+  return mode === "title" ? "title" : "gameplay";
 }
 
 export function getModeCapabilities(mode) {
-  return MODE_CAPABILITIES[normalizeRuntimeMode(mode)];
+  return normalizeRuntimeMode(mode) === "title"
+    ? { topics: [], interactionModes: ["none"], overlays: [] }
+    : GAMEPLAY_CAPABILITIES;
 }
 
 export function canUseTopic(mode, topic) {

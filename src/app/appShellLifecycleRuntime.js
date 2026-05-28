@@ -7,7 +7,6 @@ const REQUIRED_TITLE_SCREEN_KEYS = [
   "bodyEl",
   "titleScreenEl",
   "titleNewGameBtn",
-  "titleDevModeBtn",
   "titleQuitGameBtn",
   "dispatchCoreCommand",
   "setActiveTopic",

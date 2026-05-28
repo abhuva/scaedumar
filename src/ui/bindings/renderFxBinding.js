@@ -50,42 +50,6 @@ export function bindRenderFxControls(deps) {
       patchFactory: () => ({ diffuse: Number(deps.diffuseInput.value) }),
     },
     {
-      element: deps.volumetricStrengthInput,
-      eventType: "input",
-      section: "lighting",
-      patchFactory: () => ({ volumetricStrength: Number(deps.volumetricStrengthInput.value) }),
-    },
-    {
-      element: deps.volumetricDensityInput,
-      eventType: "input",
-      section: "lighting",
-      patchFactory: () => ({ volumetricDensity: Number(deps.volumetricDensityInput.value) }),
-    },
-    {
-      element: deps.volumetricAnisotropyInput,
-      eventType: "input",
-      section: "lighting",
-      patchFactory: () => ({ volumetricAnisotropy: Number(deps.volumetricAnisotropyInput.value) }),
-    },
-    {
-      element: deps.volumetricLengthInput,
-      eventType: "input",
-      section: "lighting",
-      patchFactory: () => ({ volumetricLength: Number(deps.volumetricLengthInput.value) }),
-    },
-    {
-      element: deps.volumetricSamplesInput,
-      eventType: "input",
-      section: "lighting",
-      patchFactory: () => ({ volumetricSamples: Number(deps.volumetricSamplesInput.value) }),
-    },
-    {
-      element: deps.volumetricToggle,
-      eventType: "change",
-      section: "lighting",
-      patchFactory: () => ({ useVolumetric: Boolean(deps.volumetricToggle.checked) }),
-    },
-    {
       element: deps.pointFlickerStrengthInput,
       eventType: "input",
       section: "lighting",
@@ -181,18 +145,6 @@ export function bindRenderFxControls(deps) {
       eventType: "input",
       section: "clouds",
       patchFactory: () => ({ cloudSpeed2: Number(deps.cloudSpeed2Input.value) }),
-    },
-    {
-      element: deps.cloudSunParallaxInput,
-      eventType: "input",
-      section: "clouds",
-      patchFactory: () => ({ cloudSunParallax: Number(deps.cloudSunParallaxInput.value) }),
-    },
-    {
-      element: deps.cloudSunProjectToggle,
-      eventType: "change",
-      section: "clouds",
-      patchFactory: () => ({ cloudUseSunProjection: Boolean(deps.cloudSunProjectToggle.checked) }),
     },
     {
       element: deps.cloudToggle,

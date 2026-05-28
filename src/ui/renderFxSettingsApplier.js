@@ -44,8 +44,6 @@ export function createRenderFxSettingsApplier(deps) {
     deps.cloudScaleInput.value = String(deps.clamp(Number(clouds.cloudScale), 0.5, 8));
     deps.cloudSpeed1Input.value = String(deps.clamp(Number(clouds.cloudSpeed1), -0.3, 0.3));
     deps.cloudSpeed2Input.value = String(deps.clamp(Number(clouds.cloudSpeed2), -0.3, 0.3));
-    deps.cloudSunParallaxInput.value = String(deps.clamp(Number(clouds.cloudSunParallax), 0, 2));
-    deps.cloudSunProjectToggle.checked = Boolean(clouds.cloudUseSunProjection);
     deps.cloudTimeRoutingInput.value = deps.normalizeRoutingMode(timeState.routing && timeState.routing.clouds, "global");
     deps.updateCloudLabels();
     deps.updateCloudUi();

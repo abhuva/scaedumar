@@ -34,7 +34,10 @@ export function createMapLoader(deps) {
 
     async function loadRequiredImage(fileName) {
       try {
-        deps.setStatus(`Loading map ${folder}: ${fileName}...`);
+        const requiredImages = ["splat.png", "normals.png", "height.png", "slope.png", "water.png"];
+        const imageIndex = requiredImages.indexOf(fileName);
+        const progress = 0.08 + (Math.max(0, imageIndex) * 0.07);
+        deps.setStatus(`Loading map ${folder}: ${fileName}...`, { progress });
         return await deps.loadImageFromUrl(deps.buildMapAssetPath(folder, fileName));
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
@@ -50,13 +53,16 @@ export function createMapLoader(deps) {
     const flow = await loadOptionalImage("flow.png");
     const wetness = await loadOptionalImage("wetness.png");
 
+    deps.setStatus("Uploading terrain textures...", { progress: 0.43 });
     await deps.applyMapImages(splat, normals, height, slope, water, flow, wetness);
+    deps.setStatus("Resetting map runtime state...", { progress: 0.48 });
     deps.setCurrentMapFolderPath(folder);
     deps.resetMapRuntimeStateAfterImages();
     const loaded = await deps.mapSidecarLoader.loadSidecarsFromUrl(folder, jsonPath);
+    deps.setStatus("Building movement field...", { progress: 0.7 });
     deps.rebuildMovementField();
     if (typeof deps.onMapLoaded === "function") {
-      deps.onMapLoaded();
+      await deps.onMapLoaded();
     }
     deps.setStatus(appendMissingGameplayMapWarning(sidecarStatusText(`Loaded map ${folder}`, loaded), {
       "splat.png": splat,
@@ -66,7 +72,7 @@ export function createMapLoader(deps) {
       "water.png": water,
       "flow.png": flow,
       "wetness.png": wetness,
-    }));
+    }), { progress: 1 });
   }
 
   async function loadMapFromFolderSelection(fileList) {
@@ -82,15 +88,34 @@ export function createMapLoader(deps) {
       throw new Error("Folder must contain splat.png, normals.png, height.png, slope.png, and water.png.");
     }
 
-    const [splat, normals, height, slope, water, flow, wetness] = await Promise.all([
-      deps.loadImageFromFile(splatFile),
-      deps.loadImageFromFile(normalsFile),
-      deps.loadImageFromFile(heightFile),
-      deps.loadImageFromFile(slopeFile),
-      deps.loadImageFromFile(waterFile),
-      flowFile ? deps.loadImageFromFile(flowFile) : Promise.resolve(null),
-      wetnessFile ? deps.loadImageFromFile(wetnessFile) : Promise.resolve(null),
-    ]);
+    deps.setStatus("Loading selected map images...", { progress: 0.12 });
+    const imageLoads = [
+      { fileName: "splat.png", file: splatFile, required: true },
+      { fileName: "normals.png", file: normalsFile, required: true },
+      { fileName: "height.png", file: heightFile, required: true },
+      { fileName: "slope.png", file: slopeFile, required: true },
+      { fileName: "water.png", file: waterFile, required: true },
+      { fileName: "flow.png", file: flowFile, required: false },
+      { fileName: "wetness.png", file: wetnessFile, required: false },
+    ];
+    const activeLoads = imageLoads.filter((entry) => entry.file || entry.required);
+    let completedLoads = 0;
+    function trackSelectedImageLoad(entry) {
+      if (!entry.file) return Promise.resolve(null);
+      return deps.loadImageFromFile(entry.file).then((image) => {
+        completedLoads += 1;
+        const progress = 0.12 + (0.28 * (completedLoads / activeLoads.length));
+        deps.setStatus(`Loading selected map images: ${entry.fileName}...`, { progress });
+        return image;
+      }, (error) => {
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`Failed loading selected map image ${entry.fileName}: ${message}`, { cause: error });
+      });
+    }
+    const [splat, normals, height, slope, water, flow, wetness] = await Promise.all(
+      imageLoads.map(trackSelectedImageLoad)
+    );
+    deps.setStatus("Uploading terrain textures...", { progress: 0.43 });
     await deps.applyMapImages(splat, normals, height, slope, water, flow, wetness);
 
     const relPath = String(splatFile.webkitRelativePath || "");
@@ -99,11 +124,13 @@ export function createMapLoader(deps) {
       deps.setCurrentMapFolderPath(`assets/${firstFolder}/`);
     }
 
+    deps.setStatus("Resetting map runtime state...", { progress: 0.48 });
     deps.resetMapRuntimeStateAfterImages();
     const loaded = await deps.mapSidecarLoader.loadSidecarsFromFiles(files);
+    deps.setStatus("Building movement field...", { progress: 0.7 });
     deps.rebuildMovementField();
     if (typeof deps.onMapLoaded === "function") {
-      deps.onMapLoaded();
+      await deps.onMapLoaded();
     }
     deps.setStatus(appendMissingGameplayMapWarning(sidecarStatusText("Loaded map folder", loaded), {
       "splat.png": splatFile,
@@ -113,7 +140,7 @@ export function createMapLoader(deps) {
       "water.png": waterFile,
       "flow.png": flowFile,
       "wetness.png": wetnessFile,
-    }));
+    }), { progress: 1 });
   }
 
   return {

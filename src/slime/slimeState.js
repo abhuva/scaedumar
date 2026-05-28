@@ -22,6 +22,7 @@ export function normalizeSlimeSettings(input = {}, fallback = {}) {
     stepsPerGameTick: clampRound(next.stepsPerGameTick, 1, 10),
     gameTicksPerSlimeStep: clampRound(next.gameTicksPerSlimeStep, 1, 10),
     maxGameStepsPerFrame: clampRound(next.maxGameStepsPerFrame, 1, 20),
+    warmupEnabled: next.warmupEnabled !== false,
     warmupSteps: clampRound(next.warmupSteps, 0, 20000),
     availabilityGridSize: clampRound(next.availabilityGridSize, 32, 512),
     availabilityEffectiveMax: clampNumber(next.availabilityEffectiveMax, 0.01, 5),

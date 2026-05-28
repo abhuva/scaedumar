@@ -11,6 +11,8 @@ export function createDefaultMapImageAssemblyRuntime(deps) {
     uploadImageToTexture: deps.uploadImageToTexture,
     normalsTex: deps.normalsTex,
     heightTex: deps.heightTex,
+    slopeTex: deps.slopeTex,
+    wetnessTex: deps.wetnessTex,
     splatTex: deps.splatTex,
     waterTex: deps.waterTex,
     setSplatSizeFromImage: deps.setSplatSizeFromImage,
@@ -22,6 +24,7 @@ export function createDefaultMapImageAssemblyRuntime(deps) {
     setNormalsImageData: deps.setNormalsImageData,
     setHeightImageData: deps.setHeightImageData,
     setSlopeImageData: deps.setSlopeImageData,
+    setWetnessImageData: deps.setWetnessImageData,
     setWaterImageData: deps.setWaterImageData,
   };
 }

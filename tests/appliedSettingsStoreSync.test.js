@@ -36,10 +36,14 @@ test("slime applied settings are normalized before store persistence", () => {
     palette: "invalid",
     sensorNoise: 4,
     spawnMode: "bad",
+    warmupEnabled: false,
+    warmupSteps: 999999,
   });
 
   assert.equal(store.getState().simulation.knobs.slime.agentCount, 1000);
   assert.equal(store.getState().simulation.knobs.slime.palette, "fire");
   assert.equal(store.getState().simulation.knobs.slime.sensorNoise, 1);
   assert.equal(store.getState().simulation.knobs.slime.spawnMode, "full");
+  assert.equal(store.getState().simulation.knobs.slime.warmupEnabled, false);
+  assert.equal(store.getState().simulation.knobs.slime.warmupSteps, 20000);
 });

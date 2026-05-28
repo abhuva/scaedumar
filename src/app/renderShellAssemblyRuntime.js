@@ -68,6 +68,7 @@ export function createRenderShellAssemblyRuntime(deps) {
       updateGameTimeDiorama: deps.updateGameTimeDiorama,
       updateWaterParticleTrails: deps.updateWaterParticleTrails,
       getWaterParticleTrailUniformState: deps.getWaterParticleTrailUniformState,
+      getTerrainDebugViewMode: deps.getTerrainDebugViewMode,
       updateWeatherFieldMeta: deps.updateWeatherFieldMeta,
       renderResources: deps.renderResources,
       splatSize: deps.splatSize,

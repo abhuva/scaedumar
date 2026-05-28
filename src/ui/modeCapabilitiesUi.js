@@ -7,6 +7,7 @@ export function createModeCapabilitiesUi(deps) {
     if (!topicName) {
       for (const btn of deps.topicButtons) btn.classList.remove("active");
       for (const card of deps.topicCards) card.classList.remove("active");
+      deps.topicPanelEl.dataset.activeTopic = "";
       setTopicPanelVisible(false);
       return;
     }
@@ -23,6 +24,7 @@ export function createModeCapabilitiesUi(deps) {
         deps.topicPanelTitleEl.textContent = card.dataset.title || "Settings";
       }
     }
+    deps.topicPanelEl.dataset.activeTopic = opened ? topicName : "";
     setTopicPanelVisible(opened);
   }
 
@@ -39,17 +41,6 @@ export function createModeCapabilitiesUi(deps) {
     const activeTopic = activeTopicButton ? activeTopicButton.dataset.topic || "" : "";
     if (activeTopic && !deps.canUseModeTopic(mode, activeTopic)) {
       setActiveTopic("");
-    }
-    const canLighting = deps.canUseModeInteraction(mode, "lighting");
-    const canPathfinding = deps.canUseModeInteraction(mode, "pathfinding");
-    const canRoutePlanning = deps.canUseModeInteraction(mode, "routePlanning");
-    deps.dockLightingModeToggle.disabled = !canLighting;
-    deps.dockPathfindingModeToggle.disabled = !canPathfinding;
-    deps.dockLightingModeToggle.classList.toggle("mode-capability-hidden", !canLighting);
-    deps.dockPathfindingModeToggle.classList.toggle("mode-capability-hidden", !canPathfinding);
-    if (deps.dockRoutePlanningModeToggle) {
-      deps.dockRoutePlanningModeToggle.disabled = !canRoutePlanning;
-      deps.dockRoutePlanningModeToggle.classList.toggle("mode-capability-hidden", !canRoutePlanning);
     }
     if (!deps.canUseModeInteraction(mode, deps.getInteractionModeSnapshot())) {
       deps.setInteractionMode("none");

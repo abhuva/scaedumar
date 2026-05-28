@@ -1,4 +1,10 @@
 export function bindSlimeControls(deps) {
+  function setText(el, value) {
+    if (el) {
+      el.textContent = value;
+    }
+  }
+
   function dispatchSettings(patch) {
     deps.commandBus.dispatch({ type: "core/slime/settingsChanged", patch });
   }
@@ -7,11 +13,20 @@ export function bindSlimeControls(deps) {
   deps.slimeStopBtn.addEventListener("click", () => deps.commandBus.dispatch({ type: "slime/stop" }));
   deps.slimeResetBtn.addEventListener("click", () => deps.commandBus.dispatch({ type: "slime/reset" }));
   deps.slimeRandomizeBtn.addEventListener("click", () => deps.commandBus.dispatch({ type: "slime/randomizeSeed" }));
+  deps.slimeAgentCountInput.addEventListener("input", () => {
+    setText(deps.slimeAgentCountValue, String(Math.round(Number(deps.slimeAgentCountInput.value) || 0)));
+  });
   deps.slimeAgentCountInput.addEventListener("change", () => dispatchSettings({ agentCount: Number(deps.slimeAgentCountInput.value) }));
   deps.slimeSimSizeInput.addEventListener("change", () => dispatchSettings({ simSize: Number(deps.slimeSimSizeInput.value) }));
   deps.slimeStepsPerFrameInput.addEventListener("input", () => dispatchSettings({ stepsPerFrame: Number(deps.slimeStepsPerFrameInput.value) }));
   deps.slimeTimeModeInput.addEventListener("change", () => dispatchSettings({ timeMode: deps.slimeTimeModeInput.value }));
   deps.slimeStepsPerGameTickInput.addEventListener("input", () => dispatchSettings({ stepsPerGameTick: Number(deps.slimeStepsPerGameTickInput.value) }));
+  deps.slimeWarmupEnabledInput.addEventListener("change", () => dispatchSettings({ warmupEnabled: deps.slimeWarmupEnabledInput.checked }));
+  deps.slimeWarmupStepsInput.addEventListener("input", () => {
+    const value = Math.round(Number(deps.slimeWarmupStepsInput.value) || 0);
+    setText(deps.slimeWarmupStepsValue, String(value));
+    dispatchSettings({ warmupSteps: value });
+  });
   for (const button of deps.slimeGameSpeedBtns || []) {
     button.addEventListener("click", () => {
       deps.commandBus.dispatch({
@@ -64,11 +79,4 @@ export function bindSlimeControls(deps) {
   deps.slimeBrushRadiusInput.addEventListener("input", () => dispatchSettings({ brushRadius: Number(deps.slimeBrushRadiusInput.value) }));
   deps.slimeBrushTrailClearInput.addEventListener("input", () => dispatchSettings({ brushTrailClear: Number(deps.slimeBrushTrailClearInput.value) }));
   deps.slimeSeedInput.addEventListener("change", () => dispatchSettings({ seed: Number(deps.slimeSeedInput.value) }));
-  deps.slimeCanvas.addEventListener("click", (event) => {
-    deps.commandBus.dispatch({
-      type: "slime/brush/resetAt",
-      clientX: event.clientX,
-      clientY: event.clientY,
-    });
-  });
 }

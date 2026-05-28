@@ -36,7 +36,7 @@ This site is now structured as a game portal first, with technical documentation
 ## Build Pillars
 
 - Stylized map-first rendering with crisp zoom and hand-authored art direction.
-- Day and night lighting model with sun, moon, cloud shadows, volumetrics, and water FX.
+- Day and night lighting model with sun, moon, cloud shadows, point lights, and water FX.
 - Gameplay scaffolding for pathfinding, point-light editing, and agent swarm simulation.
 - Browser-native runtime with a Tauri desktop delivery path.
 
