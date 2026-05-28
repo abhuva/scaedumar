@@ -236,6 +236,7 @@ export const DEFAULT_SLIME_SETTINGS = {
   stepsPerGameTick: 1,
   gameTicksPerSlimeStep: 3,
   maxGameStepsPerFrame: 2,
+  warmupEnabled: true,
   warmupSteps: 3000,
   availabilityGridSize: 128,
   availabilityEffectiveMax: 0.7,

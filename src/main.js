@@ -201,6 +201,7 @@ import { createDetailPanelRuntime } from "./ui/detailPanelRuntime.js";
 import { createModulePresetRuntime } from "./ui/modulePresetRuntime.js";
 import { createInventoryPanelRuntime } from "./ui/inventoryPanelRuntime.js";
 import { createResourceDebugPanelRuntime } from "./ui/resourceDebugPanelRuntime.js";
+import { injectResourceDebugMarkup } from "./ui/rd/resourceDebugMarkupRuntime.js";
 import { createRdOverlayShortcutRailRuntime } from "./ui/rdOverlayShortcutRailRuntime.js";
 import { createGameplayHudRuntime } from "./ui/gameplayHudRuntime.js";
 
@@ -240,6 +241,8 @@ const runtimeCore = createRuntimeCore();
 const dispatchCoreCommand = createCoreCommandDispatch(runtimeCore);
 const eventBus = createEventBus();
 const entityStore = createEntityStore();
+
+injectResourceDebugMarkup();
 
 const bodyEl = document.body;
 const titleScreenEl = getRequiredElementById("titleScreen");
@@ -792,6 +795,9 @@ const slimeTimeModeInput = getRequiredElementById("slimeTimeMode");
 const slimeStepsPerGameTickInput = getRequiredElementById("slimeStepsPerGameTick");
 const slimeStepsPerGameTickValue = getRequiredElementById("slimeStepsPerGameTickValue");
 const slimeGameSpeedBtns = getRequiredElements(".slime-game-speed-btn");
+const slimeWarmupEnabledInput = getRequiredElementById("slimeWarmupEnabled");
+const slimeWarmupStepsInput = getRequiredElementById("slimeWarmupSteps");
+const slimeWarmupStepsValue = getRequiredElementById("slimeWarmupStepsValue");
 const slimeAvailabilityGridSizeInput = getRequiredElementById("slimeAvailabilityGridSize");
 const slimeAvailabilityGridSizeValue = getRequiredElementById("slimeAvailabilityGridSizeValue");
 const slimeAvailabilityEffectiveMaxInput = getRequiredElementById("slimeAvailabilityEffectiveMax");
@@ -1414,6 +1420,9 @@ const slimePanelRuntime = createSlimePanelRuntime({
   slimeTimeModeInput,
   slimeStepsPerGameTickInput,
   slimeStepsPerGameTickValue,
+  slimeWarmupEnabledInput,
+  slimeWarmupStepsInput,
+  slimeWarmupStepsValue,
   slimeAvailabilityGridSizeInput,
   slimeAvailabilityGridSizeValue,
   slimeAvailabilityEffectiveMaxInput,
@@ -1751,6 +1760,7 @@ function waitForStartupPaint() {
 async function warmupSlimeOnMapLoaded() {
   const settings = getSlimeSettings();
   if (!settings.enabled) return false;
+  if (settings.warmupEnabled === false) return false;
   const steps = Math.max(0, Math.round(Number(settings.warmupSteps) || 0));
   const runtime = getGameplaySlimeRuntime();
   if (steps <= 0 || typeof runtime.warmupSteps !== "function") return false;
@@ -6354,6 +6364,9 @@ runAppShellLifecycleRuntime(createAppShellLifecycleAssemblyRuntime({
     slimeStepsPerFrameInput,
     slimeTimeModeInput,
     slimeStepsPerGameTickInput,
+    slimeWarmupEnabledInput,
+    slimeWarmupStepsInput,
+    slimeWarmupStepsValue,
     slimeGameSpeedBtns,
     slimeAvailabilityGridSizeInput,
     slimeAvailabilityEffectiveMaxInput,

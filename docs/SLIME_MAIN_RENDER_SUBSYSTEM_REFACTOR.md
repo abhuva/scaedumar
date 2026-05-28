@@ -215,6 +215,7 @@ Dependencies:
 - [x] T9.7 Update current map/preset JSON for changed defaults.
 - [x] T9.8 Browser-verify Save Settings and preset round-trip after new cadence fields.
 - [~] T9.9 Move Slime UI access into `RD > Trail`: full lab controls are now split across `Trail > Runtime`, `Motion`, `Visual`, `Terrain`, `Plants`, and `Brush`, while trail overlay, Hunting flee, Tracks knowledge, and availability readout controls are under `Trail > Tracks`. Browser validation of the moved controls is still pending.
+- [x] T9.10 Add `RD > Trail > Runtime > Warm Up` controls for enabling/disabling map-load warmup and setting warmup step count.
 
 Dependencies:
 
@@ -282,6 +283,7 @@ These are user-reported browser/runtime readings during the main-render refactor
 - After sampled stepping and readback cadence changes at 100x, fully zoomed out: `FPS 39.6`, `Frame 50.52 ms`, `CPU 49.61 ms`, `update 45.27 ms`, `GPU 5.81 ms`.
 - After later alignment/runtime cleanup, user reported the feature works and runs better; 20x was previously described as nearly smooth, while 100x remains fast-forward rather than smooth simulation.
 - Final accepted profiling pass with graphical timing history: changing to 20x showed only a barely visible mini-spike and then stable timing. 100x showed clear update spikes/system flooding, accepted for now as fast-forward behavior. Stable post-spike readout was approximately `FPS 73.9`, `Frame 14.85 ms`, `CPU 5.70 ms`, `update 0.33 ms`, `GPU 7.88 ms`.
+- Map-load warmup is now controlled by `warmupEnabled` plus `warmupSteps`; existing saves without `warmupEnabled` preserve prior enabled behavior.
 
 ## Proof Criteria
 

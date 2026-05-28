@@ -21,6 +21,12 @@ export function bindSlimeControls(deps) {
   deps.slimeStepsPerFrameInput.addEventListener("input", () => dispatchSettings({ stepsPerFrame: Number(deps.slimeStepsPerFrameInput.value) }));
   deps.slimeTimeModeInput.addEventListener("change", () => dispatchSettings({ timeMode: deps.slimeTimeModeInput.value }));
   deps.slimeStepsPerGameTickInput.addEventListener("input", () => dispatchSettings({ stepsPerGameTick: Number(deps.slimeStepsPerGameTickInput.value) }));
+  deps.slimeWarmupEnabledInput.addEventListener("change", () => dispatchSettings({ warmupEnabled: deps.slimeWarmupEnabledInput.checked }));
+  deps.slimeWarmupStepsInput.addEventListener("input", () => {
+    const value = Math.round(Number(deps.slimeWarmupStepsInput.value) || 0);
+    setText(deps.slimeWarmupStepsValue, String(value));
+    dispatchSettings({ warmupSteps: value });
+  });
   for (const button of deps.slimeGameSpeedBtns || []) {
     button.addEventListener("click", () => {
       deps.commandBus.dispatch({
