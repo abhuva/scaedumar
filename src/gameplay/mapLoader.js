@@ -89,17 +89,32 @@ export function createMapLoader(deps) {
     }
 
     deps.setStatus("Loading selected map images...", { progress: 0.12 });
-    const splat = await deps.loadImageFromFile(splatFile);
-    deps.setStatus("Loading selected map images: normals.png...", { progress: 0.19 });
-    const normals = await deps.loadImageFromFile(normalsFile);
-    deps.setStatus("Loading selected map images: height.png...", { progress: 0.26 });
-    const height = await deps.loadImageFromFile(heightFile);
-    deps.setStatus("Loading selected map images: slope.png...", { progress: 0.33 });
-    const slope = await deps.loadImageFromFile(slopeFile);
-    deps.setStatus("Loading selected map images: water.png...", { progress: 0.4 });
-    const water = await deps.loadImageFromFile(waterFile);
-    const flow = flowFile ? await deps.loadImageFromFile(flowFile) : null;
-    const wetness = wetnessFile ? await deps.loadImageFromFile(wetnessFile) : null;
+    const imageLoads = [
+      { fileName: "splat.png", file: splatFile, required: true },
+      { fileName: "normals.png", file: normalsFile, required: true },
+      { fileName: "height.png", file: heightFile, required: true },
+      { fileName: "slope.png", file: slopeFile, required: true },
+      { fileName: "water.png", file: waterFile, required: true },
+      { fileName: "flow.png", file: flowFile, required: false },
+      { fileName: "wetness.png", file: wetnessFile, required: false },
+    ];
+    const activeLoads = imageLoads.filter((entry) => entry.file || entry.required);
+    let completedLoads = 0;
+    function trackSelectedImageLoad(entry) {
+      if (!entry.file) return Promise.resolve(null);
+      return deps.loadImageFromFile(entry.file).then((image) => {
+        completedLoads += 1;
+        const progress = 0.12 + (0.28 * (completedLoads / activeLoads.length));
+        deps.setStatus(`Loading selected map images: ${entry.fileName}...`, { progress });
+        return image;
+      }, (error) => {
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`Failed loading selected map image ${entry.fileName}: ${message}`, { cause: error });
+      });
+    }
+    const [splat, normals, height, slope, water, flow, wetness] = await Promise.all(
+      imageLoads.map(trackSelectedImageLoad)
+    );
     deps.setStatus("Uploading terrain textures...", { progress: 0.43 });
     await deps.applyMapImages(splat, normals, height, slope, water, flow, wetness);
 

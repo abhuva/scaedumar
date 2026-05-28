@@ -23,7 +23,23 @@ const GROUP_END_SHORTCUTS = new Set([
 ]);
 
 function dispatchChange(element) {
-  element?.dispatchEvent?.(new Event("change", { bubbles: true }));
+  if (!element?.dispatchEvent) return;
+  const EventCtor = globalThis.Event;
+  if (typeof EventCtor === "function") {
+    element.dispatchEvent(new EventCtor("change", { bubbles: true }));
+    return;
+  }
+  const CustomEventCtor = globalThis.CustomEvent;
+  if (typeof CustomEventCtor === "function") {
+    element.dispatchEvent(new CustomEventCtor("change", { bubbles: true }));
+    return;
+  }
+  const doc = element.ownerDocument || globalThis.document;
+  if (doc && typeof doc.createEvent === "function") {
+    const event = doc.createEvent("Event");
+    event.initEvent("change", true, false);
+    element.dispatchEvent(event);
+  }
 }
 
 function setCheckbox(input, checked) {

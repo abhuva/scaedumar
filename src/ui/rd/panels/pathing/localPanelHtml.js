@@ -1,6 +1,6 @@
 export function getRdPathingLocalPanelHtml() {
   return `
-          <div id="rdGameplayPathingPanel" class="rd-tab-panel active" role="tabpanel" data-rd-panel="local" aria-labelledby="rdGameplayPathingTab" aria-hidden="false">
+          <div id="rdPathingLocalPanel" class="rd-tab-panel active" role="tabpanel" data-rd-panel="local" aria-labelledby="rdPathingLocalTab" aria-hidden="false">
             <p class="panel-note">Local PF movement-field and terrain-cost tuning.</p>
           <div class="row">
             <label for="pathfindingRange">Path Window</label>

@@ -1665,9 +1665,9 @@ function patchSlimeSettings(patch) {
     ...getSlimeSettings(),
     ...(patch && typeof patch === "object" ? patch : {}),
   }, DEFAULT_SLIME_SETTINGS);
-  settingsApplyRuntime.updateStoreFromAppliedSettings("slime", next);
   try {
     slimeMainRenderRuntime.applySettings(next);
+    settingsApplyRuntime.updateStoreFromAppliedSettings("slime", next);
   } catch (error) {
     const message = setSlimeRuntimeError(slimeGameplaySimulationState, error);
     setStatus(`Slime settings failed: ${message}`);
@@ -1757,13 +1757,32 @@ function waitForStartupPaint() {
   });
 }
 
+function resetSkippedSlimeWarmupState(settings = getSlimeSettings()) {
+  slimeAvailabilityGrid = createEmptySlimeAvailabilityGrid(settings.availabilityGridSize);
+  slimeAvailabilityTickCounter = 0;
+  slimePlantSyncTickCounter = 0;
+  slimeFreeOverlayRefreshCounter = 0;
+  slimePlantResourceCache = null;
+  syncSlimeAvailabilityDebugUi();
+  overlayDirtyRuntime.requestOverlayDraw();
+}
+
 async function warmupSlimeOnMapLoaded() {
   const settings = getSlimeSettings();
-  if (!settings.enabled) return false;
-  if (settings.warmupEnabled === false) return false;
+  if (!settings.enabled) {
+    resetSkippedSlimeWarmupState(settings);
+    return false;
+  }
+  if (settings.warmupEnabled === false) {
+    resetSkippedSlimeWarmupState(settings);
+    return false;
+  }
   const steps = Math.max(0, Math.round(Number(settings.warmupSteps) || 0));
   const runtime = getGameplaySlimeRuntime();
-  if (steps <= 0 || typeof runtime.warmupSteps !== "function") return false;
+  if (steps <= 0 || typeof runtime.warmupSteps !== "function") {
+    resetSkippedSlimeWarmupState(settings);
+    return false;
+  }
   try {
     runtime.start(settings);
     let completed = 0;
@@ -1777,7 +1796,10 @@ async function warmupSlimeOnMapLoaded() {
       setStatus(`Warming Slime trails: ${completed}/${steps} steps...`, { progress });
       await waitForStartupPaint();
     }
-    if (completed <= 0) return false;
+    if (completed <= 0) {
+      resetSkippedSlimeWarmupState(settings);
+      return false;
+    }
     slimeAvailabilityTickCounter = 0;
     slimePlantSyncTickCounter = 0;
     setStatus("Syncing Slime plant stock...", { progress: 0.95 });
@@ -5185,11 +5207,13 @@ pointLightGizmoToggle.addEventListener("change", () => {
   }
   if (playerActivityRuntime.isActivityActive()) {
     runtimeCore.commandBus.dispatch({ type: "core/interaction/setMode", mode: "none" });
+    pointLightGizmoToggle.checked = false;
     setStatus("Stop the current activity before editing point lights.");
     return;
   }
   if (!canUseInteractionInCurrentMode("lighting")) {
     runtimeCore.commandBus.dispatch({ type: "core/interaction/setMode", mode: "none" });
+    pointLightGizmoToggle.checked = false;
     setStatus("Point-light gizmos are unavailable in current runtime mode.");
     return;
   }

@@ -17,10 +17,16 @@ export function createTitleScreenRuntime(deps) {
     try {
       if (deps.readyPromise && typeof deps.readyPromise.then === "function") {
         deps.setStatus("Loading map...", { progress: 0.04 });
-        await deps.readyPromise;
+        try {
+          await deps.readyPromise;
+        } catch (error) {
+          const message = error && error.message ? error.message : String(error);
+          deps.setStatus(`Failed to load map: ${message}`);
+          return;
+        }
       }
       if (typeof deps.startNewGame === "function") {
-        deps.setStatus("Starting new game...", { progress: 0.02 });
+        deps.setStatus("Starting new game...", { progress: 0.06 });
         await deps.startNewGame();
       }
       deps.dispatchCoreCommand({ type: "core/workspace/setActive", workspace: "map" });

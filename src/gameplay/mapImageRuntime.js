@@ -98,8 +98,9 @@ export function createMapImageRuntime(deps) {
     if (typeof deps.getSlopeTex === "function") {
       deps.uploadImageToTexture(deps.getSlopeTex(), slopeImage);
     }
+    const wetnessImageToUse = wetnessImage || waterImage;
     if (typeof deps.getWetnessTex === "function") {
-      deps.uploadImageToTexture(deps.getWetnessTex(), wetnessImage || waterImage);
+      deps.uploadImageToTexture(deps.getWetnessTex(), wetnessImageToUse);
     }
     if (typeof deps.setFlowMapImage === "function") {
       deps.setFlowMapImage(flowImage);
@@ -112,7 +113,7 @@ export function createMapImageRuntime(deps) {
     deps.setSlopeImageData(deps.extractImageData(slopeImage));
     deps.setWaterImageData(deps.extractImageData(waterImage));
     if (typeof deps.setWetnessImageData === "function") {
-      deps.setWetnessImageData(wetnessImage ? deps.extractImageData(wetnessImage) : null);
+      deps.setWetnessImageData(wetnessImageToUse ? deps.extractImageData(wetnessImageToUse) : null);
     }
     syncPointLightWorkerMapData();
     deps.syncMapStateToStore();
