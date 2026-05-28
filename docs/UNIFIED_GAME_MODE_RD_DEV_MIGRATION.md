@@ -49,20 +49,18 @@ Top-level RD tabs:
 - `Trail`
 - `Gameplay`
 - `Audio`
-- `Overlays`
+- `Pathing`
 - `IO`
-- `Info`
 
 Planned sub-tabs:
 
 - `Terrain`: `Map`, `Lighting`, `Point Lights`, `Fog`, `Clouds`, `Water`, `Water Trails`, `Detail`, `Camera`
 - `Agents`: `Swarm`, `Follow`, `Stats`, future NPC controls
 - `Trail`: `Slime Runtime`, `Trail Visual`, `Terrain Coupling`, `Plant Coupling`, `Hunting/Flee`, `Tracks Knowledge`
-- `Gameplay`: `Knowledge`, `Known View`, `NAV`, `Stock`, later Inventory/Condition debug
+- `Gameplay`: `Knowledge`, `Known View`, `Stock`, later Inventory/Condition debug
 - `Audio`: `Spectrogram`, `Synthesis`, `Soundscape`, later playback/IO controls if needed
-- `Overlays`: `Performance`, `Pathfinding`, `Route`, `Lighting Debug`, `Swarm Debug`, `Resource Debug`
+- `Pathing`: `Local`, `NAV`, `Route`
 - `IO`: `Load Map`, `Save Map Data`, `Preset Management`, `Import/Export Sidecars`
-- `Info`: runtime status, frame/GPU timing, map/player/path readouts
 
 ## Migration Strategy
 
@@ -120,14 +118,15 @@ Do not delete dev mode first. Migrate access in small slices, then remove the ol
 - [x] Document any remaining duplicate Slime controls or compatibility paths.
 - [x] Split the first-pass Slime `Lab` tab into smaller Trail sub-tabs after the full control list proved too dense.
 
-### Phase 5: IO, Info, and Overlay Controls
+### Phase 5: IO, Info, Pathing, and Overlay Controls
 
 - [x] Move map load/save-all controls into `IO`.
 - [x] Move remaining save/load sidecar controls into `IO`.
-- [x] Move runtime info/status readouts into `Info`.
-- [x] Move local pathfinding tuning controls into `Gameplay > Pathing`.
-- [x] Move performance overlay controls into `Overlays > Performance` while keeping the HUD `O` shortcut.
-- [x] Move path/route/light/swarm debug overlays into `Overlays`.
+- [x] Remove redundant visible `Info` tab after readouts were covered elsewhere.
+- [x] Move local pathfinding tuning controls into `Pathing > Local`.
+- [x] Keep performance overlay access as the HUD `O` shortcut.
+- [x] Move route/pathing debug controls into `Pathing > Route`.
+- [x] Move texture/resource/debug overlay shortcuts into the RD right-edge overlay rail.
   - [x] Route drawing/debug overlay controls
   - [x] Swarm stats overlay visibility
   - [x] Swarm hawk-range gizmo visibility
@@ -154,8 +153,9 @@ Do not delete dev mode first. Migrate access in small slices, then remove the ol
 
 - [x] Remove or hide title `dev mode` button.
 - [x] Remove or hide workspace switcher as the primary tool access path.
-- [ ] Remove old topic dock once every needed topic is reachable from RD-dev.
-- [ ] Simplify mode capability logic after migration parity.
+- [x] Remove old topic dock once every needed topic is reachable from RD-dev.
+- [x] Simplify topic capability logic after migration parity.
+- [ ] Simplify remaining runtime mode compatibility logic.
 - [ ] Update README run/use instructions.
 - [ ] Update `AI_CONTEXT.md`.
 
@@ -175,28 +175,29 @@ Do not delete dev mode first. Migrate access in small slices, then remove the ol
 - Gameplay accesses migrated controls through the `resource-debug` topic only. This keeps the old dev topic names unavailable from gameplay while still exposing the nested RD-dev surface.
 - `dev` remains an internal compatibility mode during migration, but it is no longer a title-screen user path.
 - Title screen now exposes the normal game path only; the `dev mode` button remains in the DOM hidden for current lifecycle binding compatibility.
-- Dev topic dock still contains map, interaction, swarm, lighting, detail, fog, clouds, water, water-trails, editor, and info topics.
-- Gameplay currently hides the workspace switcher and topic dock through CSS.
+- The old dev topic dock and placeholder migrated-topic cards were removed. The only remaining topic panel target is `resource-debug`, opened from the gameplay HUD `RD` button.
+- Mode topic capabilities now expose only `resource-debug`; stale topic names such as `map`, `interaction`, `swarm`, `lighting`, `detail`, `fog`, `clouds`, `water`, `water-trails`, `editor`, and `info` are no longer valid panel targets.
+- Gameplay currently hides the workspace switcher through CSS; the old topic dock has been deleted.
 - Audio remains a separate tool workspace for large visual surfaces; Slime is now controlled from `RD > Trail` and visualized through the terrain overlay path instead of a user-facing workspace.
 - Existing RD panel already contains gameplay-oriented resource debug tabs: Knowledge, Known View, NAV, Stock, and Slime.
 - First RD-dev shell keeps the existing resource debug panels under top-level `Gameplay` and uses separate `.rd-dev-tab` / `.rd-dev-panel` bindings so existing `.rd-tab` behavior remains isolated.
-- Runtime readout DOM IDs were moved into `RD > Info`; the old dev `Info` topic now only points to the migrated location.
-- Map load/save DOM IDs were moved into `RD > IO`; the old dev `Load Map` topic now only points to the migrated location.
+- Runtime readout DOM IDs were moved into hidden binding targets after the visible `RD > Info` tab was removed as redundant.
+- Map load/save DOM IDs were moved into `RD > IO`.
 - Nested RD sub-tabs are now scoped with `data-rd-tab-group`, allowing `Terrain` and `Gameplay` to each own local `.rd-tab` navigation without cross-selecting panels.
-- Main lighting DOM IDs were moved into `RD > Terrain > Lighting`; the old dev `Main Lighting` topic now only points to the migrated location.
-- Fog DOM IDs were moved into `RD > Terrain > Fog`; the old dev `Height Fog` topic now only points to the migrated location.
-- Cloud DOM IDs were moved into `RD > Terrain > Clouds`; the old dev `Cloud Shadows` topic now only points to the migrated location.
+- Main lighting DOM IDs were moved into `RD > Terrain > Lighting`.
+- Fog DOM IDs were moved into `RD > Terrain > Fog`.
+- Cloud DOM IDs were moved into `RD > Terrain > Clouds`.
 - `RD > Terrain > Clouds` was trimmed during manual cleanup: Sun Offset and Sun Projection were removed from UI, settings, sidecar serialization, and shader/uniform code because the projection offset did not provide useful visual control.
-- Detail DOM IDs and `data-detail-*` declarative bindings were moved into `RD > Terrain > Detail`; the old dev `Zoom Detail` topic now only points to the migrated location.
-- Water FX DOM IDs were moved into `RD > Terrain > Water`; the old dev `Water FX` topic now only points to the migrated location. `Water Particle Trails` remains separate for its own migration slice.
-- Water Trails DOM IDs were moved into `RD > Terrain > Water Trails`; the old dev `Water Particle Trails` topic now only points to the migrated location.
-- Point-light editor DOM IDs were moved into `RD > Terrain > Point Lights`; the old dev `Point Light Editor` topic now only points to the migrated location. `RD > Terrain > Point Lights` exposes a `Show Gizmos` toggle that activates/deactivates the existing lighting interaction mode so point-light placement/selection gizmos are explicit and not tied to tab selection.
+- Detail DOM IDs and `data-detail-*` declarative bindings were moved into `RD > Terrain > Detail`.
+- Water FX DOM IDs were moved into `RD > Terrain > Water`.
+- Water Trails DOM IDs were moved into `RD > Terrain > Water Trails`.
+- Point-light editor DOM IDs were moved into `RD > Terrain > Point Lights`. `RD > Terrain > Point Lights` exposes a `Show Gizmos` toggle that activates/deactivates the existing lighting interaction mode so point-light placement/selection gizmos are explicit and not tied to tab selection.
 - `RD > Terrain > Lighting` was trimmed during manual cleanup: the visible Day Speed slider was removed because game-time speed controls already cover it, volumetric scatter UI/settings/render code was removed, and point-light flicker controls were moved to `RD > Terrain > Point Lights`.
 - Cursor-light DOM IDs were moved from the old `Interaction` topic into `RD > Terrain > Cursor Light`.
 - `RD > Terrain > Camera` now exposes reset, center-player, zoom-in, and zoom-out actions. These dispatch existing `core/camera/*` and `core/player/show` commands instead of owning camera state.
-- Local pathfinding tuning DOM IDs were moved from the old `Interaction` topic into `RD > Gameplay > Pathing`.
-- Swarm DOM IDs were moved into `RD > Agents > Swarm`; the old dev `Agent Swarm` topic now only points to the migrated location. Follow and Stats placeholder sub-tabs exist, but their controls remain in the Swarm panel until a later cleanup split.
-- Swarm Follow controls were split into `RD > Agents > Follow`, and the Swarm Stats toggle was split into `RD > Agents > Stats`.
+- Local pathfinding tuning DOM IDs were moved from the old `Interaction` topic into `RD > Pathing > Local`.
+- Swarm DOM IDs were moved into `RD > Agents > Swarm`.
+- Swarm Follow controls were split into `RD > Agents > Follow`, and overlay-specific swarm controls were split into `RD > Agents > Overlays`.
 - Full Slime Lab controls were moved into `RD > Trail` and split into `Runtime`, `Motion`, `Visual`, `Terrain`, `Plants`, and `Brush` sub-tabs. Existing RD Slime trail overlay, game cadence, Hunting flee, Tracks knowledge, and availability readout controls were moved out of `Gameplay` and into `RD > Trail > Tracks`.
 - The legacy Slime workspace is no longer exposed from RD or the workspace switcher. Slime visualization is canonical in the main-context world-space terrain overlay path, while the separate dev-canvas runtime remains only as an internal compatibility/comparison path.
 - Slime Trail splitting preserves existing DOM IDs, so Slime UI binding and preset/save/runtime code continue to target the same elements.

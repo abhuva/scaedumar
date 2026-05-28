@@ -42,17 +42,6 @@ export function createModeCapabilitiesUi(deps) {
     if (activeTopic && !deps.canUseModeTopic(mode, activeTopic)) {
       setActiveTopic("");
     }
-    const canLighting = deps.canUseModeInteraction(mode, "lighting");
-    const canPathfinding = deps.canUseModeInteraction(mode, "pathfinding");
-    const canRoutePlanning = deps.canUseModeInteraction(mode, "routePlanning");
-    deps.dockLightingModeToggle.disabled = !canLighting;
-    deps.dockPathfindingModeToggle.disabled = !canPathfinding;
-    deps.dockLightingModeToggle.classList.toggle("mode-capability-hidden", !canLighting);
-    deps.dockPathfindingModeToggle.classList.toggle("mode-capability-hidden", !canPathfinding);
-    if (deps.dockRoutePlanningModeToggle) {
-      deps.dockRoutePlanningModeToggle.disabled = !canRoutePlanning;
-      deps.dockRoutePlanningModeToggle.classList.toggle("mode-capability-hidden", !canRoutePlanning);
-    }
     if (!deps.canUseModeInteraction(mode, deps.getInteractionModeSnapshot())) {
       deps.setInteractionMode("none");
     }

@@ -29,27 +29,6 @@
     </nav>
 
     <div id="mapWorkspace" class="workspace-root active" data-workspace-panel="map">
-    <nav class="topic-dock" aria-label="Map tool topics">
-      <button id="dockLightingModeToggle" class="mode-btn" type="button" title="Lighting Mode" aria-label="Lighting mode toggle">LM</button>
-      <button id="dockPathfindingModeToggle" class="mode-btn" type="button" title="Pathfinding Mode" aria-label="Pathfinding mode toggle">PF</button>
-      <button id="dockGatheringActivityBtn" class="mode-btn gameplay-only-action" type="button" title="Start Gathering" aria-label="Start gathering activity">GA</button>
-      <button id="dockHuntingActivityBtn" class="mode-btn gameplay-only-action" type="button" title="Start Hunting" aria-label="Start hunting activity">HU</button>
-      <button id="dockInspectActivityBtn" class="mode-btn gameplay-only-action" type="button" title="Inspect Terrain" aria-label="Inspect terrain activity">I</button>
-      <button id="dockScoutActivityBtn" class="mode-btn gameplay-only-action" type="button" title="Scout" aria-label="Scout activity">SC</button>
-      <button id="dockShowPlayerBtn" class="mode-btn gameplay-only-action" type="button" title="Show Player" aria-label="Center camera on player">P</button>
-      <button id="dockInventoryBtn" class="mode-btn gameplay-only-action" type="button" title="Inventory" aria-label="Open inventory">INV</button>
-      <button class="topic-btn" type="button" data-topic="map" title="Load Map" aria-label="Load map">M</button>
-      <button class="topic-btn" type="button" data-topic="interaction" title="Interaction" aria-label="Interaction settings">I</button>
-      <button class="topic-btn" type="button" data-topic="swarm" title="Agent Swarm" aria-label="Agent swarm settings">A</button>
-      <button class="topic-btn" type="button" data-topic="lighting" title="Main Lighting" aria-label="Main lighting">L</button>
-      <button class="topic-btn" type="button" data-topic="detail" title="Zoom Detail" aria-label="Zoom detail material settings">D</button>
-      <button class="topic-btn" type="button" data-topic="fog" title="Height Fog" aria-label="Height fog">F</button>
-      <button class="topic-btn" type="button" data-topic="clouds" title="Cloud Shadows" aria-label="Cloud shadow settings">C</button>
-      <button class="topic-btn" type="button" data-topic="water" title="Water FX" aria-label="Water effects">W</button>
-      <button class="topic-btn" type="button" data-topic="water-trails" title="Water Trails" aria-label="Water particle trails">WT</button>
-      <button class="topic-btn" type="button" data-topic="editor" title="Point Light Editor" aria-label="Point light editor">E</button>
-      <button class="topic-btn" type="button" data-topic="info" title="Info" aria-label="Information">?</button>
-    </nav>
 
     <aside id="topicPanel" class="topic-panel hidden">
       <div class="topic-panel-header">
@@ -60,41 +39,6 @@
         </div>
       </div>
       <div class="topic-panel-body">
-        <section class="topic-card" data-topic="map" data-title="Load Map">
-          <p class="panel-note">Map load/save controls have moved to RD > IO.</p>
-        </section>
-
-        <section class="topic-card" data-topic="interaction" data-title="Interaction">
-          <p class="panel-note">Pathfinding controls moved to RD > Pathing > Local. Cursor light controls moved to RD > Terrain > Cursor Light.</p>
-        </section>
-        <section class="topic-card" data-topic="swarm" data-title="Agent Swarm">
-          <p class="panel-note">Swarm controls have moved to RD > Agents > Swarm.</p>
-        </section>
-
-        <section class="topic-card" data-topic="lighting" data-title="Main Lighting">
-          <p class="panel-note">Lighting controls have moved to RD > Terrain > Lighting.</p>
-        </section>
-
-        <section class="topic-card" data-topic="detail" data-title="Zoom Detail">
-          <p class="panel-note">Detail controls have moved to RD > Terrain > Detail.</p>
-        </section>
-
-        <section class="topic-card" data-topic="fog" data-title="Height Fog">
-          <p class="panel-note">Fog controls have moved to RD > Terrain > Fog.</p>
-        </section>
-
-        <section class="topic-card" data-topic="clouds" data-title="Cloud Shadows">
-          <p class="panel-note">Cloud controls have moved to RD > Terrain > Clouds.</p>
-        </section>
-
-        <section class="topic-card" data-topic="water" data-title="Water FX">
-          <p class="panel-note">Water controls have moved to RD > Terrain > Water.</p>
-        </section>
-
-        <section class="topic-card" data-topic="water-trails" data-title="Water Particle Trails">
-          <p class="panel-note">Water trail controls have moved to RD > Terrain > Water Trails.</p>
-        </section>
-
         <section class="topic-card" data-topic="resource-debug" data-title="Resource Debug">
           <div class="rd-dev-tabs" role="tablist" aria-label="RD Dev groups">
             <button class="rd-dev-tab" type="button" role="tab" data-rd-dev-tab="terrain" aria-selected="false" aria-controls="rdDevTerrainPanel" tabindex="-1">Terrain</button>

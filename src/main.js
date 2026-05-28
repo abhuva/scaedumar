@@ -303,14 +303,6 @@ const mapPathInput = getRequiredElementById("mapPathInput");
 const mapPathLoadBtn = getRequiredElementById("mapPathLoadBtn");
 const mapFolderInput = getRequiredElementById("mapFolderInput");
 const mapSaveAllBtn = getRequiredElementById("mapSaveAllBtn");
-const dockLightingModeToggle = getRequiredElementById("dockLightingModeToggle");
-const dockPathfindingModeToggle = getRequiredElementById("dockPathfindingModeToggle");
-const dockGatheringActivityBtn = getRequiredElementById("dockGatheringActivityBtn");
-const dockHuntingActivityBtn = getRequiredElementById("dockHuntingActivityBtn");
-const dockInspectActivityBtn = getRequiredElementById("dockInspectActivityBtn");
-const dockScoutActivityBtn = getRequiredElementById("dockScoutActivityBtn");
-const dockShowPlayerBtn = getRequiredElementById("dockShowPlayerBtn");
-const dockInventoryBtn = getRequiredElementById("dockInventoryBtn");
 const gameplayHudEl = getRequiredElementById("gameplayHud");
 const conditionEffectStripEl = getRequiredElementById("conditionEffectStrip");
 const conditionEffectTooltipEl = getRequiredElementById("conditionEffectTooltip");
@@ -880,8 +872,6 @@ const slimeSeedInput = getRequiredElementById("slimeSeed");
 const slimeStatusValue = getRequiredElementById("slimeStatusValue");
 const slimeStatsValue = getRequiredElementById("slimeStatsValue");
 const interactionModeUiRuntime = createInteractionModeUiRuntime({
-  dockLightingModeToggle,
-  dockPathfindingModeToggle,
   pointLightGizmoToggle,
 });
 const pointLightIoUiRuntime = createPointLightIoUiRuntime({
@@ -3257,8 +3247,6 @@ const modeInteractionRuntimeBinding = createModeInteractionRuntimeBinding({
   topicCards,
   topicPanelEl,
   topicPanelTitleEl,
-  dockLightingModeToggle,
-  dockPathfindingModeToggle,
   setInteractionMode: (...args) => setInteractionMode(...args),
   setStatus,
   resolveInteractionModeSnapshot,
@@ -4899,7 +4887,7 @@ inventoryPanelRuntime = createInventoryPanelRuntime({
   document,
   itemRegistry: ITEM_DEFINITIONS,
   panelEl: inventoryPanelEl,
-  toggleBtn: dockInventoryBtn,
+  toggleBtn: null,
   closeBtn: inventoryCloseBtn,
   playerCapacityEl: inventoryPlayerCapacityEl,
   openCapacityEl: inventoryOpenCapacityEl,
@@ -6205,21 +6193,10 @@ runAppShellLifecycleRuntime(createAppShellLifecycleAssemblyRuntime({
     topicPanelCloseBtn,
     setActiveTopic,
     canUseTopic: canUseTopicInCurrentMode,
-    dockLightingModeToggle,
-    dockPathfindingModeToggle,
-    dockGatheringActivityBtn,
-    dockHuntingActivityBtn,
-    dockInspectActivityBtn,
-    dockScoutActivityBtn,
-    dockShowPlayerBtn,
     movementActionBtn,
     cycleSpeedInput,
     cycleHourInput,
     simTickHoursInput,
-    isActivityActive: () => playerActivityRuntime.isActivityActive(),
-    isInspectEnabled: () => inspectPerceptionRuntime?.isEnabled() === true,
-    canUseInteractionMode: canUseInteractionInCurrentMode,
-    rebuildMovementField,
     cursorLightModeToggle,
     cursorLightFollowHeightToggle,
     cursorLightColorInput,

@@ -201,16 +201,6 @@ body {
   color: var(--text);
 }
 
-.topic-dock {
-  position: fixed;
-  top: 12px;
-  left: 12px;
-  z-index: 3;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
 body.runtime-gameplay .workspace-switcher {
   display: none;
 }
@@ -271,22 +261,6 @@ body.runtime-gameplay .audio-workspace.active .audio-control-panel {
 body.runtime-gameplay .audio-workspace.active .audio-viewport {
   min-height: 0;
   border-radius: 0;
-}
-
-body.runtime-gameplay .topic-dock {
-  display: none;
-}
-
-.topic-dock .gameplay-only-action {
-  display: none;
-}
-
-body.runtime-gameplay .topic-dock .gameplay-only-action {
-  display: none;
-}
-
-body.runtime-gameplay .topic-dock #dockPathfindingModeToggle {
-  display: none;
 }
 
 .game-time-diorama {
@@ -713,32 +687,6 @@ body.runtime-gameplay .oscillator-card button {
   font-size: 16px;
   font-weight: 700;
   cursor: pointer;
-}
-
-.mode-btn {
-  width: 42px;
-  height: 42px;
-  border-radius: 9px;
-  border: 1px solid rgba(255, 122, 122, 0.45);
-  background: rgba(47, 19, 19, 0.9);
-  color: #ffd4d4;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.3px;
-  cursor: pointer;
-}
-
-.mode-btn.active,
-.mode-btn:hover {
-  background: rgba(148, 42, 42, 0.92);
-  border-color: rgba(255, 174, 174, 0.8);
-}
-
-.mode-btn:focus-visible {
-  outline: 2px solid #ffd4d4;
-  outline-offset: 2px;
-  border-color: rgba(255, 205, 205, 0.95);
-  box-shadow: 0 0 0 3px rgba(120, 18, 18, 0.75);
 }
 
 .shell-exit-btn {

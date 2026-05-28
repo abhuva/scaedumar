@@ -123,7 +123,9 @@ export function createInventoryPanelRuntime(deps) {
     });
   }
 
-  deps.toggleBtn.addEventListener("click", toggle);
+  if (deps.toggleBtn) {
+    deps.toggleBtn.addEventListener("click", toggle);
+  }
   deps.closeBtn.addEventListener("click", () => {
     visible = false;
     sync();

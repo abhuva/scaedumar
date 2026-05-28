@@ -23,11 +23,11 @@ test("gameplay mode gates topics and interaction modes", () => {
   assert.equal(canUseOverlay("gameplay", "pointLights"), true);
 });
 
-test("dev mode exposes overlays and topics", () => {
+test("dev mode keeps only RD topic while preserving internal overlays", () => {
   const caps = getModeCapabilities("dev");
-  assert.ok(caps.topics.includes("lighting"));
-  assert.ok(caps.topics.includes("detail"));
+  assert.deepEqual(caps.topics, ["resource-debug"]);
   assert.ok(caps.overlays.includes("pointLights"));
-  assert.equal(canUseTopic("dev", "detail"), true);
+  assert.equal(canUseTopic("dev", "detail"), false);
+  assert.equal(canUseTopic("dev", "resource-debug"), true);
   assert.equal(canUseOverlay("dev", "cursorLight"), true);
 });
