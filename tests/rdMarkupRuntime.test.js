@@ -3,7 +3,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, normalize } from "node:path";
 import test from "node:test";
 
-const RD_PANEL_NAMES = ["terrain", "agents", "trail", "gameplay", "audio", "pathing", "io"];
+const RD_PANEL_NAMES = ["terrain", "agents", "trail", "gameplay", "events", "audio", "pathing", "io"];
 
 function readUtf8(path) {
   return readFileSync(path, "utf8");

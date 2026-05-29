@@ -86,7 +86,7 @@ npx serve .
 
 ## Run As Desktop App
 
-Use the helper script so `.tauri-dist` is refreshed from the current frontend before Tauri starts.
+Use the helper script so `.tauri-dist` is refreshed from the current frontend before Tauri starts. The sync includes runtime assets and the `docs/wiki/` content used by the in-game field notes.
 
 ```powershell
 .\build-tauri.ps1 dev

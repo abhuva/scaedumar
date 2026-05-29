@@ -705,7 +705,9 @@ body.runtime-gameplay .oscillator-card button {
 body.runtime-gameplay .topic-panel,
 body.runtime-gameplay .performance-overlay-panel,
 body.runtime-gameplay .inventory-panel,
-body.runtime-gameplay .swarm-stats-panel {
+body.runtime-gameplay .swarm-stats-panel,
+body.runtime-gameplay .wiki-panel,
+body.runtime-gameplay .journal-panel {
   border-radius: 0;
   border-color: rgba(189, 151, 86, 0.54);
   background:
@@ -728,6 +730,273 @@ body.runtime-gameplay .topic-panel {
 
 .topic-panel.hidden {
   display: none;
+}
+
+.wiki-panel,
+.journal-panel {
+  position: fixed;
+  inset: 56px auto auto 50%;
+  z-index: 11;
+  width: min(760px, calc(100vw - 32px));
+  max-height: calc(100vh - var(--player-ui-height) - 88px);
+  transform: translateX(-50%);
+  border: 1px solid var(--panel-border);
+  background: rgba(10, 14, 18, 0.94);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.wiki-panel.hidden,
+.journal-panel.hidden {
+  display: none;
+}
+
+.wiki-panel-header,
+.journal-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px;
+  border-bottom: 1px solid rgba(189, 151, 86, 0.42);
+}
+
+.wiki-panel-header h2,
+.journal-panel-header h2 {
+  margin: 0;
+  color: #f0d28a;
+  font-size: 13px;
+  font-weight: 950;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.wiki-panel-header p,
+.journal-panel-header p {
+  margin: 5px 0 0;
+  color: rgba(242, 223, 168, 0.72);
+  font-size: 11px;
+}
+
+.wiki-panel-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.wiki-panel-actions button,
+.journal-panel-header button,
+.wiki-choice-btn {
+  border: 1px solid rgba(229, 202, 124, 0.36);
+  border-radius: 0;
+  background: rgba(42, 34, 22, 0.9);
+  color: #f2dfa8;
+  font: 11px/1 var(--pixel-ui-font);
+  font-weight: 950;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.wiki-panel-actions button {
+  padding: 7px 10px;
+}
+
+.journal-panel-header button {
+  padding: 7px 10px;
+}
+
+.wiki-panel-actions button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.wiki-panel-layout {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+
+.wiki-panel-body {
+  min-height: 0;
+  padding: 14px 16px;
+  overflow: auto;
+}
+
+.wiki-choice-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 16px 14px;
+  border-top: 1px solid rgba(189, 151, 86, 0.32);
+}
+
+.wiki-choice-list.hidden {
+  display: none;
+}
+
+.wiki-choice-btn {
+  display: grid;
+  gap: 3px;
+  min-width: 120px;
+  max-width: 220px;
+  padding: 7px 9px;
+  text-align: left;
+}
+
+.wiki-choice-error {
+  flex-basis: 100%;
+  padding: 7px 9px;
+  border: 1px solid rgba(215, 94, 64, 0.48);
+  background: rgba(78, 31, 23, 0.72);
+  color: #ffd2bf;
+  font: 11px/1.3 var(--pixel-ui-font);
+}
+
+.wiki-choice-label {
+  color: #f2dfa8;
+}
+
+.wiki-choice-consequence {
+  color: rgba(242, 235, 210, 0.72);
+  font-size: 10px;
+  line-height: 1.25;
+  text-transform: none;
+}
+
+.wiki-panel-body h2,
+.wiki-panel-body h3,
+.wiki-panel-body h4 {
+  margin: 0 0 10px;
+  color: #f7e7b7;
+}
+
+.wiki-panel-body p,
+.wiki-panel-body li {
+  color: rgba(242, 235, 210, 0.88);
+  font: 13px/1.45 var(--pixel-ui-font);
+}
+
+.wiki-panel-body ul {
+  padding-left: 18px;
+}
+
+.wiki-link-btn {
+  margin: 0 2px;
+  border: 0;
+  border-bottom: 1px solid rgba(111, 209, 225, 0.72);
+  background: transparent;
+  color: #9fe9f4;
+  padding: 0 1px;
+  font: inherit;
+  font-weight: 900;
+  text-transform: none;
+  cursor: pointer;
+}
+
+.wiki-link-btn:hover,
+.wiki-link-btn:focus-visible {
+  color: #e3fbff;
+  border-bottom-color: rgba(227, 251, 255, 0.95);
+  outline: none;
+}
+
+.journal-panel {
+  width: min(520px, calc(100vw - 32px));
+}
+
+.journal-panel-list {
+  min-height: 0;
+  padding: 14px 16px;
+  overflow: auto;
+}
+
+.journal-entry-list {
+  display: grid;
+  gap: 8px;
+}
+
+.journal-entry-row {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  min-width: 0;
+  color: rgba(242, 235, 210, 0.88);
+  font: 12px/1.45 var(--pixel-ui-font);
+}
+
+.journal-entry-category {
+  flex: 0 0 auto;
+  color: rgba(240, 210, 138, 0.74);
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.journal-entry-link {
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  border: 0;
+  border-bottom: 1px solid rgba(111, 209, 225, 0.72);
+  background: transparent;
+  color: #9fe9f4;
+  padding: 0 1px;
+  font: inherit;
+  font-weight: 900;
+  text-align: left;
+  text-transform: none;
+  cursor: pointer;
+}
+
+.journal-entry-link:hover,
+.journal-entry-link:focus-visible {
+  color: #e3fbff;
+  border-bottom-color: rgba(227, 251, 255, 0.95);
+  outline: none;
+}
+
+.journal-empty {
+  margin: 0;
+  color: rgba(242, 235, 210, 0.58);
+  font: 12px/1.45 var(--pixel-ui-font);
+}
+
+.event-debug-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.event-debug-card {
+  border: 1px solid rgba(188, 174, 139, 0.28);
+  background: rgba(10, 12, 11, 0.42);
+  padding: 8px;
+}
+
+.event-debug-card h3 {
+  margin: 0 0 6px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #d8c896;
+}
+
+.event-debug-card pre {
+  margin: 0;
+  max-height: 120px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 11px;
+  line-height: 1.35;
+  color: #ece3c7;
+}
+
+body.wiki-help-mode {
+  cursor: help;
 }
 
 .topic-panel-header {
@@ -1143,6 +1412,12 @@ body.runtime-gameplay .row input[type="number"] {
 
 .row-action-btn:hover {
   background: rgba(255, 255, 255, 0.14);
+}
+
+#eventDebugPanel .row-action-btn {
+  min-width: 28px;
+  padding: 5px 6px;
+  text-align: center;
 }
 
 .inline-control span {
@@ -1674,16 +1949,121 @@ body.runtime-gameplay .gameplay-hud {
 .condition-effect-strip {
   position: absolute;
   left: 0;
-  right: 42px;
+  right: calc((var(--player-ui-row) * 2) + 230px + 305px);
   top: 0;
   display: flex;
   gap: 0;
   min-height: var(--player-ui-row);
   pointer-events: auto;
+  overflow: hidden;
 }
 
 .condition-effect-strip.hidden {
   display: none;
+}
+
+.journal-feed {
+  position: absolute;
+  left: 0;
+  bottom: 100%;
+  z-index: 5;
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  width: 100%;
+  height: var(--player-ui-row);
+  border: 1px solid rgba(229, 202, 124, 0.28);
+  background:
+    linear-gradient(180deg, rgba(32, 29, 21, 0.96), rgba(10, 16, 17, 0.98)),
+    rgba(12, 17, 18, 0.96);
+  overflow: hidden;
+  pointer-events: auto;
+}
+
+.journal-feed.expanded {
+  height: calc(var(--player-ui-row) * 3);
+}
+
+.journal-feed-entries {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  padding: 8px 9px;
+  overflow: hidden;
+  direction: ltr;
+  text-align: left;
+}
+
+.journal-feed.expanded .journal-feed-entries {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.journal-feed-toggle {
+  width: 30px;
+  border: 0;
+  border-left: 1px solid rgba(229, 202, 124, 0.28);
+  background: rgba(42, 34, 22, 0.9);
+  color: #f2dfa8;
+  padding: 0;
+  font: 13px/1 var(--pixel-ui-font);
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.journal-feed-toggle:hover,
+.journal-feed-toggle:focus-visible {
+  background: rgba(77, 58, 30, 0.95);
+  color: #fff2c8;
+  outline: none;
+}
+
+.journal-feed .journal-entry-list {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  gap: 5px;
+}
+
+.journal-feed .journal-entry-row {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  margin: 0 0 5px;
+  text-align: left;
+}
+
+.journal-feed .journal-entry-category {
+  display: none;
+}
+
+.journal-feed .journal-entry-link {
+  display: inline-block;
+  box-sizing: border-box;
+  width: auto;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  appearance: none;
+  text-align: left;
+  direction: ltr;
+}
+
+.journal-feed:not(.expanded) .journal-entry-row:not(:first-child) {
+  display: none;
+}
+
+.journal-feed:not(.expanded) .journal-entry-row {
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.journal-feed:not(.expanded) .journal-entry-link {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .inspect-toggle-slot {
@@ -1877,13 +2257,24 @@ body.runtime-gameplay .gameplay-hud {
 
 .hud-system-actions {
   display: grid;
-  grid-template-columns: var(--player-ui-row);
-  grid-auto-rows: var(--player-ui-row);
+  grid-template-columns: repeat(2, var(--player-ui-row));
+  grid-template-rows: 1fr;
   gap: 0;
-  flex: 0 0 var(--player-ui-row);
+  flex: 0 0 calc(var(--player-ui-row) * 2);
   margin-left: auto;
   margin-top: calc(-1 * var(--player-ui-row));
   border-left: 1px solid rgba(229, 202, 124, 0.24);
+}
+
+.hud-system-column {
+  display: grid;
+  grid-template-columns: var(--player-ui-row);
+  grid-auto-rows: var(--player-ui-row);
+  gap: 0;
+}
+
+.hud-system-column + .hud-system-column {
+  border-left: 1px solid rgba(229, 202, 124, 0.18);
 }
 
 .hud-system-btn {

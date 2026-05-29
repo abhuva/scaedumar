@@ -44,6 +44,7 @@
             <button class="rd-dev-tab" type="button" role="tab" data-rd-dev-tab="agents" aria-selected="false" aria-controls="rdDevAgentsPanel" tabindex="-1">Agents</button>
             <button class="rd-dev-tab" type="button" role="tab" data-rd-dev-tab="trail" aria-selected="false" aria-controls="rdDevTrailPanel" tabindex="-1">Trail</button>
             <button class="rd-dev-tab active" type="button" role="tab" data-rd-dev-tab="gameplay" aria-selected="true" aria-controls="rdDevGameplayPanel" tabindex="0">Gameplay</button>
+            <button class="rd-dev-tab" type="button" role="tab" data-rd-dev-tab="events" aria-selected="false" aria-controls="rdDevEventsPanel" tabindex="-1">Events</button>
             <button class="rd-dev-tab" type="button" role="tab" data-rd-dev-tab="audio" aria-selected="false" aria-controls="rdDevAudioPanel" tabindex="-1">Audio</button>
             <button class="rd-dev-tab" type="button" role="tab" data-rd-dev-tab="pathing" aria-selected="false" aria-controls="rdDevPathingPanel" tabindex="-1">Pathing</button>
             <button class="rd-dev-tab" type="button" role="tab" data-rd-dev-tab="io" aria-selected="false" aria-controls="rdDevIoPanel" tabindex="-1">IO</button>
@@ -53,6 +54,7 @@
           <div id="rdDevAgentsPanelHost"></div>
           <div id="rdDevTrailPanelHost"></div>
           <div id="rdDevGameplayPanelHost"></div>
+          <div id="rdDevEventsPanelHost"></div>
           <div id="rdDevAudioPanelHost"></div>
           <div id="rdDevPathingPanelHost"></div>
           <div id="rdDevIoPanelHost"></div>
@@ -89,9 +91,13 @@
       <p><span>Avg Hawk Kill Time</span><strong id="swarmStatsAvgHawkKillValue">--</strong></p>
     </aside>
     <section id="gameplayHud" class="gameplay-hud" aria-label="Gameplay HUD">
+      <section id="journalFeed" class="journal-feed" aria-label="Journal feed">
+        <button id="journalFeedToggleBtn" class="journal-feed-toggle" type="button" aria-label="Expand journal feed" aria-expanded="false">+</button>
+        <div id="journalFeedEntries" class="journal-feed-entries" aria-live="polite"></div>
+      </section>
       <div id="conditionEffectStrip" class="condition-effect-strip hidden" aria-label="Active condition effects"></div>
       <div class="inspect-toggle-slot" aria-label="Perception toggle">
-        <button id="hudInspectBtn" class="hud-action-btn hud-inspect-toggle" type="button" title="Toggle Inspect" aria-pressed="false">I</button>
+        <button id="hudInspectBtn" class="hud-action-btn hud-inspect-toggle" type="button" title="Toggle Inspect" aria-pressed="false" data-wiki-id="gameplay.inspect">I</button>
       </div>
       <div id="conditionEffectTooltip" class="condition-effect-tooltip hidden" role="tooltip"></div>
       <div class="gameplay-condition-bars" aria-label="Condition">
@@ -113,17 +119,24 @@
         </article>
       </div>
       <div class="hud-system-actions" aria-label="System actions">
-        <button class="topic-btn hud-system-btn" type="button" data-topic="resource-debug" title="Resource Debug" aria-label="Resource debug">RD</button>
-        <button id="perfOverlayToggleBtn" class="hud-action-btn hud-system-btn" type="button" title="Performance overlay" aria-label="Performance overlay" aria-pressed="false">O</button>
-        <button id="dockExitToTitleBtn" class="hud-action-btn hud-system-btn shell-exit-btn" type="button" title="Exit to title screen" aria-label="Exit to title screen">Exit</button>
+        <div class="hud-system-column" aria-label="Debug and shell actions">
+          <button class="topic-btn hud-system-btn" type="button" data-topic="resource-debug" title="Resource Debug" aria-label="Resource debug">RD</button>
+          <button id="perfOverlayToggleBtn" class="hud-action-btn hud-system-btn" type="button" title="Performance overlay" aria-label="Performance overlay" aria-pressed="false">O</button>
+          <button id="dockExitToTitleBtn" class="hud-action-btn hud-system-btn shell-exit-btn" type="button" title="Exit to title screen" aria-label="Exit to title screen">Exit</button>
+        </div>
+        <div class="hud-system-column" aria-label="Knowledge actions">
+          <button id="hudWikiHelpBtn" class="hud-action-btn hud-system-btn" type="button" title="Wiki help mode" aria-label="Wiki help mode" aria-pressed="false" data-wiki-id="wiki.index">?</button>
+          <button id="hudWikiOpenBtn" class="hud-action-btn hud-system-btn" type="button" title="Open Wiki" aria-label="Open Wiki" data-wiki-help-ignore>W</button>
+          <button id="hudJournalOpenBtn" class="hud-action-btn hud-system-btn" type="button" title="Open Journal" aria-label="Open Journal" data-wiki-help-ignore>J</button>
+        </div>
       </div>
       <section id="gameTimeDiorama" class="game-time-diorama" aria-label="Game time">
         <div class="time-speed-grid" aria-label="Time speed">
-          <button class="time-speed-btn" type="button" data-speed-preset="0x" aria-pressed="false">0x</button>
-          <button class="time-speed-btn" type="button" data-speed-preset="1x" aria-pressed="false">1x</button>
-          <button class="time-speed-btn" type="button" data-speed-preset="5x" aria-pressed="false">5x</button>
-          <button class="time-speed-btn" type="button" data-speed-preset="20x" aria-pressed="false">20x</button>
-          <button class="time-speed-btn" type="button" data-speed-preset="100x" aria-pressed="false">100x</button>
+          <button class="time-speed-btn" type="button" data-speed-preset="0x" aria-pressed="false" data-wiki-id="gameplay.time">0x</button>
+          <button class="time-speed-btn" type="button" data-speed-preset="1x" aria-pressed="false" data-wiki-id="gameplay.time">1x</button>
+          <button class="time-speed-btn" type="button" data-speed-preset="5x" aria-pressed="false" data-wiki-id="gameplay.time">5x</button>
+          <button class="time-speed-btn" type="button" data-speed-preset="20x" aria-pressed="false" data-wiki-id="gameplay.time">20x</button>
+          <button class="time-speed-btn" type="button" data-speed-preset="100x" aria-pressed="false" data-wiki-id="gameplay.time">100x</button>
         </div>
         <div class="time-diorama-scene" aria-hidden="true">
           <div class="time-diorama-sky">
@@ -144,13 +157,13 @@
         </div>
         <div class="gameplay-action-divider" aria-hidden="true"></div>
         <div class="gameplay-primary-actions" aria-label="Primary activities">
-          <button id="hudPathfindingBtn" class="hud-action-btn" type="button">PF</button>
-          <button id="hudRoutePlanningBtn" class="hud-action-btn" type="button" title="Plan Route">Nav</button>
-          <button id="hudGatheringBtn" class="hud-action-btn" type="button" title="Gather">G</button>
-          <button id="hudGatherWaterBtn" class="hud-action-btn" type="button" title="Gather Water">W</button>
-          <button id="hudHuntingBtn" class="hud-action-btn" type="button" title="Hunt">HU</button>
+          <button id="hudPathfindingBtn" class="hud-action-btn" type="button" data-wiki-id="gameplay.travel">PF</button>
+          <button id="hudRoutePlanningBtn" class="hud-action-btn" type="button" title="Plan Route" data-wiki-id="gameplay.travel">Nav</button>
+          <button id="hudGatheringBtn" class="hud-action-btn" type="button" title="Gather" data-wiki-id="gameplay.gathering">G</button>
+          <button id="hudGatherWaterBtn" class="hud-action-btn" type="button" title="Gather Water" data-wiki-id="gameplay.water">W</button>
+          <button id="hudHuntingBtn" class="hud-action-btn" type="button" title="Hunt" data-wiki-id="gameplay.hunting">HU</button>
           <button id="hudScoutBtn" class="hud-action-btn" type="button" title="Scout">SC</button>
-          <button id="hudRestBtn" class="hud-action-btn" type="button" title="Rest">R</button>
+          <button id="hudRestBtn" class="hud-action-btn" type="button" title="Rest" data-wiki-id="gameplay.rest">R</button>
         </div>
       </div>
     </section>
@@ -158,12 +171,12 @@
       <div class="inspect-panel-header">
         <h2 id="inspectStatusTitle">Inspect:</h2>
         <div id="inspectLayerControls" class="inspect-layer-controls" aria-label="Inspect overlay layer">
-        <button id="inspectTracksLayerBtn" class="inspect-layer-btn" type="button" title="Tracks overlay">T</button>
-        <button id="inspectWetnessLayerBtn" class="inspect-layer-btn" type="button" title="Water availability overlay">W</button>
-        <button id="inspectPlantsLayerBtn" class="inspect-layer-btn" type="button" title="Plant availability overlay">P</button>
-        <button id="inspectHeightLayerBtn" class="inspect-layer-btn" type="button" title="Height overlay">H</button>
-        <button id="inspectSlopeLayerBtn" class="inspect-layer-btn" type="button" title="Slope overlay">S</button>
-        <button id="inspectRouteLayerBtn" class="inspect-layer-btn" type="button" title="Route arrow overlay" aria-pressed="true">R</button>
+        <button id="inspectTracksLayerBtn" class="inspect-layer-btn" type="button" title="Tracks overlay" data-wiki-id="world.tracks">T</button>
+        <button id="inspectWetnessLayerBtn" class="inspect-layer-btn" type="button" title="Water availability overlay" data-wiki-id="gameplay.water">W</button>
+        <button id="inspectPlantsLayerBtn" class="inspect-layer-btn" type="button" title="Plant availability overlay" data-wiki-id="gameplay.gathering">P</button>
+        <button id="inspectHeightLayerBtn" class="inspect-layer-btn" type="button" title="Height overlay" data-wiki-id="world.terrain">H</button>
+        <button id="inspectSlopeLayerBtn" class="inspect-layer-btn" type="button" title="Slope overlay" data-wiki-id="world.terrain">S</button>
+        <button id="inspectRouteLayerBtn" class="inspect-layer-btn" type="button" title="Route arrow overlay" aria-pressed="true" data-wiki-id="gameplay.travel">R</button>
         </div>
       </div>
       <p id="inspectStatusEta" class="sr-only"></p>
@@ -227,6 +240,33 @@
         <button id="inventoryMoveToBundleBtn" type="button">Move To Bundle</button>
         <button id="inventoryMoveToPlayerBtn" type="button">Move To Pack</button>
       </div>
+    </aside>
+    <aside id="wikiPanel" class="wiki-panel hidden" aria-hidden="true" aria-label="Field notes">
+      <div class="wiki-panel-header">
+        <div>
+          <h2 id="wikiPanelTitle">Field Notes</h2>
+          <p id="wikiPanelSummary"></p>
+        </div>
+        <div class="wiki-panel-actions">
+          <button id="wikiBackBtn" type="button">Back</button>
+          <button id="wikiResetStateBtn" type="button" title="Reset tutorial and journal state">Reset Tutorials</button>
+          <button id="wikiCloseBtn" type="button">Close</button>
+        </div>
+      </div>
+      <div class="wiki-panel-layout">
+        <article id="wikiPanelBody" class="wiki-panel-body"></article>
+        <div id="wikiChoiceList" class="wiki-choice-list hidden" aria-label="Event choices"></div>
+      </div>
+    </aside>
+    <aside id="journalPanel" class="journal-panel hidden" aria-hidden="true" aria-label="Journal">
+      <div class="journal-panel-header">
+        <div>
+          <h2>Journal</h2>
+          <p>Recorded events and discoveries.</p>
+        </div>
+        <button id="journalCloseBtn" type="button">Close</button>
+      </div>
+      <div id="journalPanelList" class="journal-panel-list"></div>
     </aside>
     <canvas id="glCanvas"></canvas>
     <canvas id="overlayCanvas"></canvas>

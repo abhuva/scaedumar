@@ -114,6 +114,7 @@ import { loadActivityCosts } from "./gameplay/activityCostRegistry.js";
 import { createActivityEffectRuntime } from "./gameplay/activityEffectRuntime.js";
 import { loadConditionThresholds } from "./gameplay/conditionThresholdRegistry.js";
 import { loadConditionEffects } from "./gameplay/conditionEffectRegistry.js";
+import { createConditionEventTriggerRuntime } from "./gameplay/conditionEventTriggerRuntime.js";
 import {
   applyConditionEffectModifiers,
   compareConditionEffectSnapshots,
@@ -204,6 +205,22 @@ import { createResourceDebugPanelRuntime } from "./ui/resourceDebugPanelRuntime.
 import { injectResourceDebugMarkup } from "./ui/rd/resourceDebugMarkupRuntime.js";
 import { createRdOverlayShortcutRailRuntime } from "./ui/rdOverlayShortcutRailRuntime.js";
 import { createGameplayHudRuntime } from "./ui/gameplayHudRuntime.js";
+import {
+  createContentRegistry,
+  validateContentReferences,
+  WIKI_ARTICLE_PATHS,
+} from "./content/contentRegistry.js";
+import {
+  GLOBAL_EVENT_DEFINITION_PATHS,
+  loadEventDefinitionFiles,
+} from "./content/eventDefinitionLoader.js";
+import { createWikiRuntime } from "./gameplay/wikiRuntime.js";
+import { createJournalRuntime } from "./gameplay/journalRuntime.js";
+import { createEventRuntime } from "./gameplay/eventRuntime.js";
+import { createEventDialogPersistenceRuntime } from "./gameplay/eventDialogPersistenceRuntime.js";
+import { createWikiPanelRuntime } from "./ui/wikiPanelRuntime.js";
+import { createJournalFeedRuntime, createJournalPanelRuntime } from "./ui/journalPanelRuntime.js";
+import { createEventDebugPanelRuntime } from "./ui/eventDebugPanelRuntime.js";
 
 const ITEM_DEFINITIONS = await loadItemDefinitions();
 const ACTIVITY_DEFINITIONS = await loadActivityDefinitions();
@@ -213,6 +230,8 @@ const CONDITION_EFFECTS = await loadConditionEffects();
 const RESOURCE_SEARCHES = await loadResourceSearches();
 const RESOURCE_STOCK_SETTINGS = await loadResourceStockSettings({ resourceIds: Object.keys(RESOURCE_SEARCHES) });
 const DISCOVERY_SETTINGS = await loadDiscoverySettings();
+const EVENT_DEFINITIONS = await loadEventDefinitionFiles(GLOBAL_EVENT_DEFINITION_PATHS);
+let activeEventDefinitions = EVENT_DEFINITIONS;
 const WORLD_KNOWLEDGE_MAP_ID = "world";
 const TRACKS_KNOWLEDGE_MAP_ID = "tracks";
 const SLIME_HUNT_FLEE_EFFECT_ID = "slime_hunt_flee";
@@ -317,6 +336,37 @@ const hudScoutBtn = getRequiredElementById("hudScoutBtn");
 const hudRestBtn = getRequiredElementById("hudRestBtn");
 const hudInventoryBtn = getRequiredElementById("hudInventoryBtn");
 const hudShowPlayerBtn = getRequiredElementById("hudShowPlayerBtn");
+const hudWikiHelpBtn = getRequiredElementById("hudWikiHelpBtn");
+const hudWikiOpenBtn = getRequiredElementById("hudWikiOpenBtn");
+const hudJournalOpenBtn = getRequiredElementById("hudJournalOpenBtn");
+const journalFeedEl = getRequiredElementById("journalFeed");
+const journalFeedToggleBtn = getRequiredElementById("journalFeedToggleBtn");
+const journalFeedEntriesEl = getRequiredElementById("journalFeedEntries");
+const wikiPanelEl = getRequiredElementById("wikiPanel");
+const wikiPanelTitleEl = getRequiredElementById("wikiPanelTitle");
+const wikiPanelSummaryEl = getRequiredElementById("wikiPanelSummary");
+const wikiPanelBodyEl = getRequiredElementById("wikiPanelBody");
+const wikiChoiceListEl = getRequiredElementById("wikiChoiceList");
+const wikiCloseBtn = getRequiredElementById("wikiCloseBtn");
+const wikiBackBtn = getRequiredElementById("wikiBackBtn");
+const wikiResetStateBtn = getRequiredElementById("wikiResetStateBtn");
+const journalPanelEl = getRequiredElementById("journalPanel");
+const journalPanelListEl = getRequiredElementById("journalPanelList");
+const journalCloseBtn = getRequiredElementById("journalCloseBtn");
+const eventDebugTriggerDialogBtn = getRequiredElementById("eventDebugTriggerDialogBtn");
+const eventDebugTriggerNoticeBtn = getRequiredElementById("eventDebugTriggerNoticeBtn");
+const eventDebugTriggerGameplayStartedBtn = getRequiredElementById("eventDebugTriggerGameplayStartedBtn");
+const eventDebugTriggerHydrationLowBtn = getRequiredElementById("eventDebugTriggerHydrationLowBtn");
+const eventDebugTriggerFatigueHighBtn = getRequiredElementById("eventDebugTriggerFatigueHighBtn");
+const eventDebugResetBtn = getRequiredElementById("eventDebugResetBtn");
+const eventDebugRefreshBtn = getRequiredElementById("eventDebugRefreshBtn");
+const eventDebugLastTriggerValue = getRequiredElementById("eventDebugLastTriggerValue");
+const eventDebugActiveValue = getRequiredElementById("eventDebugActiveValue");
+const eventDebugQueueValue = getRequiredElementById("eventDebugQueueValue");
+const eventDebugDefinitionsValue = getRequiredElementById("eventDebugDefinitionsValue");
+const eventDebugSeenValue = getRequiredElementById("eventDebugSeenValue");
+const eventDebugFlagsValue = getRequiredElementById("eventDebugFlagsValue");
+const eventDebugJournalValue = getRequiredElementById("eventDebugJournalValue");
 const cameraResetViewBtn = getRequiredElementById("cameraResetViewBtn");
 const cameraCenterPlayerBtn = getRequiredElementById("cameraCenterPlayerBtn");
 const cameraZoomOutBtn = getRequiredElementById("cameraZoomOutBtn");
@@ -1817,6 +1867,8 @@ async function warmupSlimeOnMapLoaded() {
 }
 
 async function finalizeMapGameplayState() {
+  setStatus("Loading map event definitions...", { progress: 0.705 });
+  await reloadEventDefinitionsForCurrentMap();
   setStatus("Initializing gameplay knowledge map...", { progress: 0.71 });
   resetKnowledgeMapForConfig();
   await warmupSlimeOnMapLoaded();
@@ -2372,6 +2424,171 @@ function getCurrentMapFolderPath() {
 function setStatus(text, options = {}) {
   statusRuntime.setStatus(text, options);
 }
+
+const contentRegistry = createContentRegistry();
+await contentRegistry.loadArticles(WIKI_ARTICLE_PATHS);
+const contentValidation = validateContentReferences(contentRegistry, {
+  eventDefinitions: EVENT_DEFINITIONS,
+});
+if (!contentValidation.ok) {
+  const missing = contentValidation.missing
+    .map((entry) => `${entry.source} -> ${entry.contentId}`)
+    .join(", ");
+  throw new Error(`Missing wiki content references: ${missing}`);
+}
+function formatMissingContentReferences(validation) {
+  return (validation.missing || [])
+    .map((entry) => `${entry.source} -> ${entry.contentId}`)
+    .join(", ");
+}
+function buildMapEventDefinitionPath(mapFolderPath) {
+  const folder = normalizeMapFolderPath(mapFolderPath);
+  if (!folder) return "";
+  return isAbsoluteFsPath(folder) ? joinFsPath(folder, "events.json") : buildMapAssetPath(folder, "events.json");
+}
+async function reloadEventDefinitionsForCurrentMap() {
+  const mapEventPath = buildMapEventDefinitionPath(getCurrentMapFolderPath());
+  const mapDefinitions = mapEventPath
+    ? await loadEventDefinitionFiles([{ path: mapEventPath, optional: true }], {
+        fetchJson: (path) => tryLoadJsonFromUrl(path),
+      })
+    : [];
+  const definitions = [...EVENT_DEFINITIONS, ...mapDefinitions];
+  const validation = validateContentReferences(contentRegistry, { eventDefinitions: definitions });
+  if (!validation.ok) {
+    throw new Error(`Missing wiki content references: ${formatMissingContentReferences(validation)}`);
+  }
+  activeEventDefinitions = definitions;
+  eventRuntime?.replaceDefinitions?.(activeEventDefinitions);
+  return {
+    globalCount: EVENT_DEFINITIONS.length,
+    mapCount: mapDefinitions.length,
+    totalCount: definitions.length,
+  };
+}
+let wikiPanelRuntime = null;
+let journalPanelRuntime = null;
+let journalFeedRuntime = null;
+let eventRuntime = null;
+let eventDialogPersistenceRuntime = null;
+let eventDebugPanelRuntime = null;
+function persistEventDialogState() {
+  eventDialogPersistenceRuntime?.save();
+}
+function resetEventDialogState() {
+  eventRuntime?.resetPersistenceState?.();
+  journalRuntime?.resetPersistenceState?.();
+  eventDialogPersistenceRuntime?.clear?.();
+  wikiPanelRuntime?.sync?.();
+  journalPanelRuntime?.sync?.();
+  journalFeedRuntime?.sync?.();
+  eventDebugPanelRuntime?.sync?.();
+  setStatus("Tutorial and journal state reset.");
+}
+const journalRuntime = createJournalRuntime({
+  getTimeTick: () => Math.round(Number(runtimeCore.store.getState().systems?.time?.ticksProcessed || 0)),
+  onChanged: () => {
+    wikiPanelRuntime?.sync();
+    journalPanelRuntime?.sync();
+    journalFeedRuntime?.sync();
+    eventDebugPanelRuntime?.sync();
+    persistEventDialogState();
+  },
+  onNotice: (notice) => {
+    const article = contentRegistry.getArticle(notice.contentId);
+    setStatus(article?.title ? `Journal updated: ${article.title}.` : "Journal updated.");
+  },
+});
+const wikiRuntime = createWikiRuntime({
+  contentRegistry,
+  onChanged: () => wikiPanelRuntime?.sync(),
+});
+eventRuntime = createEventRuntime({
+  wikiRuntime,
+  journalRuntime,
+  getTimeSpeed: () => Number(runtimeCore.store.getState().systems?.time?.cycleSpeedHoursPerSec ?? 0),
+  getTimeTick: () => Number(runtimeCore.store.getState().systems?.time?.ticksProcessed ?? 0),
+  dispatchCommand: (command) => dispatchCoreCommand(command),
+  setTimeSpeed: (cycleSpeed) => dispatchCoreCommand({
+    type: "core/time/setCycleSpeed",
+    cycleSpeed: Number.isFinite(Number(cycleSpeed)) ? Number(cycleSpeed) : 0,
+  }),
+  onChanged: () => {
+    wikiPanelRuntime?.sync();
+    eventDebugPanelRuntime?.sync();
+    persistEventDialogState();
+  },
+});
+eventRuntime.loadDefinitions(activeEventDefinitions);
+eventDialogPersistenceRuntime = createEventDialogPersistenceRuntime({
+  storage: window.localStorage,
+  eventRuntime,
+  journalRuntime,
+  onError: (error) => {
+    console.warn("Failed to persist event/dialog state.", error);
+  },
+});
+eventDialogPersistenceRuntime.load();
+wikiPanelRuntime = createWikiPanelRuntime({
+  document,
+  rootEl: wikiPanelEl,
+  titleEl: wikiPanelTitleEl,
+  summaryEl: wikiPanelSummaryEl,
+  bodyEl: wikiPanelBodyEl,
+  choicesEl: wikiChoiceListEl,
+  closeBtn: wikiCloseBtn,
+  backBtn: wikiBackBtn,
+  resetStateBtn: wikiResetStateBtn,
+  helpBtn: hudWikiHelpBtn,
+  wikiRuntime,
+  eventRuntime,
+  resetEventDialogState,
+});
+wikiPanelRuntime.bind();
+journalPanelRuntime = createJournalPanelRuntime({
+  document,
+  rootEl: journalPanelEl,
+  listEl: journalPanelListEl,
+  openBtn: hudJournalOpenBtn,
+  closeBtn: journalCloseBtn,
+  journalRuntime,
+  wikiRuntime,
+  getArticle: (id) => contentRegistry.getArticle(id),
+});
+journalPanelRuntime.bind();
+journalFeedRuntime = createJournalFeedRuntime({
+  document,
+  rootEl: journalFeedEl,
+  toggleBtn: journalFeedToggleBtn,
+  entriesEl: journalFeedEntriesEl,
+  journalRuntime,
+  wikiRuntime,
+  getArticle: (id) => contentRegistry.getArticle(id),
+});
+journalFeedRuntime.bind();
+hudWikiOpenBtn.addEventListener("click", () => {
+  wikiRuntime.openArticle("wiki.index", { reason: "wiki-button" });
+});
+eventDebugPanelRuntime = createEventDebugPanelRuntime({
+  eventRuntime,
+  journalRuntime,
+  resetEventDialogState,
+  triggerDialogBtn: eventDebugTriggerDialogBtn,
+  triggerNoticeBtn: eventDebugTriggerNoticeBtn,
+  triggerGameplayStartedBtn: eventDebugTriggerGameplayStartedBtn,
+  triggerHydrationLowBtn: eventDebugTriggerHydrationLowBtn,
+  triggerFatigueHighBtn: eventDebugTriggerFatigueHighBtn,
+  resetBtn: eventDebugResetBtn,
+  refreshBtn: eventDebugRefreshBtn,
+  lastTriggerEl: eventDebugLastTriggerValue,
+  activeEl: eventDebugActiveValue,
+  queueEl: eventDebugQueueValue,
+  definitionsEl: eventDebugDefinitionsValue,
+  seenEl: eventDebugSeenValue,
+  flagsEl: eventDebugFlagsValue,
+  journalEl: eventDebugJournalValue,
+});
+eventDebugPanelRuntime.bind();
 const {
   clamp,
   clampRound: clampRoundBase,
@@ -3371,6 +3588,7 @@ let playerActivityRuntime = null;
 let inventoryPanelRuntime = null;
 let activityEffectRuntime = null;
 let conditionEffectRuntime = null;
+let conditionEventTriggerRuntime = null;
 let travelEstimateRuntime = null;
 let travelPlanningRuntime = null;
 let routePlanningRuntime = null;
@@ -4192,10 +4410,18 @@ const conditionRuntime = createConditionRuntime({
   setConditionSnapshot: conditionStoreSyncRuntime.setConditionSnapshot,
   onConditionSnapshot: () => {
     conditionEffectRuntime?.sync();
+    conditionEventTriggerRuntime?.sync("condition-change");
     inventoryPanelRuntime?.sync();
     gameplayHudRuntime?.sync();
   },
 });
+conditionEventTriggerRuntime = createConditionEventTriggerRuntime({
+  getConditionSnapshot: () => conditionRuntime.getSnapshot(),
+  triggerEvent: (triggerType, payload) => eventRuntime?.trigger(triggerType, payload),
+  hydrationThreshold: 50,
+  fatigueThreshold: 50,
+});
+conditionEventTriggerRuntime.resetBaseline();
 conditionEffectRuntime = createConditionEffectRuntime({
   conditionEffects: CONDITION_EFFECTS,
   getConditionSnapshot: () => conditionRuntime.getSnapshot(),
@@ -5060,6 +5286,7 @@ registerMainCommands(runtimeCore.commandBus, createMainCommandAssemblyRuntime({
   applyCursorLightConfigSnapshot: (...args) => applyCursorLightConfigSnapshot(...args),
   clearCursorLightPointerState: (...args) => clearCursorLightPointerState(...args),
   setInteractionMode: (...args) => setInteractionMode(...args),
+  triggerEvent: (triggerType, payload) => eventRuntime?.trigger(triggerType, payload),
   requestOverlayDraw: () => overlayDirtyRuntime.requestOverlayDraw(),
   emitTravelPlanningChanged,
   updateCycleHourLabel,
@@ -6435,8 +6662,10 @@ runAppShellLifecycleRuntime(createAppShellLifecycleAssemblyRuntime({
   }),
   tryAutoLoadDefaultMap,
   startNewGame: async () => {
-    if (mapLifecycleRuntime.hasLoadedMap()) return;
-    await mapLifecycleRuntime.loadMapFromPath(mapLifecycleRuntime.getCurrentMapFolderPath());
+    if (!mapLifecycleRuntime.hasLoadedMap()) {
+      await mapLifecycleRuntime.loadMapFromPath(mapLifecycleRuntime.getCurrentMapFolderPath());
+    }
+    eventRuntime.trigger("gameplay_started");
   },
   setStatus,
   setSwarmDefaults,

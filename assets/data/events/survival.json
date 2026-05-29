@@ -1,0 +1,36 @@
+[
+  {
+    "id": "survival.hydration_low_50",
+    "contentId": "survival.hydration",
+    "trigger": {
+      "type": "condition_hydration_low",
+      "once": true,
+      "maxStrength": 50
+    },
+    "presentation": {
+      "level": "notice",
+      "mode": "article"
+    },
+    "journal": {
+      "category": "Survival",
+      "tags": ["survival", "condition", "hydration", "warning"]
+    }
+  },
+  {
+    "id": "survival.fatigue_high_50",
+    "contentId": "survival.fatigue",
+    "trigger": {
+      "type": "condition_fatigue_high",
+      "once": true,
+      "minStrength": 50
+    },
+    "presentation": {
+      "level": "notice",
+      "mode": "article"
+    },
+    "journal": {
+      "category": "Survival",
+      "tags": ["survival", "condition", "fatigue", "warning"]
+    }
+  }
+]

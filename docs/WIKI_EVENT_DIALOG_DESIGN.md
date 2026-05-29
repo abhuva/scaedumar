@@ -97,13 +97,25 @@ frontmatter, and builds an ID-to-file registry:
 }
 ```
 
-Events, journal entries, UI help targets, and Markdown links reference
-`gameplay.travel`. They do not reference `docs/wiki/gameplay/travel.md`.
+Events, journal entries, and UI help targets reference `gameplay.travel`.
+Markdown prose links use normal CommonMark file links so the same files work in
+Obsidian and Zensical:
+
+```md
+[Travel](gameplay/travel.md)
+[Inspect](../gameplay/inspect.md)
+```
+
+At import time, the content registry resolves those file links relative to the
+source article, reads the target article frontmatter ID, and rewrites the
+runtime body link to the target article ID. The in-game panel therefore opens
+`gameplay.travel`, while the authored Markdown remains a valid file link.
 
 This means `travel.md` can later move to
 `docs/wiki/actions/movement/travel.md` without changing saved event state,
 journal entries, or UI `data-wiki-id` attributes, as long as the frontmatter ID
-stays `gameplay.travel`.
+stays `gameplay.travel` and authored Markdown links are updated to the new file
+path.
 
 If an article has no frontmatter ID, the registry may derive a temporary ID from
 the relative path for development, but that derived ID should not be used by
@@ -119,12 +131,14 @@ Wiki pages must use CommonMark links because Zensical expects normal Markdown
 link syntax:
 
 ```md
-[Travel](gameplay.travel)
-[Inspect](gameplay.inspect)
+[Travel](gameplay/travel.md)
+[Inspect](../gameplay/inspect.md)
 ```
 
 Obsidian-style links such as `[[Travel]]` should not be the canonical authoring
-format for these pages.
+format for these pages. Runtime-ID links such as `[Travel](gameplay.travel)` are
+also not valid authored wiki links because they are dead links for Obsidian and
+Zensical. The registry resolves file links to runtime IDs during import.
 
 ### Article Metadata
 
@@ -588,7 +602,6 @@ rather than trying to explain every system in a modal.
 
 ## Open Questions
 
-- Should article IDs mirror file paths or be fully independent frontmatter IDs?
 - Should the game load Markdown directly from `docs/wiki/`, or should packaging
   copy/build the wiki subset into `assets/wiki/`?
 - Should `docs/wiki/index.md` be a generated index or manually authored?

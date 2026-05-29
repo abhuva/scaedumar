@@ -50,6 +50,12 @@ export function registerInteractionCommands(commandBus, deps) {
     getTravelPlanningRuntime().startPathfinding(origin, pathfinding, reason);
   }
 
+  function triggerTutorialEvent(triggerType, payload = {}) {
+    if (typeof deps.triggerEvent === "function") {
+      deps.triggerEvent(triggerType, payload);
+    }
+  }
+
   function clearTravelPlanningRange(reason) {
     getTravelPlanningRuntime().clearRange(reason);
   }
@@ -78,10 +84,11 @@ export function registerInteractionCommands(commandBus, deps) {
     deps.routePlanningRuntime?.setActive?.(false, "planning-cleared");
   }
 
-  function startPrimaryActivity(startFn, fallbackReason) {
+  function startPrimaryActivity(startFn, fallbackReason, triggerType = "") {
     stopPrimaryForSwitch();
     const result = startFn();
     if (!result || result.ok) {
+      if (triggerType) triggerTutorialEvent(triggerType, { source: "activity-command" });
       clearPlanningPreview();
       return;
     }
@@ -119,6 +126,7 @@ export function registerInteractionCommands(commandBus, deps) {
     deps.setInteractionMode(requestedMode);
     if (requestedMode === "pathfinding") {
       startTravelPlanningRange("mode-changed");
+      triggerTutorialEvent("pathfinding_started", { mode: requestedMode });
     } else {
       clearTravelPlanningRange("mode-changed");
     }
@@ -149,23 +157,24 @@ export function registerInteractionCommands(commandBus, deps) {
 
   commandBus.register("core/activity/startGathering", () => {
     if (typeof deps.startGatheringActivity !== "function") return;
-    startPrimaryActivity(deps.startGatheringActivity, "Unable to start gathering.");
+    startPrimaryActivity(deps.startGatheringActivity, "Unable to start gathering.", "gathering_started");
   });
 
   commandBus.register("core/activity/startGatherWater", () => {
     if (typeof deps.startGatherWaterActivity !== "function") return;
-    startPrimaryActivity(deps.startGatherWaterActivity, "Unable to start water gathering.");
+    startPrimaryActivity(deps.startGatherWaterActivity, "Unable to start water gathering.", "water_started");
   });
 
   commandBus.register("core/activity/startHunting", () => {
     if (typeof deps.startHuntingActivity !== "function") return;
-    startPrimaryActivity(deps.startHuntingActivity, "Unable to start hunting.");
+    startPrimaryActivity(deps.startHuntingActivity, "Unable to start hunting.", "hunting_started");
   });
 
   commandBus.register("core/activity/startInspect", () => {
     if (typeof deps.startInspectActivity !== "function") return;
     const result = deps.startInspectActivity();
     if (!result || result.ok) {
+      triggerTutorialEvent("inspect_started", { source: "activity-command" });
       deps.requestOverlayDraw();
       return;
     }
@@ -189,7 +198,7 @@ export function registerInteractionCommands(commandBus, deps) {
 
   commandBus.register("core/activity/startRest", () => {
     if (typeof deps.startRestActivity !== "function") return;
-    startPrimaryActivity(deps.startRestActivity, "Unable to start rest.");
+    startPrimaryActivity(deps.startRestActivity, "Unable to start rest.", "rest_started");
   });
 
   commandBus.register("core/activity/updateInspectAt", (command) => {
@@ -247,6 +256,8 @@ export function registerInteractionCommands(commandBus, deps) {
         const result = deps.startTravelActivity();
         if (result && !result.ok) {
           deps.setStatus(result.reason || "Unable to start travel.");
+        } else {
+          triggerTutorialEvent("travel_committed", { source: "pathfinding-click" });
         }
       }
       deps.setInteractionMode("none");

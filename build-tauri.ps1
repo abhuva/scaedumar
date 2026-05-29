@@ -19,6 +19,8 @@ Copy-Item index.html .tauri-dist\ -Force
 Copy-Item styles.css .tauri-dist\ -Force
 Copy-Item src .tauri-dist\src -Recurse -Force
 Copy-Item assets .tauri-dist\assets -Recurse -Force
+New-Item -ItemType Directory -Force .tauri-dist\docs | Out-Null
+Copy-Item docs\wiki .tauri-dist\docs\wiki -Recurse -Force
 
 if ($Mode -eq "dev") {
   Write-Host "Starting Tauri dev runtime..."

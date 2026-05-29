@@ -19,6 +19,7 @@ function createDeps(overrides = {}) {
     setPlayerPosition: 0,
     cancelMovementQueue: 0,
     requestOverlayDraw: 0,
+    triggeredEvents: [],
     status: "",
   };
   const travelPlanningRuntime = createTravelPlanningRuntime({
@@ -41,6 +42,9 @@ function createDeps(overrides = {}) {
     extractPathTo: () => [],
     replaceMovementQueue: () => false,
     setInteractionMode: () => {},
+    triggerEvent: (triggerType, payload) => {
+      calls.triggeredEvents.push({ triggerType, payload });
+    },
     syncPlayerStateToStore: () => {},
     cancelMovementQueue: () => {
       calls.cancelMovementQueue += 1;
@@ -161,6 +165,26 @@ test("pathfinding click starts explicit travel after queuing movement", () => {
 
   assert.equal(travelStarted, 1);
   assert.equal(deps.calls.requestOverlayDraw, 1);
+  assert.deepEqual(deps.calls.triggeredEvents, [{
+    triggerType: "travel_committed",
+    payload: { source: "pathfinding-click" },
+  }]);
+});
+
+test("failed travel start does not trigger travel tutorial event", () => {
+  const commandBus = createCommandBus();
+  const deps = createDeps({
+    getInteractionMode: () => "pathfinding",
+    extractPathTo: () => [{ x: 2, y: 3 }, { x: 8, y: 9 }],
+    replaceMovementQueue: () => true,
+    startTravelActivity: () => ({ ok: false, reason: "blocked" }),
+  });
+  registerInteractionCommands(commandBus, deps);
+
+  commandBus.dispatch({ type: "core/interaction/clickMapPixel", x: 8, y: 9 });
+
+  assert.deepEqual(deps.calls.triggeredEvents, []);
+  assert.equal(deps.calls.status, "blocked");
 });
 
 test("route planning hover updates route runtime without starting movement", () => {
@@ -205,6 +229,19 @@ test("route planning mode activation starts route runtime from command intent", 
   commandBus.dispatch({ type: "core/interaction/setMode", mode: "routePlanning" });
 
   assert.equal(activeValue, true);
+});
+
+test("pathfinding mode activation triggers first-use tutorial event", () => {
+  const commandBus = createCommandBus();
+  const deps = createDeps();
+  registerInteractionCommands(commandBus, deps);
+
+  commandBus.dispatch({ type: "core/interaction/setMode", mode: "pathfinding" });
+
+  assert.deepEqual(deps.calls.triggeredEvents, [{
+    triggerType: "pathfinding_started",
+    payload: { mode: "pathfinding" },
+  }]);
 });
 
 test("route planning mode activation fails when route runtime is missing", () => {
@@ -359,6 +396,43 @@ test("start gather water command clears map preview on success", () => {
   assert.equal(deps.travelPlanningRuntime.getSnapshot().hoverPixel, null);
   assert.deepEqual(deps.travelPlanningRuntime.getSnapshot().pathPixels, []);
   assert.equal(deps.calls.requestOverlayDraw, 1);
+  assert.deepEqual(deps.calls.triggeredEvents, [{
+    triggerType: "water_started",
+    payload: { source: "activity-command" },
+  }]);
+});
+
+test("primary activity starts trigger first-use tutorial events", () => {
+  const commandBus = createCommandBus();
+  const deps = createDeps({
+    startGatheringActivity: () => ({ ok: true }),
+    startHuntingActivity: () => ({ ok: true }),
+    startRestActivity: () => ({ ok: true }),
+  });
+  registerInteractionCommands(commandBus, deps);
+
+  commandBus.dispatch({ type: "core/activity/startGathering" });
+  commandBus.dispatch({ type: "core/activity/startHunting" });
+  commandBus.dispatch({ type: "core/activity/startRest" });
+
+  assert.deepEqual(deps.calls.triggeredEvents, [
+    { triggerType: "gathering_started", payload: { source: "activity-command" } },
+    { triggerType: "hunting_started", payload: { source: "activity-command" } },
+    { triggerType: "rest_started", payload: { source: "activity-command" } },
+  ]);
+});
+
+test("failed primary activity start does not trigger tutorial event", () => {
+  const commandBus = createCommandBus();
+  const deps = createDeps({
+    startGatheringActivity: () => ({ ok: false, reason: "no plants" }),
+  });
+  registerInteractionCommands(commandBus, deps);
+
+  commandBus.dispatch({ type: "core/activity/startGathering" });
+
+  assert.deepEqual(deps.calls.triggeredEvents, []);
+  assert.equal(deps.calls.status, "no plants");
 });
 
 test("legacy mode names do not re-enable no-mode teleport", () => {
@@ -374,6 +448,21 @@ test("legacy mode names do not re-enable no-mode teleport", () => {
   assert.equal(deps.calls.cancelMovementQueue, 0);
   assert.equal(deps.calls.requestOverlayDraw, 1);
   assert.equal(deps.calls.status, "Use PF to choose a destination.");
+});
+
+test("inspect activity start triggers first-use tutorial event", () => {
+  const commandBus = createCommandBus();
+  const deps = createDeps({
+    startInspectActivity: () => ({ ok: true }),
+  });
+  registerInteractionCommands(commandBus, deps);
+
+  commandBus.dispatch({ type: "core/activity/startInspect" });
+
+  assert.deepEqual(deps.calls.triggeredEvents, [{
+    triggerType: "inspect_started",
+    payload: { source: "activity-command" },
+  }]);
 });
 
 test("missing runtime mode does not enable no-mode teleport", () => {
