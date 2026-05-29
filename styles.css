@@ -2665,8 +2665,8 @@ body.runtime-gameplay .gameplay-hud {
   position: absolute;
   left: 0;
   top: 0;
-  width: 23px;
-  height: 23px;
+  width: 24px;
+  height: 24px;
   border: 1px solid rgba(229, 202, 124, 0.42);
   border-radius: 0;
   background:
@@ -2690,8 +2690,8 @@ body.runtime-gameplay .gameplay-hud {
   position: absolute;
   left: 0;
   top: 0;
-  width: 23px;
-  height: 23px;
+  width: 24px;
+  height: 24px;
   border: 1px solid rgba(255, 150, 124, 0.8);
   border-radius: 0;
   background:

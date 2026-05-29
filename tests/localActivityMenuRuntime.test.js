@@ -124,6 +124,65 @@ test("local activity menu toggles visible state and does not redraw on sync", ()
   assert.equal(runtime.isOpen(), false);
 });
 
+test("local activity menu clamps root by current radius plus button padding", () => {
+  const rootEl = createRootStub();
+  const runtime = createLocalActivityMenuRuntime({
+    document: {
+      createElement: () => createElementStub(),
+      addEventListener() {},
+      defaultView: {
+        innerWidth: 500,
+        innerHeight: 400,
+        addEventListener() {},
+      },
+    },
+    rootEl,
+    activityDefinitions: {},
+    dispatchCoreCommand: () => {},
+    getInteractionMode: () => "none",
+    getActivitySnapshot: () => null,
+    radius: 120,
+    setStatus: () => {},
+  });
+
+  assert.equal(runtime.openAt({ clientX: 490, clientY: 390, pixel: { x: 1, y: 2 } }), true);
+
+  assert.equal(rootEl.style.left, "360px");
+  assert.equal(rootEl.style.top, "260px");
+});
+
+test("local activity menu reports rendered activity buttons for semantic highlights", () => {
+  const rootEl = createRootStub();
+  let pathfindingButton = null;
+  let gatheringButton = null;
+  const runtime = createLocalActivityMenuRuntime({
+    document: {
+      createElement: () => createElementStub(),
+      addEventListener() {},
+      defaultView: {
+        innerWidth: 800,
+        innerHeight: 600,
+        addEventListener() {},
+      },
+    },
+    rootEl,
+    activityDefinitions: {},
+    dispatchCoreCommand: () => {},
+    getInteractionMode: () => "none",
+    getActivitySnapshot: () => null,
+    onButtonsRendered: ({ getButton }) => {
+      pathfindingButton = getButton("travel");
+      gatheringButton = getButton("gathering");
+    },
+    setStatus: () => {},
+  });
+
+  assert.equal(runtime.openAt({ clientX: 100, clientY: 100, pixel: { x: 1, y: 2 } }), true);
+
+  assert.equal(pathfindingButton?.dataset.activityId, "travel");
+  assert.equal(gatheringButton?.dataset.activityId, "gathering");
+});
+
 test("local activity menu shows center cancel button while activity is active", () => {
   const rootEl = createRootStub();
   const commands = [];

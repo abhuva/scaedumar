@@ -1,4 +1,6 @@
 export const LOCAL_ACTIVITY_MENU_SLOT_COUNT = 12;
+const LOCAL_ACTIVITY_MENU_BUTTON_SIZE = 24;
+const LOCAL_ACTIVITY_MENU_EDGE_PADDING = 8;
 
 export const LOCAL_ACTIVITY_MENU_ACTIONS = [
   {
@@ -133,11 +135,17 @@ export function createLocalActivityMenuRuntime(deps) {
 
   function positionRoot(clientX, clientY) {
     if (!deps.rootEl) return;
-    const margin = 76;
+    const margin = Math.max(76, radius + (LOCAL_ACTIVITY_MENU_BUTTON_SIZE / 2) + LOCAL_ACTIVITY_MENU_EDGE_PADDING);
     const viewportWidth = ownerWindow?.innerWidth || 0;
     const viewportHeight = ownerWindow?.innerHeight || 0;
-    const x = viewportWidth > 0 ? clamp(clientX, margin, viewportWidth - margin) : clientX;
-    const y = viewportHeight > 0 ? clamp(clientY, margin, viewportHeight - margin) : clientY;
+    const maxX = viewportWidth - margin;
+    const maxY = viewportHeight - margin;
+    const x = viewportWidth > 0
+      ? (maxX >= margin ? clamp(clientX, margin, maxX) : viewportWidth / 2)
+      : clientX;
+    const y = viewportHeight > 0
+      ? (maxY >= margin ? clamp(clientY, margin, maxY) : viewportHeight / 2)
+      : clientY;
     deps.rootEl.style.left = `${Math.round(x)}px`;
     deps.rootEl.style.top = `${Math.round(y)}px`;
   }
@@ -230,6 +238,9 @@ export function createLocalActivityMenuRuntime(deps) {
       deps.rootEl.appendChild(button);
       buttonByActivityId.set(action.activityId, button);
     }
+    deps.onButtonsRendered?.({
+      getButton: (activityId) => buttonByActivityId.get(activityId) || null,
+    });
   }
 
   function sync() {

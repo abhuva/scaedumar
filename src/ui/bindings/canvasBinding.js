@@ -6,7 +6,7 @@ export function bindCanvasControls(deps) {
 
   function isUiTarget(target) {
     if (!target || typeof target.closest !== "function") return false;
-    return Boolean(target.closest(".topic-panel, .swarm-stats-panel, .movement-status-panel, .route-waypoint-menu, .local-activity-menu, .inventory-panel, .wiki-panel, .journal-panel, .encounter-panel, .gameplay-hud"));
+    return Boolean(target.closest(".topic-panel, .swarm-stats-panel, .movement-status-panel, .inspect-status-panel, .route-waypoint-menu, .local-activity-menu, .inventory-panel, .wiki-panel, .journal-panel, .encounter-panel, .gameplay-hud"));
   }
 
   function clientToMapPixel(clientX, clientY) {

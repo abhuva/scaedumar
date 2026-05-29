@@ -5372,6 +5372,15 @@ sideDockRuntime.registerPanel({
   close: () => inventoryPanelRuntime?.setVisible?.(false),
   setSide: (side) => applySideDockClass(inventoryPanelEl, side),
 });
+function registerLocalActivityHighlightTargets(source = localActivityMenuRuntime) {
+  if (!source || typeof source.getButton !== "function") return;
+  const pathfindingButton = source.getButton("travel");
+  const gatheringButton = source.getButton("gathering");
+  const waterButton = source.getButton("gather_water");
+  if (pathfindingButton) uiHighlightRuntime.registerTarget("hud.activity.pathfinding", pathfindingButton);
+  if (gatheringButton) uiHighlightRuntime.registerTarget("hud.activity.gathering", gatheringButton);
+  if (waterButton) uiHighlightRuntime.registerTarget("hud.activity.water", waterButton);
+}
 localActivityMenuRuntime = createLocalActivityMenuRuntime({
   document,
   rootEl: localActivityMenuEl,
@@ -5383,10 +5392,9 @@ localActivityMenuRuntime = createLocalActivityMenuRuntime({
   rebuildMovementField,
   radius: localActivityMenuRadius,
   setStatus,
+  onButtonsRendered: registerLocalActivityHighlightTargets,
 });
-uiHighlightRuntime.registerTarget("hud.activity.pathfinding", localActivityMenuEl);
-uiHighlightRuntime.registerTarget("hud.activity.gathering", localActivityMenuEl);
-uiHighlightRuntime.registerTarget("hud.activity.water", localActivityMenuEl);
+registerLocalActivityHighlightTargets();
 gameplayHudRuntime = createGameplayHudRuntime({
   document,
   activityDefinitions: ACTIVITY_DEFINITIONS,

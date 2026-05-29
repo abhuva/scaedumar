@@ -190,7 +190,8 @@ export function createResourceDebugPanelRuntime(deps) {
   }
 
   function syncRoute() {
-    const settings = typeof deps.getRouteSettings === "function" ? deps.getRouteSettings() : {};
+    const rawSettings = typeof deps.getRouteSettings === "function" ? deps.getRouteSettings() : {};
+    const settings = rawSettings && typeof rawSettings === "object" ? rawSettings : {};
     if (deps.routeArrowColorInput) deps.routeArrowColorInput.value = settings.arrowColor || "#ffffff";
     if (deps.routeDebugOverlayModeInput) deps.routeDebugOverlayModeInput.value = settings.debugOverlayMode || "none";
     for (const [key, input, valueEl, digits] of routeControls) {
