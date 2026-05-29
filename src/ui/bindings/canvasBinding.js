@@ -6,7 +6,7 @@ export function bindCanvasControls(deps) {
 
   function isUiTarget(target) {
     if (!target || typeof target.closest !== "function") return false;
-    return Boolean(target.closest(".topic-panel, .swarm-stats-panel, .movement-status-panel, .route-waypoint-menu, .inventory-panel, .wiki-panel, .journal-panel, .encounter-panel, .gameplay-hud"));
+    return Boolean(target.closest(".topic-panel, .swarm-stats-panel, .movement-status-panel, .inspect-status-panel, .route-waypoint-menu, .local-activity-menu, .inventory-panel, .wiki-panel, .journal-panel, .encounter-panel, .gameplay-hud"));
   }
 
   function clientToMapPixel(clientX, clientY) {
@@ -53,13 +53,21 @@ export function bindCanvasControls(deps) {
 
   function handleMapClick(clientX, clientY, button) {
     if (button !== 0) return;
+    if (typeof deps.canHandleTerrainClicks === "function" && !deps.canHandleTerrainClicks()) return;
     const pixel = clientToMapPixel(clientX, clientY);
     if (!pixel) return;
-    deps.dispatchCoreCommand({
+    const result = deps.dispatchCoreCommand({
       type: "core/interaction/clickMapPixel",
       x: pixel.x,
       y: pixel.y,
     });
+    if (result && result.consumed === false && typeof deps.openLocalActivityMenu === "function") {
+      deps.openLocalActivityMenu({
+        clientX,
+        clientY,
+        pixel,
+      });
+    }
   }
 
   deps.canvas.addEventListener(

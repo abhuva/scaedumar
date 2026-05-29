@@ -218,12 +218,6 @@ export function registerInteractionCommands(commandBus, deps) {
       y: Number(command.y),
     };
 
-    if (isActivityActive()) {
-      deps.setStatus("Stop the current activity before starting another action.");
-      deps.requestOverlayDraw();
-      return;
-    }
-
     if (deps.getInteractionMode() === "lighting") {
       const existing = deps.findPointLightAtPixel(pixel.x, pixel.y);
       if (existing) {
@@ -233,7 +227,7 @@ export function registerInteractionCommands(commandBus, deps) {
         deps.createPointLight(pixel.x, pixel.y);
       }
       deps.requestOverlayDraw();
-      return;
+      return { consumed: true };
     }
 
     if (deps.getInteractionMode() === "pathfinding") {
@@ -241,14 +235,14 @@ export function registerInteractionCommands(commandBus, deps) {
       if (!pathPixels.length) {
         deps.setStatus("No reachable preview path at clicked cell.");
         notifyTravelPlanningChanged("unreachable-click");
-        return;
+        return { consumed: true };
       }
       if (typeof deps.replaceMovementQueue === "function") {
         const replaced = deps.replaceMovementQueue(pathPixels);
         if (!replaced) {
           deps.setStatus("Unable to queue movement for selected path.");
           notifyTravelPlanningChanged("queue-failed");
-          return;
+          return { consumed: true };
         }
         commitTravelHoverPath(pixel, "travel-committed");
       }
@@ -263,7 +257,7 @@ export function registerInteractionCommands(commandBus, deps) {
       deps.setInteractionMode("none");
       clearTravelPreview("travel-committed");
       syncPlayerToStore();
-      return;
+      return { consumed: true };
     }
 
     if (deps.getInteractionMode() === "routePlanning") {
@@ -273,34 +267,39 @@ export function registerInteractionCommands(commandBus, deps) {
         routeRuntime?.selectWaypointFromEndpoint?.(routeHit.segmentId, routeHit.endpoint, "route-endpoint-clicked");
         deps.setStatus("Route waypoint selected.");
         deps.requestOverlayDraw();
-        return;
+        return { consumed: true };
       }
       if (routeHit && routeHit.type === "segment") {
         routeRuntime?.selectSegment?.(routeHit.segmentId, "route-segment-clicked");
         deps.setStatus(`Route segment ${routeHit.segmentId} selected.`);
         deps.requestOverlayDraw();
-        return;
+        return { consumed: true };
       }
       const routeSnapshot = routeRuntime?.getSnapshot?.();
       if (routeSnapshot && routeSnapshot.waypointPlacementActive === false) {
         routeRuntime?.clearSelection?.("route-terrain-click-clears-selection");
         deps.setStatus("Route selection cleared.");
         deps.requestOverlayDraw();
-        return;
+        return { consumed: true };
       }
       const hasRoute = routeRuntime?.updateHoverAtPixel?.(pixel, "route-click") || false;
       if (!hasRoute || !routeRuntime?.commitHover?.("route-committed")) {
         deps.setStatus("No reachable route at clicked cell.");
         deps.requestOverlayDraw();
-        return;
+        return { consumed: true };
       }
       deps.setStatus(`Route waypoint committed at (${pixel.x}, ${pixel.y}).`);
       deps.requestOverlayDraw();
-      return;
+      return { consumed: true };
     }
 
-    clearTravelPreview("no-mode-click");
     deps.setStatus("Use PF to choose a destination.");
+    if (isMovementActive()) {
+      deps.requestOverlayDraw();
+      return { consumed: false };
+    }
+    clearTravelPreview("no-mode-click");
+    return { consumed: false };
   });
 
   commandBus.register("core/interaction/hoverMapPixel", (command) => {

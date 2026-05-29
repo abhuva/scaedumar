@@ -29,5 +29,12 @@ export function getRdIoPanelHtml() {
               <label for="slimeSaveBtn">Slime Sidecar</label>
               <button id="slimeSaveBtn" class="row-action-btn" type="button">Save Slime Settings</button>
             </div>
+            <div class="row">
+              <label for="localActivityMenuRadius">Activity Menu Radius</label>
+              <div class="range-with-value">
+                <input id="localActivityMenuRadius" type="range" min="24" max="140" step="1" value="72" />
+                <span id="localActivityMenuRadiusValue">72</span>
+              </div>
+            </div>
           </div>`;
 }

@@ -2535,29 +2535,23 @@ body.runtime-gameplay .gameplay-hud {
 
 .hud-system-actions {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-template-rows: 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-rows: var(--player-ui-row);
   gap: 0;
   flex: 0 0 var(--hud-button-bank-width);
+  width: var(--hud-button-bank-width);
   margin-left: 0;
   margin-top: 0;
   border-left: 1px solid rgba(229, 202, 124, 0.24);
 }
 
 .hud-system-column {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  grid-auto-rows: var(--player-ui-row);
-  gap: 0;
-}
-
-.hud-system-column + .hud-system-column {
-  border-left: 1px solid rgba(229, 202, 124, 0.18);
+  display: contents;
 }
 
 .hud-system-btn {
   position: relative;
-  width: 100%;
+  width: calc(var(--hud-button-bank-width) / 3);
   height: var(--player-ui-row);
   min-width: 0;
   line-height: 1;
@@ -2580,7 +2574,6 @@ body.runtime-gameplay .gameplay-hud {
 }
 
 .gameplay-hud .shell-exit-btn {
-  width: 100%;
   border-color: rgba(216, 107, 84, 0.5);
   background: rgba(52, 25, 20, 0.92);
   color: #ffc9b8;
@@ -2631,7 +2624,7 @@ body.runtime-gameplay .gameplay-hud {
 }
 
 .gameplay-action-slots .hud-action-btn {
-  width: 100%;
+  width: calc(var(--hud-button-bank-width) / 3);
   height: var(--player-ui-row);
 }
 
@@ -2652,6 +2645,91 @@ body.runtime-gameplay .gameplay-hud {
   box-shadow:
     0 0 0 1px rgba(159, 236, 255, 0.22),
     0 0 18px rgba(89, 210, 238, 0.28);
+}
+
+.local-activity-menu {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  z-index: 9;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
+
+.local-activity-menu.hidden {
+  display: none;
+}
+
+.local-activity-menu-btn {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 24px;
+  height: 24px;
+  border: 1px solid rgba(229, 202, 124, 0.42);
+  border-radius: 0;
+  background:
+    linear-gradient(180deg, rgba(54, 43, 26, 0.96), rgba(23, 25, 20, 0.96)),
+    rgba(42, 34, 22, 0.94);
+  color: #f2dfa8;
+  padding: 0;
+  font-family: var(--pixel-ui-font);
+  font-size: 7px;
+  font-weight: 950;
+  line-height: 1;
+  text-transform: uppercase;
+  cursor: pointer;
+  pointer-events: auto;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.35),
+    0 5px 14px rgba(0, 0, 0, 0.28);
+}
+
+.local-activity-menu-cancel-btn {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 24px;
+  height: 24px;
+  border: 1px solid rgba(255, 150, 124, 0.8);
+  border-radius: 0;
+  background:
+    linear-gradient(180deg, rgba(91, 38, 29, 0.98), rgba(44, 22, 18, 0.98)),
+    rgba(68, 27, 22, 0.96);
+  color: #ffe7dc;
+  padding: 0;
+  font-family: var(--pixel-ui-font);
+  font-size: 8px;
+  font-weight: 950;
+  line-height: 1;
+  text-transform: uppercase;
+  cursor: pointer;
+  pointer-events: auto;
+  transform: translate(-50%, -50%);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.4),
+    0 5px 14px rgba(0, 0, 0, 0.3);
+}
+
+.local-activity-menu-btn:hover,
+.local-activity-menu-btn:focus-visible,
+.local-activity-menu-cancel-btn:hover,
+.local-activity-menu-cancel-btn:focus-visible {
+  border-color: rgba(255, 226, 151, 0.95);
+  background:
+    linear-gradient(180deg, rgba(89, 66, 33, 0.98), rgba(39, 37, 24, 0.98)),
+    rgba(77, 58, 30, 0.95);
+  outline: none;
+}
+
+.local-activity-menu-btn.active,
+.local-activity-menu-btn[aria-pressed="true"] {
+  border-color: rgba(159, 236, 255, 0.95);
+  background:
+    radial-gradient(circle at 50% 18%, rgba(165, 243, 255, 0.28), rgba(27, 73, 82, 0.96)),
+    rgba(27, 73, 82, 0.96);
+  color: #f5fdff;
 }
 
 .inventory-panel {

@@ -9,6 +9,8 @@ export function createMainBindingsLifecycleAssemblyRuntime(deps) {
     updatePathPreviewFromPointer: deps.updatePathPreviewFromPointer,
     updateRoutePreviewFromPointer: deps.updateRoutePreviewFromPointer,
     updateInspectFromPointer: deps.updateInspectFromPointer,
+    openLocalActivityMenu: deps.openLocalActivityMenu,
+    canHandleTerrainClicks: deps.canHandleTerrainClicks,
     isMiddleDragging: deps.isMiddleDragging,
     isCursorLightEnabled: deps.isCursorLightEnabled,
     getInteractionMode: deps.getInteractionMode,
