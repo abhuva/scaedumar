@@ -93,7 +93,7 @@ export function createEncounterArticleView(activeEvent, getArticle) {
         id: article.id,
         title: article.title,
         summary: article.summary || "",
-        body: article.body || "",
+        body: article.bodyResolved || article.body || "",
         missing: false,
       }
     : {
@@ -174,7 +174,8 @@ export function createEncounterPanelRuntime(deps) {
   function renderChoices(activeEvent) {
     clearElement(deps.choicesEl);
     const choices = activeEvent && Array.isArray(activeEvent.choices) ? activeEvent.choices : [];
-    deps.choicesEl.classList.toggle("hidden", choices.length === 0);
+    const hasError = Boolean(activeEvent?.error?.message);
+    deps.choicesEl.classList.toggle("hidden", choices.length === 0 && !hasError);
     if (activeEvent?.error?.message) {
       const error = ownerDocument.createElement("div");
       error.className = "encounter-choice-error";

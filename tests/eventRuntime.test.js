@@ -84,6 +84,31 @@ test("event runtime restores seen IDs before triggers run", () => {
   });
 });
 
+test("event runtime restores paused speed before applying persistence snapshot", () => {
+  const speeds = [];
+  let currentSpeed = 5;
+  const runtime = createEventRuntime({
+    getTimeSpeed: () => currentSpeed,
+    setTimeSpeed: (speed) => {
+      currentSpeed = speed;
+      speeds.push(speed);
+    },
+  });
+  runtime.loadDefinitions([{
+    id: "tutorial.pause",
+    contentId: "tutorial.first_steps",
+    trigger: { type: "gameplay_started" },
+    presentation: { level: "blocking", surface: "encounter", time: { mode: "pause" } },
+  }]);
+
+  runtime.trigger("gameplay_started");
+  assert.equal(runtime.getSnapshot().active.id, "tutorial.pause");
+  runtime.applyPersistenceSnapshot({});
+
+  assert.equal(runtime.getSnapshot().active, null);
+  assert.deepEqual(speeds, [0, 5]);
+});
+
 test("event runtime previews blocking encounter without seen or journal persistence", () => {
   const journalEntries = [];
   const speeds = [];

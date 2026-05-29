@@ -112,6 +112,14 @@ export function createInventoryPanelRuntime(deps) {
     setVisible(!visible);
   }
 
+  function setVisible(nextVisible, reason = "inventory-visibility") {
+    const shouldShow = Boolean(nextVisible);
+    if (shouldShow && reason !== "side-dock-open" && deps.requestOpen && deps.requestOpen() === false) return false;
+    visible = shouldShow;
+    sync(lastSnapshot);
+    return true;
+  }
+
   function bindList(listEl) {
     listEl.addEventListener("click", (event) => {
       const target = event.target;
@@ -152,12 +160,6 @@ export function createInventoryPanelRuntime(deps) {
   return {
     sync,
     isVisible: () => visible,
-    setVisible: (nextVisible, reason = "inventory-visibility") => {
-      const shouldShow = Boolean(nextVisible);
-      if (shouldShow && reason !== "side-dock-open" && deps.requestOpen && deps.requestOpen() === false) return false;
-      visible = shouldShow;
-      sync(lastSnapshot);
-      return true;
-    },
+    setVisible,
   };
 }

@@ -2,7 +2,7 @@
 id: tutorial.event_debug
 title: Encounter Debug
 summary: A small controlled encounter for testing dialog flow and journal writes.
-category: Tutorial
+category: tutorial
 tags: [tutorial, events, debug]
 related: [wiki.index, gameplay.travel, gameplay.inspect]
 ---

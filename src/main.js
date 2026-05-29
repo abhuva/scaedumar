@@ -4554,6 +4554,7 @@ function updateMovementStatusPanel(movementSnapshot) {
     movementStatusPanelEl.classList.remove("hidden");
     return;
   }
+  movementStatusTitleEl.textContent = "Traveling";
   movementStatusEtaEl.textContent = `Travel time: ${formatMovementDuration(getMovementDurationHours(movementSnapshot))} hours`;
   movementStatusDetailEl.textContent = "";
   movementStatusPanelEl.classList.remove("hidden");
@@ -4624,8 +4625,8 @@ const conditionRuntime = createConditionRuntime({
 conditionEventTriggerRuntime = createConditionEventTriggerRuntime({
   getConditionSnapshot: () => conditionRuntime.getSnapshot(),
   triggerEvent: (triggerType, payload) => eventRuntime?.trigger(triggerType, payload),
-  hydrationThreshold: 50,
-  fatigueThreshold: 50,
+  hydrationThreshold: CONDITION_THRESHOLDS.hydration?.warning,
+  fatigueThreshold: CONDITION_THRESHOLDS.fatigue?.warning,
 });
 conditionEventTriggerRuntime.resetBaseline();
 conditionEffectRuntime = createConditionEffectRuntime({
@@ -5387,7 +5388,12 @@ gameplayHudRuntime = createGameplayHudRuntime({
   rebuildMovementField,
   getConditionSnapshot: () => conditionRuntime.getSnapshot(),
   getConditionEffectsSnapshot: () => conditionEffectRuntime.getSnapshot(),
-  toggleInventory: () => inventoryPanelRuntime.setVisible(!inventoryPanelRuntime.isVisible()),
+  toggleInventory: () => {
+    if (inventoryPanelRuntime.isVisible()) {
+      return sideDockRuntime?.closePanel?.("inventory", "hud-toggle-inventory");
+    }
+    return sideDockRuntime?.openPanel?.("inventory", { reason: "hud-toggle-inventory" });
+  },
   setStatus,
 });
 inventoryRuntime.sync();

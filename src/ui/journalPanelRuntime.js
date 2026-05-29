@@ -37,13 +37,20 @@ export function getJournalCategories(entries) {
 export function filterJournalEntriesByCategory(entries, category) {
   const normalizedCategory = String(category || "").trim();
   if (!normalizedCategory) return [...(entries || [])];
-  return (entries || []).filter((entry) => String(entry?.category || "Journal") === normalizedCategory);
+  return (entries || []).filter((entry) => {
+    const entryCategory = String(entry?.category || "Journal").trim() || "Journal";
+    return entryCategory === normalizedCategory;
+  });
 }
 
 export function handleJournalFeedWheel(entriesEl, expanded, event) {
   if (!expanded || !entriesEl) return false;
   const deltaY = Number(event?.deltaY || 0);
   if (!deltaY) return false;
+  const canScrollUp = deltaY < 0 && Number(entriesEl.scrollTop || 0) > 0;
+  const canScrollDown = deltaY > 0
+    && Number(entriesEl.scrollTop || 0) + Number(entriesEl.clientHeight || 0) < Number(entriesEl.scrollHeight || 0);
+  if (!canScrollUp && !canScrollDown) return false;
   entriesEl.scrollTop += deltaY;
   event.preventDefault?.();
   event.stopPropagation?.();

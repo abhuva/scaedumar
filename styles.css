@@ -1263,7 +1263,7 @@ body.runtime-gameplay .inventory-panel.panel-side-right {
   max-height: 120px;
   overflow: auto;
   white-space: pre-wrap;
-  word-break: break-word;
+  overflow-wrap: anywhere;
   font-size: 11px;
   line-height: 1.35;
   color: #ece3c7;

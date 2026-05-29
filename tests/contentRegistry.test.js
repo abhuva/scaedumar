@@ -33,6 +33,14 @@ Plan before moving.`);
   assert.equal(article.body.includes("Plan before moving."), true);
 });
 
+test("normalizeArticle reads CRLF frontmatter", () => {
+  const article = normalizeArticle("docs/wiki/gameplay/travel.md", "---\r\nid: gameplay.travel\r\ntitle: Travel\r\n---\r\n\r\nBody.");
+
+  assert.equal(article.id, "gameplay.travel");
+  assert.equal(article.title, "Travel");
+  assert.equal(article.body, "Body.");
+});
+
 test("normalizeArticle records CommonMark file links", () => {
   const article = normalizeArticle("docs/wiki/index.md", `---
 id: wiki.index
@@ -155,14 +163,14 @@ Index.`));
   });
 });
 
-test("content registry rewrites resolved file links to runtime article IDs", () => {
+test("content registry exposes resolved file links without mutating source body", () => {
   const registry = createContentRegistry();
   registry.registerArticle(normalizeArticle("docs/wiki/index.md", `---
 id: wiki.index
 title: Index
 ---
 
-[Travel](gameplay/travel.md)`));
+[Travel](gameplay/travel.md#trail)`));
   registry.registerArticle(normalizeArticle("docs/wiki/gameplay/travel.md", `---
 id: gameplay.travel
 title: Travel
@@ -172,8 +180,12 @@ Travel article.`));
   registry.resolveAllArticleLinks();
 
   const article = registry.getArticle("wiki.index");
-  assert.equal(article.body.includes("[Travel](gameplay.travel)"), true);
+  assert.equal(article.body.includes("[Travel](gameplay/travel.md#trail)"), true);
+  assert.equal(article.bodyResolved.includes("[Travel](gameplay.travel#trail)"), true);
   assert.deepEqual(article.links, ["gameplay.travel"]);
+  registry.resolveAllArticleLinks();
+  assert.equal(registry.getArticle("wiki.index").body, article.body);
+  assert.equal(registry.getArticle("wiki.index").bodyResolved, article.bodyResolved);
   assert.deepEqual(validateContentReferences(registry), {
     ok: true,
     missing: [],

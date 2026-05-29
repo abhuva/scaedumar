@@ -36,6 +36,26 @@ test("journal adds content-linked entries and blocks duplicate source events", (
   }]);
 });
 
+test("journal rejects entries without content id", () => {
+  let changes = 0;
+  const journal = createJournalRuntime({
+    onChanged: () => {
+      changes += 1;
+    },
+  });
+
+  assert.deepEqual(journal.addEntry({ sourceEventId: "event.missing" }), {
+    ok: false,
+    reason: "missing-content-id",
+  });
+  assert.deepEqual(journal.addEntry({ contentId: "   " }), {
+    ok: false,
+    reason: "missing-content-id",
+  });
+  assert.equal(changes, 0);
+  assert.deepEqual(journal.getSnapshot(), { entries: [] });
+});
+
 test("journal restores persisted entries and advances generated IDs", () => {
   const journal = createJournalRuntime();
 

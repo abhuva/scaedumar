@@ -1,5 +1,5 @@
 function parseFrontmatter(markdown) {
-  const source = typeof markdown === "string" ? markdown : "";
+  const source = typeof markdown === "string" ? markdown.replace(/\r\n/g, "\n") : "";
   if (!source.startsWith("---\n")) {
     return { metadata: {}, body: source };
   }
@@ -126,7 +126,8 @@ function resolveArticleLinks(article, pathToId) {
   const resolvedLinks = [];
   const unresolvedLinks = [];
   const legacyRuntimeIdLinks = [];
-  const rewrittenBody = String(article.body || "").replace(
+  const originalBody = String(article.body || "");
+  const rewrittenBody = originalBody.replace(
     /\[([^\]]+)\]\(([^)]+)\)/g,
     (source, label, target) => {
       const linkTarget = String(target || "").trim();
@@ -142,12 +143,13 @@ function resolveArticleLinks(article, pathToId) {
         return source;
       }
       resolvedLinks.push(articleId);
-      return `[${label}](${articleId})`;
+      return `[${label}](${articleId}${resolved.suffix})`;
     },
   );
   return {
     ...article,
-    body: rewrittenBody,
+    body: originalBody,
+    bodyResolved: rewrittenBody,
     links: resolvedLinks,
     unresolvedLinks,
     legacyRuntimeIdLinks,

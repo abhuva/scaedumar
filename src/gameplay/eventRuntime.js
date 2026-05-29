@@ -592,6 +592,7 @@ export function createEventRuntime(deps = {}) {
         : [],
     );
     state.queue = [];
+    restoreTimeBehavior();
     state.active = null;
     state.restoreSpeed = null;
     state.triggerCounts = new Map(Object.entries(snapshot.triggerCounts || {})

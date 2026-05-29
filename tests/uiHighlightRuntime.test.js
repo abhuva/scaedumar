@@ -67,3 +67,18 @@ test("ui highlight runtime clears all active highlights", () => {
 
   assert.equal(element.dataset.uiHighlightActive, undefined);
 });
+
+test("ui highlight runtime reapplies active highlight when target element changes", () => {
+  const runtime = createUiHighlightRuntime();
+  const oldElement = createElement();
+  const newElement = createElement();
+  runtime.registerTarget("hud.inspect", oldElement);
+  runtime.setHighlights("encounter:a", [{ target: "hud.inspect", pulse: true }]);
+
+  assert.equal(oldElement.dataset.uiHighlightActive, "true");
+  assert.equal(runtime.registerTarget("hud.inspect", newElement), true);
+
+  assert.equal(oldElement.dataset.uiHighlightActive, undefined);
+  assert.equal(newElement.dataset.uiHighlightActive, "true");
+  assert.equal(newElement.classList.contains("ui-highlight-pulse"), true);
+});

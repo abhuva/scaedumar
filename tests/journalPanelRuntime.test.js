@@ -54,13 +54,16 @@ test("journal categories are unique and sorted", () => {
 test("journal category filter preserves order and falls back to all", () => {
   const entries = [
     { id: "journal_003", category: "Warning" },
-    { id: "journal_002", category: "Tutorial" },
+    { id: "journal_002", category: " Tutorial " },
     { id: "journal_001", category: "Warning" },
   ];
 
   assert.deepEqual(filterJournalEntriesByCategory(entries, "Warning").map((entry) => entry.id), [
     "journal_003",
     "journal_001",
+  ]);
+  assert.deepEqual(filterJournalEntriesByCategory(entries, "Tutorial").map((entry) => entry.id), [
+    "journal_002",
   ]);
   assert.deepEqual(filterJournalEntriesByCategory(entries, "").map((entry) => entry.id), [
     "journal_003",
@@ -72,7 +75,7 @@ test("journal category filter preserves order and falls back to all", () => {
 test("journal feed wheel scrolls text area while expanded", () => {
   let prevented = false;
   let stopped = false;
-  const entriesEl = { scrollTop: 4 };
+  const entriesEl = { scrollTop: 4, clientHeight: 20, scrollHeight: 100 };
   const handled = handleJournalFeedWheel(entriesEl, true, {
     deltaY: 12,
     preventDefault: () => {
@@ -87,6 +90,21 @@ test("journal feed wheel scrolls text area while expanded", () => {
   assert.equal(entriesEl.scrollTop, 16);
   assert.equal(prevented, true);
   assert.equal(stopped, true);
+});
+
+test("journal feed wheel lets parent handle scroll at limits", () => {
+  let prevented = false;
+  const entriesEl = { scrollTop: 80, clientHeight: 20, scrollHeight: 100 };
+  const handled = handleJournalFeedWheel(entriesEl, true, {
+    deltaY: 12,
+    preventDefault: () => {
+      prevented = true;
+    },
+  });
+
+  assert.equal(handled, false);
+  assert.equal(entriesEl.scrollTop, 80);
+  assert.equal(prevented, false);
 });
 
 test("journal feed wheel does not hijack scrolling while collapsed", () => {

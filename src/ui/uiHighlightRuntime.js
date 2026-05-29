@@ -50,7 +50,18 @@ export function createUiHighlightRuntime() {
   function registerTarget(id, element) {
     const targetId = String(id || "").trim();
     if (!targetId || !element) return false;
+    const previous = targets.get(targetId);
+    if (previous && previous !== element) {
+      clearElementHighlight(previous);
+    }
     targets.set(targetId, element);
+    for (const highlights of activeSources.values()) {
+      const highlight = highlights.find((item) => item.target === targetId);
+      if (highlight) {
+        applyElementHighlight(element, highlight);
+        break;
+      }
+    }
     return true;
   }
 

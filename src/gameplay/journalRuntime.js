@@ -17,13 +17,17 @@ export function createJournalRuntime(deps = {}) {
 
   function addEntry(input = {}) {
     const sourceEventId = String(input.sourceEventId || "");
+    const contentId = String(input.contentId || "").trim();
+    if (!contentId) {
+      return { ok: false, reason: "missing-content-id" };
+    }
     if (sourceEventId && entries.some((entry) => entry.sourceEventId === sourceEventId)) {
       return { ok: false, reason: "duplicate-source-event" };
     }
     const entry = cloneEntry({
       id: input.id || `journal_${String(nextId).padStart(3, "0")}`,
       sourceEventId,
-      contentId: input.contentId,
+      contentId,
       timeTick: input.timeTick ?? getTimeTick(),
       category: input.category,
       tags: input.tags,

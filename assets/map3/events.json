@@ -4,7 +4,7 @@
     "contentId": "map.map3_gathering_test",
     "priority": 100,
     "trigger": {
-      "type": "water_started",
+      "type": "gathering_started",
       "once": true,
       "exclusive": true
     },

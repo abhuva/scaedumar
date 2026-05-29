@@ -81,7 +81,7 @@ export function createWikiRuntime(deps = {}) {
             category: article.category,
             tags: [...article.tags],
             related: [...article.related],
-            body: article.body,
+            body: article.bodyResolved || article.body,
           }
         : missingArticleId
           ? {
