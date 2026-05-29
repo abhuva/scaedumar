@@ -29,6 +29,7 @@ export function createMainCommandAssemblyRuntime(deps) {
     applyCursorLightConfigSnapshot: deps.applyCursorLightConfigSnapshot,
     clearCursorLightPointerState: deps.clearCursorLightPointerState,
     setInteractionMode: deps.setInteractionMode,
+    triggerEvent: deps.triggerEvent,
     requestOverlayDraw: deps.requestOverlayDraw,
     emitTravelPlanningChanged: deps.emitTravelPlanningChanged,
     updateCycleHourLabel: deps.updateCycleHourLabel,

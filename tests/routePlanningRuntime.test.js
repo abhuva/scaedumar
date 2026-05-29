@@ -155,12 +155,21 @@ test("route planning can hide committed overlay without deleting segments", () =
   runtime.updateHoverAtPixel({ x: 15, y: 15 });
   runtime.commitHover();
 
+  assert.equal(runtime.setShowCommittedOverlay(true), true);
   assert.equal(runtime.setShowCommittedOverlay(false), true);
   const snapshot = runtime.getSnapshot();
 
   assert.equal(snapshot.showCommittedOverlay, false);
   assert.equal(snapshot.segments.length, 1);
   assert.ok(snapshot.committed);
+});
+
+test("route planning committed overlay starts hidden", () => {
+  const runtime = createRuntime();
+
+  assert.equal(runtime.getSnapshot().showCommittedOverlay, false);
+  assert.equal(runtime.setShowCommittedOverlay(true), true);
+  assert.equal(runtime.getSnapshot().showCommittedOverlay, true);
 });
 
 test("route planning can cancel waypoint placement without clearing segments", () => {

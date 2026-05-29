@@ -1,3 +1,8 @@
+import {
+  formatContentValidationError,
+  isContentValidationError,
+} from "../../content/contentValidationError.js";
+
 export function bindMapIoControls(deps) {
   if (deps.mapPathLoadBtn && typeof deps.mapPathLoadBtn.addEventListener === "function") {
     deps.mapPathLoadBtn.addEventListener("click", async () => {
@@ -29,6 +34,10 @@ export function bindMapIoControls(deps) {
         await deps.loadMapFromPath(targetPath);
       } catch (error) {
         console.error(`Failed to load map from ${targetPath}`, error);
+        if (isContentValidationError(error)) {
+          deps.setStatus(formatContentValidationError(error), { kind: "error", progress: 1 });
+          return;
+        }
         const message = error instanceof Error ? error.message : String(error);
         deps.setStatus(`Failed to load map '${targetPath}': ${message}`);
       }
@@ -67,6 +76,10 @@ export function bindMapIoControls(deps) {
         await deps.loadMapFromFolderSelection(files);
       } catch (error) {
         console.error("Failed to load selected map folder", error);
+        if (isContentValidationError(error)) {
+          deps.setStatus(formatContentValidationError(error), { kind: "error", progress: 1 });
+          return;
+        }
         const message = error instanceof Error ? error.message : String(error);
         deps.setStatus(`Failed to load selected map folder: ${message}`);
       } finally {

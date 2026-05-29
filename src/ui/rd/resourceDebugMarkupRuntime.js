@@ -1,6 +1,7 @@
 import { getRdAgentsPanelHtml } from "./panels/agentsPanelHtml.js";
 import { getRdAudioPanelHtml } from "./panels/audioPanelHtml.js";
 import { getRdGameplayPanelHtml } from "./panels/gameplayPanelHtml.js";
+import { getRdEventsPanelHtml } from "./panels/eventsPanelHtml.js";
 import { getRdIoPanelHtml } from "./panels/ioPanelHtml.js";
 import { getRdPathingPanelHtml } from "./panels/pathingPanelHtml.js";
 import { getRdTerrainPanelHtml } from "./panels/terrainPanelHtml.js";
@@ -21,6 +22,7 @@ export function injectResourceDebugMarkup() {
   replaceHostWithMarkup("rdDevAgentsPanelHost", getRdAgentsPanelHtml);
   replaceHostWithMarkup("rdDevTrailPanelHost", getRdTrailPanelHtml);
   replaceHostWithMarkup("rdDevGameplayPanelHost", getRdGameplayPanelHtml);
+  replaceHostWithMarkup("rdDevEventsPanelHost", getRdEventsPanelHtml);
   replaceHostWithMarkup("rdDevAudioPanelHost", getRdAudioPanelHtml);
   replaceHostWithMarkup("rdDevPathingPanelHost", getRdPathingPanelHtml);
   replaceHostWithMarkup("rdDevIoPanelHost", getRdIoPanelHtml);

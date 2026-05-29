@@ -33,6 +33,9 @@ function clearElement(element) {
 
 export function createGameplayHudRuntime(deps) {
   const ownerDocument = deps.document || globalThis.document;
+  const ownerWindow = ownerDocument?.defaultView || globalThis.window;
+  let conditionTooltipHideTimer = null;
+  let renderedConditionEffectsSignature = "";
   const activityDefinitions = deps.activityDefinitions && typeof deps.activityDefinitions === "object"
     ? deps.activityDefinitions
     : {};
@@ -73,6 +76,32 @@ export function createGameplayHudRuntime(deps) {
     }
   }
 
+  function hideConditionEffectTooltip() {
+    if (conditionTooltipHideTimer != null) {
+      ownerWindow?.clearTimeout?.(conditionTooltipHideTimer);
+      conditionTooltipHideTimer = null;
+    }
+    if (!deps.conditionEffectTooltipEl) return;
+    clearElement(deps.conditionEffectTooltipEl);
+    deps.conditionEffectTooltipEl.classList.add("hidden");
+  }
+
+  function cancelConditionEffectTooltipHide() {
+    if (conditionTooltipHideTimer == null) return;
+    ownerWindow?.clearTimeout?.(conditionTooltipHideTimer);
+    conditionTooltipHideTimer = null;
+  }
+
+  function scheduleConditionEffectTooltipHide() {
+    if (!deps.conditionEffectTooltipEl || deps.conditionEffectTooltipEl.classList.contains("hidden")) return;
+    if (conditionTooltipHideTimer != null) return;
+    const setTimer = ownerWindow?.setTimeout || globalThis.setTimeout;
+    conditionTooltipHideTimer = setTimer(() => {
+      conditionTooltipHideTimer = null;
+      hideConditionEffectTooltip();
+    }, 120);
+  }
+
   function sync() {
     for (const config of statConfigs) {
       renderStat(config);
@@ -83,11 +112,10 @@ export function createGameplayHudRuntime(deps) {
 
   function renderTooltip(effect) {
     if (!deps.conditionEffectTooltipEl) return;
+    cancelConditionEffectTooltipHide();
     clearElement(deps.conditionEffectTooltipEl);
-    if (!effect) {
-      deps.conditionEffectTooltipEl.classList.add("hidden");
-      return;
-    }
+    deps.conditionEffectTooltipEl.classList.add("hidden");
+    if (!effect) return;
     if (!ownerDocument) return;
     const title = ownerDocument.createElement("h3");
     title.textContent = effect.label;
@@ -119,10 +147,27 @@ export function createGameplayHudRuntime(deps) {
       ? deps.getConditionEffectsSnapshot()
       : null;
     const effects = snapshot && Array.isArray(snapshot.activeEffects) ? snapshot.activeEffects : [];
+    const nextSignature = effects
+      .map((effect) => [
+        effect.id || "",
+        effect.label || "",
+        effect.icon || "",
+        effect.severity || "",
+        effect.description || "",
+        ...(Array.isArray(effect.effectsText) ? effect.effectsText : []),
+        ...(Array.isArray(effect.remedyText) ? effect.remedyText : []),
+      ].join("\u001f"))
+      .join("\u001e");
+    if (nextSignature === renderedConditionEffectsSignature) {
+      deps.conditionEffectStripEl.classList.toggle("hidden", effects.length === 0);
+      return;
+    }
+    renderedConditionEffectsSignature = nextSignature;
+    hideConditionEffectTooltip();
     clearElement(deps.conditionEffectStripEl);
     deps.conditionEffectStripEl.classList.toggle("hidden", effects.length === 0);
     if (!effects.length) {
-      renderTooltip(null);
+      hideConditionEffectTooltip();
       return;
     }
     for (const effect of effects) {
@@ -136,12 +181,40 @@ export function createGameplayHudRuntime(deps) {
       button.title = label;
       button.setAttribute("aria-label", label);
       button.addEventListener("mouseenter", () => renderTooltip(effect));
+      button.addEventListener("pointerenter", cancelConditionEffectTooltipHide);
       button.addEventListener("focus", () => renderTooltip(effect));
-      button.addEventListener("mouseleave", () => renderTooltip(null));
-      button.addEventListener("blur", () => renderTooltip(null));
+      button.addEventListener("mouseleave", scheduleConditionEffectTooltipHide);
+      button.addEventListener("blur", scheduleConditionEffectTooltipHide);
       deps.conditionEffectStripEl.appendChild(button);
     }
   }
+
+  function isPointerInsideTooltipArea(event) {
+    const target = event?.target || null;
+    return Boolean(
+      deps.conditionEffectStripEl?.contains?.(target)
+      || deps.conditionEffectTooltipEl?.contains?.(target),
+    );
+  }
+
+  deps.conditionEffectStripEl?.addEventListener("pointerenter", cancelConditionEffectTooltipHide);
+  deps.conditionEffectStripEl?.addEventListener("pointerleave", scheduleConditionEffectTooltipHide);
+  deps.conditionEffectTooltipEl?.addEventListener("pointerenter", cancelConditionEffectTooltipHide);
+  deps.conditionEffectTooltipEl?.addEventListener("pointerleave", scheduleConditionEffectTooltipHide);
+  ownerDocument?.addEventListener?.("pointermove", (event) => {
+    if (deps.conditionEffectTooltipEl?.classList?.contains("hidden")) return;
+    if (isPointerInsideTooltipArea(event)) {
+      cancelConditionEffectTooltipHide();
+      return;
+    }
+    scheduleConditionEffectTooltipHide();
+  }, true);
+  ownerDocument?.addEventListener?.("keydown", (event) => {
+    if (event.key !== "Escape") return;
+    hideConditionEffectTooltip();
+  }, true);
+  ownerWindow?.addEventListener?.("wheel", hideConditionEffectTooltip, true);
+  ownerWindow?.addEventListener?.("scroll", hideConditionEffectTooltip, true);
 
   function applyActivityButton(button, activityId, fallbackLabel, fallbackTitle) {
     if (!button) return;

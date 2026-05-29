@@ -79,7 +79,7 @@ export function createRoutePlanningRuntime(deps) {
     segments: [],
     selectedSegmentId: null,
     selectedWaypoint: null,
-    showCommittedOverlay: true,
+    showCommittedOverlay: false,
     waypointPlacementActive: true,
     settings: normalizeRoutePlanningSettings(DEFAULT_ROUTE_PLANNING_SETTINGS),
     nextSegmentId: 1,

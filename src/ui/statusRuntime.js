@@ -13,6 +13,8 @@ export function createStatusRuntime(deps) {
     }
     if (deps && deps.titleStatusEl) {
       deps.titleStatusEl.textContent = text;
+      const kind = options && typeof options.kind === "string" ? options.kind : "";
+      deps.titleStatusEl.dataset.statusKind = kind;
     }
     if (options && Object.prototype.hasOwnProperty.call(options, "progress")) {
       setTitleProgress(options.progress);

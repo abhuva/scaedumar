@@ -3,7 +3,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, normalize } from "node:path";
 import test from "node:test";
 
-const RD_PANEL_NAMES = ["terrain", "agents", "trail", "gameplay", "audio", "pathing", "io"];
+const RD_PANEL_NAMES = ["terrain", "agents", "trail", "gameplay", "events", "audio", "pathing", "io"];
 
 function readUtf8(path) {
   return readFileSync(path, "utf8");
@@ -92,6 +92,21 @@ test("RD overlay shortcut rail stays injected through the shell host", () => {
   for (const shortcut of expectedShortcuts) {
     assert.equal(countLiteral(markup, `data-rd-overlay-shortcut="${shortcut}"`), 1, `${shortcut} shortcut count`);
   }
+});
+
+test("RD encounter tab keeps legacy event ids while showing encounter copy", () => {
+  const markup = collectRdMarkup();
+
+  assert.match(markup, /data-rd-dev-tab="events"[^>]*>Encounters<\/button>/);
+  assert.equal(countLiteral(markup, 'id="rdDevEventsPanel"'), 1);
+  assert.equal(countLiteral(markup, 'data-rd-dev-panel="events"'), 1);
+  assert.match(markup, /aria-label="Encounter Debug sections"/);
+  assert.match(markup, /Debug-only encounter controls/);
+  assert.match(markup, /DOM IDs retain event naming for compatibility/);
+  assert.match(markup, />Active Encounter<\/h3>/);
+  assert.match(markup, />Encounter Queue<\/h3>/);
+  assert.match(markup, />Encounter Definitions<\/h3>/);
+  assert.match(markup, />Seen Encounters<\/h3>/);
 });
 
 test("RD markup module relative imports resolve to existing files", () => {

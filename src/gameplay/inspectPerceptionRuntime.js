@@ -39,7 +39,7 @@ function cloneReading(reading) {
 
 export function createInspectPerceptionRuntime(deps = {}) {
   const state = {
-    enabled: false,
+    enabled: deps.initialEnabled === true,
     layer: normalizeInspectOverlayLayer(deps.initialLayer || "water"),
     cursorX: null,
     cursorY: null,

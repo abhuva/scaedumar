@@ -1,0 +1,37 @@
+[
+  {
+    "id": "map3.gathering_test",
+    "contentId": "map.map3_gathering_test",
+    "priority": 100,
+    "trigger": {
+      "type": "gathering_started",
+      "once": true,
+      "exclusive": true
+    },
+    "presentation": {
+      "level": "blocking",
+      "surface": "encounter",
+      "mode": "article",
+      "time": {
+        "mode": "pause"
+      },
+      "uiHighlights": [
+        {
+          "target": "hud.activity.gathering",
+          "color": "#f4d35e",
+          "thickness": 3,
+          "pulse": true
+        }
+      ]
+    },
+    "journal": {
+      "addOnClose": true,
+      "category": "Map Test",
+      "tags": [
+        "map3",
+        "test",
+        "gathering"
+      ]
+    }
+  }
+]

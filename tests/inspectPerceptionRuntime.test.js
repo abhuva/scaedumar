@@ -23,6 +23,23 @@ test("inspect perception normalizes overlay layer helpers", () => {
   assert.equal(getInspectOverlayDisplayLabel("slope"), "Slope");
 });
 
+test("inspect perception can start enabled without an active overlay layer", () => {
+  const buttons = [
+    ["water", { classList: { toggle: () => {} }, setAttribute: () => {} }],
+    ["plants", { classList: { toggle: () => {} }, setAttribute: () => {} }],
+  ];
+  const runtime = createInspectPerceptionRuntime({
+    initialEnabled: true,
+    initialLayer: "none",
+    getLayerButtons: () => buttons,
+  });
+
+  assert.equal(runtime.isEnabled(), true);
+  assert.equal(runtime.getLayer(), "none");
+  assert.equal(runtime.getDebugLayer(), null);
+  assert.equal(runtime.getResourceId(), null);
+});
+
 test("inspect perception non-resource layers only notify debug owners", () => {
   const calls = [];
   const runtime = createInspectPerceptionRuntime({

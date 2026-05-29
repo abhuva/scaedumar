@@ -114,6 +114,7 @@ import { loadActivityCosts } from "./gameplay/activityCostRegistry.js";
 import { createActivityEffectRuntime } from "./gameplay/activityEffectRuntime.js";
 import { loadConditionThresholds } from "./gameplay/conditionThresholdRegistry.js";
 import { loadConditionEffects } from "./gameplay/conditionEffectRegistry.js";
+import { createConditionEventTriggerRuntime } from "./gameplay/conditionEventTriggerRuntime.js";
 import {
   applyConditionEffectModifiers,
   compareConditionEffectSnapshots,
@@ -204,6 +205,29 @@ import { createResourceDebugPanelRuntime } from "./ui/resourceDebugPanelRuntime.
 import { injectResourceDebugMarkup } from "./ui/rd/resourceDebugMarkupRuntime.js";
 import { createRdOverlayShortcutRailRuntime } from "./ui/rdOverlayShortcutRailRuntime.js";
 import { createGameplayHudRuntime } from "./ui/gameplayHudRuntime.js";
+import {
+  createContentRegistry,
+  validateContentReferences,
+  WIKI_ARTICLE_PATHS,
+} from "./content/contentRegistry.js";
+import {
+  GLOBAL_EVENT_DEFINITION_PATHS,
+  loadEventDefinitionFiles,
+} from "./content/eventDefinitionLoader.js";
+import {
+  createContentValidationError,
+  formatContentValidationError,
+} from "./content/contentValidationError.js";
+import { createWikiRuntime } from "./gameplay/wikiRuntime.js";
+import { createJournalRuntime } from "./gameplay/journalRuntime.js";
+import { createEventRuntime } from "./gameplay/eventRuntime.js";
+import { createEventDialogPersistenceRuntime } from "./gameplay/eventDialogPersistenceRuntime.js";
+import { createWikiPanelRuntime } from "./ui/wikiPanelRuntime.js";
+import { createJournalFeedRuntime, createJournalPanelRuntime } from "./ui/journalPanelRuntime.js";
+import { createEncounterPanelRuntime } from "./ui/encounterPanelRuntime.js";
+import { createEventDebugPanelRuntime } from "./ui/eventDebugPanelRuntime.js";
+import { createSideDockRuntime } from "./ui/sideDockRuntime.js";
+import { createUiHighlightRuntime, SEMANTIC_UI_HIGHLIGHT_TARGET_IDS } from "./ui/uiHighlightRuntime.js";
 
 const ITEM_DEFINITIONS = await loadItemDefinitions();
 const ACTIVITY_DEFINITIONS = await loadActivityDefinitions();
@@ -213,6 +237,11 @@ const CONDITION_EFFECTS = await loadConditionEffects();
 const RESOURCE_SEARCHES = await loadResourceSearches();
 const RESOURCE_STOCK_SETTINGS = await loadResourceStockSettings({ resourceIds: Object.keys(RESOURCE_SEARCHES) });
 const DISCOVERY_SETTINGS = await loadDiscoverySettings();
+let EVENT_DEFINITIONS = [];
+let activeEventDefinitions = [];
+let activeMapEventDefinitionCount = 0;
+let lastContentValidation = { ok: true, missing: [] };
+let lastContentValidationError = "";
 const WORLD_KNOWLEDGE_MAP_ID = "world";
 const TRACKS_KNOWLEDGE_MAP_ID = "tracks";
 const SLIME_HUNT_FLEE_EFFECT_ID = "slime_hunt_flee";
@@ -312,11 +341,56 @@ const hudRoutePlanningBtn = getRequiredElementById("hudRoutePlanningBtn");
 const hudGatheringBtn = getRequiredElementById("hudGatheringBtn");
 const hudGatherWaterBtn = getRequiredElementById("hudGatherWaterBtn");
 const hudHuntingBtn = getRequiredElementById("hudHuntingBtn");
-const hudInspectBtn = getRequiredElementById("hudInspectBtn");
 const hudScoutBtn = getRequiredElementById("hudScoutBtn");
 const hudRestBtn = getRequiredElementById("hudRestBtn");
 const hudInventoryBtn = getRequiredElementById("hudInventoryBtn");
 const hudShowPlayerBtn = getRequiredElementById("hudShowPlayerBtn");
+const hudWikiHelpBtn = getRequiredElementById("hudWikiHelpBtn");
+const hudWikiOpenBtn = getRequiredElementById("hudWikiOpenBtn");
+const hudJournalOpenBtn = getRequiredElementById("hudJournalOpenBtn");
+const journalFeedEl = getRequiredElementById("journalFeed");
+const journalFeedToggleBtn = getRequiredElementById("journalFeedToggleBtn");
+const journalFeedEntriesEl = getRequiredElementById("journalFeedEntries");
+const wikiPanelEl = getRequiredElementById("wikiPanel");
+const wikiPanelTitleEl = getRequiredElementById("wikiPanelTitle");
+const wikiPanelSummaryEl = getRequiredElementById("wikiPanelSummary");
+const wikiPanelBodyEl = getRequiredElementById("wikiPanelBody");
+const wikiChoiceListEl = getRequiredElementById("wikiChoiceList");
+const wikiCloseBtn = getRequiredElementById("wikiCloseBtn");
+const wikiBackBtn = getRequiredElementById("wikiBackBtn");
+const wikiSwapSideBtn = getRequiredElementById("wikiSwapSideBtn");
+const wikiResetStateBtn = getRequiredElementById("wikiResetStateBtn");
+const journalPanelEl = getRequiredElementById("journalPanel");
+const journalPanelListEl = getRequiredElementById("journalPanelList");
+const journalCategoryFilterEl = getRequiredElementById("journalCategoryFilter");
+const journalCloseBtn = getRequiredElementById("journalCloseBtn");
+const journalSwapSideBtn = getRequiredElementById("journalSwapSideBtn");
+const encounterBackdropEl = getRequiredElementById("encounterBackdrop");
+const encounterPanelEl = getRequiredElementById("encounterPanel");
+const encounterPanelTitleEl = getRequiredElementById("encounterPanelTitle");
+const encounterPanelSummaryEl = getRequiredElementById("encounterPanelSummary");
+const encounterPanelBodyEl = getRequiredElementById("encounterPanelBody");
+const encounterChoiceListEl = getRequiredElementById("encounterChoiceList");
+const encounterCloseBtn = getRequiredElementById("encounterCloseBtn");
+const eventDebugTriggerDialogBtn = getRequiredElementById("eventDebugTriggerDialogBtn");
+const eventDebugTriggerNoticeBtn = getRequiredElementById("eventDebugTriggerNoticeBtn");
+const eventDebugTriggerGameplayStartedBtn = getRequiredElementById("eventDebugTriggerGameplayStartedBtn");
+const eventDebugTriggerHydrationLowBtn = getRequiredElementById("eventDebugTriggerHydrationLowBtn");
+const eventDebugTriggerFatigueHighBtn = getRequiredElementById("eventDebugTriggerFatigueHighBtn");
+const eventDebugResetBtn = getRequiredElementById("eventDebugResetBtn");
+const eventDebugRefreshBtn = getRequiredElementById("eventDebugRefreshBtn");
+const eventDebugValidateContentBtn = getRequiredElementById("eventDebugValidateContentBtn");
+const eventDebugPreviewSelect = getRequiredElementById("eventDebugPreviewSelect");
+const eventDebugPreviewBtn = getRequiredElementById("eventDebugPreviewBtn");
+const eventDebugPreviewValue = getRequiredElementById("eventDebugPreviewValue");
+const eventDebugContentHealthValue = getRequiredElementById("eventDebugContentHealthValue");
+const eventDebugLastTriggerValue = getRequiredElementById("eventDebugLastTriggerValue");
+const eventDebugActiveValue = getRequiredElementById("eventDebugActiveValue");
+const eventDebugQueueValue = getRequiredElementById("eventDebugQueueValue");
+const eventDebugDefinitionsValue = getRequiredElementById("eventDebugDefinitionsValue");
+const eventDebugSeenValue = getRequiredElementById("eventDebugSeenValue");
+const eventDebugFlagsValue = getRequiredElementById("eventDebugFlagsValue");
+const eventDebugJournalValue = getRequiredElementById("eventDebugJournalValue");
 const cameraResetViewBtn = getRequiredElementById("cameraResetViewBtn");
 const cameraCenterPlayerBtn = getRequiredElementById("cameraCenterPlayerBtn");
 const cameraZoomOutBtn = getRequiredElementById("cameraZoomOutBtn");
@@ -1817,6 +1891,8 @@ async function warmupSlimeOnMapLoaded() {
 }
 
 async function finalizeMapGameplayState() {
+  setStatus("Loading map event definitions...", { progress: 0.705 });
+  await reloadEventDefinitionsForCurrentMap();
   setStatus("Initializing gameplay knowledge map...", { progress: 0.71 });
   resetKnowledgeMapForConfig();
   await warmupSlimeOnMapLoaded();
@@ -2372,6 +2448,341 @@ function getCurrentMapFolderPath() {
 function setStatus(text, options = {}) {
   statusRuntime.setStatus(text, options);
 }
+
+const contentRegistry = createContentRegistry();
+try {
+  setStatus("Loading wiki articles...", { progress: 0.015 });
+  await contentRegistry.loadArticles(WIKI_ARTICLE_PATHS);
+  setStatus("Loading global encounter definitions...", { progress: 0.03 });
+  EVENT_DEFINITIONS = await loadEventDefinitionFiles(GLOBAL_EVENT_DEFINITION_PATHS);
+  activeEventDefinitions = EVENT_DEFINITIONS;
+  const contentValidation = validateContentReferences(contentRegistry, {
+    eventDefinitions: EVENT_DEFINITIONS,
+    uiHighlightTargetIds: SEMANTIC_UI_HIGHLIGHT_TARGET_IDS,
+  });
+  lastContentValidation = contentValidation;
+  lastContentValidationError = "";
+  if (!contentValidation.ok) {
+    throw createContentValidationError("Global wiki/encounter definitions", contentValidation);
+  }
+} catch (error) {
+  lastContentValidationError = formatContentValidationError(error);
+  setStatus(formatContentValidationError(error), { kind: "error", progress: 1 });
+  throw error;
+}
+function buildMapEventDefinitionPath(mapFolderPath) {
+  const folder = normalizeMapFolderPath(mapFolderPath);
+  if (!folder) return "";
+  return isAbsoluteFsPath(folder) ? joinFsPath(folder, "events.json") : buildMapAssetPath(folder, "events.json");
+}
+async function reloadEventDefinitionsForCurrentMap() {
+  const mapEventPath = buildMapEventDefinitionPath(getCurrentMapFolderPath());
+  const mapDefinitions = mapEventPath
+    ? await loadEventDefinitionFiles([{ path: mapEventPath, optional: true }], {
+        fetchJson: (path) => tryLoadJsonFromUrl(path),
+      })
+    : [];
+  const globalEventIds = new Set(EVENT_DEFINITIONS.map((definition) => definition.id));
+  const duplicateMapDefinition = mapDefinitions.find((definition) => globalEventIds.has(definition.id));
+  if (duplicateMapDefinition) {
+    const validation = {
+      ok: false,
+      missing: [{
+        source: "duplicate event ID already defined globally",
+        contentId: duplicateMapDefinition.id,
+      }],
+    };
+    const error = createContentValidationError(`Map encounter definitions (${mapEventPath})`, validation);
+    lastContentValidation = validation;
+    lastContentValidationError = formatContentValidationError(error);
+    throw error;
+  }
+  const definitions = [...EVENT_DEFINITIONS, ...mapDefinitions];
+  const validation = validateContentReferences(contentRegistry, {
+    eventDefinitions: definitions,
+    uiHighlightTargetIds: SEMANTIC_UI_HIGHLIGHT_TARGET_IDS,
+  });
+  lastContentValidation = validation;
+  lastContentValidationError = "";
+  if (!validation.ok) {
+    lastContentValidationError = formatContentValidationError(
+      createContentValidationError(`Map encounter definitions (${mapEventPath})`, validation),
+    );
+    throw createContentValidationError(`Map encounter definitions (${mapEventPath})`, validation);
+  }
+  activeEventDefinitions = definitions;
+  activeMapEventDefinitionCount = mapDefinitions.length;
+  eventRuntime?.replaceDefinitions?.(activeEventDefinitions);
+  eventDebugPanelRuntime?.sync?.();
+  return {
+    globalCount: EVENT_DEFINITIONS.length,
+    mapCount: mapDefinitions.length,
+    totalCount: definitions.length,
+  };
+}
+
+function getContentHealthSnapshot() {
+  return {
+    articleCount: contentRegistry.getSnapshot().articles.length,
+    globalEncounterCount: EVENT_DEFINITIONS.length,
+    mapEncounterCount: activeMapEventDefinitionCount,
+    activeEncounterCount: activeEventDefinitions.length,
+    validation: lastContentValidation,
+    lastError: lastContentValidationError,
+  };
+}
+
+function validateActiveContentReferences() {
+  const validation = validateContentReferences(contentRegistry, {
+    eventDefinitions: activeEventDefinitions,
+    uiHighlightTargetIds: SEMANTIC_UI_HIGHLIGHT_TARGET_IDS,
+  });
+  lastContentValidation = validation;
+  if (validation.ok) {
+    lastContentValidationError = "";
+    setStatus("Content validation passed.");
+  } else {
+    const error = createContentValidationError("Active wiki/encounter definitions", validation);
+    lastContentValidationError = formatContentValidationError(error);
+    setStatus(lastContentValidationError, { kind: "error" });
+  }
+  eventDebugPanelRuntime?.sync?.();
+  return validation;
+}
+
+let wikiPanelRuntime = null;
+let journalPanelRuntime = null;
+let journalFeedRuntime = null;
+let sideDockRuntime = null;
+let uiHighlightRuntime = null;
+let eventRuntime = null;
+let eventDialogPersistenceRuntime = null;
+let eventDebugPanelRuntime = null;
+let encounterPanelRuntime = null;
+let wikiJournalSides = {
+  wiki: "right",
+  journal: "left",
+};
+function applyWikiJournalSideClasses() {
+  wikiPanelEl.classList.toggle("panel-side-left", wikiJournalSides.wiki === "left");
+  wikiPanelEl.classList.toggle("panel-side-right", wikiJournalSides.wiki === "right");
+  journalPanelEl.classList.toggle("panel-side-left", wikiJournalSides.journal === "left");
+  journalPanelEl.classList.toggle("panel-side-right", wikiJournalSides.journal === "right");
+  wikiSwapSideBtn.setAttribute("aria-label", `Swap Wiki to the ${wikiJournalSides.wiki === "left" ? "right" : "left"} side`);
+  journalSwapSideBtn.setAttribute("aria-label", `Swap Journal to the ${wikiJournalSides.journal === "left" ? "right" : "left"} side`);
+}
+function applySideDockClass(element, side) {
+  element.classList.toggle("panel-side-left", side === "left");
+  element.classList.toggle("panel-side-right", side === "right");
+}
+function swapWikiJournalSides() {
+  wikiJournalSides = {
+    wiki: wikiJournalSides.journal,
+    journal: wikiJournalSides.wiki,
+  };
+  sideDockRuntime?.setPanelPreferredSide?.("wiki", wikiJournalSides.wiki);
+  sideDockRuntime?.setPanelPreferredSide?.("journal", wikiJournalSides.journal);
+  if (wikiRuntime?.getSnapshot?.().article) {
+    sideDockRuntime?.openPanel?.("wiki", { side: wikiJournalSides.wiki, reason: "wiki-journal-side-swap" });
+  }
+  if (journalPanelRuntime?.isOpen?.()) {
+    sideDockRuntime?.openPanel?.("journal", { side: wikiJournalSides.journal, reason: "wiki-journal-side-swap" });
+  }
+  applyWikiJournalSideClasses();
+}
+function persistEventDialogState() {
+  eventDialogPersistenceRuntime?.save();
+}
+function resetEventDialogState() {
+  eventRuntime?.resetPersistenceState?.();
+  journalRuntime?.resetPersistenceState?.();
+  eventDialogPersistenceRuntime?.clear?.();
+  wikiPanelRuntime?.sync?.();
+  encounterPanelRuntime?.sync?.();
+  journalPanelRuntime?.sync?.();
+  journalFeedRuntime?.sync?.();
+  eventDebugPanelRuntime?.sync?.();
+  setStatus("Tutorial and journal state reset.");
+}
+const journalRuntime = createJournalRuntime({
+  getTimeTick: () => Math.round(Number(runtimeCore.store.getState().systems?.time?.ticksProcessed || 0)),
+  onChanged: () => {
+    wikiPanelRuntime?.sync();
+    journalPanelRuntime?.sync();
+    journalFeedRuntime?.sync();
+    eventDebugPanelRuntime?.sync();
+    persistEventDialogState();
+  },
+  onNotice: (notice) => {
+    const article = contentRegistry.getArticle(notice.contentId);
+    setStatus(article?.title ? `Journal updated: ${article.title}.` : "Journal updated.");
+  },
+});
+const wikiRuntime = createWikiRuntime({
+  contentRegistry,
+  onChanged: () => {
+    if (wikiRuntime?.getSnapshot?.().article) {
+      sideDockRuntime?.openPanel?.("wiki", { reason: "wiki-runtime-open" });
+    }
+    wikiPanelRuntime?.sync();
+  },
+});
+eventRuntime = createEventRuntime({
+  wikiRuntime,
+  journalRuntime,
+  getTimeSpeed: () => Number(runtimeCore.store.getState().systems?.time?.cycleSpeedHoursPerSec ?? 0),
+  getTimeTick: () => Number(runtimeCore.store.getState().systems?.time?.ticksProcessed ?? 0),
+  dispatchCommand: (command) => dispatchCoreCommand(command),
+  setTimeSpeed: (cycleSpeed) => dispatchCoreCommand({
+    type: "core/time/setCycleSpeed",
+    cycleSpeed: Number.isFinite(Number(cycleSpeed)) ? Number(cycleSpeed) : 0,
+  }),
+  onChanged: () => {
+    wikiPanelRuntime?.sync();
+    encounterPanelRuntime?.sync();
+    eventDebugPanelRuntime?.sync();
+    persistEventDialogState();
+  },
+});
+eventRuntime.loadDefinitions(activeEventDefinitions);
+applyWikiJournalSideClasses();
+wikiSwapSideBtn.addEventListener("click", swapWikiJournalSides);
+journalSwapSideBtn.addEventListener("click", swapWikiJournalSides);
+eventDialogPersistenceRuntime = createEventDialogPersistenceRuntime({
+  storage: window.localStorage,
+  eventRuntime,
+  journalRuntime,
+  onError: (error) => {
+    console.warn("Failed to persist event/dialog state.", error);
+  },
+});
+eventDialogPersistenceRuntime.load();
+sideDockRuntime = createSideDockRuntime();
+uiHighlightRuntime = createUiHighlightRuntime();
+uiHighlightRuntime.registerTarget("hud.inspect", inspectStatusPanelEl);
+uiHighlightRuntime.registerTarget("hud.activity.pathfinding", hudPathfindingBtn);
+uiHighlightRuntime.registerTarget("hud.activity.gathering", hudGatheringBtn);
+uiHighlightRuntime.registerTarget("hud.activity.water", hudGatherWaterBtn);
+sideDockRuntime.registerPanel({
+  id: "rd",
+  priority: 4,
+  preferredSide: "left",
+  isOpen: () => !topicPanelEl.classList.contains("hidden") && topicPanelEl.dataset.activeTopic === "resource-debug",
+  open: () => {},
+  close: () => setActiveTopicBase(""),
+  setSide: () => {},
+});
+wikiPanelRuntime = createWikiPanelRuntime({
+  document,
+  rootEl: wikiPanelEl,
+  titleEl: wikiPanelTitleEl,
+  summaryEl: wikiPanelSummaryEl,
+  bodyEl: wikiPanelBodyEl,
+  choicesEl: wikiChoiceListEl,
+  closeBtn: wikiCloseBtn,
+  backBtn: wikiBackBtn,
+  resetStateBtn: wikiResetStateBtn,
+  helpBtn: hudWikiHelpBtn,
+  wikiRuntime,
+  eventRuntime,
+  resetEventDialogState,
+});
+wikiPanelRuntime.bind();
+journalPanelRuntime = createJournalPanelRuntime({
+  document,
+  rootEl: journalPanelEl,
+  listEl: journalPanelListEl,
+  filterEl: journalCategoryFilterEl,
+  openBtn: hudJournalOpenBtn,
+  closeBtn: journalCloseBtn,
+  journalRuntime,
+  wikiRuntime,
+  getArticle: (id) => contentRegistry.getArticle(id),
+  requestOpen: () => sideDockRuntime?.openPanel?.("journal", { reason: "journal-request-open" })?.ok !== false,
+});
+journalPanelRuntime.bind();
+sideDockRuntime.registerPanel({
+  id: "journal",
+  priority: 1,
+  preferredSide: "left",
+  isOpen: () => journalPanelRuntime?.isOpen?.() || false,
+  open: (reason) => journalPanelRuntime?.open?.(reason),
+  close: () => journalPanelRuntime?.close?.(),
+  setSide: (side) => {
+    wikiJournalSides.journal = side;
+    applyWikiJournalSideClasses();
+  },
+});
+sideDockRuntime.registerPanel({
+  id: "wiki",
+  priority: 3,
+  preferredSide: "right",
+  isOpen: () => Boolean(wikiRuntime?.getSnapshot?.().article),
+  open: () => {},
+  close: () => wikiRuntime?.close?.(),
+  setSide: (side) => {
+    wikiJournalSides.wiki = side;
+    applyWikiJournalSideClasses();
+  },
+});
+journalFeedRuntime = createJournalFeedRuntime({
+  document,
+  rootEl: journalFeedEl,
+  toggleBtn: journalFeedToggleBtn,
+  entriesEl: journalFeedEntriesEl,
+  journalRuntime,
+  wikiRuntime,
+  getArticle: (id) => contentRegistry.getArticle(id),
+});
+journalFeedRuntime.bind();
+encounterPanelRuntime = createEncounterPanelRuntime({
+  document,
+  backdropEl: encounterBackdropEl,
+  rootEl: encounterPanelEl,
+  titleEl: encounterPanelTitleEl,
+  summaryEl: encounterPanelSummaryEl,
+  bodyEl: encounterPanelBodyEl,
+  choicesEl: encounterChoiceListEl,
+  closeBtn: encounterCloseBtn,
+  eventRuntime,
+  wikiRuntime,
+  uiHighlightRuntime,
+  getArticle: (id) => contentRegistry.getArticle(id),
+});
+encounterPanelRuntime.bind();
+hudWikiOpenBtn.addEventListener("click", () => {
+  wikiRuntime.openArticle("wiki.index", { reason: "wiki-button" });
+});
+eventDebugPanelRuntime = createEventDebugPanelRuntime({
+  eventRuntime,
+  journalRuntime,
+  getEventDefinitions: () => activeEventDefinitions.map((definition) => ({ ...definition })),
+  getArticle: (id) => contentRegistry.getArticle(id),
+  openArticle: (id, options) => wikiRuntime.openArticle(id, options),
+  getContentHealthSnapshot,
+  validateContent: validateActiveContentReferences,
+  resetEventDialogState,
+  triggerDialogBtn: eventDebugTriggerDialogBtn,
+  triggerNoticeBtn: eventDebugTriggerNoticeBtn,
+  triggerGameplayStartedBtn: eventDebugTriggerGameplayStartedBtn,
+  triggerHydrationLowBtn: eventDebugTriggerHydrationLowBtn,
+  triggerFatigueHighBtn: eventDebugTriggerFatigueHighBtn,
+  resetBtn: eventDebugResetBtn,
+  refreshBtn: eventDebugRefreshBtn,
+  validateContentBtn: eventDebugValidateContentBtn,
+  previewSelectEl: eventDebugPreviewSelect,
+  previewBtn: eventDebugPreviewBtn,
+  previewValueEl: eventDebugPreviewValue,
+  contentHealthEl: eventDebugContentHealthValue,
+  lastTriggerEl: eventDebugLastTriggerValue,
+  activeEl: eventDebugActiveValue,
+  queueEl: eventDebugQueueValue,
+  definitionsEl: eventDebugDefinitionsValue,
+  seenEl: eventDebugSeenValue,
+  flagsEl: eventDebugFlagsValue,
+  journalEl: eventDebugJournalValue,
+});
+eventDebugPanelRuntime.bind();
 const {
   clamp,
   clampRound: clampRoundBase,
@@ -3263,7 +3674,15 @@ const getRuntimeMode = modeInteractionRuntimeBinding.getRuntimeMode;
 const canUseTopicInCurrentMode = modeInteractionRuntimeBinding.canUseTopicInCurrentMode;
 const canUseInteractionInCurrentMode = modeInteractionRuntimeBinding.canUseInteractionInCurrentMode;
 const setTopicPanelVisible = modeInteractionRuntimeBinding.setTopicPanelVisible;
-const setActiveTopic = modeInteractionRuntimeBinding.setActiveTopic;
+const setActiveTopicBase = modeInteractionRuntimeBinding.setActiveTopic;
+function setActiveTopic(topicName) {
+  const nextTopic = String(topicName || "");
+  if (nextTopic === "resource-debug") {
+    const result = sideDockRuntime?.openPanel?.("rd", { reason: "rd-topic-open" });
+    if (result && result.ok === false) return;
+  }
+  setActiveTopicBase(nextTopic);
+}
 const updateModeCapabilitiesUi = modeInteractionRuntimeBinding.updateModeCapabilitiesUi;
 const getInteractionModeSnapshot = modeInteractionRuntimeBinding.getInteractionModeSnapshot;
 const workspaceRuntime = createWorkspaceRuntime({
@@ -3371,6 +3790,7 @@ let playerActivityRuntime = null;
 let inventoryPanelRuntime = null;
 let activityEffectRuntime = null;
 let conditionEffectRuntime = null;
+let conditionEventTriggerRuntime = null;
 let travelEstimateRuntime = null;
 let travelPlanningRuntime = null;
 let routePlanningRuntime = null;
@@ -3550,7 +3970,7 @@ function getResourceDisplayLabel(resourceId) {
 }
 
 function getInspectOverlayLayer() {
-  return inspectPerceptionRuntime?.getLayer() || "water";
+  return inspectPerceptionRuntime?.getLayer() || "none";
 }
 
 function setInspectOverlayLayer(layer, options = {}) {
@@ -3820,8 +4240,9 @@ function updateInspectStatusPanel(activitySnapshot = getActivitySnapshot()) {
   }
   inspectStatusTitleEl.textContent = "Inspect:";
   inspectStatusEtaEl.textContent = "";
-  inspectResourceRowEl.classList.toggle("hidden", !focused);
-  if (focused) {
+  const hasInspectLayer = layer !== "none";
+  inspectResourceRowEl.classList.toggle("hidden", !focused || !hasInspectLayer);
+  if (focused && hasInspectLayer) {
     const value = getInspectLayerBarValue(layer);
     inspectResourceLabelEl.textContent = getInspectOverlayDisplayLabel(layer);
     inspectResourceBarFillEl.style.width = `${Math.round(value * 100)}%`;
@@ -3830,7 +4251,7 @@ function updateInspectStatusPanel(activitySnapshot = getActivitySnapshot()) {
     inspectResourceBarFillEl.style.width = "0%";
     inspectStatusDetailEl.textContent = isInspectBlockedByActivity(activitySnapshot)
       ? "Inspect focus unavailable during this activity."
-      : "Inspect focus off.";
+      : (focused ? "Inspect active. No layer selected." : "Inspect focus off.");
   }
 }
 
@@ -4127,9 +4548,13 @@ function updateMovementStatusPanel(movementSnapshot) {
     return;
   }
   if (!movementSnapshot || !movementSnapshot.active) {
-    movementStatusPanelEl.classList.add("hidden");
+    movementStatusTitleEl.textContent = "Idle";
+    movementStatusEtaEl.textContent = "Awaiting activity";
+    movementStatusDetailEl.textContent = "No active task.";
+    movementStatusPanelEl.classList.remove("hidden");
     return;
   }
+  movementStatusTitleEl.textContent = "Traveling";
   movementStatusEtaEl.textContent = `Travel time: ${formatMovementDuration(getMovementDurationHours(movementSnapshot))} hours`;
   movementStatusDetailEl.textContent = "";
   movementStatusPanelEl.classList.remove("hidden");
@@ -4192,10 +4617,18 @@ const conditionRuntime = createConditionRuntime({
   setConditionSnapshot: conditionStoreSyncRuntime.setConditionSnapshot,
   onConditionSnapshot: () => {
     conditionEffectRuntime?.sync();
+    conditionEventTriggerRuntime?.sync("condition-change");
     inventoryPanelRuntime?.sync();
     gameplayHudRuntime?.sync();
   },
 });
+conditionEventTriggerRuntime = createConditionEventTriggerRuntime({
+  getConditionSnapshot: () => conditionRuntime.getSnapshot(),
+  triggerEvent: (triggerType, payload) => eventRuntime?.trigger(triggerType, payload),
+  hydrationThreshold: CONDITION_THRESHOLDS.hydration?.warning,
+  fatigueThreshold: CONDITION_THRESHOLDS.fatigue?.warning,
+});
+conditionEventTriggerRuntime.resetBaseline();
 conditionEffectRuntime = createConditionEffectRuntime({
   conditionEffects: CONDITION_EFFECTS,
   getConditionSnapshot: () => conditionRuntime.getSnapshot(),
@@ -4259,7 +4692,8 @@ resourceDiscoveryRuntime = createResourceDiscoveryRuntime({
   },
 });
 inspectPerceptionRuntime = createInspectPerceptionRuntime({
-  initialLayer: "water",
+  initialEnabled: true,
+  initialLayer: "none",
   getMapSize: () => splatSize,
   getFallbackPixel: () => ({ x: playerState.pixelX, y: playerState.pixelY }),
   sampleHeight: (pixelX, pixelY) => sampleInspectGray(heightImageData, pixelX, pixelY),
@@ -4580,7 +5014,7 @@ inspectRouteLayerBtn.addEventListener("click", () => {
   overlayDirtyRuntime.requestOverlayDraw();
   updateInfoPanel?.();
 });
-setInspectOverlayLayer("water", { reason: "startup-init", revealKnowledge: false });
+setInspectOverlayLayer("none", { reason: "startup-init", revealKnowledge: false });
 const inventoryRuntime = createInventoryRuntime({
   playerState,
   entityStore,
@@ -4916,7 +5350,17 @@ inventoryPanelRuntime = createInventoryPanelRuntime({
   dropSelectedBundle: () => inventoryRuntime.dropSelectedBundle(),
   moveSelectedToOpenContainer: () => inventoryRuntime.moveSelectedToOpenContainer(),
   moveSelectedToPlayer: () => inventoryRuntime.moveSelectedToPlayer(),
+  requestOpen: () => sideDockRuntime?.openPanel?.("inventory", { reason: "inventory-request-open" })?.ok !== false,
   setStatus,
+});
+sideDockRuntime.registerPanel({
+  id: "inventory",
+  priority: 2,
+  preferredSide: "left",
+  isOpen: () => inventoryPanelRuntime?.isVisible?.() || false,
+  open: (reason) => inventoryPanelRuntime?.setVisible?.(true, reason),
+  close: () => inventoryPanelRuntime?.setVisible?.(false),
+  setSide: (side) => applySideDockClass(inventoryPanelEl, side),
 });
 gameplayHudRuntime = createGameplayHudRuntime({
   document,
@@ -4930,7 +5374,7 @@ gameplayHudRuntime = createGameplayHudRuntime({
   gatheringBtn: hudGatheringBtn,
   gatherWaterBtn: hudGatherWaterBtn,
   huntingBtn: hudHuntingBtn,
-  inspectBtn: hudInspectBtn,
+  inspectBtn: null,
   scoutBtn: hudScoutBtn,
   restBtn: hudRestBtn,
   inventoryBtn: hudInventoryBtn,
@@ -4944,7 +5388,12 @@ gameplayHudRuntime = createGameplayHudRuntime({
   rebuildMovementField,
   getConditionSnapshot: () => conditionRuntime.getSnapshot(),
   getConditionEffectsSnapshot: () => conditionEffectRuntime.getSnapshot(),
-  toggleInventory: () => inventoryPanelRuntime.setVisible(!inventoryPanelRuntime.isVisible()),
+  toggleInventory: () => {
+    if (inventoryPanelRuntime.isVisible()) {
+      return sideDockRuntime?.closePanel?.("inventory", "hud-toggle-inventory");
+    }
+    return sideDockRuntime?.openPanel?.("inventory", { reason: "hud-toggle-inventory" });
+  },
   setStatus,
 });
 inventoryRuntime.sync();
@@ -5060,6 +5509,7 @@ registerMainCommands(runtimeCore.commandBus, createMainCommandAssemblyRuntime({
   applyCursorLightConfigSnapshot: (...args) => applyCursorLightConfigSnapshot(...args),
   clearCursorLightPointerState: (...args) => clearCursorLightPointerState(...args),
   setInteractionMode: (...args) => setInteractionMode(...args),
+  triggerEvent: (triggerType, payload) => eventRuntime?.trigger(triggerType, payload),
   requestOverlayDraw: () => overlayDirtyRuntime.requestOverlayDraw(),
   emitTravelPlanningChanged,
   updateCycleHourLabel,
@@ -6435,8 +6885,10 @@ runAppShellLifecycleRuntime(createAppShellLifecycleAssemblyRuntime({
   }),
   tryAutoLoadDefaultMap,
   startNewGame: async () => {
-    if (mapLifecycleRuntime.hasLoadedMap()) return;
-    await mapLifecycleRuntime.loadMapFromPath(mapLifecycleRuntime.getCurrentMapFolderPath());
+    if (!mapLifecycleRuntime.hasLoadedMap()) {
+      await mapLifecycleRuntime.loadMapFromPath(mapLifecycleRuntime.getCurrentMapFolderPath());
+    }
+    eventRuntime.trigger("gameplay_started");
   },
   setStatus,
   setSwarmDefaults,

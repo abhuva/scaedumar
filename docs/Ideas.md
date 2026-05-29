@@ -120,21 +120,6 @@ Specifically, if you were to translate the _feeling_ of those three syllables 
 here i draw huge inspiration from "Songs of Syx" -
   check out the animations there, also the particle effects etc.
 
-
-#### **details with sprites**
-(1 pixel equals 1 sprite i.e. 16x16 or 32x32)
-  When we zoom close enough, each "material" like water, rock etc. (needs to be
-  identified and mapped still) gets an assigned sprite (or group of sprites for
-  variations). This is like a normal sprite-based map. But we overlay our
-  normal colored map over this --> the sprite map just gives details once we
-  zoom in close enough. Therefore we do not need to build a huge texture. Only
-  like 100x100 sprites or so (depending on when we start to blend this in)
-
-### **Map Overlays**
-various info maps (height, slope, water, etc.) as overlays
-  with adjustable ranges, so we can specify ranges that get shown and colored
-  (for example only slopes above 51% in red)
-
 ### **Sun / Lighting / Atmosphere**
 right now there is a hardcoded LUT for the
   sun settings (altitude, color), i would like a UI where i can put points on a
@@ -342,16 +327,6 @@ Tracking should be a full-map simulation and a core exploration driver.
   - renderer: frame-rate rendering/interpolation and time-driven visual-only
     effects where useful.
 
-#### **animated movement**
-Or rather movement tied to time-progress. Each step  takes 0.01 hours (minimal timestep) * move-cost of the tile. (the one from
-  dijkstra). This means that easy terrain is traveled fast, while challenging
-  terrain takes a while. Once we clicked from the pathfinding - we do not
-  teleport any longer, instead the chosen path is saved. The game turns from
-  "stop" to "running" mode (time progresses - by how much can be chosen). And
-  then we do each step, wait the appropriate time, do the next step and so on.
-  Of course the action can be canceled at any time, which leaves the player at
-  the current spot and stops time again?
-
 ### Scenario/Campaign/Sandbox Structure (2026-04-21)
 
 - Map scalability insight:
@@ -507,9 +482,6 @@ Or rather movement tied to time-progress. Each step  takes 0.01 hours (minimal t
 ### **player gets light attached**
 so once he is moving, the light moves with
   him.
-
-### **info box**
-- on the side, should show height, slope etc.
 
 ### **water based travel**
 (boat on water, is restricted to movement on water),  we need to be close to it to enter, once entered we still technically control
