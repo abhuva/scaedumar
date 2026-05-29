@@ -50,6 +50,13 @@ export function createInfoPanelRuntime(deps) {
     }
   }
 
+  function updateIdleActivityPanel() {
+    setMovementPanelVisible(true);
+    if (deps.movementStatusTitleEl) deps.movementStatusTitleEl.textContent = "Idle";
+    if (deps.movementStatusEtaEl) deps.movementStatusEtaEl.textContent = "Awaiting activity";
+    if (deps.movementStatusDetailEl) deps.movementStatusDetailEl.textContent = "No active task.";
+  }
+
   function clamp01(value) {
     const safe = Number(value);
     return Number.isFinite(safe) ? Math.max(0, Math.min(1, safe)) : 0;
@@ -301,7 +308,7 @@ export function createInfoPanelRuntime(deps) {
         updateRoutePreviewPanel();
         return;
       }
-      setMovementPanelVisible(false);
+      updateIdleActivityPanel();
       return;
     }
     if (deps.movementStatusTitleEl) {

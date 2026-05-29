@@ -96,9 +96,6 @@
         <div id="journalFeedEntries" class="journal-feed-entries" aria-live="polite"></div>
       </section>
       <div id="conditionEffectStrip" class="condition-effect-strip hidden" aria-label="Active condition effects"></div>
-      <div class="inspect-toggle-slot" aria-label="Perception toggle">
-        <button id="hudInspectBtn" class="hud-action-btn hud-inspect-toggle" type="button" title="Toggle Inspect" aria-pressed="false" data-wiki-id="gameplay.inspect">I</button>
-      </div>
       <div id="conditionEffectTooltip" class="condition-effect-tooltip hidden" role="tooltip"></div>
       <div class="gameplay-condition-bars" aria-label="Condition">
         <article class="condition-bar" data-condition-stat="nutrition">
@@ -117,6 +114,22 @@
           <div class="condition-bar-label"><span>Load</span></div>
           <div class="condition-bar-track"><span data-condition-fill></span><span data-condition-projection></span></div>
         </article>
+        <article class="condition-bar condition-bar-placeholder" aria-hidden="true">
+          <div class="condition-bar-label"><span>--</span></div>
+          <div class="condition-bar-track"><span></span></div>
+        </article>
+        <article class="condition-bar condition-bar-placeholder" aria-hidden="true">
+          <div class="condition-bar-label"><span>--</span></div>
+          <div class="condition-bar-track"><span></span></div>
+        </article>
+        <article class="condition-bar condition-bar-placeholder" aria-hidden="true">
+          <div class="condition-bar-label"><span>--</span></div>
+          <div class="condition-bar-track"><span></span></div>
+        </article>
+        <article class="condition-bar condition-bar-placeholder" aria-hidden="true">
+          <div class="condition-bar-label"><span>--</span></div>
+          <div class="condition-bar-track"><span></span></div>
+        </article>
       </div>
       <div class="hud-system-actions" aria-label="System actions">
         <div class="hud-system-column" aria-label="Debug and shell actions">
@@ -131,6 +144,7 @@
         </div>
       </div>
       <section id="gameTimeDiorama" class="game-time-diorama" aria-label="Game time">
+        <div class="weather-status-bar" aria-label="Weather status">Weather Status</div>
         <div class="time-speed-grid" aria-label="Time speed">
           <button class="time-speed-btn" type="button" data-speed-preset="0x" aria-pressed="false" data-wiki-id="gameplay.time">0x</button>
           <button class="time-speed-btn" type="button" data-speed-preset="1x" aria-pressed="false" data-wiki-id="gameplay.time">1x</button>
@@ -249,6 +263,7 @@
         </div>
         <div class="wiki-panel-actions">
           <button id="wikiBackBtn" type="button">Back</button>
+          <button id="wikiSwapSideBtn" type="button" title="Swap Wiki and Journal sides">Swap</button>
           <button id="wikiResetStateBtn" type="button" title="Reset tutorial and journal state">Reset Tutorials</button>
           <button id="wikiCloseBtn" type="button">Close</button>
         </div>
@@ -264,7 +279,10 @@
           <h2>Journal</h2>
           <p>Recorded events and discoveries.</p>
         </div>
-        <button id="journalCloseBtn" type="button">Close</button>
+        <div class="journal-panel-actions">
+          <button id="journalSwapSideBtn" type="button" title="Swap Wiki and Journal sides">Swap</button>
+          <button id="journalCloseBtn" type="button">Close</button>
+        </div>
       </div>
       <div id="journalPanelList" class="journal-panel-list"></div>
     </aside>

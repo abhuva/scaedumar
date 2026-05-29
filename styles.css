@@ -5,13 +5,25 @@
   --panel-border: rgba(255, 255, 255, 0.14);
   --text: #d7e2ed;
   --muted: #9db0c2;
-  --player-ui-width: 1024px;
+  --player-ui-width: 100vw;
   --player-ui-height: 108px;
   --player-ui-row: calc(var(--player-ui-height) / 3);
   --side-slot-height: calc(var(--player-ui-height) / 2);
   --side-stack-gap: 0px;
   --player-ui-bottom: 0px;
-  --side-stack-x: calc(50% + 512px);
+  --hud-stats-width: 30.9091vw;
+  --hud-button-bank-width: 7.2727vw;
+  --hud-diorama-width: 23.6364vw;
+  --hud-activity-width: 15.4545vw;
+  --hud-inspect-width: 15.4545vw;
+  --hud-effects-height: calc(var(--player-ui-height) * 0.25);
+  --hud-stats-height: calc(var(--player-ui-height) * 0.75);
+  --hud-journal-width: 38.1818vw;
+  --hud-journal-left: var(--hud-stats-width);
+  --hud-journal-collapsed-height: var(--hud-effects-height);
+  --hud-journal-expanded-height: var(--hud-stats-height);
+  --wiki-journal-side-width: var(--hud-stats-width);
+  --side-stack-x: 69.0909vw;
   --pixel-ui-font: "Courier New", "Lucida Console", Monaco, monospace;
 }
 
@@ -276,10 +288,10 @@ body.runtime-gameplay .audio-workspace.active .audio-viewport {
   position: relative;
   z-index: 4;
   display: none;
-  grid-template-rows: 22px 1fr;
-  flex: 0 0 230px;
+  grid-template-rows: var(--hud-effects-height) 1fr;
+  flex: 0 0 var(--hud-diorama-width);
   margin-left: 0;
-  width: 230px;
+  width: var(--hud-diorama-width);
   height: 100%;
   padding: 0;
   border: 1px solid rgba(230, 206, 132, 0.42);
@@ -291,6 +303,32 @@ body.runtime-gameplay .audio-workspace.active .audio-viewport {
     0 16px 34px rgba(0, 0, 0, 0.36),
     inset 0 0 0 1px rgba(255, 255, 255, 0.07);
   transform: none;
+}
+
+.weather-status-bar {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  border-bottom: 1px solid rgba(230, 206, 132, 0.28);
+  color: #9ed7ec;
+  font-family: var(--pixel-ui-font);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  background: rgba(13, 34, 42, 0.64);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.game-time-diorama .time-speed-grid {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: var(--hud-effects-height);
+  z-index: 3;
+  height: 22px;
 }
 
 body.runtime-gameplay .game-time-diorama {
@@ -723,6 +761,7 @@ body.runtime-gameplay .journal-panel {
 body.runtime-gameplay .topic-panel {
   top: 0;
   left: 0;
+  z-index: 12;
   bottom: calc(var(--player-ui-bottom) + var(--player-ui-height));
   height: auto;
   max-height: calc(100vh - var(--player-ui-height) - var(--player-ui-bottom));
@@ -736,7 +775,7 @@ body.runtime-gameplay .topic-panel {
 .journal-panel {
   position: fixed;
   inset: 56px auto auto 50%;
-  z-index: 11;
+  z-index: 9;
   width: min(760px, calc(100vw - 32px));
   max-height: calc(100vh - var(--player-ui-height) - 88px);
   transform: translateX(-50%);
@@ -745,6 +784,27 @@ body.runtime-gameplay .topic-panel {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+body.runtime-gameplay .wiki-panel,
+body.runtime-gameplay .journal-panel {
+  top: 0;
+  bottom: calc(var(--player-ui-bottom) + var(--player-ui-height));
+  width: var(--wiki-journal-side-width);
+  max-height: none;
+  transform: none;
+}
+
+body.runtime-gameplay .wiki-panel.panel-side-left,
+body.runtime-gameplay .journal-panel.panel-side-left {
+  left: 0;
+  right: auto;
+}
+
+body.runtime-gameplay .wiki-panel.panel-side-right,
+body.runtime-gameplay .journal-panel.panel-side-right {
+  left: auto;
+  right: 0;
 }
 
 .wiki-panel.hidden,
@@ -779,7 +839,8 @@ body.runtime-gameplay .topic-panel {
   font-size: 11px;
 }
 
-.wiki-panel-actions {
+.wiki-panel-actions,
+.journal-panel-actions {
   display: flex;
   gap: 8px;
 }
@@ -1530,10 +1591,10 @@ body.runtime-gameplay .row input[type="number"] {
   position: fixed;
   left: var(--side-stack-x);
   right: auto;
-  bottom: calc(var(--player-ui-bottom) + var(--side-slot-height) + var(--side-stack-gap));
-  z-index: 6;
-  width: 240px;
-  height: var(--side-slot-height);
+  bottom: var(--player-ui-bottom);
+  z-index: 8;
+  width: var(--hud-activity-width);
+  height: var(--player-ui-height);
   box-sizing: border-box;
   overflow: hidden;
   border: 1px solid rgba(229, 202, 124, 0.42);
@@ -1546,8 +1607,8 @@ body.runtime-gameplay .row input[type="number"] {
 }
 
 .movement-status-panel.route-planning-panel {
-  bottom: calc(var(--player-ui-bottom) + var(--side-slot-height) + var(--side-stack-gap));
-  height: var(--side-slot-height);
+  bottom: var(--player-ui-bottom);
+  height: var(--player-ui-height);
   overflow: auto;
   border-color: rgba(214, 180, 106, 0.62);
   background:
@@ -1557,12 +1618,12 @@ body.runtime-gameplay .row input[type="number"] {
 
 .inspect-status-panel {
   position: fixed;
-  left: var(--side-stack-x);
+  left: calc(var(--side-stack-x) + var(--hud-activity-width));
   bottom: var(--player-ui-bottom);
-  z-index: 7;
+  z-index: 8;
   display: none;
-  width: 240px;
-  height: var(--side-slot-height);
+  width: var(--hud-inspect-width);
+  height: var(--player-ui-height);
   box-sizing: border-box;
   overflow: hidden;
   border: 1px solid rgba(116, 215, 245, 0.42);
@@ -1580,7 +1641,7 @@ body.runtime-gameplay .inspect-status-panel {
   display: block;
 }
 
-@media (max-width: 1440px) {
+@media (max-width: 1180px) {
   .movement-status-panel,
   .inspect-status-panel {
     left: auto;
@@ -1588,11 +1649,11 @@ body.runtime-gameplay .inspect-status-panel {
   }
 
   .movement-status-panel {
-    bottom: calc(var(--player-ui-bottom) + var(--player-ui-height) + var(--side-slot-height) + var(--side-stack-gap));
+    bottom: calc(var(--player-ui-bottom) + (var(--player-ui-height) * 2));
   }
 
   .movement-status-panel.route-planning-panel {
-    bottom: calc(var(--player-ui-bottom) + var(--player-ui-height) + var(--side-slot-height) + var(--side-stack-gap));
+    bottom: calc(var(--player-ui-bottom) + (var(--player-ui-height) * 2));
   }
 
   .inspect-status-panel {
@@ -1927,7 +1988,7 @@ body.runtime-gameplay .inspect-status-panel {
   display: none;
   align-items: stretch;
   gap: 0;
-  width: min(var(--player-ui-width), 100vw);
+  width: var(--player-ui-width);
   height: var(--player-ui-height);
   border: 1px solid rgba(189, 151, 86, 0.54);
   border-radius: 0;
@@ -1937,7 +1998,7 @@ body.runtime-gameplay .inspect-status-panel {
   box-shadow:
     0 18px 44px rgba(0, 0, 0, 0.42),
     inset 0 0 0 1px rgba(255, 255, 255, 0.05);
-  padding: var(--player-ui-row) 0 0;
+  padding: 0;
   font-family: var(--pixel-ui-font);
   transform: translateX(-50%);
 }
@@ -1949,11 +2010,11 @@ body.runtime-gameplay .gameplay-hud {
 .condition-effect-strip {
   position: absolute;
   left: 0;
-  right: calc((var(--player-ui-row) * 2) + 230px + 305px);
+  right: calc(100% - var(--hud-stats-width));
   top: 0;
   display: flex;
   gap: 0;
-  min-height: var(--player-ui-row);
+  height: var(--hud-effects-height);
   pointer-events: auto;
   overflow: hidden;
 }
@@ -1964,13 +2025,13 @@ body.runtime-gameplay .gameplay-hud {
 
 .journal-feed {
   position: absolute;
-  left: 0;
+  left: var(--hud-journal-left);
   bottom: 100%;
   z-index: 5;
   display: grid;
   grid-template-columns: 30px minmax(0, 1fr);
-  width: 100%;
-  height: var(--player-ui-row);
+  width: var(--hud-journal-width);
+  height: var(--hud-journal-collapsed-height);
   border: 1px solid rgba(229, 202, 124, 0.28);
   background:
     linear-gradient(180deg, rgba(32, 29, 21, 0.96), rgba(10, 16, 17, 0.98)),
@@ -1980,7 +2041,7 @@ body.runtime-gameplay .gameplay-hud {
 }
 
 .journal-feed.expanded {
-  height: calc(var(--player-ui-row) * 3);
+  height: var(--hud-journal-expanded-height);
 }
 
 .journal-feed-entries {
@@ -2066,19 +2127,9 @@ body.runtime-gameplay .gameplay-hud {
   white-space: nowrap;
 }
 
-.inspect-toggle-slot {
-  position: absolute;
-  top: 0;
-  right: 0;
-  display: flex;
-  justify-content: flex-end;
-  width: var(--player-ui-row);
-  min-height: var(--player-ui-row);
-}
-
 .condition-effect-badge {
   min-width: 32px;
-  height: var(--player-ui-row);
+  height: var(--hud-effects-height);
   border: 1px solid rgba(255, 202, 95, 0.72);
   border-radius: 0;
   background:
@@ -2144,11 +2195,14 @@ body.runtime-gameplay .gameplay-hud {
 
 .gameplay-condition-bars {
   display: grid;
-  grid-template-columns: 240px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-template-rows: repeat(4, minmax(0, 1fr));
+  grid-auto-flow: column;
   gap: 0;
-  flex: 0 0 240px;
-  width: 240px;
+  flex: 0 0 var(--hud-stats-width);
+  width: var(--hud-stats-width);
+  height: var(--hud-stats-height);
+  margin-top: var(--hud-effects-height);
 }
 
 .condition-bar {
@@ -2172,6 +2226,15 @@ body.runtime-gameplay .gameplay-hud {
   border-color: rgba(255, 91, 73, 0.95);
   box-shadow: 0 0 16px rgba(255, 75, 58, 0.34);
   animation: condition-critical-pulse 1.4s ease-in-out infinite;
+}
+
+.condition-bar-placeholder {
+  opacity: 0.34;
+}
+
+.condition-bar-placeholder .condition-bar-track span {
+  width: 0%;
+  background: rgba(231, 210, 153, 0.22);
 }
 
 @keyframes condition-critical-pulse {
@@ -2257,18 +2320,18 @@ body.runtime-gameplay .gameplay-hud {
 
 .hud-system-actions {
   display: grid;
-  grid-template-columns: repeat(2, var(--player-ui-row));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-template-rows: 1fr;
   gap: 0;
-  flex: 0 0 calc(var(--player-ui-row) * 2);
-  margin-left: auto;
-  margin-top: calc(-1 * var(--player-ui-row));
+  flex: 0 0 var(--hud-button-bank-width);
+  margin-left: 0;
+  margin-top: 0;
   border-left: 1px solid rgba(229, 202, 124, 0.24);
 }
 
 .hud-system-column {
   display: grid;
-  grid-template-columns: var(--player-ui-row);
+  grid-template-columns: minmax(0, 1fr);
   grid-auto-rows: var(--player-ui-row);
   gap: 0;
 }
@@ -2278,7 +2341,7 @@ body.runtime-gameplay .gameplay-hud {
 }
 
 .hud-system-btn {
-  width: var(--player-ui-row);
+  width: 100%;
   height: var(--player-ui-row);
   min-width: 0;
   line-height: 1;
@@ -2290,7 +2353,7 @@ body.runtime-gameplay .gameplay-hud {
 }
 
 .gameplay-hud .shell-exit-btn {
-  width: var(--player-ui-row);
+  width: 100%;
   border-color: rgba(216, 107, 84, 0.5);
   background: rgba(52, 25, 20, 0.92);
   color: #ffc9b8;
@@ -2305,29 +2368,25 @@ body.runtime-gameplay .gameplay-hud {
 }
 
 .gameplay-action-slots {
-  display: flex;
-  align-items: stretch;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-rows: var(--player-ui-row);
   gap: 0;
+  flex: 0 0 var(--hud-button-bank-width);
+  width: var(--hud-button-bank-width);
+  margin-left: 0;
 }
 
 .gameplay-utility-actions {
-  display: grid;
-  grid-template-columns: 38px;
-  grid-auto-rows: 34px;
-  gap: 0;
+  display: contents;
 }
 
 .gameplay-action-divider {
-  width: 1px;
-  min-height: 74px;
-  background: linear-gradient(180deg, transparent, rgba(229, 202, 124, 0.44), transparent);
+  display: none;
 }
 
 .gameplay-primary-actions {
-  display: grid;
-  grid-template-columns: repeat(7, 38px);
-  grid-auto-rows: 34px;
-  gap: 0;
+  display: contents;
 }
 
 .hud-action-btn {
@@ -2342,6 +2401,11 @@ body.runtime-gameplay .gameplay-hud {
   font-weight: 950;
   text-transform: uppercase;
   cursor: pointer;
+}
+
+.gameplay-action-slots .hud-action-btn {
+  width: 100%;
+  height: var(--player-ui-row);
 }
 
 .hud-action-btn:hover,
@@ -2361,13 +2425,6 @@ body.runtime-gameplay .gameplay-hud {
   box-shadow:
     0 0 0 1px rgba(159, 236, 255, 0.22),
     0 0 18px rgba(89, 210, 238, 0.28);
-}
-
-.hud-inspect-toggle {
-  width: 38px;
-  height: 28px;
-  border-color: rgba(116, 215, 245, 0.42);
-  color: #cbeff7;
 }
 
 .inventory-panel {

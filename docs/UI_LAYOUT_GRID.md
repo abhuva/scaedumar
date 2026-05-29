@@ -7,38 +7,54 @@ The gameplay HUD uses fixed layout units. Do not size these panels from their cu
 - `Player UI Height`: total height of the bottom-center player HUD.
 - `Player UI Row`: one-third of `Player UI Height`.
 - `Side Slot`: one half of `Player UI Height`, equal to 1.5 `Player UI Row`.
-- `Side Stack`: the right-side stack aligned to the player HUD.
-- `Top Side Slot`: activity / travel-planning info panel.
-- `Bottom Side Slot`: Inspect panel.
+- `HUD Activity Slot`: the fixed right-side bottom-HUD area that displays primary activity or travel-planning status.
+- `HUD Inspect Slot`: the fixed right-side bottom-HUD area that displays Inspect controls and readouts.
+- `Wiki/Journal Side Dock`: fixed left/right player-facing article panels above the bottom HUD.
 
 ## CSS Contract
 
 These variables live in `styles.css`:
 
 ```css
---player-ui-width: 1024px;
+--player-ui-width: 100vw;
 --player-ui-height: 108px;
 --player-ui-row: calc(var(--player-ui-height) / 3);
 --side-slot-height: calc(var(--player-ui-height) / 2);
 --side-stack-gap: 0px;
 --player-ui-bottom: 0px;
---side-stack-x: calc(50% + 512px);
+--hud-stats-width: 30.9091vw;
+--hud-button-bank-width: 7.2727vw;
+--hud-diorama-width: 23.6364vw;
+--hud-activity-width: 15.4545vw;
+--hud-inspect-width: 15.4545vw;
+--hud-effects-height: calc(var(--player-ui-height) * 0.25);
+--hud-stats-height: calc(var(--player-ui-height) * 0.75);
+--hud-journal-width: 38.1818vw;
+--hud-journal-left: var(--hud-stats-width);
+--hud-journal-collapsed-height: var(--hud-effects-height);
+--hud-journal-expanded-height: var(--hud-stats-height);
+--wiki-journal-side-width: var(--hud-stats-width);
+--side-stack-x: 69.0909vw;
 ```
 
-The player HUD is fixed at `Player UI Height`. The Activity panel and Inspect panel each occupy one `Side Slot`. Content must fit inside the slot. If content overflows, reduce or simplify the content; do not make the slot grow.
+The player HUD spans the full viewport width and is fixed at `Player UI Height`. The Activity panel and Inspect panel each occupy one right-side HUD panel slot. Content must fit inside the slot. If content overflows, reduce or simplify the content; do not make the slot grow.
 
-HUD blocks should align as fixed blocks, not as soft cards with spacing. The gameplay HUD, Activity panel, and Inspect panel intentionally use square corners and zero inter-block gap so the UI can move toward a pixel-art/block layout.
+The horizontal proportions are derived from the Excalidraw mockup's 1100-unit width: `340 / 80 / 260 / 80 / 170 / 170` for stats/effects, left buttons, diorama, right buttons, Activity, and Inspect. These are implemented as viewport-scaled ratios, not fixed pixel widths.
+
+HUD blocks should align as fixed blocks, not as soft cards with spacing. The gameplay HUD, Activity panel, Inspect panel, and side-docked Wiki/Journal panels intentionally use square corners and zero inter-block gap so the UI can move toward a pixel-art/block layout.
 
 ## Current Gameplay Panels
 
 - The title screen uses a fullscreen cover image, compact text-fit square-corner pixel buttons vertically centered on the left side, and a staged startup progress bar.
-- The bottom-center player HUD owns stats, active condition effects, system actions, the time diorama/time-speed controls, utility actions, primary activities, and the Inspect toggle.
-- Condition stats are compact left-anchored label/bar rows without visible numeric values.
-- The `RD` resource-debug topic button, `O` performance overlay button, and `Exit` button sit in a separated vertical system-action column immediately left of the time diorama.
+- The bottom player HUD spans the full viewport width and owns stats, active condition effects, system/knowledge actions, the weather/time diorama, utility/activity buttons, Activity status, and Inspect status.
+- Condition stats are compact label/bar rows without visible numeric values. The stats area is split into two equal four-row blocks; the second block currently contains placeholders until more stats exist.
+- The condition-effect strip occupies the top quarter of the left stats span and must not cover system/knowledge buttons.
+- The `RD` resource-debug topic button, `O` performance overlay button, and `Exit` button sit in a separated vertical system-action column immediately left of the time diorama. The adjacent knowledge column owns `?`, `W`, and `J`.
 - In gameplay mode, the RD topic panel is a fixed-height left rail anchored to the top/left viewport edges above the player HUD. Save RD Settings lives in the panel title row; first-order and second-order RD tab strips stay fixed below the title row, and only the active tab content panel scrolls.
-- The system-action column, time diorama, and activity/action buttons are right-anchored, leaving an expandable center cap for future stat blocks.
-- The time diorama sits between the center cap and action buttons. Its speed controls are inside the top of the diorama and include `0x` real pause.
-- The top side slot shows primary activity state or pathfinding travel planning.
-- The bottom side slot shows Inspect overlay controls and the selected resource/layer bar.
+- Wiki and Journal use side docks above the bottom HUD with the same width as the left stats/effects column. Journal defaults left, Wiki defaults right, and their header `Swap` buttons exchange only those two sides. RD-dev stays independent and visually above these docks.
+- The compact Journal Feed is centered over the 420-unit middle band covering left buttons, diorama, and right buttons. Collapsed height matches the effect/weather row; expanded height matches the stats row.
+- The time diorama sits between the system/knowledge buttons and action buttons. Its weather-status row is currently a placeholder; its speed controls include `0x` real pause.
+- The Activity slot is always visible. It shows `Idle` when no movement/activity/preview is active.
+- Inspect is enabled by default. The Inspect slot shows Inspect overlay controls and the selected resource/layer bar; activities such as rest can still block/disable Inspect presentation.
 - Primary activity buttons remain the main cancel/switch mechanism. Side panels should avoid duplicate cancel controls.
 - Travel planning uses condition-bar projection overlays for resource/fatigue costs instead of spreadsheet-style numeric cost text.

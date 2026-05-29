@@ -24,8 +24,14 @@ Living notes for the wiki, journal, tutorial, event, and dialog feature.
 - Event/journal state persists locally through `terrain:event-dialog-state:v1`; unsupported future payload versions are ignored.
 - The wiki panel includes a `Reset Tutorials` prototyping action that clears event state, journal entries, and the local persistence payload.
 - Wiki and Journal are separate player-facing panels opened by HUD `W` and `J`; the wiki panel no longer owns a journal side list.
-- A compact HUD Journal Feed spans the full HUD width directly above the HUD, shows the latest entry when collapsed, and expands upward into a short scrollable journal list.
+- In gameplay mode, Wiki and Journal use fixed side-dock slots derived from the RD panel width. Journal defaults left, Wiki defaults right, and their header `Swap` controls exchange only those two sides.
+- A compact HUD Journal Feed spans the center 420-unit mockup band directly above the HUD, shows the latest entry when collapsed, and expands upward into a short scrollable journal list.
 - HUD `J` toggles the Journal panel open/closed. The condition-effect strip is constrained so it does not cover the `RD`/knowledge system buttons.
+- RD-dev remains an independent debug panel with higher z-index than the Wiki/Journal side docks.
+- The bottom HUD spans the full viewport width and uses viewport-scaled Excalidraw ratios: `340 / 80 / 260 / 80 / 170 / 170` for stats/effects, system/knowledge buttons, time/weather diorama, activity buttons, Activity status, and Inspect status.
+- The left stats area is split into two equal four-row blocks; the second block currently contains placeholders for future stats.
+- Activity status is always visible and shows an `Idle` baseline when no movement/activity/preview is active.
+- Inspect is enabled by default and no longer has a dedicated HUD toggle button; blocking/disabled presentation remains available for activities such as rest.
 - `RD > Events > Debug` provides debug-only event trigger buttons and readouts for active event, queue, definitions, seen/repeat/flag state, and journal entries.
 - The first explicit debug event is `debug.sample_dialog`, backed by `tutorial.event_debug`; `debug.sample_notice` covers non-blocking notice behavior.
 - `RD > Events > Debug` also shows the last trigger result, including matched definitions and skip reasons such as already seen, repeat policy, queued, active, or no matching definition.
@@ -159,6 +165,11 @@ Living notes for the wiki, journal, tutorial, event, and dialog feature.
 - [x] Add compact/expandable HUD Journal Feed above the full player HUD.
 - [x] Keep condition-effect strip hit area out of the system/knowledge button columns.
 - [x] Make HUD `J` toggle the Journal panel.
+- [x] Move Wiki and Journal into side-dock slots with a header swap control.
+- [x] Keep RD-dev independent and visually above side-docked player-facing panels.
+- [x] Reflow the bottom HUD into full-width viewport-scaled mockup ratios without changing the base HUD height.
+- [x] Keep the Activity panel visible with an `Idle` baseline state.
+- [x] Remove the HUD Inspect toggle button and initialize Inspect as enabled by default.
 - [ ] Add explicit blocking backdrop or focus treatment if interactions behind the event panel remain confusing.
 - [ ] Add better title/status text for blocking tutorial vs normal wiki browse.
 - [ ] Add journal/open-state indicators.
@@ -203,6 +214,8 @@ Living notes for the wiki, journal, tutorial, event, and dialog feature.
 - Event debug trigger/readout UI lives under `RD > Events > Debug` so it does not compete with player-facing journal/wiki UX.
 - Condition warning triggers are post-change observers owned by `conditionEventTriggerRuntime`; condition mutation stays in `conditionRuntime` and activity/resource owners.
 - Hydration/fatigue threshold warning events are one-shot notices for now. Repeating/escalating warnings are deferred until the survival loop needs them.
+- Wiki/Journal side placement is presentation state only. It is not persisted yet and does not affect RD-dev, which remains the always-on-top debug surface.
+- The current weather-status HUD row is a layout placeholder until a weather/runtime owner exists.
 
 ## Open Questions
 
@@ -212,6 +225,34 @@ Living notes for the wiki, journal, tutorial, event, and dialog feature.
 - Should event authoring stay JSON, or should there be a YAML/build normalization step?
 - What is the first meaningful discovery/warning trigger beyond simple tutorial first-use events?
 - What should the first player-facing journal categories and visual variants be once the journal moves beyond link-list scaffolding?
+
+## Next Session Handoff
+
+- Current branch: `feature/event-dialog-system`.
+- Latest checkpoint before this layout slice: `36cb99e Add event dialog and journal systems`.
+- The gameplay HUD layout is now proportional to the Excalidraw mockup, scaled to viewport width instead of hardcoded 1100px.
+- Horizontal HUD ratios are `340 / 80 / 260 / 80 / 170 / 170`, mapped as `30.9091vw / 7.2727vw / 23.6364vw / 7.2727vw / 15.4545vw / 15.4545vw`.
+- Left stat/effect side width equals Wiki/Journal side dock width.
+- Stats area is split into two equal four-row blocks; only the first block has live stats for now, and the second block contains inert placeholders.
+- Effects occupy the top quarter of the left stat area. Stats occupy the lower three quarters.
+- Journal feed spans the 420-unit center band above the left buttons, diorama, and right buttons. Collapsed height matches the effects/weather row; expanded height matches the stats row.
+- Activity and Inspect panels are equal width and sit inside the bottom HUD right side.
+- The right activity button area intentionally stays in the 80-unit mockup slot and uses a compact `3x3` grid for the current nine controls.
+- Inspect has no HUD toggle button now. `inspectPerceptionRuntime` initializes enabled by default, while rest/scout can still block Inspect presentation.
+- Wiki/Journal side placement is presentation-only and not persisted. Header `Swap` exchanges only Wiki and Journal sides.
+- RD-dev is independent from Wiki/Journal side swapping and has higher z-index.
+- Weather Status is a layout placeholder only; no weather owner is wired into that row yet.
+- Untracked mockup files were intentionally left uncommitted: `Excalidraw/` and `Screenshot 2026-05-29 031220.png`.
+
+Recommended first browser checks next session:
+
+- Start gameplay and confirm the bottom HUD visually matches the Excalidraw ratios across the full viewport.
+- Confirm left stats form two equal blocks of four rows, with placeholders only in block two.
+- Confirm Activity and Inspect are equal width.
+- Confirm journal collapsed/expanded feed aligns only over the middle 420-unit band.
+- Confirm Wiki/Journal side docks match the left/right yellow mockup columns and swap correctly.
+- Confirm RD-dev opens above the left side dock.
+- Confirm Inspect is active on startup and becomes visually disabled during blocking activities like rest/scout.
 
 ## Milestones
 

@@ -331,7 +331,6 @@ const hudRoutePlanningBtn = getRequiredElementById("hudRoutePlanningBtn");
 const hudGatheringBtn = getRequiredElementById("hudGatheringBtn");
 const hudGatherWaterBtn = getRequiredElementById("hudGatherWaterBtn");
 const hudHuntingBtn = getRequiredElementById("hudHuntingBtn");
-const hudInspectBtn = getRequiredElementById("hudInspectBtn");
 const hudScoutBtn = getRequiredElementById("hudScoutBtn");
 const hudRestBtn = getRequiredElementById("hudRestBtn");
 const hudInventoryBtn = getRequiredElementById("hudInventoryBtn");
@@ -349,10 +348,12 @@ const wikiPanelBodyEl = getRequiredElementById("wikiPanelBody");
 const wikiChoiceListEl = getRequiredElementById("wikiChoiceList");
 const wikiCloseBtn = getRequiredElementById("wikiCloseBtn");
 const wikiBackBtn = getRequiredElementById("wikiBackBtn");
+const wikiSwapSideBtn = getRequiredElementById("wikiSwapSideBtn");
 const wikiResetStateBtn = getRequiredElementById("wikiResetStateBtn");
 const journalPanelEl = getRequiredElementById("journalPanel");
 const journalPanelListEl = getRequiredElementById("journalPanelList");
 const journalCloseBtn = getRequiredElementById("journalCloseBtn");
+const journalSwapSideBtn = getRequiredElementById("journalSwapSideBtn");
 const eventDebugTriggerDialogBtn = getRequiredElementById("eventDebugTriggerDialogBtn");
 const eventDebugTriggerNoticeBtn = getRequiredElementById("eventDebugTriggerNoticeBtn");
 const eventDebugTriggerGameplayStartedBtn = getRequiredElementById("eventDebugTriggerGameplayStartedBtn");
@@ -2472,6 +2473,25 @@ let journalFeedRuntime = null;
 let eventRuntime = null;
 let eventDialogPersistenceRuntime = null;
 let eventDebugPanelRuntime = null;
+let wikiJournalSides = {
+  wiki: "right",
+  journal: "left",
+};
+function applyWikiJournalSideClasses() {
+  wikiPanelEl.classList.toggle("panel-side-left", wikiJournalSides.wiki === "left");
+  wikiPanelEl.classList.toggle("panel-side-right", wikiJournalSides.wiki === "right");
+  journalPanelEl.classList.toggle("panel-side-left", wikiJournalSides.journal === "left");
+  journalPanelEl.classList.toggle("panel-side-right", wikiJournalSides.journal === "right");
+  wikiSwapSideBtn.setAttribute("aria-label", `Swap Wiki to the ${wikiJournalSides.wiki === "left" ? "right" : "left"} side`);
+  journalSwapSideBtn.setAttribute("aria-label", `Swap Journal to the ${wikiJournalSides.journal === "left" ? "right" : "left"} side`);
+}
+function swapWikiJournalSides() {
+  wikiJournalSides = {
+    wiki: wikiJournalSides.journal,
+    journal: wikiJournalSides.wiki,
+  };
+  applyWikiJournalSideClasses();
+}
 function persistEventDialogState() {
   eventDialogPersistenceRuntime?.save();
 }
@@ -2520,6 +2540,9 @@ eventRuntime = createEventRuntime({
   },
 });
 eventRuntime.loadDefinitions(activeEventDefinitions);
+applyWikiJournalSideClasses();
+wikiSwapSideBtn.addEventListener("click", swapWikiJournalSides);
+journalSwapSideBtn.addEventListener("click", swapWikiJournalSides);
 eventDialogPersistenceRuntime = createEventDialogPersistenceRuntime({
   storage: window.localStorage,
   eventRuntime,
@@ -4345,7 +4368,10 @@ function updateMovementStatusPanel(movementSnapshot) {
     return;
   }
   if (!movementSnapshot || !movementSnapshot.active) {
-    movementStatusPanelEl.classList.add("hidden");
+    movementStatusTitleEl.textContent = "Idle";
+    movementStatusEtaEl.textContent = "Awaiting activity";
+    movementStatusDetailEl.textContent = "No active task.";
+    movementStatusPanelEl.classList.remove("hidden");
     return;
   }
   movementStatusEtaEl.textContent = `Travel time: ${formatMovementDuration(getMovementDurationHours(movementSnapshot))} hours`;
@@ -4485,6 +4511,7 @@ resourceDiscoveryRuntime = createResourceDiscoveryRuntime({
   },
 });
 inspectPerceptionRuntime = createInspectPerceptionRuntime({
+  initialEnabled: true,
   initialLayer: "water",
   getMapSize: () => splatSize,
   getFallbackPixel: () => ({ x: playerState.pixelX, y: playerState.pixelY }),
@@ -5156,7 +5183,7 @@ gameplayHudRuntime = createGameplayHudRuntime({
   gatheringBtn: hudGatheringBtn,
   gatherWaterBtn: hudGatherWaterBtn,
   huntingBtn: hudHuntingBtn,
-  inspectBtn: hudInspectBtn,
+  inspectBtn: null,
   scoutBtn: hudScoutBtn,
   restBtn: hudRestBtn,
   inventoryBtn: hudInventoryBtn,
