@@ -32,7 +32,7 @@ export async function loadEventDefinitionFiles(paths = [], deps = {}) {
   const fetchJson = typeof deps.fetchJson === "function"
     ? deps.fetchJson
     : async (path) => {
-        const response = await fetch(path);
+        const response = await fetch(path, { cache: "no-store" });
         if (!response.ok) throw new Error(`Failed to load event definitions ${path}: ${response.status}`);
         return response.json();
       };

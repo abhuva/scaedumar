@@ -9,11 +9,17 @@
     },
     "presentation": {
       "level": "notice",
-      "mode": "article"
+      "mode": "article",
+      "surface": "journal"
     },
     "journal": {
       "category": "Survival",
-      "tags": ["survival", "condition", "hydration", "warning"]
+      "tags": [
+        "survival",
+        "condition",
+        "hydration",
+        "warning"
+      ]
     }
   },
   {
@@ -26,11 +32,17 @@
     },
     "presentation": {
       "level": "notice",
-      "mode": "article"
+      "mode": "article",
+      "surface": "journal"
     },
     "journal": {
       "category": "Survival",
-      "tags": ["survival", "condition", "fatigue", "warning"]
+      "tags": [
+        "survival",
+        "condition",
+        "fatigue",
+        "warning"
+      ]
     }
   }
 ]

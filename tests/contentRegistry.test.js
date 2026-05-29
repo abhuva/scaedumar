@@ -12,6 +12,7 @@ import {
   GLOBAL_EVENT_DEFINITION_PATHS,
   loadEventDefinitionFiles,
 } from "../src/content/eventDefinitionLoader.js";
+import { SEMANTIC_UI_HIGHLIGHT_TARGET_IDS } from "../src/ui/uiHighlightRuntime.js";
 
 test("normalizeArticle reads frontmatter IDs and metadata", () => {
   const article = normalizeArticle("docs/wiki/gameplay/travel.md", `---
@@ -52,6 +53,34 @@ test("content registry rejects duplicate article IDs", () => {
     () => registry.registerArticle({ id: "a", title: "Duplicate", tags: [], related: [] }),
     /Duplicate wiki article ID: a/,
   );
+});
+
+test("content registry default fetch bypasses cache for authored articles", async (t) => {
+  const originalFetch = globalThis.fetch;
+  const calls = [];
+  t.after(() => {
+    globalThis.fetch = originalFetch;
+  });
+  globalThis.fetch = async (path, options) => {
+    calls.push({ path, options });
+    return {
+      ok: true,
+      text: async () => `---
+id: cache.test
+title: Cache Test
+---
+
+Body.`,
+    };
+  };
+
+  const registry = createContentRegistry();
+  await registry.loadArticles(["docs/wiki/cache-test.md"]);
+
+  assert.deepEqual(calls, [{
+    path: "docs/wiki/cache-test.md",
+    options: { cache: "no-store" },
+  }]);
 });
 
 test("content registry validates article and event content references", () => {
@@ -96,6 +125,36 @@ Travel article.`));
   });
 });
 
+test("content registry validates authored ui highlight targets", () => {
+  const registry = createContentRegistry();
+  registry.registerArticle(normalizeArticle("docs/wiki/index.md", `---
+id: wiki.index
+title: Index
+---
+
+Index.`));
+  registry.resolveAllArticleLinks();
+
+  assert.deepEqual(validateContentReferences(registry, {
+    eventDefinitions: [{
+      id: "tutorial.highlight",
+      contentId: "wiki.index",
+      presentation: {
+        uiHighlights: [
+          { target: "hud.inspect" },
+          { target: "hud.missing" },
+        ],
+      },
+    }],
+    uiHighlightTargetIds: ["hud.inspect"],
+  }), {
+    ok: false,
+    missing: [
+      { source: "event:tutorial.highlight:uiHighlight", contentId: "hud.missing" },
+    ],
+  });
+});
+
 test("content registry rewrites resolved file links to runtime article IDs", () => {
   const registry = createContentRegistry();
   registry.registerArticle(normalizeArticle("docs/wiki/index.md", `---
@@ -130,11 +189,36 @@ test("shipped wiki articles load and pass content reference validation", async (
     fetchJson: async (path) => JSON.parse(await readFile(path, "utf8")),
   });
 
-  assert.deepEqual(validateContentReferences(registry, { eventDefinitions }), {
+  assert.deepEqual(validateContentReferences(registry, {
+    eventDefinitions,
+    uiHighlightTargetIds: SEMANTIC_UI_HIGHLIGHT_TARGET_IDS,
+  }), {
     ok: true,
     missing: [],
   });
   assert.equal(registry.hasArticle("gameplay.gathering"), true);
   assert.equal(registry.hasArticle("survival.hydration"), true);
   assert.equal(registry.hasArticle("world.knowledge"), true);
+});
+
+test("shipped map3 event sidecar loads and validates with global definitions", async () => {
+  const registry = createContentRegistry({
+    fetchText: (path) => readFile(path, "utf8"),
+  });
+  await registry.loadArticles(WIKI_ARTICLE_PATHS);
+  const eventDefinitions = await loadEventDefinitionFiles([
+    ...GLOBAL_EVENT_DEFINITION_PATHS,
+    "assets/map3/events.json",
+  ], {
+    fetchJson: async (path) => JSON.parse(await readFile(path, "utf8")),
+  });
+
+  assert.equal(eventDefinitions.some((definition) => definition.id === "map3.gathering_test"), true);
+  assert.deepEqual(validateContentReferences(registry, {
+    eventDefinitions,
+    uiHighlightTargetIds: SEMANTIC_UI_HIGHLIGHT_TARGET_IDS,
+  }), {
+    ok: true,
+    missing: [],
+  });
 });

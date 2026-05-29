@@ -152,11 +152,13 @@ export function createInfoPanelRuntime(deps) {
     if (layer === "plants") return "Plants";
     if (layer === "height") return "Height";
     if (layer === "slope") return "Slope";
+    if (layer === "none") return "No layer";
     return "Water";
   }
 
   function getInspectLayerValue(inspectSnapshot) {
     const layer = inspectSnapshot && inspectSnapshot.layer;
+    if (layer === "none") return 0;
     if (layer === "height") return clamp01(inspectSnapshot.inspectHeight);
     if (layer === "slope") return clamp01(inspectSnapshot.inspectSlope);
     if (layer === "tracks") return clamp01(inspectSnapshot.inspectTracks);
@@ -194,10 +196,11 @@ export function createInfoPanelRuntime(deps) {
     }
     if (deps.inspectStatusTitleEl) deps.inspectStatusTitleEl.textContent = "Inspect:";
     if (deps.inspectStatusEtaEl) deps.inspectStatusEtaEl.textContent = "";
+    const hasInspectLayer = inspect.layer !== "none";
     if (deps.inspectResourceRowEl) {
-      deps.inspectResourceRowEl.classList.toggle("hidden", !focused);
+      deps.inspectResourceRowEl.classList.toggle("hidden", !focused || !hasInspectLayer);
     }
-    if (focused) {
+    if (focused && hasInspectLayer) {
       if (deps.inspectResourceLabelEl) deps.inspectResourceLabelEl.textContent = getInspectLayerLabel(inspect.layer);
       if (deps.inspectResourceBarFillEl) deps.inspectResourceBarFillEl.style.width = `${Math.round(getInspectLayerValue(inspect) * 100)}%`;
     } else if (deps.inspectResourceBarFillEl) {
@@ -205,7 +208,9 @@ export function createInfoPanelRuntime(deps) {
     }
     if (deps.inspectStatusDetailEl) {
       deps.inspectStatusDetailEl.textContent = focused
-        ? `${getInspectLayerLabel(inspect.layer)} ${Math.round(getInspectLayerValue(inspect) * 100)}%`
+        ? (hasInspectLayer
+          ? `${getInspectLayerLabel(inspect.layer)} ${Math.round(getInspectLayerValue(inspect) * 100)}%`
+          : "Inspect active. No layer selected.")
         : "Inspect focus off.";
     }
   }

@@ -1,16 +1,20 @@
 ---
 id: wiki.index
 title: Field Notes
-summary: A small guide to the terrain prototype.
+summary: A compact guide to reading ground, time, condition, and routes.
 category: reference
 ---
 
 ## Field Notes
 
-This journal collects short articles about survival actions and the terrain.
+These notes are not a map of everything.
+
+They are a place to return when a choice needs clearer ground under it: where to move, what to carry, when to stop, and what signs are worth trusting.
+
+Start with the land. Then follow the question that matters most.
 
 - [Read the Land](tutorial/first-steps.md)
-- [Event Debug Dialog](tutorial/event-debug.md)
+- [Encounter Debug](tutorial/event-debug.md)
 - [Travel](gameplay/travel.md)
 - [Inspect](gameplay/inspect.md)
 - [Time](gameplay/time.md)

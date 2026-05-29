@@ -173,8 +173,36 @@ function collectEventContentReferences(value, refs = [], source = "event") {
   return refs;
 }
 
+function collectEventUiHighlightReferences(value, refs = [], source = "event") {
+  if (!value || typeof value !== "object") return refs;
+  if (Array.isArray(value)) {
+    for (const item of value) collectEventUiHighlightReferences(item, refs, source);
+    return refs;
+  }
+  const nextSource = typeof value.id === "string" && value.id ? `event:${value.id}` : source;
+  const highlights = value.presentation?.uiHighlights;
+  if (Array.isArray(highlights)) {
+    for (const highlight of highlights) {
+      const target = String(highlight?.target || "").trim();
+      if (target) {
+        refs.push({
+          source: `${nextSource}:uiHighlight`,
+          targetId: target,
+        });
+      }
+    }
+  }
+  for (const item of Object.values(value)) {
+    if (item && typeof item === "object") collectEventUiHighlightReferences(item, refs, nextSource);
+  }
+  return refs;
+}
+
 export function validateContentReferences(contentRegistry, options = {}) {
   const articles = contentRegistry?.getSnapshot?.().articles || [];
+  const uiHighlightTargetIds = Array.isArray(options.uiHighlightTargetIds)
+    ? new Set(options.uiHighlightTargetIds.map((id) => String(id || "").trim()).filter(Boolean))
+    : null;
   const missing = [];
   for (const article of articles) {
     for (const contentId of article.related || []) {
@@ -200,6 +228,13 @@ export function validateContentReferences(contentRegistry, options = {}) {
       missing.push(ref);
     }
   }
+  if (uiHighlightTargetIds) {
+    for (const ref of collectEventUiHighlightReferences(options.eventDefinitions || [])) {
+      if (!uiHighlightTargetIds.has(ref.targetId)) {
+        missing.push({ source: ref.source, contentId: ref.targetId });
+      }
+    }
+  }
   return {
     ok: missing.length === 0,
     missing,
@@ -210,7 +245,7 @@ export function createContentRegistry(deps = {}) {
   const fetchText = typeof deps.fetchText === "function"
     ? deps.fetchText
     : async (path) => {
-        const response = await fetch(path);
+        const response = await fetch(path, { cache: "no-store" });
         if (!response.ok) throw new Error(`Failed to load article ${path}: ${response.status}`);
         return response.text();
       };
@@ -279,7 +314,15 @@ export function createContentRegistry(deps = {}) {
 export const WIKI_ARTICLE_PATHS = [
   "docs/wiki/index.md",
   "docs/wiki/tutorial/first-steps.md",
+  "docs/wiki/tutorial/pathfinding-started.md",
+  "docs/wiki/tutorial/travel-committed.md",
+  "docs/wiki/tutorial/inspect-started.md",
+  "docs/wiki/tutorial/gathering-started.md",
+  "docs/wiki/tutorial/water-started.md",
+  "docs/wiki/tutorial/rest-started.md",
+  "docs/wiki/tutorial/hunting-started.md",
   "docs/wiki/tutorial/event-debug.md",
+  "docs/wiki/maps/map3-gathering-test.md",
   "docs/wiki/gameplay/travel.md",
   "docs/wiki/gameplay/inspect.md",
   "docs/wiki/gameplay/time.md",

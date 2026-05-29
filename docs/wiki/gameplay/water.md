@@ -1,7 +1,7 @@
 ---
 id: gameplay.water
 title: Water
-summary: Search wet terrain and fill carried water containers.
+summary: Search wet ground and fill containers before thirst becomes a plan.
 category: gameplay
 tags: [water, hydration, resources]
 related: [gameplay.inspect, survival.hydration, world.terrain]
@@ -9,11 +9,13 @@ related: [gameplay.inspect, survival.hydration, world.terrain]
 
 ## Water
 
-Water search looks for usable water near the player.
+Water is easiest to ignore while the body still has enough.
 
-Wetness and terrain knowledge make water searches easier to judge. Empty water containers can be filled when a search succeeds.
+Search near wet ground, low ground, and places already marked by knowledge. Inspect can help judge whether the area is worth the time before you begin.
 
-Hydration matters over time, so water sources are worth recording in your route plan.
+A successful search can fill empty containers you carry. Without a container, found water may not travel with you.
+
+Mark good water in your memory before distance makes it urgent.
 
 - [Hydration](../survival/hydration.md)
 - [Inspect](inspect.md)

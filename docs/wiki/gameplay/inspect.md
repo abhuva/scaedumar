@@ -1,15 +1,17 @@
 ---
 id: gameplay.inspect
 title: Inspect
-summary: Inspect reveals focused terrain and resource information.
+summary: Read a focused layer of the ground without stopping other plans.
 category: gameplay
 tags: [inspect, knowledge]
 ---
 
 ## Inspect
 
-Inspect is a secondary perception toggle. It can stay active while most primary activities change.
+Inspect keeps attention on the ground.
 
-The layer buttons choose what the inspect panel and overlays emphasize: tracks, water, plants, height, slope, or routes.
+Use it to read one kind of sign at a time: tracks, water, plants, height, slope, or a marked route. The panel gives a closer measure of what the eye would otherwise miss.
 
-Knowledge limits some resource views. Moving and scouting can reveal more of the world knowledge map.
+Not every sign is known at once. Movement and scouting add to the knowledge map, and that knowledge decides how much the overlays can be trusted.
+
+Change layers when the question changes. Leave them off when the map should stay quiet.

@@ -94,6 +94,21 @@ test("RD overlay shortcut rail stays injected through the shell host", () => {
   }
 });
 
+test("RD encounter tab keeps legacy event ids while showing encounter copy", () => {
+  const markup = collectRdMarkup();
+
+  assert.match(markup, /data-rd-dev-tab="events"[^>]*>Encounters<\/button>/);
+  assert.equal(countLiteral(markup, 'id="rdDevEventsPanel"'), 1);
+  assert.equal(countLiteral(markup, 'data-rd-dev-panel="events"'), 1);
+  assert.match(markup, /aria-label="Encounter Debug sections"/);
+  assert.match(markup, /Debug-only encounter controls/);
+  assert.match(markup, /DOM IDs retain event naming for compatibility/);
+  assert.match(markup, />Active Encounter<\/h3>/);
+  assert.match(markup, />Encounter Queue<\/h3>/);
+  assert.match(markup, />Encounter Definitions<\/h3>/);
+  assert.match(markup, />Seen Encounters<\/h3>/);
+});
+
 test("RD markup module relative imports resolve to existing files", () => {
   const jsPaths = collectJsPaths("src/ui/rd");
 

@@ -1,15 +1,17 @@
 ---
 id: gameplay.travel
 title: Travel
-summary: Use PF to preview and commit local movement.
+summary: Trace a nearby route before spending time and strength on it.
 category: gameplay
 tags: [travel, pathfinding]
 ---
 
 ## Travel
 
-PF opens local pathfinding from the player.
+Travel is chosen before it is spent.
 
-Hover the terrain to preview a path and its projected cost. Click a reachable target to commit travel.
+Use **PF** to trace nearby ground from where you stand. The preview shows whether a place can be reached and what the route will ask from the body.
 
-Travel spends time and condition resources. The bottom bars show projected effects while planning.
+A short line is not always a cheap one. Wet ground, slope, and distance can turn a few steps into a longer cost.
+
+Commit only when the path is worth the time.

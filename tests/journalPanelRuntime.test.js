@@ -3,6 +3,8 @@ import test from "node:test";
 
 import {
   createJournalEntryViewModel,
+  filterJournalEntriesByCategory,
+  getJournalCategories,
   getJournalEntryLinkAriaLabel,
   handleJournalFeedWheel,
 } from "../src/ui/journalPanelRuntime.js";
@@ -38,6 +40,33 @@ test("journal entry link aria label handles missing values", () => {
     getJournalEntryLinkAriaLabel({}, ""),
     "Open journal entry Journal: article",
   );
+});
+
+test("journal categories are unique and sorted", () => {
+  assert.deepEqual(getJournalCategories([
+    { category: "Warning" },
+    { category: "Tutorial" },
+    { category: "Warning" },
+    {},
+  ]), ["Journal", "Tutorial", "Warning"]);
+});
+
+test("journal category filter preserves order and falls back to all", () => {
+  const entries = [
+    { id: "journal_003", category: "Warning" },
+    { id: "journal_002", category: "Tutorial" },
+    { id: "journal_001", category: "Warning" },
+  ];
+
+  assert.deepEqual(filterJournalEntriesByCategory(entries, "Warning").map((entry) => entry.id), [
+    "journal_003",
+    "journal_001",
+  ]);
+  assert.deepEqual(filterJournalEntriesByCategory(entries, "").map((entry) => entry.id), [
+    "journal_003",
+    "journal_002",
+    "journal_001",
+  ]);
 });
 
 test("journal feed wheel scrolls text area while expanded", () => {

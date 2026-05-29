@@ -3,12 +3,12 @@
 ## Purpose
 
 This document captures the planned direction for an in-game wiki/help system and
-its relationship to tutorials, scenario events, dialogs, and the journal.
+its relationship to tutorials, player-facing encounters, dialogs, and the journal.
 
 The core decision is to separate human-facing content from gameplay structure:
 
 - Content files own prose, headings, images, and links.
-- Structural event files own triggers, queueing, time behavior, choices,
+- Structural encounter/event files own triggers, queueing, time behavior, choices,
   conditions, outcomes, and persistence.
 
 This keeps writing and translation practical while preserving explicit runtime
@@ -22,11 +22,11 @@ The system should support:
 - Reusing the same Markdown content for the website through Zensical.
 - Contextual help mode where the cursor becomes a `?` and clicked UI/world
   targets open a relevant wiki page.
-- Tutorial events that can open wiki articles instead of requiring a separate
+- Tutorial encounters that can reuse wiki article content instead of requiring a separate
   tutorial-only framework.
 - A journal that records tutorials, discoveries, decisions, warnings, and
   objective notes.
-- Later scenario events and dialogs with choices, conditions, consequences, and
+- Later scenario encounters and dialogs with choices, conditions, consequences, and
   multi-step progression.
 - Future localization by keeping most translatable text in content files rather
   than mixing it deeply into gameplay data.
@@ -97,7 +97,7 @@ frontmatter, and builds an ID-to-file registry:
 }
 ```
 
-Events, journal entries, and UI help targets reference `gameplay.travel`.
+Encounter definitions, journal entries, and UI help targets reference `gameplay.travel`.
 Markdown prose links use normal CommonMark file links so the same files work in
 Obsidian and Zensical:
 
@@ -191,7 +191,8 @@ state transitions, it belongs in structural data, not content metadata.
 
 Structural files describe runtime behavior and reference content IDs. They can
 use JSON or YAML. YAML may be more author-friendly, while JSON remains useful as
-the normalized runtime/interchange shape.
+the normalized runtime/interchange shape. These files create player-facing
+encounters or journal notices; Markdown files remain presentation-neutral prose.
 
 Example article-backed tutorial event:
 
@@ -202,6 +203,7 @@ trigger:
   type: gameplay_started
   once: true
 presentation:
+  surface: encounter
   level: blocking
   mode: article
   time:
@@ -213,6 +215,37 @@ journal:
 The event definition owns when and how the content appears. The Markdown article
 owns what the player reads.
 
+Do not use Markdown frontmatter tags to make an article become an encounter.
+The same Markdown article can appear in the Wiki side dock, a Journal entry, or
+a blocking Encounter. The structural definition chooses the surface:
+
+- `surface: encounter`: center-screen focused panel for blocking tutorials,
+  dialogs, and decisions.
+- `surface: journal`: non-blocking journal/feed/status presentation.
+- `surface: silent`: no direct UI beyond state or journal outcomes.
+
+For compatibility, missing `surface` defaults from `level`: blocking means
+`encounter`, notice means `journal`, and silent means `silent`.
+
+Player-facing UI and docs should use Encounter for authored blocking/tutorial/dialog
+definitions. Internal code can keep `eventRuntime`, `eventDebug*` DOM IDs, storage
+keys, and `assets/data/events/` paths short-term for compatibility; those names
+are legacy implementation details, not the player-facing concept.
+
+Content validation failures must be visible on the title screen during startup
+and map load. Broken wiki links, missing encounter `contentId` references, and
+duplicate map-local event IDs are authoring errors; the default-map loader should
+not hide them by falling back to another candidate or to placeholder textures.
+`RD > Encounters > Debug` can expose the same validation as a read-only in-game
+health check, including article and encounter counts plus the latest validation
+details.
+
+Encounter definitions may include semantic UI highlight requests under
+`presentation.uiHighlights`. These should use stable target IDs such as
+`hud.inspect` or `hud.activity.pathfinding`, not DOM IDs. A UI owner maps those
+semantic IDs to elements and applies color, thickness, and pulse presentation
+while the encounter is active.
+
 ## Event And Tutorial Model
 
 Tutorials should use the same event system as scenario events. There is no clear
@@ -222,7 +255,7 @@ The first tutorial can be a simple article-backed blocking event:
 
 1. Gameplay starts.
 2. Event runtime queues `tutorial.first_steps` if it has not been seen.
-3. Wiki/content panel opens `contentId: tutorial.first_steps`.
+3. Encounter panel opens `contentId: tutorial.first_steps` in the center of the screen.
 4. Time pauses while the tutorial is open.
 5. Closing the article marks the event as seen.
 6. A journal entry is added if configured.
@@ -232,7 +265,7 @@ This proves wiki content, event triggering, queueing, time behavior, journal
 integration, and persistence without building the richer choice/dialog system
 immediately.
 
-## Event Presentation Levels
+## Encounter Presentation Levels
 
 Events should support different interruption strengths:
 
@@ -246,6 +279,7 @@ Example:
 
 ```yaml
 presentation:
+  surface: encounter
   level: blocking
   mode: article
   time:
@@ -369,6 +403,7 @@ trigger:
   type: trail_discovered
   minStrength: 0.7
 presentation:
+  surface: encounter
   level: blocking
   mode: dialog
   time:
@@ -452,11 +487,12 @@ Suggested owner modules:
 
 - `contentRegistry`: loads and resolves content IDs to Markdown articles and
   metadata.
-- `wikiRuntime`: owns current article, navigation history, and article opening.
-- `wikiPanelRuntime`: renders the supported Markdown subset into UI.
+- `wikiRuntime`: owns reference article browsing, navigation history, and article opening.
+- `wikiPanelRuntime`: renders the supported Markdown subset into the side-docked Wiki.
 - `wikiModeRuntime`: owns `?` mode and click-to-wiki target resolution.
-- `eventRuntime`: owns triggers, queue, active event state, node progression,
-  presentation requests, and event persistence.
+- `eventRuntime`: owns triggers, queue, active event state, node progression, presentation requests, and event persistence. Player-facing blocking output is now called an Encounter to avoid confusion with the technical `EventBus`.
+- `encounterPanelRuntime`: renders active blocking encounters in the center
+  focus panel with choices, Escape handling, and focus trap.
 - `journalRuntime`: owns journal entries, snapshots, and persistence.
 
 The existing technical event bus remains only for post-change notifications and
@@ -584,7 +620,7 @@ A practical first slice:
 4. Add a journal runtime and minimal journal panel/list.
 5. Add `data-wiki-id` to key gameplay HUD controls.
 6. Add `?` wiki mode for DOM UI targets.
-7. Add an event runtime with article-backed blocking events, queueing, pause
+7. Add an event runtime with article-backed blocking encounters, queueing, pause
    behavior, seen-state, and journal-on-close.
 8. Add `tutorial.first_steps` as the first authored tutorial event.
 

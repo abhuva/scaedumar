@@ -3,7 +3,6 @@ import test from "node:test";
 
 import {
   getWikiArticleLinkAriaLabel,
-  getWikiChoiceAriaLabel,
   handleWikiHelpClick,
   handleWikiPanelKeydown,
   updateWikiPanelFocusState,
@@ -76,18 +75,6 @@ function createDeps(overrides = {}) {
   };
 }
 
-test("wiki panel Escape closes active event through event runtime", () => {
-  const { deps, calls } = createDeps({
-    eventSnapshot: { active: { id: "event.intro" } },
-  });
-  const event = createEvent("Escape");
-
-  assert.equal(handleWikiPanelKeydown(event, deps), true);
-  assert.equal(event.prevented, true);
-  assert.equal(event.stopped, true);
-  assert.deepEqual(calls, ["event.close"]);
-});
-
 test("wiki panel Escape closes normal wiki article through wiki runtime", () => {
   const { deps, calls } = createDeps();
   const event = createEvent("Escape");
@@ -116,38 +103,10 @@ test("wiki panel Backspace ignores editable targets", () => {
   assert.deepEqual(calls, []);
 });
 
-test("wiki panel traps Tab inside active event panel", () => {
-  const focused = [];
-  const first = {
-    hidden: false,
-    getAttribute: () => null,
-    focus: () => focused.push("first"),
-  };
-  const second = {
-    hidden: false,
-    getAttribute: () => null,
-    focus: () => focused.push("second"),
-  };
-  const { deps } = createDeps({
-    eventSnapshot: { active: { id: "event.intro" } },
-    document: { activeElement: first },
-    rootEl: { querySelectorAll: () => [first, second] },
-  });
-  const event = createEvent("Tab");
-
-  assert.equal(handleWikiPanelKeydown(event, deps), true);
-  assert.equal(event.prevented, true);
-  assert.deepEqual(focused, ["second"]);
-});
-
 test("wiki generated controls expose descriptive aria labels", () => {
   assert.equal(
     getWikiArticleLinkAriaLabel("Travel", "gameplay.travel"),
     "Open wiki article Travel",
-  );
-  assert.equal(
-    getWikiChoiceAriaLabel({ id: "accept", label: "Accept the risk" }),
-    "Choose Accept the risk",
   );
 });
 
@@ -174,17 +133,12 @@ test("wiki panel stores and restores focus around panel open state", () => {
     },
   };
 
-  updateWikiPanelFocusState(focusState, deps, { article: { id: "tutorial.first_steps" } }, {
-    active: { id: "tutorial.first_steps" },
-  });
-  assert.deepEqual(focused, [["panel", { preventScroll: true }]]);
+  updateWikiPanelFocusState(focusState, deps, { article: { id: "tutorial.first_steps" } }, {});
+  assert.deepEqual(focused, []);
   assert.equal(focusState.restoreTarget, launcher);
 
   updateWikiPanelFocusState(focusState, deps, { article: null }, {});
-  assert.deepEqual(focused, [
-    ["panel", { preventScroll: true }],
-    ["launcher", { preventScroll: true }],
-  ]);
+  assert.deepEqual(focused, [["launcher", { preventScroll: true }]]);
 });
 
 test("wiki help click opens target article and consumes normal click", () => {

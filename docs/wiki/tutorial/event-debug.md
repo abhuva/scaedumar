@@ -1,16 +1,16 @@
 ---
 id: tutorial.event_debug
-title: Event Debug Dialog
-summary: A test dialog for validating the event system.
+title: Encounter Debug
+summary: A small controlled encounter for testing dialog flow and journal writes.
 category: Tutorial
 tags: [tutorial, events, debug]
 related: [wiki.index, gameplay.travel, gameplay.inspect]
 ---
 
-This is a deliberately small test event for validating dialogs, choices, journal outcomes, and event-local flags.
+This is not field knowledge. It is a test encounter kept for checking the machinery behind encounters, choices, journal writes, and event-local flags.
 
-Use it from **RD > Events > Debug**.
+Use it from **RD > Encounters > Debug** when the system needs to be tested without waiting for gameplay triggers.
 
-- Continue to [Travel](../gameplay/travel.md) to test multi-node dialog flow.
-- Write a journal entry to test persistent event outcomes.
-- Close the dialog to test normal event completion.
+- Open [Travel](../gameplay/travel.md) to test a second dialog node.
+- Write a journal entry to test persistent outcomes.
+- Close the encounter to test normal completion.

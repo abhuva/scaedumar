@@ -5,8 +5,8 @@ Living notes for the wiki, journal, tutorial, event, and dialog feature.
 ## Scope
 
 - Build the feature direction from `docs/WIKI_EVENT_DIALOG_DESIGN.md`.
-- Keep content/prose separate from structural event data.
-- Keep player-facing scenario/dialog events separate from the existing technical `EventBus`.
+- Keep content/prose separate from structural encounter/event data.
+- Keep player-facing scenario/dialog encounters separate from the existing technical `EventBus`.
 - Preserve explicit runtime ownership; dialog choices dispatch commands instead of mutating gameplay owners directly.
 - Keep this note as a compact implementation compass, not a detailed changelog.
 
@@ -16,182 +16,78 @@ Living notes for the wiki, journal, tutorial, event, and dialog feature.
 - Authored wiki links use Obsidian/Zensical-compatible CommonMark file links like `[Travel](gameplay/travel.md)`.
 - Runtime content identity uses stable frontmatter IDs; import rewrites resolved wiki file links to runtime article IDs.
 - Global event files are loaded from `GLOBAL_EVENT_DEFINITION_PATHS` in `src/content/eventDefinitionLoader.js`.
-- Optional map-local event definitions load from `events.json` in the current map folder during map finalization.
+- Optional map-local encounter definitions load from `events.json` in the current map folder during map finalization.
 - Duplicate event IDs are rejected across global and map-local files; map-local files may only add IDs.
-- Startup/map-load validation checks wiki `related` IDs, wiki file links, and event `contentId` references before event definitions are used.
-- Runtime owners are `wikiRuntime`, `journalRuntime`, `eventRuntime`, `eventDialogPersistenceRuntime`, `conditionEventTriggerRuntime`, `wikiPanelRuntime`, `journalPanelRuntime`, and `eventDebugPanelRuntime`.
+- Startup/map-load validation checks wiki `related` IDs, wiki file links, encounter `contentId` references, and semantic UI highlight targets before encounter definitions are used.
+- Content validation failures are surfaced on the title screen with multiline details; default-map startup treats these as fatal authoring errors instead of falling through to fallback textures.
+- Runtime owners are `wikiRuntime`, `journalRuntime`, `eventRuntime`, `eventDialogPersistenceRuntime`, `conditionEventTriggerRuntime`, `wikiPanelRuntime`, `journalPanelRuntime`, `encounterPanelRuntime`, `uiHighlightRuntime`, and `eventDebugPanelRuntime`.
+- Player-facing terminology is Encounter for blocking/tutorial/dialog definitions; internal module names, DOM IDs, storage keys, and data folders still use `event`/`eventDebug` naming short-term for compatibility.
+- Blocking player-facing definitions are now presented as center-screen Encounters through `encounterPanelRuntime`; the Wiki side dock is reference-only and no longer renders active encounter choices.
+- Encounter definitions can request temporary semantic UI highlights through `presentation.uiHighlights`; `uiHighlightRuntime` maps semantic target IDs to DOM elements and owns color, thickness, pulse, and source-based clearing.
+- Encounter triggers may use `trigger.exclusive: true` so the highest-priority eligible exclusive definition consumes a trigger call and skips lower-priority matching definitions. This is the intended map-local override path.
 - First-use tutorial triggers currently cover `gameplay_started`, `pathfinding_started`, `travel_committed`, `inspect_started`, `gathering_started`, `water_started`, `rest_started`, and `hunting_started`.
 - Event/journal state persists locally through `terrain:event-dialog-state:v1`; unsupported future payload versions are ignored.
 - The wiki panel includes a `Reset Tutorials` prototyping action that clears event state, journal entries, and the local persistence payload.
 - Wiki and Journal are separate player-facing panels opened by HUD `W` and `J`; the wiki panel no longer owns a journal side list.
-- In gameplay mode, Wiki and Journal use fixed side-dock slots derived from the RD panel width. Journal defaults left, Wiki defaults right, and their header `Swap` controls exchange only those two sides.
+- In gameplay mode, Wiki, Journal, Inventory, and RD use fixed side-dock slots derived from the left stats width. Side-dock visibility is priority-resolved by `src/ui/sideDockRuntime.js` in increasing priority order: Journal, Inventory, Wiki, RD.
 - A compact HUD Journal Feed spans the center 420-unit mockup band directly above the HUD, shows the latest entry when collapsed, and expands upward into a short scrollable journal list.
 - HUD `J` toggles the Journal panel open/closed. The condition-effect strip is constrained so it does not cover the `RD`/knowledge system buttons.
-- RD-dev remains an independent debug panel with higher z-index than the Wiki/Journal side docks.
+- The full Journal panel has a category filter populated from current entries; the HUD `J` button and Journal Feed show a lightweight entry-present indicator. Clicking a journal entry opens its wiki article without closing the Journal panel.
+- RD-dev remains an independent debug panel with the same side-dock width and highest side-dock priority.
 - The bottom HUD spans the full viewport width and uses viewport-scaled Excalidraw ratios: `340 / 80 / 260 / 80 / 170 / 170` for stats/effects, system/knowledge buttons, time/weather diorama, activity buttons, Activity status, and Inspect status.
 - The left stats area is split into two equal four-row blocks; the second block currently contains placeholders for future stats.
 - Activity status is always visible and shows an `Idle` baseline when no movement/activity/preview is active.
 - Inspect is enabled by default and no longer has a dedicated HUD toggle button; blocking/disabled presentation remains available for activities such as rest.
-- `RD > Events > Debug` provides debug-only event trigger buttons and readouts for active event, queue, definitions, seen/repeat/flag state, and journal entries.
-- The first explicit debug event is `debug.sample_dialog`, backed by `tutorial.event_debug`; `debug.sample_notice` covers non-blocking notice behavior.
-- `RD > Events > Debug` also shows the last trigger result, including matched definitions and skip reasons such as already seen, repeat policy, queued, active, or no matching definition.
+- `RD > Encounters > Debug` provides debug-only encounter trigger buttons and readouts for active encounter, queue, definitions, seen/repeat/flag state, and journal entries.
+- `RD > Encounters > Debug` also shows a read-only Content Health card with article/global/map-local/active encounter counts, current validation status, last validation details, and a `VC` button that re-runs active wiki/encounter reference validation.
+- The first explicit debug encounter definition is `debug.sample_dialog`, backed by `tutorial.event_debug`; `debug.sample_notice` covers non-blocking notice behavior.
+- `RD > Encounters > Debug` also shows the last trigger result, including matched definitions and skip reasons such as already seen, repeat policy, queued, active, or no matching definition.
 - Survival warning events live in `assets/data/events/survival.json`; hydration crossing down through 50 and fatigue crossing up through 50 create one-shot notice/journal entries.
+- `assets/map3/events.json` is intentionally kept as a temporary map-local proof fixture. It uses obvious test copy from `map.map3_gathering_test` and should be removed or rewritten when map-specific production content begins.
+- Content creation/polish is intentionally deferred. Current prose exists only where needed to exercise architecture and catch runtime/content-contract issues.
 
-## Full Integration Plan
+## Closure Status
 
-### Phase 0: Guardrails And Tracking
+The Encounter/Wiki/Journal architecture is stable enough to treat the implementation slice as complete.
 
-- [x] Create this living implementation note.
-- [x] Keep `AI_CONTEXT.md` aligned when ownership, persistence, packaging, or UI contracts change.
-- [ ] Keep `docs/WIKI_EVENT_DIALOG_DESIGN.md` as the design source; record implementation deviations here.
-- [x] Keep each slice independently testable and avoid broad quest-engine behavior before concrete gameplay needs exist.
+Completed architecture:
 
-### Phase 1: Content Foundation
+- Wiki, Journal, Encounter, side-dock, highlight, persistence, and RD debug owners are separated.
+- Blocking Encounters are no longer mixed into the Wiki side panel.
+- Journal entries are content references and can link to Wiki articles without closing the Journal.
+- Global and map-local definitions load through one validated definition set.
+- Map-local definitions can add new IDs and can override default trigger behavior with `trigger.exclusive`.
+- Content reload paths bypass browser cache for authored Markdown and event JSON.
+- Validation catches article links, related IDs, event content references, duplicate IDs, and semantic UI highlight targets.
+- RD Encounters debug provides preview, validation health, trigger diagnostics, queue/active state, seen/repeat/flag state, and journal readouts.
 
-- [x] Establish `docs/wiki/` as canonical Markdown authoring location.
-- [x] Add seed articles for index, first tutorial, travel, inspect, and time.
-- [x] Parse frontmatter metadata: `id`, `title`, `summary`, `category`, `tags`, `related`.
-- [x] Resolve articles by stable frontmatter ID instead of path.
-- [x] Reject duplicate article IDs.
-- [x] Add richer authoring validation for missing referenced file links, `related` IDs, and event content IDs.
-- [x] Decide whether `docs/wiki/index.md` remains manually authored or becomes generated.
-- [x] Add more baseline articles for gathering, water, rest, hunting, fatigue, hydration, nutrition, terrain, tracks, and knowledge map.
+Deferred intentionally:
 
-### Phase 2: Wiki Runtime And Panel
+- Final tutorial/survival/map content.
+- Savegame/scenario-state integration beyond the temporary local browser persistence.
+- Broad schema tooling beyond current runtime validation and tests.
+- Large UI target expansion for highlights/help until content actually needs those targets.
 
-- [x] Add `wikiRuntime` for current article, history, and help mode state.
-- [x] Add `wikiPanelRuntime` with a safe initial Markdown subset.
-- [x] Add authored CommonMark file links that resolve to runtime article IDs.
-- [x] Add journal side list inside the wiki panel.
-- [x] Split journal display out of the wiki panel into its own panel and HUD feed.
-- [ ] Improve Markdown support without allowing arbitrary HTML/script execution.
-- [x] Add missing-state UI for unresolved article IDs.
-- [ ] Add article search/filter if content volume warrants it.
-- [x] Add keyboard handling: Escape close, Backspace history, focus trap for blocking event panels.
-- [ ] Add responsive/mobile layout for the wiki panel.
+## Remaining Work
 
-### Phase 3: Contextual Help Mode
+These are not blockers for the current architecture slice. They are follow-up improvements for later development.
 
-- [x] Add HUD `?` help mode button.
-- [x] Add `data-wiki-id` to key HUD, time, and inspect controls.
-- [x] Resolve DOM target clicks through `data-wiki-id`.
-- [x] Add fallback behavior when help mode click has no target.
-- [ ] Add more UI target IDs across inventory, RD panels, activity panel, route menu, and condition bars.
-- [x] Add specific HUD and Inspect target IDs for current baseline wiki articles.
-- [ ] Add world/map target resolution for terrain, resource, tracks, route, and entity context.
-- [x] Ensure help mode does not accidentally trigger the clicked control's normal action.
-
-### Phase 4: Journal
-
-- [x] Add `journalRuntime` for entries and snapshots.
-- [x] Store journal entries as content references, not copied article bodies.
-- [x] Render a minimal journal list.
-- [x] Persist journal entries locally.
-- [ ] Add journal categories and filtering UI.
-- [ ] Add journal summaries or snippets if full articles are too long for journal use.
-- [ ] Add decision/objective/warning entry display variants.
-- [ ] Add journal entry de-duplication policies beyond source-event ID.
-- [ ] Move journal persistence into the future savegame/scenario-state layer when that exists.
-
-### Phase 5: Event Runtime Foundation
-
-- [x] Add `eventRuntime` for structural event definitions.
-- [x] Support `trigger.type`.
-- [x] Support `once` seen-state.
-- [x] Support blocking article events with queueing.
-- [x] Support pause/restore time behavior for blocking events.
-- [x] Support journal-on-close.
-- [x] Support `notice` presentation level as non-blocking journal/status entries.
-- [x] Support `silent` presentation level as state/journal-only events.
-- [x] Support trigger payload conditions such as `minStrength`.
-- [x] Add priority tie-break rules and tests.
-- [x] Add repeatable event policy: cooldowns and max count.
-- [x] Add event-local flags.
-- [ ] Persist queued/active event state if mid-event save becomes required.
-
-### Phase 6: Dialog And Choice Model
-
-- [x] Normalize article-only events into one-node internal dialog shape.
-- [x] Add event nodes with `contentId`, choices, next-node transitions, and close behavior.
-- [x] Render choices in the event/wiki panel without breaking article-only events.
-- [x] Add consequence visibility modes: exact, hinted, hidden, knowledgeBased.
-- [x] Add command outcome support for explicit command dispatch only.
-- [x] Add non-command outcomes owned by the event/journal runtime: `journal/add`, `event/setFlag`, and `event/clearFlag`.
-- [x] Add command result handling and failure feedback for choices that dispatch gameplay commands.
-- [ ] Persist active event/node/choice history when savegame support exists.
-
-### Phase 7: Persistence And Save-State Integration
-
-- [x] Persist seen event IDs locally.
-- [x] Persist journal entries locally.
-- [x] Restore persisted state before startup triggers run.
-- [ ] Decide transition path from `localStorage` to savegame or `scenario_state.json`.
-- [ ] Include active event/node and queue state if mid-event save is required.
-- [x] Include event-local flags and cooldowns.
-- [ ] Include important choice history if future scenario logic needs it.
-- [x] Add migration/version handling for stored event-dialog state.
-- [x] Add user-facing reset/debug path for tutorial/event state.
-
-### Phase 8: Data Loading And Packaging
-
-- [x] Load global structural event definitions from `assets/data/events/`.
-- [x] Copy `docs/wiki/` into `.tauri-dist/docs/wiki/` through `build-tauri.ps1`.
-- [x] Add multiple global event files under `assets/data/events/`.
-- [x] Add map-local event definition loading from `assets/<mapName>/events.json` or equivalent.
-- [ ] Decide whether authoring should stay JSON or add a YAML build/normalization step.
-- [x] Validate duplicate event IDs across global definition files.
-- [x] Validate duplicate event IDs across global and map-local definitions.
-- [x] Decide whether map-local event files may override global event IDs or only add new IDs.
-- [ ] Keep startup/map-load errors visible on title screen when content/event loading fails.
-
-### Phase 9: Gameplay Trigger Integration
-
-- [x] Trigger `gameplay_started` after starting a new game.
-- [x] Add low-risk tutorial triggers for first pathfinding activation and first inspect activation.
-- [x] Add low-risk tutorial triggers for first travel commit, first gather/water/rest/hunt start.
-- [ ] Add discovery triggers from tracks/resource/knowledge changes when meaningful gameplay signals exist.
-- [ ] Add warning triggers from condition thresholds and inventory/resource constraints.
-- [x] Add first warning triggers from hydration/fatigue condition thresholds.
-- [ ] Add scenario/objective triggers after structural event loading supports map-local definitions.
-- [x] Keep triggers explicit owner calls or post-change listener reactions; do not use Markdown metadata for gameplay behavior.
-
-### Phase 10: UI Polish And Accessibility
-
-- [x] Add first blocking panel visual style.
-- [x] Fit the HUD `?` button into the system-action column with fixed-height buttons.
-- [x] Add `RD > Events > Debug` for event trigger/readout testing.
-- [x] Add last-trigger diagnostics to `RD > Events > Debug`.
-- [x] Split HUD system actions into RD/O/Exit and ?/W/J columns.
-- [x] Add compact/expandable HUD Journal Feed above the full player HUD.
-- [x] Keep condition-effect strip hit area out of the system/knowledge button columns.
-- [x] Make HUD `J` toggle the Journal panel.
-- [x] Move Wiki and Journal into side-dock slots with a header swap control.
-- [x] Keep RD-dev independent and visually above side-docked player-facing panels.
-- [x] Reflow the bottom HUD into full-width viewport-scaled mockup ratios without changing the base HUD height.
-- [x] Keep the Activity panel visible with an `Idle` baseline state.
-- [x] Remove the HUD Inspect toggle button and initialize Inspect as enabled by default.
-- [ ] Add explicit blocking backdrop or focus treatment if interactions behind the event panel remain confusing.
-- [ ] Add better title/status text for blocking tutorial vs normal wiki browse.
-- [ ] Add journal/open-state indicators.
-- [x] Add accessible labels for choice buttons and article links.
-- [x] Add keyboard navigation for close, back, and active-event focus trap.
-- [x] Add focus restoration after closing events.
-
-### Phase 11: Validation And Tooling
-
-- [x] Add focused tests for content registry, event runtime, journal runtime, persistence runtime, wiki runtime, and wiki panel behavior.
-- [x] Run full JS tests after `main.js` startup integration.
-- [x] Run markdown lint after docs/wiki and implementation-note changes.
-- [ ] Add tests for wiki panel rendering behavior with DOM fixtures if panel complexity grows.
-- [x] Add tests for help-mode click interception.
-- [x] Add tests for map-local/global event merge behavior.
-- [ ] Add standalone validation tooling for article/event cross-reference integrity.
-- [x] Add runtime startup/map-load validation for article/event cross-reference integrity.
-
+- Improve Markdown rendering only if wiki content needs more structure; keep arbitrary HTML/script execution disallowed.
+- Add article search/filter if wiki content volume makes manual navigation awkward.
+- Add responsive/mobile layout for Wiki, Journal, and Encounter surfaces if mobile or small-window support becomes a target.
+- Expand contextual help and semantic highlight targets across Inventory, route menus, condition bars, RD panels, terrain, resources, tracks, and entities when authored content needs them.
+- Add journal summaries/snippets, visual variants, and richer de-duplication policies once journal entries are more than linked field notes.
+- Move Encounter/Journal persistence from temporary `localStorage` into savegame or scenario-state storage when that layer exists.
+- Persist active Encounter/node/queue/choice history only if mid-encounter save becomes required.
+- Decide whether encounter authoring remains JSON or gains a YAML/build normalization step.
+- Add discovery/resource/track/scenario triggers when those gameplay signals have stable meaning.
+- Add survival warning escalation or repeat policies when the survival loop needs more than one-shot threshold notices.
+- Add standalone validation tooling if content validation needs to run outside app startup, map reload, RD debug, and tests.
+- Replace or remove the `assets/map3/events.json` proof fixture when real map-local content begins.
 ## Decisions
 
 - `docs/wiki/` is the canonical authoring location for now. `build-tauri.ps1` copies it into `.tauri-dist/docs/wiki/` for packaged desktop runtime fetches.
-- Article IDs are stable frontmatter IDs. Derived IDs are development-only and must not be used by authored events.
+- Article IDs are stable frontmatter IDs. Derived IDs are development-only and must not be used by authored encounter definitions.
 - Authored wiki prose links must be CommonMark `.md` file links, not runtime IDs.
 - `contentRegistry` resolves wiki file links to frontmatter IDs during import and rewrites loaded runtime bodies for in-game navigation.
 - `docs/wiki/index.md` remains manually authored for now; generation is deferred until article count or navigation complexity makes manual upkeep error-prone.
@@ -201,32 +97,47 @@ Living notes for the wiki, journal, tutorial, event, and dialog feature.
 - Event/dialog local persistence uses an explicit payload version. Unsupported versions are ignored rather than partially applied.
 - The wiki panel may expose reset/debug actions for tutorial/event prototyping, but reset behavior is owned by runtime modules and persistence, not by the UI renderer.
 - Generated wiki panel controls should carry explicit accessible labels because their visible text can be compact article IDs or short choice labels.
-- The scenario/dialog event runtime is not the technical `EventBus`; it owns player-facing event queue state.
+- The scenario/dialog encounter runtime is not the technical `EventBus`; internally it is still named `eventRuntime` for compatibility, but it owns player-facing encounter queue state.
 - Journal entries store content references, not copied article bodies.
 - Local browser persistence is temporary until a proper savegame/scenario-state layer exists.
 - Gameplay mutations from dialog choices must route through explicit command dispatch.
 - Non-command choice outcomes are intentionally narrow: `journal/add`, `event/setFlag`, and `event/clearFlag`.
 - Wiki/event content reference validation is an authoring guard, not a runtime recovery path.
+- Startup and map-local content validation failures use a typed content-validation error so default-map fallback does not hide broken authored wiki/encounter data.
 - Missing-article UI remains useful for runtime/dev safety even though shipped content should validate cleanly.
-- Wiki/event panel keyboard, focus, help-click, generated-control labels, and reset-button behavior are owned by `wikiPanelRuntime`.
+- Wiki panel keyboard, focus, help-click, generated-control labels, and reset-button behavior are owned by `wikiPanelRuntime`.
+- Encounter panel keyboard, focus trap, backdrop, choice labels, and close behavior are owned by `encounterPanelRuntime`.
+- UI highlights are presentation-only. Authored encounters reference semantic target IDs, not DOM IDs; highlights decorate visible controls and never change gameplay availability.
 - Journal panel and HUD Journal Feed rendering are owned by `journalPanelRuntime`; `journalRuntime` remains the state/persistence owner.
 - HUD knowledge buttons are split from system/debug shell buttons: `?` enables contextual help, `W` opens the wiki, and `J` opens the journal.
-- Event debug trigger/readout UI lives under `RD > Events > Debug` so it does not compete with player-facing journal/wiki UX.
+- Encounter debug trigger/readout UI lives under `RD > Encounters > Debug` so it does not compete with player-facing journal/wiki UX.
+- Content health validation in `RD > Encounters > Debug` is read-only; it may update debug/status text but must not mutate encounter, journal, wiki, or gameplay state.
 - Condition warning triggers are post-change observers owned by `conditionEventTriggerRuntime`; condition mutation stays in `conditionRuntime` and activity/resource owners.
 - Hydration/fatigue threshold warning events are one-shot notices for now. Repeating/escalating warnings are deferred until the survival loop needs them.
 - Wiki/Journal side placement is presentation state only. It is not persisted yet and does not affect RD-dev, which remains the always-on-top debug surface.
 - The current weather-status HUD row is a layout placeholder until a weather/runtime owner exists.
 
-## Open Questions
+## Future Improvements
 
-- Should closing a blocking article always mark the event seen, or should some events require an explicit final action?
-- Where should long-term event/journal persistence live once a full savegame layer exists?
-- Should first-version notices appear as toasts, or only as journal entries?
-- Should event authoring stay JSON, or should there be a YAML/build normalization step?
-- What is the first meaningful discovery/warning trigger beyond simple tutorial first-use events?
-- What should the first player-facing journal categories and visual variants be once the journal moves beyond link-list scaffolding?
+- Decide whether some blocking encounters require an explicit final action instead of marking seen on close.
+- Move long-term Encounter/Journal persistence from `localStorage` into a savegame or scenario-state layer.
+- Decide whether non-blocking notices need toast-style presentation in addition to Journal/feed/status feedback.
+- Decide whether authoring stays JSON or gains a YAML/build normalization step.
+- Add discovery/resource/track triggers once those gameplay signals have stable meaning.
+- Add warning escalation/repeat policy for survival conditions once the survival loop needs it.
+- Add journal summaries/snippets and visual variants when journal content grows beyond linked field notes.
+- Expand semantic highlight/help targets across Inventory, route menus, condition bars, and RD only when authored content needs them.
+- Add standalone content validation tooling if validation needs to run outside the app/test harness.
+- Replace or remove the `assets/map3/events.json` proof fixture when real map-local content begins.
 
-## Next Session Handoff
+## Stabilization Notes
+
+- Owner-module boundaries are in good shape. `eventRuntime` owns player-facing queue/trigger/choice state, `encounterPanelRuntime` owns blocking presentation, `wikiRuntime` owns reference article navigation, `journalRuntime` owns journal state, `sideDockRuntime` owns panel arbitration, `uiHighlightRuntime` owns semantic highlight application, and content modules own loading/validation.
+- `main.js` remains the integration/composition surface, but the Encounter/Wiki/Journal behavior is not implemented as ad-hoc `main.js` state paths.
+- Dialog choices dispatch commands through the injected dispatcher; Encounter runtime does not directly mutate gameplay owners.
+- Content creation is intentionally out of scope for this closure pass.
+
+## Historical Handoff
 
 - Current branch: `feature/event-dialog-system`.
 - Latest checkpoint before this layout slice: `36cb99e Add event dialog and journal systems`.
@@ -239,9 +150,11 @@ Living notes for the wiki, journal, tutorial, event, and dialog feature.
 - Activity and Inspect panels are equal width and sit inside the bottom HUD right side.
 - The right activity button area intentionally stays in the 80-unit mockup slot and uses a compact `3x3` grid for the current nine controls.
 - Inspect has no HUD toggle button now. `inspectPerceptionRuntime` initializes enabled by default, while rest/scout can still block Inspect presentation.
-- Wiki/Journal side placement is presentation-only and not persisted. Header `Swap` exchanges only Wiki and Journal sides.
-- RD-dev is independent from Wiki/Journal side swapping and has higher z-index.
+- Wiki/Journal side placement is presentation-only and not persisted. Header `Swap` exchanges preferred Wiki/Journal sides subject to side-dock priority.
+- RD-dev is independent from Wiki/Journal side swapping and has highest side-dock priority.
 - Weather Status is a layout placeholder only; no weather owner is wired into that row yet.
+- This session added category filtering to the full Journal panel, entry-present indicators on HUD `J` plus the compact Journal Feed, kept Journal open when opening linked articles, aligned RD panel width with Wiki/Journal, moved Inventory into the same side-dock layout, and added side-dock priority arbitration.
+- This session split blocking tutorial/dialog presentation out of the Wiki panel into the centered Encounter panel. Markdown articles remain shared content; structural definitions choose `presentation.surface`.
 - Untracked mockup files were intentionally left uncommitted: `Excalidraw/` and `Screenshot 2026-05-29 031220.png`.
 
 Recommended first browser checks next session:
@@ -258,22 +171,35 @@ Recommended first browser checks next session:
 
 - Added wiki article loading, safe Markdown rendering, help mode, and baseline wiki content.
 - Added journal entries as content references with local persistence.
-- Added article-backed blocking events, notice/silent events, queueing, time behavior, repeat policy, and flags.
+- Added article-backed blocking encounters, notice/silent events, queueing, time behavior, repeat policy, and flags.
 - Added node-based dialog choices, command dispatch, event-owned outcomes, consequence visibility, and failure feedback.
 - Switched wiki authoring links to Obsidian/Zensical-compatible `.md` file links with import-time ID resolution.
-- Added content reference validation for wiki and event data.
+- Added content reference validation for wiki and encounter data.
 - Added global and map-local event definition loading with duplicate-ID rejection.
 - Added first-use tutorial triggers for gameplay start, pathfinding, travel, inspect, gathering, water, rest, and hunting.
 - Added local persistence versioning, migration handling, and reset/debug behavior.
-- Added keyboard/focus/accessibility behavior for the wiki/event panel.
-- Added `RD > Events > Debug` plus sample blocking dialog and notice events.
+- Added keyboard/focus/accessibility behavior for the Wiki and Encounter panels.
+- Added `RD > Encounters > Debug` plus sample blocking dialog and notice encounters.
 - Split Wiki and Journal into separate panels and added the compact/expandable HUD Journal Feed.
 - Added last-trigger diagnostics and first survival warning events for hydration/fatigue thresholds.
 
 ## Latest Validation
 
+- Stabilization closure pass:
+  - `node --check src\content\contentRegistry.js`: pass.
+  - `node --check src\gameplay\eventRuntime.js`: pass.
+  - `node --check src\ui\eventDebugPanelRuntime.js`: pass.
+  - `node --check src\ui\uiHighlightRuntime.js`: pass.
+  - `node --check src\main.js`: pass.
+  - `node --test tests\*.test.js`: pass, 350 tests.
+  - Targeted markdown lint for touched docs: pass.
+  - Full `npm run lint:md` is currently blocked by unrelated trailing whitespace in `docs/notes.md`.
+
+Previous validation checkpoint:
+
 - `node --check src\ui\eventDebugPanelRuntime.js`: pass.
 - `node --check src\gameplay\eventRuntime.js`: pass.
+- `node --check src\ui\encounterPanelRuntime.js`: pass.
 - `node --check src\gameplay\conditionEventTriggerRuntime.js`: pass.
 - `node --check src\ui\journalPanelRuntime.js`: pass.
 - `node --check src\ui\wikiPanelRuntime.js`: pass.
@@ -281,6 +207,6 @@ Recommended first browser checks next session:
 - `node --check src\ui\rd\resourceDebugMarkupRuntime.js`: pass.
 - `node --check src\main.js`: pass.
 - JSON parse for `assets\data\events\tutorials.json`: pass.
-- Focused event/debug/content tests: pass, 32 tests.
-- `node --test tests\*.test.js`: pass, 312 tests.
+- Focused event/wiki/encounter/content tests: pass, 42 tests.
+- `node --test tests\*.test.js`: pass, 323 tests.
 - `npm run lint:md`: pass.

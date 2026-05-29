@@ -15,7 +15,7 @@
     "terrainVisibility": {
       "enabled": true,
       "resourceId": "world",
-      "mode": "black",
+      "mode": "desaturate",
       "ditherScale": 1,
       "knowledgeGamma": 1,
       "baseVisibility": 0.2,

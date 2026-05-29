@@ -24,6 +24,9 @@
   --hud-journal-expanded-height: var(--hud-stats-height);
   --wiki-journal-side-width: var(--hud-stats-width);
   --side-stack-x: 69.0909vw;
+  --player-hud-base-z: 7;
+  --player-hud-panel-z: 8;
+  --player-hud-highlight-z: 10;
   --pixel-ui-font: "Courier New", "Lucida Console", Monaco, monospace;
 }
 
@@ -172,6 +175,11 @@ body {
   text-align: center;
   text-shadow: 0 2px 0 rgba(0, 0, 0, 0.65);
   overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+
+.title-status[data-status-kind="error"] {
+  color: #f1b184;
 }
 
 .workspace-root {
@@ -762,6 +770,7 @@ body.runtime-gameplay .topic-panel {
   top: 0;
   left: 0;
   z-index: 12;
+  width: var(--wiki-journal-side-width);
   bottom: calc(var(--player-ui-bottom) + var(--player-ui-height));
   height: auto;
   max-height: calc(100vh - var(--player-ui-height) - var(--player-ui-bottom));
@@ -787,7 +796,8 @@ body.runtime-gameplay .topic-panel {
 }
 
 body.runtime-gameplay .wiki-panel,
-body.runtime-gameplay .journal-panel {
+body.runtime-gameplay .journal-panel,
+body.runtime-gameplay .inventory-panel {
   top: 0;
   bottom: calc(var(--player-ui-bottom) + var(--player-ui-height));
   width: var(--wiki-journal-side-width);
@@ -796,13 +806,15 @@ body.runtime-gameplay .journal-panel {
 }
 
 body.runtime-gameplay .wiki-panel.panel-side-left,
-body.runtime-gameplay .journal-panel.panel-side-left {
+body.runtime-gameplay .journal-panel.panel-side-left,
+body.runtime-gameplay .inventory-panel.panel-side-left {
   left: 0;
   right: auto;
 }
 
 body.runtime-gameplay .wiki-panel.panel-side-right,
-body.runtime-gameplay .journal-panel.panel-side-right {
+body.runtime-gameplay .journal-panel.panel-side-right,
+body.runtime-gameplay .inventory-panel.panel-side-right {
   left: auto;
   right: 0;
 }
@@ -842,11 +854,13 @@ body.runtime-gameplay .journal-panel.panel-side-right {
 .wiki-panel-actions,
 .journal-panel-actions {
   display: flex;
+  align-items: center;
   gap: 8px;
 }
 
 .wiki-panel-actions button,
 .journal-panel-header button,
+.journal-category-filter,
 .wiki-choice-btn {
   border: 1px solid rgba(229, 202, 124, 0.36);
   border-radius: 0;
@@ -864,6 +878,20 @@ body.runtime-gameplay .journal-panel.panel-side-right {
 
 .journal-panel-header button {
   padding: 7px 10px;
+}
+
+.journal-filter-label {
+  color: rgba(242, 223, 168, 0.68);
+  font: 10px/1 var(--pixel-ui-font);
+  font-weight: 950;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.journal-category-filter {
+  max-width: 116px;
+  padding: 6px 7px;
+  font-size: 10px;
 }
 
 .wiki-panel-actions button:disabled {
@@ -1022,6 +1050,191 @@ body.runtime-gameplay .journal-panel.panel-side-right {
   margin: 0;
   color: rgba(242, 235, 210, 0.58);
   font: 12px/1.45 var(--pixel-ui-font);
+}
+
+.encounter-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background:
+    radial-gradient(circle at 50% 40%, rgba(0, 0, 0, 0.16), rgba(0, 0, 0, 0.68)),
+    rgba(0, 0, 0, 0.34);
+  pointer-events: auto;
+}
+
+.encounter-panel {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 31;
+  display: flex;
+  flex-direction: column;
+  width: min(680px, calc(100vw - 48px));
+  max-height: min(620px, calc(100vh - var(--player-ui-height) - 56px));
+  transform: translate(-50%, -50%);
+  border: 1px solid rgba(229, 202, 124, 0.62);
+  border-radius: 0;
+  background:
+    linear-gradient(180deg, rgba(48, 35, 20, 0.98), rgba(8, 13, 14, 0.99)),
+    rgba(12, 17, 18, 0.98);
+  color: var(--text);
+  font-family: var(--pixel-ui-font);
+  box-shadow:
+    0 28px 80px rgba(0, 0, 0, 0.62),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.encounter-backdrop.hidden,
+.encounter-panel.hidden {
+  display: none;
+}
+
+.encounter-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(229, 202, 124, 0.42);
+}
+
+.encounter-panel-header h2 {
+  margin: 0;
+  color: #ffe2a0;
+  font-size: 15px;
+  font-weight: 950;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.encounter-panel-header p {
+  margin: 5px 0 0;
+  color: rgba(242, 223, 168, 0.76);
+  font-size: 11px;
+}
+
+.encounter-panel-header button,
+.encounter-choice-btn {
+  border: 1px solid rgba(229, 202, 124, 0.42);
+  border-radius: 0;
+  background: rgba(42, 34, 22, 0.9);
+  color: #f2dfa8;
+  font: 11px/1 var(--pixel-ui-font);
+  font-weight: 950;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.encounter-panel-header button {
+  padding: 7px 10px;
+}
+
+.encounter-panel-body {
+  min-height: 0;
+  padding: 16px 18px;
+  overflow: auto;
+}
+
+.encounter-panel-body h2,
+.encounter-panel-body h3,
+.encounter-panel-body h4 {
+  margin: 0 0 10px;
+  color: #fff0bf;
+}
+
+.encounter-panel-body p,
+.encounter-panel-body li {
+  color: rgba(250, 240, 210, 0.92);
+  font: 13px/1.48 var(--pixel-ui-font);
+}
+
+.encounter-panel-body ul {
+  padding-left: 18px;
+}
+
+.encounter-choice-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  padding: 12px 18px 16px;
+  border-top: 1px solid rgba(229, 202, 124, 0.34);
+}
+
+.encounter-choice-list.hidden {
+  display: none;
+}
+
+.encounter-choice-btn {
+  display: grid;
+  gap: 4px;
+  min-width: 136px;
+  max-width: 250px;
+  padding: 8px 10px;
+  text-align: left;
+}
+
+.encounter-choice-btn:hover,
+.encounter-choice-btn:focus-visible,
+.encounter-panel-header button:hover,
+.encounter-panel-header button:focus-visible {
+  border-color: rgba(255, 226, 151, 0.9);
+  background: rgba(77, 58, 30, 0.95);
+  outline: none;
+}
+
+.encounter-choice-error {
+  flex-basis: 100%;
+  padding: 7px 9px;
+  border: 1px solid rgba(215, 94, 64, 0.52);
+  background: rgba(78, 31, 23, 0.76);
+  color: #ffd2bf;
+  font: 11px/1.3 var(--pixel-ui-font);
+}
+
+.encounter-choice-label {
+  color: #f2dfa8;
+}
+
+.encounter-choice-consequence {
+  color: rgba(242, 235, 210, 0.74);
+  font-size: 10px;
+  line-height: 1.25;
+  text-transform: none;
+}
+
+[data-ui-highlight-active="true"] {
+  --ui-highlight-color: #f4d35e;
+  --ui-highlight-thickness: 3px;
+  outline: var(--ui-highlight-thickness) solid var(--ui-highlight-color);
+  outline-offset: calc(var(--ui-highlight-thickness) * -1);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--ui-highlight-color) 62%, transparent);
+  position: relative;
+}
+
+.gameplay-hud:has([data-ui-highlight-active="true"]),
+.movement-status-panel[data-ui-highlight-active="true"],
+.inspect-status-panel[data-ui-highlight-active="true"] {
+  z-index: var(--player-hud-highlight-z);
+}
+
+.gameplay-hud [data-ui-highlight-active="true"] {
+  z-index: 2;
+}
+
+.ui-highlight-pulse {
+  animation: ui-highlight-pulse 900ms ease-in-out infinite;
+}
+
+@keyframes ui-highlight-pulse {
+  0%,
+  100% {
+    filter: none;
+  }
+
+  50% {
+    filter: brightness(1.35);
+  }
 }
 
 .event-debug-grid {
@@ -1592,7 +1805,7 @@ body.runtime-gameplay .row input[type="number"] {
   left: var(--side-stack-x);
   right: auto;
   bottom: var(--player-ui-bottom);
-  z-index: 8;
+  z-index: var(--player-hud-panel-z);
   width: var(--hud-activity-width);
   height: var(--player-ui-height);
   box-sizing: border-box;
@@ -1620,17 +1833,15 @@ body.runtime-gameplay .row input[type="number"] {
   position: fixed;
   left: calc(var(--side-stack-x) + var(--hud-activity-width));
   bottom: var(--player-ui-bottom);
-  z-index: 8;
+  z-index: var(--player-hud-panel-z);
   display: none;
   width: var(--hud-inspect-width);
   height: var(--player-ui-height);
   box-sizing: border-box;
   overflow: hidden;
-  border: 1px solid rgba(116, 215, 245, 0.42);
+  border: 1px solid rgba(229, 202, 124, 0.42);
   border-radius: 0;
-  background:
-    linear-gradient(180deg, rgba(16, 33, 38, 0.92), rgba(8, 13, 14, 0.96)),
-    rgba(12, 17, 18, 0.94);
+  background: rgba(12, 17, 18, 0.94);
   color: var(--text);
   padding: 4px 6px;
   font-family: var(--pixel-ui-font);
@@ -1667,7 +1878,7 @@ body.runtime-gameplay .inspect-status-panel {
 }
 
 .inspect-status-panel {
-  border-color: rgba(116, 215, 245, 0.42);
+  border-color: rgba(229, 202, 124, 0.42);
 }
 
 .movement-status-panel.hidden,
@@ -1692,7 +1903,7 @@ body.runtime-gameplay .inspect-status-panel {
 
 .inspect-status-panel h2 {
   margin: 0;
-  color: #cbeff7;
+  color: #f3dd9a;
   font-size: 13px;
   text-transform: uppercase;
   line-height: 1.1;
@@ -1710,7 +1921,7 @@ body.runtime-gameplay .inspect-status-panel {
 
 .inspect-terrain-readout {
   margin: 9px 0 7px;
-  color: #d5f7ff;
+  color: #f2dfa8;
   font-size: 13px;
   font-weight: 800;
 }
@@ -1727,10 +1938,10 @@ body.runtime-gameplay .inspect-status-panel {
 
 .inspect-layer-btn {
   min-width: 22px;
-  border: 1px solid rgba(116, 215, 245, 0.34);
+  border: 1px solid rgba(229, 202, 124, 0.36);
   border-radius: 0;
-  background: rgba(18, 37, 43, 0.84);
-  color: #cbeff7;
+  background: rgba(42, 34, 22, 0.9);
+  color: #f2dfa8;
   padding: 3px 6px;
   font: inherit;
   font-size: 12px;
@@ -1739,18 +1950,18 @@ body.runtime-gameplay .inspect-status-panel {
 }
 
 .inspect-layer-btn:disabled {
-  border-color: rgba(150, 170, 174, 0.22);
-  background: rgba(65, 75, 78, 0.54);
-  color: rgba(203, 239, 247, 0.42);
+  border-color: rgba(157, 139, 100, 0.22);
+  background: rgba(55, 48, 35, 0.54);
+  color: rgba(242, 223, 168, 0.42);
   cursor: default;
 }
 
 .inspect-layer-btn:not(:disabled).active,
 .inspect-layer-btn:not(:disabled):hover,
 .inspect-layer-btn:not(:disabled):focus-visible {
-  border-color: rgba(159, 236, 255, 0.95);
-  background: rgba(33, 91, 105, 0.9);
-  color: #ffffff;
+  border-color: rgba(255, 226, 151, 0.9);
+  background: rgba(77, 58, 30, 0.95);
+  color: #fff2c8;
   outline: none;
 }
 
@@ -1760,7 +1971,7 @@ body.runtime-gameplay .inspect-status-panel {
   align-items: center;
   gap: 4px;
   margin-top: 4px;
-  color: #cbeff7;
+  color: #f2dfa8;
   font-size: 11px;
   font-weight: 900;
 }
@@ -1775,7 +1986,7 @@ body.runtime-gameplay .inspect-status-panel {
   align-items: center;
   gap: 4px;
   margin-top: 4px;
-  color: #cbeff7;
+  color: #f2dfa8;
   font-size: 11px;
   font-weight: 900;
 }
@@ -1984,7 +2195,7 @@ body.runtime-gameplay .inspect-status-panel {
   position: fixed;
   left: 50%;
   bottom: var(--player-ui-bottom);
-  z-index: 7;
+  z-index: var(--player-hud-base-z);
   display: none;
   align-items: stretch;
   gap: 0;
@@ -2042,6 +2253,10 @@ body.runtime-gameplay .gameplay-hud {
 
 .journal-feed.expanded {
   height: var(--hud-journal-expanded-height);
+}
+
+.journal-feed.has-journal-entries {
+  border-color: rgba(229, 202, 124, 0.5);
 }
 
 .journal-feed-entries {
@@ -2341,10 +2556,22 @@ body.runtime-gameplay .gameplay-hud {
 }
 
 .hud-system-btn {
+  position: relative;
   width: 100%;
   height: var(--player-ui-row);
   min-width: 0;
   line-height: 1;
+}
+
+.hud-system-btn.has-journal-entries::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 5px;
+  height: 5px;
+  background: #f0d28a;
+  box-shadow: 0 0 8px rgba(240, 210, 138, 0.75);
 }
 
 .gameplay-hud .topic-btn.hud-system-btn {
@@ -2445,7 +2672,16 @@ body.runtime-gameplay .gameplay-hud {
   box-shadow: 0 18px 38px rgba(0, 0, 0, 0.42);
 }
 
-.inventory-panel.hidden {
+body.runtime-gameplay .inventory-panel {
+  display: flex;
+  flex-direction: column;
+  left: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.inventory-panel.hidden,
+body.runtime-gameplay .inventory-panel.hidden {
   display: none;
 }
 
@@ -2456,6 +2692,11 @@ body.runtime-gameplay .gameplay-hud {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+}
+
+body.runtime-gameplay .inventory-panel-header {
+  padding: 12px;
+  border-bottom: 1px solid rgba(189, 151, 86, 0.42);
 }
 
 .inventory-panel h2,
@@ -2498,6 +2739,23 @@ body.runtime-gameplay .gameplay-hud {
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.04);
   padding: 10px;
+}
+
+body.runtime-gameplay .inventory-column,
+body.runtime-gameplay .inventory-details,
+body.runtime-gameplay .inventory-actions {
+  margin: 12px;
+}
+
+body.runtime-gameplay .inventory-column {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+body.runtime-gameplay .inventory-stack-list {
+  max-height: 18vh;
+  overflow-y: auto;
 }
 
 .inventory-details {

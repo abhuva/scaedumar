@@ -10,18 +10,44 @@ function normalizeEventDefinition(input) {
     id,
     contentId: String(input.contentId || ""),
     priority: Number.isFinite(Number(input.priority)) ? Number(input.priority) : 0,
-    trigger: input.trigger && typeof input.trigger === "object" ? { ...input.trigger } : {},
+    trigger: input.trigger && typeof input.trigger === "object"
+      ? { ...input.trigger, exclusive: Boolean(input.trigger.exclusive) }
+      : {},
     presentation: {
       level: presentation.level || "blocking",
+      surface: normalizePresentationSurface(presentation),
       mode: presentation.mode || "article",
       time: presentation.time && typeof presentation.time === "object"
         ? { ...presentation.time }
         : { mode: "pause" },
+      uiHighlights: normalizeUiHighlights(presentation.uiHighlights),
     },
     startNode: nodes.startNode,
     nodes: nodes.nodes,
     journal: input.journal && typeof input.journal === "object" ? { ...input.journal } : {},
   };
+}
+
+function normalizeUiHighlights(input) {
+  if (!Array.isArray(input)) return [];
+  return input
+    .filter((highlight) => highlight && typeof highlight === "object" && !Array.isArray(highlight))
+    .map((highlight) => ({
+      target: String(highlight.target || ""),
+      color: String(highlight.color || ""),
+      thickness: Number.isFinite(Number(highlight.thickness)) ? Number(highlight.thickness) : undefined,
+      pulse: Boolean(highlight.pulse),
+    }))
+    .filter((highlight) => highlight.target);
+}
+
+function normalizePresentationSurface(presentation) {
+  const surface = String(presentation.surface || "");
+  if (surface === "encounter" || surface === "journal" || surface === "silent") return surface;
+  const level = presentation.level || "blocking";
+  if (level === "blocking") return "encounter";
+  if (level === "silent") return "silent";
+  return "journal";
 }
 
 function finiteNumber(value, fallback = 0) {
@@ -126,7 +152,27 @@ function cloneActiveEvent(active) {
   };
   if (active.error) snapshot.error = { ...active.error };
   else delete snapshot.error;
+  if (Array.isArray(active.uiHighlights) && active.uiHighlights.length) {
+    snapshot.uiHighlights = active.uiHighlights.map((highlight) => ({ ...highlight }));
+  }
   return snapshot;
+}
+
+function createActiveEventFromDefinition(definition, node, options = {}) {
+  const active = {
+    id: definition.id,
+    nodeId: node.id || definition.startNode,
+    contentId: node.contentId || definition.contentId,
+    mode: definition.presentation.mode,
+    surface: definition.presentation.surface,
+    choices: Array.isArray(node.choices) ? node.choices.map(cloneChoiceForSnapshot) : [],
+    error: null,
+  };
+  if (options.preview) active.preview = true;
+  if (definition.presentation.uiHighlights.length) {
+    active.uiHighlights = definition.presentation.uiHighlights.map((highlight) => ({ ...highlight }));
+  }
+  return active;
 }
 
 function getChoiceErrorMessage(reason) {
@@ -143,7 +189,6 @@ function getChoiceErrorMessage(reason) {
 }
 
 export function createEventRuntime(deps = {}) {
-  const wikiRuntime = deps.wikiRuntime;
   const journalRuntime = deps.journalRuntime;
   const setTimeSpeed = typeof deps.setTimeSpeed === "function" ? deps.setTimeSpeed : () => {};
   const getTimeSpeed = typeof deps.getTimeSpeed === "function" ? deps.getTimeSpeed : () => 0;
@@ -204,7 +249,6 @@ export function createEventRuntime(deps = {}) {
     if (state.active && !definitions.has(state.active.id)) {
       state.active = null;
       restoreTimeBehavior();
-      wikiRuntime?.close({ reason: "event-definitions-replaced" });
     }
     emit("definitions-replaced");
   }
@@ -363,23 +407,28 @@ export function createEventRuntime(deps = {}) {
     });
     const definition = state.queue.shift();
     const node = definition.nodes[definition.startNode] || definition.nodes.main || {};
-    state.active = {
-      id: definition.id,
-      nodeId: node.id || definition.startNode,
-      contentId: node.contentId || definition.contentId,
-      mode: definition.presentation.mode,
-      choices: Array.isArray(node.choices) ? node.choices.map(cloneChoiceForSnapshot) : [],
-      error: null,
-    };
+    state.active = createActiveEventFromDefinition(definition, node);
     applyTimeBehavior(definition);
-    if (definition.presentation.mode === "article") {
-      wikiRuntime?.openArticle(state.active.contentId, {
-        reason: "event",
-        pushHistory: false,
-      });
-    }
     emit("open");
     return true;
+  }
+
+  function previewDefinition(id) {
+    const definition = definitions.get(String(id || ""));
+    if (!definition) return { ok: false, reason: "missing-definition" };
+    if (definition.presentation.surface !== "encounter") {
+      return { ok: false, reason: "unsupported-preview-surface", surface: definition.presentation.surface };
+    }
+    if (state.active && !state.active.preview) return { ok: false, reason: "active-event-open" };
+    if (state.active?.preview) {
+      state.active = null;
+      restoreTimeBehavior();
+    }
+    const node = definition.nodes[definition.startNode] || definition.nodes.main || {};
+    state.active = createActiveEventFromDefinition(definition, node, { preview: true });
+    applyTimeBehavior(definition);
+    emit("preview");
+    return { ok: true, id: definition.id };
   }
 
   function trigger(triggerType, payload = {}) {
@@ -387,6 +436,7 @@ export function createEventRuntime(deps = {}) {
     let processed = 0;
     const skipped = [];
     const matchedIds = [];
+    const eligible = [];
     for (const definition of definitions.values()) {
       if (!matchesTrigger(definition, triggerType, payload)) continue;
       matchedIds.push(definition.id);
@@ -406,6 +456,25 @@ export function createEventRuntime(deps = {}) {
         skipped.push({ id: definition.id, reason: "already-active" });
         continue;
       }
+      eligible.push(definition);
+    }
+    const exclusiveDefinitions = eligible.filter((definition) => definition.trigger.exclusive);
+    const exclusiveWinner = exclusiveDefinitions.length
+      ? [...exclusiveDefinitions].sort((a, b) => {
+          const priorityDelta = b.priority - a.priority;
+          return priorityDelta !== 0 ? priorityDelta : a.order - b.order;
+        })[0]
+      : null;
+    const eligibleDefinitions = exclusiveWinner ? [exclusiveWinner] : eligible;
+    if (exclusiveDefinitions.length) {
+      const allowedIds = new Set(eligibleDefinitions.map((definition) => definition.id));
+      for (const definition of eligible) {
+        if (!allowedIds.has(definition.id)) {
+          skipped.push({ id: definition.id, reason: "trigger-consumed" });
+        }
+      }
+    }
+    for (const definition of eligibleDefinitions) {
       if (definition.presentation.level === "blocking") {
         state.queue.push(definition);
         recordTriggered(definition);
@@ -449,7 +518,8 @@ export function createEventRuntime(deps = {}) {
     if (!choice.next && !choice.close) return failChoice({ ok: false, reason: "choice-has-no-action" });
     const validationResult = validateChoiceOutcomes(choice);
     if (!validationResult.ok) return failChoice(validationResult);
-    if (choice.command) {
+    const preview = state.active.preview === true;
+    if (!preview && choice.command) {
       if (!dispatchCommand) return failChoice({ ok: false, reason: "command-dispatch-unavailable" });
       let result = null;
       try {
@@ -461,24 +531,13 @@ export function createEventRuntime(deps = {}) {
         return failChoice({ ok: false, reason: "command-failed", result });
       }
     }
-    const outcomeResult = applyChoiceOutcomes(definition, choice);
-    if (!outcomeResult.ok) return failChoice(outcomeResult);
+    if (!preview) {
+      const outcomeResult = applyChoiceOutcomes(definition, choice);
+      if (!outcomeResult.ok) return failChoice(outcomeResult);
+    }
     if (choice.next) {
       const nextNode = definition.nodes[choice.next];
-      state.active = {
-        id: definition.id,
-        nodeId: nextNode.id,
-        contentId: nextNode.contentId || definition.contentId,
-        mode: definition.presentation.mode,
-        choices: Array.isArray(nextNode.choices) ? nextNode.choices.map(cloneChoiceForSnapshot) : [],
-        error: null,
-      };
-      if (definition.presentation.mode === "article") {
-        wikiRuntime?.openArticle(state.active.contentId, {
-          reason: "event-choice",
-          pushHistory: false,
-        });
-      }
+      state.active = createActiveEventFromDefinition(definition, nextNode, { preview });
       emit("choice");
       return { ok: true, action: "next", nodeId: nextNode.id };
     }
@@ -494,12 +553,11 @@ export function createEventRuntime(deps = {}) {
     const active = state.active;
     const definition = definitions.get(active.id);
     state.active = null;
-    state.seen.add(active.id);
-    if (definition?.journal?.addOnClose) {
-      addJournalEntry(definition);
+    if (!active.preview) {
+      state.seen.add(active.id);
     }
-    if (options.closeWiki !== false) {
-      wikiRuntime?.close({ reason: "event-close" });
+    if (!active.preview && definition?.journal?.addOnClose) {
+      addJournalEntry(definition);
     }
     restoreTimeBehavior();
     openNext();
@@ -556,9 +614,6 @@ export function createEventRuntime(deps = {}) {
     state.flags = new Map();
     state.lastTriggerResult = null;
     restoreTimeBehavior();
-    if (options.closeWiki !== false) {
-      wikiRuntime?.close({ reason: "event-reset" });
-    }
     emit("reset");
     return true;
   }
@@ -575,6 +630,7 @@ export function createEventRuntime(deps = {}) {
   return {
     loadDefinitions,
     replaceDefinitions,
+    previewDefinition,
     trigger,
     closeActive,
     chooseActiveChoice,

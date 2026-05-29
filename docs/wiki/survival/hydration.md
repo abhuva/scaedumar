@@ -1,7 +1,7 @@
 ---
 id: survival.hydration
 title: Hydration
-summary: Hydration tracks the need for drinkable water.
+summary: Thirst rises quietly until every route becomes more expensive.
 category: survival
 tags: [hydration, water, condition]
 related: [gameplay.water, gameplay.travel, world.terrain]
@@ -9,11 +9,13 @@ related: [gameplay.water, gameplay.travel, world.terrain]
 
 ## Hydration
 
-Hydration falls as time passes and activities resolve.
+Thirst does not wait for a good place to stop.
 
-Water searches and filled containers are the current way to recover it.
+Hydration falls as time passes and work resolves. Travel, searching, and waiting all matter more when water is already low.
 
-Plan routes with known water in mind. Running dry far from wet ground can make even short travel expensive.
+Search near wet ground and keep containers filled when you can. A known water place is part of any longer route, even when the route points somewhere else.
+
+Do not let distance decide this for you.
 
 - [Water](../gameplay/water.md)
 - [Travel](../gameplay/travel.md)

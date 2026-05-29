@@ -20,6 +20,29 @@ test("loadEventDefinitionFiles merges event definition files in path order", asy
   assert.deepEqual(definitions.map((definition) => definition.id), ["event.a", "event.b"]);
 });
 
+test("loadEventDefinitionFiles default fetch bypasses cache", async (t) => {
+  const originalFetch = globalThis.fetch;
+  const calls = [];
+  t.after(() => {
+    globalThis.fetch = originalFetch;
+  });
+  globalThis.fetch = async (path, options) => {
+    calls.push({ path, options });
+    return {
+      ok: true,
+      json: async () => [{ id: "event.cache" }],
+    };
+  };
+
+  const definitions = await loadEventDefinitionFiles(["events.json"]);
+
+  assert.deepEqual(definitions.map((definition) => definition.id), ["event.cache"]);
+  assert.deepEqual(calls, [{
+    path: "events.json",
+    options: { cache: "no-store" },
+  }]);
+});
+
 test("loadEventDefinitionFiles rejects duplicate event IDs across files", async () => {
   await assert.rejects(
     () => loadEventDefinitionFiles(["a.json", "b.json"], {

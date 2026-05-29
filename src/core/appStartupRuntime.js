@@ -1,10 +1,18 @@
 import { runStartupUiSync } from "../ui/startupUiSync.js";
+import {
+  formatContentValidationError,
+  isContentValidationError,
+} from "../content/contentValidationError.js";
 
 export async function tryAutoLoadDefaultMapRuntime(deps) {
   try {
     await deps.tryAutoLoadDefaultMap();
   } catch (error) {
     console.error("Default map auto-load failed:", error);
+    if (isContentValidationError(error)) {
+      deps.setStatus(formatContentValidationError(error), { kind: "error", progress: 1 });
+      throw error;
+    }
     const message = error instanceof Error ? error.message : String(error);
     deps.setStatus(`Default map auto-load failed: ${message}`);
   }

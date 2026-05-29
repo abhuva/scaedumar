@@ -1,22 +1,20 @@
 ---
 id: tutorial.first_steps
 title: Read the Land
-summary: Start by looking, planning, and spending time deliberately.
+summary: Begin by reading the ground, choosing short routes, and finding what keeps the body moving.
 category: tutorial
-tags: [tutorial, travel, inspect]
-related: [gameplay.travel, gameplay.inspect, gameplay.time]
+tags: [tutorial, travel, inspect, gathering, water]
+related: [gameplay.travel, gameplay.inspect, gameplay.time, gameplay.gathering, gameplay.water]
 ---
+The light is steady enough to see by.
 
-## Read the Land
+You have room to stop and look. That is where this starts.
 
-Survival depends on where you move, what you know, and how much time you spend.
+The ground is not empty. It holds slope, wetness, shade, tracks, and small signs of what can be gathered. None of it is useful until you take the time to read it.
 
-Use **Inspect** to read the terrain and nearby resources.
+Start close. Walk only where the route makes sense. Watch for plants. Look for low ground where water might collect.
 
-Use **PF** to preview a local travel path before committing movement.
-
-Use the time buttons deliberately. Fast time is useful during activities, but pause gives you room to plan.
+When you need clarity, use **Inspect**. When you are ready to move, use **PF** to trace a path before you spend yourself on it.
 
 - [Travel](../gameplay/travel.md)
 - [Inspect](../gameplay/inspect.md)
-- [Time](../gameplay/time.md)

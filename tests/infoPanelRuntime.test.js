@@ -109,6 +109,39 @@ test("hunting panel displays sampled availability as a bar", () => {
   assert.equal(deps.movementStatusDetailEl.textContent, "Loot: 1");
 });
 
+test("inspect panel keeps no-layer startup state visually neutral", () => {
+  const layerControlsEl = makeElement();
+  layerControlsEl.querySelectorAll = () => [];
+  const deps = makeDeps({
+    getInteractionMode: () => "none",
+    inspectStatusPanelEl: makeElement(),
+    inspectLayerControlsEl: layerControlsEl,
+    inspectRouteLayerBtn: makeElement(),
+    inspectStatusTitleEl: makeElement(),
+    inspectStatusEtaEl: makeElement(),
+    inspectResourceRowEl: makeElement(),
+    inspectResourceLabelEl: makeElement(),
+    inspectResourceBarFillEl: makeElement(),
+    inspectStatusDetailEl: makeElement(),
+    getInspectSnapshot: () => ({
+      enabled: true,
+      layer: "none",
+      inspectResources: [],
+      stockOverlayMode: "known",
+    }),
+    getRoutePlanningSnapshot: () => ({ showCommittedOverlay: false }),
+  });
+  const update = createInfoPanelRuntime(deps);
+
+  update();
+
+  assert.equal(deps.inspectRouteLayerBtn.classList.contains("active"), false);
+  assert.equal(deps.inspectRouteLayerBtn.attributes["aria-pressed"], "false");
+  assert.equal(deps.inspectResourceRowEl.classList.contains("hidden"), true);
+  assert.equal(deps.inspectResourceBarFillEl.style.width, "0%");
+  assert.equal(deps.inspectStatusDetailEl.textContent, "Inspect active. No layer selected.");
+});
+
 test("travel preview panel keeps unreachable message compact", () => {
   const deps = makeDeps({
     getTravelPreviewEstimate: () => ({

@@ -1,7 +1,7 @@
 ---
 id: world.knowledge
 title: Knowledge Map
-summary: Knowledge limits what resource and route information is trusted.
+summary: Known ground decides which signs can be trusted.
 category: world
 tags: [knowledge, inspect, discovery]
 related: [gameplay.inspect, world.tracks, gameplay.travel]
@@ -9,11 +9,13 @@ related: [gameplay.inspect, world.tracks, gameplay.travel]
 
 ## Knowledge Map
 
-The Knowledge Map records what the player has learned about the world.
+The world is larger than what has been checked.
 
-Known resource and route views use this map to avoid showing perfect information everywhere. Movement and scouting can reveal more knowledge.
+The Knowledge Map records ground that has been learned by moving, scouting, and looking. Known views use it to keep water, plants, tracks, terrain, and routes from pretending to be certain everywhere.
 
-Debug tools can edit knowledge directly, but normal gameplay should treat it as discovered information.
+A blank place is not empty. It is only untested.
+
+Debug tools can write knowledge directly, but normal play earns it by crossing ground and remembering what was found there.
 
 - [Inspect](../gameplay/inspect.md)
 - [Tracks](tracks.md)

@@ -44,7 +44,7 @@
             <button class="rd-dev-tab" type="button" role="tab" data-rd-dev-tab="agents" aria-selected="false" aria-controls="rdDevAgentsPanel" tabindex="-1">Agents</button>
             <button class="rd-dev-tab" type="button" role="tab" data-rd-dev-tab="trail" aria-selected="false" aria-controls="rdDevTrailPanel" tabindex="-1">Trail</button>
             <button class="rd-dev-tab active" type="button" role="tab" data-rd-dev-tab="gameplay" aria-selected="true" aria-controls="rdDevGameplayPanel" tabindex="0">Gameplay</button>
-            <button class="rd-dev-tab" type="button" role="tab" data-rd-dev-tab="events" aria-selected="false" aria-controls="rdDevEventsPanel" tabindex="-1">Events</button>
+            <button class="rd-dev-tab" type="button" role="tab" data-rd-dev-tab="events" aria-selected="false" aria-controls="rdDevEventsPanel" tabindex="-1">Encounters</button>
             <button class="rd-dev-tab" type="button" role="tab" data-rd-dev-tab="audio" aria-selected="false" aria-controls="rdDevAudioPanel" tabindex="-1">Audio</button>
             <button class="rd-dev-tab" type="button" role="tab" data-rd-dev-tab="pathing" aria-selected="false" aria-controls="rdDevPathingPanel" tabindex="-1">Pathing</button>
             <button class="rd-dev-tab" type="button" role="tab" data-rd-dev-tab="io" aria-selected="false" aria-controls="rdDevIoPanel" tabindex="-1">IO</button>
@@ -190,7 +190,7 @@
         <button id="inspectPlantsLayerBtn" class="inspect-layer-btn" type="button" title="Plant availability overlay" data-wiki-id="gameplay.gathering">P</button>
         <button id="inspectHeightLayerBtn" class="inspect-layer-btn" type="button" title="Height overlay" data-wiki-id="world.terrain">H</button>
         <button id="inspectSlopeLayerBtn" class="inspect-layer-btn" type="button" title="Slope overlay" data-wiki-id="world.terrain">S</button>
-        <button id="inspectRouteLayerBtn" class="inspect-layer-btn" type="button" title="Route arrow overlay" aria-pressed="true" data-wiki-id="gameplay.travel">R</button>
+        <button id="inspectRouteLayerBtn" class="inspect-layer-btn" type="button" title="Route arrow overlay" aria-pressed="false" data-wiki-id="gameplay.travel">R</button>
         </div>
       </div>
       <p id="inspectStatusEta" class="sr-only"></p>
@@ -280,11 +280,27 @@
           <p>Recorded events and discoveries.</p>
         </div>
         <div class="journal-panel-actions">
+          <label class="journal-filter-label" for="journalCategoryFilter">Filter</label>
+          <select id="journalCategoryFilter" class="journal-category-filter" aria-label="Filter journal entries by category">
+            <option value="">All</option>
+          </select>
           <button id="journalSwapSideBtn" type="button" title="Swap Wiki and Journal sides">Swap</button>
           <button id="journalCloseBtn" type="button">Close</button>
         </div>
       </div>
       <div id="journalPanelList" class="journal-panel-list"></div>
+    </aside>
+    <div id="encounterBackdrop" class="encounter-backdrop hidden" aria-hidden="true"></div>
+    <aside id="encounterPanel" class="encounter-panel hidden" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="encounterPanelTitle">
+      <div class="encounter-panel-header">
+        <div>
+          <h2 id="encounterPanelTitle">Encounter</h2>
+          <p id="encounterPanelSummary"></p>
+        </div>
+        <button id="encounterCloseBtn" type="button">Close</button>
+      </div>
+      <article id="encounterPanelBody" class="encounter-panel-body"></article>
+      <div id="encounterChoiceList" class="encounter-choice-list hidden" aria-label="Encounter choices"></div>
     </aside>
     <canvas id="glCanvas"></canvas>
     <canvas id="overlayCanvas"></canvas>

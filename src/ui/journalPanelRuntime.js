@@ -25,6 +25,21 @@ export function createJournalEntryViewModel(entry, getArticle) {
   };
 }
 
+export function getJournalCategories(entries) {
+  const categories = new Set();
+  for (const entry of entries || []) {
+    const category = String(entry?.category || "Journal").trim() || "Journal";
+    categories.add(category);
+  }
+  return [...categories].sort((a, b) => a.localeCompare(b));
+}
+
+export function filterJournalEntriesByCategory(entries, category) {
+  const normalizedCategory = String(category || "").trim();
+  if (!normalizedCategory) return [...(entries || [])];
+  return (entries || []).filter((entry) => String(entry?.category || "Journal") === normalizedCategory);
+}
+
 export function handleJournalFeedWheel(entriesEl, expanded, event) {
   if (!expanded || !entriesEl) return false;
   const deltaY = Number(event?.deltaY || 0);
@@ -64,7 +79,6 @@ function renderEntryList(rootEl, entries, deps) {
     link.setAttribute("aria-label", view.ariaLabel);
     link.addEventListener("click", () => {
       deps.wikiRuntime?.openArticle?.(view.contentId, { reason: "journal" });
-      deps.closeJournalPanel?.();
     });
     row.appendChild(link);
     list.appendChild(row);
@@ -75,13 +89,49 @@ function renderEntryList(rootEl, entries, deps) {
 export function createJournalPanelRuntime(deps) {
   const ownerDocument = deps.document || globalThis.document;
   const runtimeDeps = { ...deps, document: ownerDocument };
+  let activeCategory = "";
 
   function getEntriesNewestFirst() {
     const entries = deps.journalRuntime?.getSnapshot?.().entries || [];
     return [...entries].reverse();
   }
 
-  function open() {
+  function syncFilterControl(entries) {
+    if (!deps.filterEl) return;
+    const categories = getJournalCategories(entries);
+    if (activeCategory && !categories.includes(activeCategory)) {
+      activeCategory = "";
+    }
+    clearElement(deps.filterEl);
+    const allOption = ownerDocument.createElement("option");
+    allOption.value = "";
+    allOption.textContent = "All";
+    deps.filterEl.appendChild(allOption);
+    for (const category of categories) {
+      const option = ownerDocument.createElement("option");
+      option.value = category;
+      option.textContent = category;
+      deps.filterEl.appendChild(option);
+    }
+    deps.filterEl.value = activeCategory;
+  }
+
+  function syncOpenState() {
+    const open = isOpen();
+    deps.openBtn?.classList?.toggle("active", open);
+    deps.openBtn?.setAttribute?.("aria-pressed", open ? "true" : "false");
+  }
+
+  function syncEntryIndicators(entryCount) {
+    deps.openBtn?.classList?.toggle("has-journal-entries", entryCount > 0);
+    deps.openBtn?.setAttribute?.(
+      "aria-label",
+      entryCount > 0 ? `Open Journal, ${entryCount} entries` : "Open Journal",
+    );
+  }
+
+  function open(reason = "journal-open") {
+    if (reason !== "side-dock-open" && deps.requestOpen && deps.requestOpen() === false) return;
     deps.rootEl.classList.remove("hidden");
     deps.rootEl.setAttribute("aria-hidden", "false");
     sync();
@@ -90,6 +140,7 @@ export function createJournalPanelRuntime(deps) {
   function close() {
     deps.rootEl.classList.add("hidden");
     deps.rootEl.setAttribute("aria-hidden", "true");
+    syncOpenState();
   }
 
   function isOpen() {
@@ -105,15 +156,21 @@ export function createJournalPanelRuntime(deps) {
   }
 
   function sync() {
-    renderEntryList(deps.listEl, getEntriesNewestFirst(), {
-      ...runtimeDeps,
-      closeJournalPanel: close,
-    });
+    const entries = getEntriesNewestFirst();
+    syncFilterControl(entries);
+    syncEntryIndicators(entries.length);
+    syncOpenState();
+    const visibleEntries = filterJournalEntriesByCategory(entries, activeCategory);
+    renderEntryList(deps.listEl, visibleEntries, runtimeDeps);
   }
 
   function bind() {
     deps.openBtn?.addEventListener("click", toggle);
     deps.closeBtn?.addEventListener("click", close);
+    deps.filterEl?.addEventListener("change", () => {
+      activeCategory = String(deps.filterEl.value || "");
+      sync();
+    });
     ownerDocument.addEventListener("keydown", (event) => {
       if (event.key !== "Escape" || deps.rootEl.classList.contains("hidden")) return;
       event.preventDefault?.();
@@ -144,11 +201,16 @@ export function createJournalFeedRuntime(deps) {
   }
 
   function sync() {
+    const entries = getEntriesNewestFirst();
     deps.rootEl.classList.toggle("expanded", expanded);
+    deps.rootEl.classList.toggle("has-journal-entries", entries.length > 0);
     deps.toggleBtn.textContent = expanded ? "-" : "+";
     deps.toggleBtn.setAttribute("aria-expanded", expanded ? "true" : "false");
-    deps.toggleBtn.setAttribute("aria-label", expanded ? "Collapse journal feed" : "Expand journal feed");
-    renderEntryList(deps.entriesEl, getEntriesNewestFirst(), runtimeDeps);
+    deps.toggleBtn.setAttribute(
+      "aria-label",
+      expanded ? `Collapse journal feed, ${entries.length} entries` : `Expand journal feed, ${entries.length} entries`,
+    );
+    renderEntryList(deps.entriesEl, entries, runtimeDeps);
     if (deps.entriesEl) deps.entriesEl.scrollLeft = 0;
   }
 

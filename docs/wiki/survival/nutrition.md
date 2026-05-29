@@ -1,7 +1,7 @@
 ---
 id: survival.nutrition
 title: Nutrition
-summary: Nutrition tracks food pressure during survival activities.
+summary: Food pressure grows as work and distance spend the body.
 category: survival
 tags: [nutrition, gathering, hunting, condition]
 related: [gameplay.gathering, gameplay.hunting, gameplay.travel]
@@ -9,11 +9,13 @@ related: [gameplay.gathering, gameplay.hunting, gameplay.travel]
 
 ## Nutrition
 
-Nutrition falls as the player spends time and effort.
+Hunger is slower than thirst, but it still narrows the day.
 
-Gathering and hunting are the current prototype ways to find food.
+Nutrition falls as time and effort pass through the body. Long travel, repeated searches, and waiting without food all make the next decision less forgiving.
 
-Food planning matters most before long movement or repeated searches.
+Gathering can turn nearby plants into carried food. Hunting can provide meat when tracks make the ground worth the attempt.
+
+Plan food before distance turns it into pressure.
 
 - [Gathering](../gameplay/gathering.md)
 - [Hunting](../gameplay/hunting.md)

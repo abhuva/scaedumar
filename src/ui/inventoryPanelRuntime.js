@@ -109,8 +109,7 @@ export function createInventoryPanelRuntime(deps) {
   }
 
   function toggle() {
-    visible = !visible;
-    sync();
+    setVisible(!visible);
   }
 
   function bindList(listEl) {
@@ -153,9 +152,12 @@ export function createInventoryPanelRuntime(deps) {
   return {
     sync,
     isVisible: () => visible,
-    setVisible: (nextVisible) => {
-      visible = Boolean(nextVisible);
+    setVisible: (nextVisible, reason = "inventory-visibility") => {
+      const shouldShow = Boolean(nextVisible);
+      if (shouldShow && reason !== "side-dock-open" && deps.requestOpen && deps.requestOpen() === false) return false;
+      visible = shouldShow;
       sync(lastSnapshot);
+      return true;
     },
   };
 }

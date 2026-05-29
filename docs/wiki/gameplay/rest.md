@@ -1,7 +1,7 @@
 ---
 id: gameplay.rest
 title: Rest
-summary: Recover fatigue by spending time in place.
+summary: Stop in place and spend time to bring fatigue down.
 category: gameplay
 tags: [rest, fatigue, time]
 related: [survival.fatigue, gameplay.time]
@@ -9,11 +9,13 @@ related: [survival.fatigue, gameplay.time]
 
 ## Rest
 
-Rest is a primary activity that spends time without moving.
+Rest is a decision to stop moving before the body makes that decision for you.
 
-Use it when fatigue is becoming dangerous or when you need to wait deliberately.
+It spends time in place and lets fatigue fall. It does not remove thirst or hunger from the day.
 
-Rest recovery is affected by the current survival systems. Keep an eye on hydration and nutrition before committing to long waits.
+Check hydration and nutrition before a long wait. A quiet hour can still leave you weaker if the body is already short of water or food.
+
+Rest when the next route would cost more than standing still.
 
 - [Fatigue](../survival/fatigue.md)
 - [Time](time.md)

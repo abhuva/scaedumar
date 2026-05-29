@@ -3,17 +3,11 @@ import test from "node:test";
 
 import { createEventRuntime } from "../src/gameplay/eventRuntime.js";
 
-test("event runtime queues blocking article events, pauses time, journals on close, and restores speed", () => {
-  const opened = [];
-  const closed = [];
+test("event runtime queues blocking encounter events, pauses time, journals on close, and restores speed", () => {
   const journalEntries = [];
   const speeds = [];
   let currentSpeed = 0.2;
   const runtime = createEventRuntime({
-    wikiRuntime: {
-      openArticle: (id) => opened.push(id),
-      close: () => closed.push(true),
-    },
     journalRuntime: {
       addEntry: (entry) => journalEntries.push(entry),
     },
@@ -41,12 +35,10 @@ test("event runtime queues blocking article events, pauses time, journals on clo
   }]);
 
   assert.deepEqual(runtime.trigger("gameplay_started"), { ok: true, queued: 1, processed: 0, payload: {} });
-  assert.deepEqual(opened, ["tutorial.first_steps"]);
   assert.deepEqual(speeds, [0]);
   assert.equal(runtime.getSnapshot().active.id, "tutorial.first_steps");
 
   assert.equal(runtime.closeActive(), true);
-  assert.deepEqual(closed, [true]);
   assert.deepEqual(speeds, [0, 0.2]);
   assert.deepEqual(journalEntries, [{
     sourceEventId: "tutorial.first_steps",
@@ -92,6 +84,41 @@ test("event runtime restores seen IDs before triggers run", () => {
   });
 });
 
+test("event runtime previews blocking encounter without seen or journal persistence", () => {
+  const journalEntries = [];
+  const speeds = [];
+  let currentSpeed = 1;
+  const runtime = createEventRuntime({
+    journalRuntime: {
+      addEntry: (entry) => journalEntries.push(entry),
+    },
+    getTimeSpeed: () => currentSpeed,
+    setTimeSpeed: (speed) => {
+      currentSpeed = speed;
+      speeds.push(speed);
+    },
+  });
+  runtime.loadDefinitions([{
+    id: "tutorial.first_steps",
+    contentId: "tutorial.first_steps",
+    trigger: { type: "gameplay_started", once: true },
+    presentation: {
+      level: "blocking",
+      surface: "encounter",
+      time: { mode: "pause" },
+    },
+    journal: { addOnClose: true, category: "Tutorial" },
+  }]);
+
+  assert.deepEqual(runtime.previewDefinition("tutorial.first_steps"), { ok: true, id: "tutorial.first_steps" });
+  assert.equal(runtime.getSnapshot().active.preview, true);
+  assert.deepEqual(speeds, [0]);
+  assert.equal(runtime.closeActive(), true);
+  assert.deepEqual(speeds, [0, 1]);
+  assert.deepEqual(journalEntries, []);
+  assert.deepEqual(runtime.getSnapshot().seenIds, []);
+});
+
 test("event runtime records why debug triggers did not fire", () => {
   const runtime = createEventRuntime();
   runtime.loadDefinitions([{
@@ -121,6 +148,58 @@ test("event runtime records why debug triggers did not fire", () => {
     matchedIds: [],
     skipped: [{ id: "", reason: "no-matching-definition" }],
   });
+});
+
+test("event runtime defaults presentation surface from level", () => {
+  const runtime = createEventRuntime();
+  runtime.loadDefinitions([{
+    id: "blocking.default_surface",
+    contentId: "tutorial.first_steps",
+    trigger: { type: "blocking_started", once: false },
+    presentation: { level: "blocking", mode: "article", time: { mode: "keep" } },
+  }]);
+
+  runtime.trigger("blocking_started");
+  assert.equal(runtime.getSnapshot().active.surface, "encounter");
+  runtime.closeActive();
+
+  runtime.replaceDefinitions([{
+    id: "silent.default_surface",
+    contentId: "wiki.index",
+    trigger: { type: "silent_started", once: false },
+    presentation: { level: "silent", mode: "article" },
+    journal: { addOnTrigger: false },
+  }]);
+  runtime.trigger("silent_started");
+  assert.equal(runtime.getSnapshot().active, null);
+});
+
+test("event runtime exposes active encounter ui highlights", () => {
+  const runtime = createEventRuntime();
+  runtime.loadDefinitions([{
+    id: "tutorial.highlight",
+    contentId: "tutorial.first_steps",
+    trigger: { type: "gameplay_started" },
+    presentation: {
+      level: "blocking",
+      surface: "encounter",
+      uiHighlights: [{
+        target: "hud.activity.pathfinding",
+        color: "#f4d35e",
+        thickness: 3,
+        pulse: true,
+      }],
+    },
+  }]);
+
+  runtime.trigger("gameplay_started");
+
+  assert.deepEqual(runtime.getSnapshot().active.uiHighlights, [{
+    target: "hud.activity.pathfinding",
+    color: "#f4d35e",
+    thickness: 3,
+    pulse: true,
+  }]);
 });
 
 test("event runtime processes notice events without blocking the queue", () => {
@@ -189,6 +268,83 @@ test("event runtime processes silent events without notice callbacks", () => {
   }]);
 });
 
+test("event runtime supports authoring fixture for surfaces, dialog nodes, and command choices", () => {
+  const journalEntries = [];
+  const notices = [];
+  const commands = [];
+  const runtime = createEventRuntime({
+    journalRuntime: {
+      addEntry: (entry) => journalEntries.push(entry),
+    },
+    onNotice: (notice) => notices.push(notice),
+    dispatchCommand: (command) => {
+      commands.push(command);
+      return { ok: true };
+    },
+  });
+  runtime.loadDefinitions([
+    {
+      id: "fixture.encounter",
+      startNode: "intro",
+      trigger: { type: "fixture_encounter", once: false },
+      presentation: { level: "blocking", surface: "encounter", time: { mode: "keep" } },
+      nodes: {
+        intro: {
+          contentId: "tutorial.first_steps",
+          choices: [{
+            id: "act",
+            label: "Act",
+            command: { type: "core/activity/startGathering" },
+            next: "done",
+          }],
+        },
+        done: {
+          contentId: "gameplay.gathering",
+          choices: [{ id: "close", label: "Close", close: true }],
+        },
+      },
+    },
+    {
+      id: "fixture.journal",
+      contentId: "gameplay.travel",
+      trigger: { type: "fixture_journal", once: false },
+      presentation: { level: "notice", surface: "journal" },
+      journal: { category: "Fixture", tags: ["journal"] },
+    },
+    {
+      id: "fixture.silent",
+      contentId: "world.knowledge",
+      trigger: { type: "fixture_silent", once: false },
+      presentation: { level: "silent", surface: "silent" },
+      journal: { addOnTrigger: false },
+    },
+  ]);
+
+  assert.equal(runtime.trigger("fixture_encounter").queued, 1);
+  assert.equal(runtime.getSnapshot().active.surface, "encounter");
+  assert.equal(runtime.chooseActiveChoice("act").ok, true);
+  assert.deepEqual(commands, [{ type: "core/activity/startGathering" }]);
+  assert.equal(runtime.getSnapshot().active.nodeId, "done");
+  assert.equal(runtime.chooseActiveChoice("close").ok, true);
+
+  assert.equal(runtime.trigger("fixture_journal").processed, 1);
+  assert.deepEqual(notices, [{
+    id: "fixture.journal",
+    contentId: "gameplay.travel",
+    level: "notice",
+  }]);
+  assert.deepEqual(journalEntries, [{
+    sourceEventId: "fixture.journal",
+    contentId: "gameplay.travel",
+    category: "Fixture",
+    tags: ["journal"],
+  }]);
+
+  assert.equal(runtime.trigger("fixture_silent").processed, 1);
+  assert.equal(runtime.getSnapshot().active, null);
+  assert.equal(notices.length, 1);
+});
+
 test("event runtime gates triggers by payload strength", () => {
   const notices = [];
   const runtime = createEventRuntime({
@@ -233,13 +389,7 @@ test("event runtime gates triggers by payload strength", () => {
 });
 
 test("event runtime opens queued blocking events by priority then definition order", () => {
-  const opened = [];
-  const runtime = createEventRuntime({
-    wikiRuntime: {
-      openArticle: (id) => opened.push(id),
-      close: () => {},
-    },
-  });
+  const runtime = createEventRuntime();
   runtime.loadDefinitions([
     {
       id: "tutorial.low",
@@ -270,12 +420,45 @@ test("event runtime opens queued blocking events by priority then definition ord
     processed: 0,
     payload: {},
   });
-  assert.deepEqual(opened, ["tutorial.high_a"]);
+  assert.equal(runtime.getSnapshot().active.id, "tutorial.high_a");
   assert.deepEqual(runtime.getSnapshot().queuedIds, ["tutorial.high_b", "tutorial.low"]);
   runtime.closeActive();
-  assert.deepEqual(opened, ["tutorial.high_a", "tutorial.high_b"]);
+  assert.equal(runtime.getSnapshot().active.id, "tutorial.high_b");
   runtime.closeActive();
-  assert.deepEqual(opened, ["tutorial.high_a", "tutorial.high_b", "tutorial.low"]);
+  assert.equal(runtime.getSnapshot().active.id, "tutorial.low");
+});
+
+test("event runtime lets an eligible exclusive definition consume lower-priority matches", () => {
+  const runtime = createEventRuntime();
+  runtime.loadDefinitions([
+    {
+      id: "tutorial.default",
+      contentId: "tutorial.gathering_started",
+      priority: 0,
+      trigger: { type: "gathering_started", once: false },
+      presentation: { level: "blocking", mode: "article", time: { mode: "keep" } },
+    },
+    {
+      id: "map.gathering",
+      contentId: "map.map3_gathering_test",
+      priority: 100,
+      trigger: { type: "gathering_started", once: false, exclusive: true },
+      presentation: { level: "blocking", mode: "article", time: { mode: "keep" } },
+    },
+  ]);
+
+  assert.deepEqual(runtime.trigger("gathering_started"), {
+    ok: true,
+    queued: 1,
+    processed: 0,
+    payload: {},
+  });
+  assert.equal(runtime.getSnapshot().active.id, "map.gathering");
+  assert.deepEqual(runtime.getSnapshot().queuedIds, []);
+  assert.deepEqual(runtime.getSnapshot().lastTriggerResult.skipped, [{
+    id: "tutorial.default",
+    reason: "trigger-consumed",
+  }]);
 });
 
 test("event runtime enforces maxCount for repeatable events", () => {
@@ -421,13 +604,8 @@ test("event runtime persists event flags from choice outcomes", () => {
 });
 
 test("event runtime blocks choice advance for unknown outcomes", () => {
-  const opened = [];
   const commands = [];
   const runtime = createEventRuntime({
-    wikiRuntime: {
-      openArticle: (id) => opened.push(id),
-      close: () => {},
-    },
     dispatchCommand: (command) => {
       commands.push(command);
       return { ok: true };
@@ -467,7 +645,6 @@ test("event runtime blocks choice advance for unknown outcomes", () => {
     reason: "unknown-outcome",
     message: "This choice uses an unsupported outcome.",
   });
-  assert.deepEqual(opened, ["tutorial.first_steps"]);
   assert.deepEqual(commands, []);
 });
 
@@ -497,13 +674,7 @@ test("event runtime restores repeat policy counters from persistence", () => {
 });
 
 test("event runtime advances dialog nodes through choices", () => {
-  const opened = [];
-  const runtime = createEventRuntime({
-    wikiRuntime: {
-      openArticle: (id) => opened.push(id),
-      close: () => {},
-    },
-  });
+  const runtime = createEventRuntime();
   runtime.loadDefinitions([{
     id: "tutorial.basic_loop",
     startNode: "intro",
@@ -522,12 +693,12 @@ test("event runtime advances dialog nodes through choices", () => {
   }]);
 
   runtime.trigger("gameplay_started");
-  assert.deepEqual(opened, ["tutorial.first_steps"]);
   assert.deepEqual(runtime.getSnapshot().active, {
     id: "tutorial.basic_loop",
     nodeId: "intro",
     contentId: "tutorial.first_steps",
     mode: "article",
+    surface: "encounter",
     choices: [{
       id: "continue",
       label: "Continue",
@@ -545,7 +716,6 @@ test("event runtime advances dialog nodes through choices", () => {
     action: "next",
     nodeId: "travel",
   });
-  assert.deepEqual(opened, ["tutorial.first_steps", "gameplay.travel"]);
   assert.equal(runtime.getSnapshot().active.nodeId, "travel");
   assert.deepEqual(runtime.chooseActiveChoice("finish"), {
     ok: true,
@@ -647,13 +817,8 @@ test("event runtime normalizes choice consequence visibility metadata", () => {
 });
 
 test("event runtime dispatches choice commands before advancing", () => {
-  const opened = [];
   const commands = [];
   const runtime = createEventRuntime({
-    wikiRuntime: {
-      openArticle: (id) => opened.push(id),
-      close: () => {},
-    },
     dispatchCommand: (command) => {
       commands.push(command);
       return { ok: true };
@@ -688,16 +853,10 @@ test("event runtime dispatches choice commands before advancing", () => {
     nodeId: "done",
   });
   assert.deepEqual(commands, [{ type: "core/activity/startGathering", source: "event" }]);
-  assert.deepEqual(opened, ["tutorial.first_steps", "wiki.index"]);
 });
 
 test("event runtime does not advance when choice command fails", () => {
-  const opened = [];
   const runtime = createEventRuntime({
-    wikiRuntime: {
-      openArticle: (id) => opened.push(id),
-      close: () => {},
-    },
     dispatchCommand: () => ({ ok: false, reason: "blocked" }),
   });
   runtime.loadDefinitions([{
@@ -733,17 +892,10 @@ test("event runtime does not advance when choice command fails", () => {
     reason: "command-failed",
     message: "This action could not be completed.",
   });
-  assert.deepEqual(opened, ["tutorial.first_steps"]);
 });
 
 test("event runtime reports invalid dialog choices without changing active node", () => {
-  const opened = [];
-  const runtime = createEventRuntime({
-    wikiRuntime: {
-      openArticle: (id) => opened.push(id),
-      close: () => {},
-    },
-  });
+  const runtime = createEventRuntime();
   runtime.loadDefinitions([{
     id: "tutorial.basic_loop",
     startNode: "intro",
@@ -767,17 +919,11 @@ test("event runtime reports invalid dialog choices without changing active node"
     reason: "missing-next-node",
   });
   assert.equal(runtime.getSnapshot().active.nodeId, "intro");
-  assert.deepEqual(opened, ["tutorial.first_steps"]);
 });
 
-test("event runtime reset clears persisted state and closes active wiki event", () => {
-  const closed = [];
+test("event runtime reset clears persisted encounter state", () => {
   const speeds = [];
   const runtime = createEventRuntime({
-    wikiRuntime: {
-      openArticle: () => {},
-      close: (options) => closed.push(options),
-    },
     getTimeSpeed: () => 20,
     setTimeSpeed: (speed) => speeds.push(speed),
     getTimeTick: () => 7,
@@ -801,7 +947,6 @@ test("event runtime reset clears persisted state and closes active wiki event", 
     flags: {},
   });
   assert.equal(runtime.getSnapshot().active, null);
-  assert.deepEqual(closed, [{ reason: "event-reset" }]);
   assert.deepEqual(speeds, [0, 20]);
 });
 

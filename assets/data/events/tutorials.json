@@ -11,124 +11,200 @@
       "mode": "article",
       "time": {
         "mode": "pause"
-      }
+      },
+      "surface": "encounter",
+      "uiHighlights": [
+        {
+          "target": "hud.inspect",
+          "color": "#f4d35e",
+          "thickness": 3,
+          "pulse": true
+        },
+        {
+          "target": "hud.activity.pathfinding",
+          "color": "#f4d35e",
+          "thickness": 3,
+          "pulse": true
+        }
+      ]
     },
     "journal": {
       "addOnClose": true,
       "category": "Tutorial",
-      "tags": ["tutorial", "travel", "inspect"]
+      "tags": [
+        "tutorial",
+        "travel",
+        "inspect"
+      ]
     }
   },
   {
     "id": "tutorial.pathfinding_started",
-    "contentId": "gameplay.travel",
+    "contentId": "tutorial.pathfinding_started",
     "trigger": {
       "type": "pathfinding_started",
       "once": true
     },
     "presentation": {
-      "level": "notice",
-      "mode": "article"
+      "level": "blocking",
+      "mode": "article",
+      "time": {
+        "mode": "pause"
+      },
+      "surface": "encounter"
     },
     "journal": {
+      "addOnClose": true,
       "category": "Tutorial",
-      "tags": ["tutorial", "travel", "pathfinding"]
+      "tags": [
+        "tutorial",
+        "travel",
+        "pathfinding"
+      ]
     }
   },
   {
     "id": "tutorial.travel_committed",
-    "contentId": "gameplay.travel",
+    "contentId": "tutorial.travel_committed",
     "trigger": {
       "type": "travel_committed",
       "once": true
     },
     "presentation": {
-      "level": "notice",
-      "mode": "article"
+      "level": "blocking",
+      "mode": "article",
+      "time": {
+        "mode": "pause"
+      },
+      "surface": "encounter"
     },
     "journal": {
+      "addOnClose": true,
       "category": "Tutorial",
-      "tags": ["tutorial", "travel"]
+      "tags": [
+        "tutorial",
+        "travel"
+      ]
     }
   },
   {
     "id": "tutorial.inspect_started",
-    "contentId": "gameplay.inspect",
+    "contentId": "tutorial.inspect_started",
     "trigger": {
       "type": "inspect_started",
       "once": true
     },
     "presentation": {
-      "level": "notice",
-      "mode": "article"
+      "level": "blocking",
+      "mode": "article",
+      "time": {
+        "mode": "pause"
+      },
+      "surface": "encounter"
     },
     "journal": {
+      "addOnClose": true,
       "category": "Tutorial",
-      "tags": ["tutorial", "inspect"]
+      "tags": [
+        "tutorial",
+        "inspect"
+      ]
     }
   },
   {
     "id": "tutorial.gathering_started",
-    "contentId": "gameplay.gathering",
+    "contentId": "tutorial.gathering_started",
     "trigger": {
       "type": "gathering_started",
       "once": true
     },
     "presentation": {
-      "level": "notice",
-      "mode": "article"
+      "level": "blocking",
+      "mode": "article",
+      "time": {
+        "mode": "pause"
+      },
+      "surface": "encounter"
     },
     "journal": {
+      "addOnClose": true,
       "category": "Tutorial",
-      "tags": ["tutorial", "gathering"]
+      "tags": [
+        "tutorial",
+        "gathering"
+      ]
     }
   },
   {
     "id": "tutorial.water_started",
-    "contentId": "gameplay.water",
+    "contentId": "tutorial.water_started",
     "trigger": {
       "type": "water_started",
       "once": true
     },
     "presentation": {
-      "level": "notice",
-      "mode": "article"
+      "level": "blocking",
+      "mode": "article",
+      "time": {
+        "mode": "pause"
+      },
+      "surface": "encounter"
     },
     "journal": {
+      "addOnClose": true,
       "category": "Tutorial",
-      "tags": ["tutorial", "water"]
+      "tags": [
+        "tutorial",
+        "water"
+      ]
     }
   },
   {
     "id": "tutorial.rest_started",
-    "contentId": "gameplay.rest",
+    "contentId": "tutorial.rest_started",
     "trigger": {
       "type": "rest_started",
       "once": true
     },
     "presentation": {
-      "level": "notice",
-      "mode": "article"
+      "level": "blocking",
+      "mode": "article",
+      "time": {
+        "mode": "pause"
+      },
+      "surface": "encounter"
     },
     "journal": {
+      "addOnClose": true,
       "category": "Tutorial",
-      "tags": ["tutorial", "rest"]
+      "tags": [
+        "tutorial",
+        "rest"
+      ]
     }
   },
   {
     "id": "tutorial.hunting_started",
-    "contentId": "gameplay.hunting",
+    "contentId": "tutorial.hunting_started",
     "trigger": {
       "type": "hunting_started",
       "once": true
     },
     "presentation": {
-      "level": "notice",
-      "mode": "article"
+      "level": "blocking",
+      "mode": "article",
+      "time": {
+        "mode": "pause"
+      },
+      "surface": "encounter"
     },
     "journal": {
+      "addOnClose": true,
       "category": "Tutorial",
-      "tags": ["tutorial", "hunting"]
+      "tags": [
+        "tutorial",
+        "hunting"
+      ]
     }
   },
   {
@@ -143,7 +219,8 @@
       "mode": "article",
       "time": {
         "mode": "pause"
-      }
+      },
+      "surface": "encounter"
     },
     "nodes": {
       "intro": {
@@ -151,14 +228,14 @@
         "choices": [
           {
             "id": "travel",
-            "label": "Continue to travel page",
+            "label": "Open the travel note",
             "next": "travel",
             "consequenceVisibility": "hinted",
-            "hintText": "Opens a second dialog node."
+            "hintText": "Moves this test encounter to a second node."
           },
           {
             "id": "record",
-            "label": "Record debug journal entry",
+            "label": "Record a debug note",
             "close": true,
             "consequenceVisibility": "exact",
             "consequenceText": "Adds a journal entry and sets debug.sample_dialog.recorded.",
@@ -167,7 +244,10 @@
                 "type": "journal/add",
                 "contentId": "tutorial.event_debug",
                 "category": "Debug",
-                "tags": ["debug", "event"],
+                "tags": [
+                  "debug",
+                  "event"
+                ],
                 "sourceEventId": "debug.sample_dialog.recorded"
               },
               {
@@ -189,7 +269,7 @@
         "choices": [
           {
             "id": "back",
-            "label": "Back to debug page",
+            "label": "Return to debug note",
             "next": "intro"
           },
           {
@@ -204,7 +284,10 @@
     "journal": {
       "addOnClose": false,
       "category": "Debug",
-      "tags": ["debug", "event"]
+      "tags": [
+        "debug",
+        "event"
+      ]
     }
   },
   {
@@ -216,11 +299,15 @@
     },
     "presentation": {
       "level": "notice",
-      "mode": "article"
+      "mode": "article",
+      "surface": "journal"
     },
     "journal": {
       "category": "Debug",
-      "tags": ["debug", "notice"]
+      "tags": [
+        "debug",
+        "notice"
+      ]
     }
   }
 ]

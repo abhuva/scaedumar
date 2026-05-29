@@ -1,15 +1,17 @@
 ---
 id: gameplay.time
 title: Time
-summary: Game speed controls how quickly simulation time advances.
+summary: Time speed changes how quickly plans spend themselves.
 category: gameplay
 tags: [time, survival]
 ---
 
 ## Time
 
-The time controls set the global game speed.
+Time is part of every cost.
 
-0x pauses gameplay time. Higher speeds are useful for travel, gathering, hunting, rest, and long observation.
+Use the speed controls to decide how quickly the world advances. `0x` gives you room to look without spending the body. Higher speeds are useful once a route, search, hunt, or rest is already chosen.
 
-Some blocking tutorial and event dialogs pause time, then restore the previous speed when closed.
+Fast time does not make an action cheaper. It only lets the cost arrive sooner.
+
+Blocking encounters pause time while they need your attention, then return it to the speed you were using before.
