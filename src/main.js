@@ -205,6 +205,7 @@ import { createResourceDebugPanelRuntime } from "./ui/resourceDebugPanelRuntime.
 import { injectResourceDebugMarkup } from "./ui/rd/resourceDebugMarkupRuntime.js";
 import { createRdOverlayShortcutRailRuntime } from "./ui/rdOverlayShortcutRailRuntime.js";
 import { createGameplayHudRuntime } from "./ui/gameplayHudRuntime.js";
+import { createLocalActivityMenuRuntime } from "./ui/localActivityMenuRuntime.js";
 import {
   createContentRegistry,
   validateContentReferences,
@@ -245,6 +246,7 @@ let lastContentValidationError = "";
 const WORLD_KNOWLEDGE_MAP_ID = "world";
 const TRACKS_KNOWLEDGE_MAP_ID = "tracks";
 const SLIME_HUNT_FLEE_EFFECT_ID = "slime_hunt_flee";
+const DEFAULT_LOCAL_ACTIVITY_MENU_RADIUS = 72;
 const DEFAULT_HUNTING_SETTINGS = {
   radius: 30,
   trailEffectiveMax: 0.7,
@@ -256,6 +258,7 @@ const DEFAULT_HUNTING_SETTINGS = {
 };
 const DEFAULT_RESOURCE_DEBUG_SETTINGS = createDefaultResourceDebugSettings(RESOURCE_SEARCHES, "water", DISCOVERY_SETTINGS);
 let resourceDebugSettings = normalizeResourceDebugSettings(null, DEFAULT_RESOURCE_DEBUG_SETTINGS);
+let localActivityMenuRadius = DEFAULT_LOCAL_ACTIVITY_MENU_RADIUS;
 
 function getActivityCostKey(activityId, costRole, fallback) {
   const definition = ACTIVITY_DEFINITIONS[activityId];
@@ -336,15 +339,10 @@ const mapSaveAllBtn = getRequiredElementById("mapSaveAllBtn");
 const gameplayHudEl = getRequiredElementById("gameplayHud");
 const conditionEffectStripEl = getRequiredElementById("conditionEffectStrip");
 const conditionEffectTooltipEl = getRequiredElementById("conditionEffectTooltip");
-const hudPathfindingBtn = getRequiredElementById("hudPathfindingBtn");
 const hudRoutePlanningBtn = getRequiredElementById("hudRoutePlanningBtn");
-const hudGatheringBtn = getRequiredElementById("hudGatheringBtn");
-const hudGatherWaterBtn = getRequiredElementById("hudGatherWaterBtn");
-const hudHuntingBtn = getRequiredElementById("hudHuntingBtn");
-const hudScoutBtn = getRequiredElementById("hudScoutBtn");
-const hudRestBtn = getRequiredElementById("hudRestBtn");
 const hudInventoryBtn = getRequiredElementById("hudInventoryBtn");
 const hudShowPlayerBtn = getRequiredElementById("hudShowPlayerBtn");
+const localActivityMenuEl = getRequiredElementById("localActivityMenu");
 const hudWikiHelpBtn = getRequiredElementById("hudWikiHelpBtn");
 const hudWikiOpenBtn = getRequiredElementById("hudWikiOpenBtn");
 const hudJournalOpenBtn = getRequiredElementById("hudJournalOpenBtn");
@@ -527,6 +525,8 @@ const routePlanningSlopeCutoffAddInput = getRequiredElementById("routePlanningSl
 const routePlanningSlopeCutoffAddValue = getRequiredElementById("routePlanningSlopeCutoffAddValue");
 const routeDebugOverlayModeInput = getRequiredElementById("routeDebugOverlayMode");
 const routeClearBtn = getRequiredElementById("routeClearBtn");
+const localActivityMenuRadiusInput = getRequiredElementById("localActivityMenuRadius");
+const localActivityMenuRadiusValue = getRequiredElementById("localActivityMenuRadiusValue");
 const terrainDebugViewModeInput = getRequiredElementById("terrainDebugViewMode");
 const inspectLayerControlsEl = getRequiredElementById("inspectLayerControls");
 const inspectTracksLayerBtn = getRequiredElementById("inspectTracksLayerBtn");
@@ -2660,9 +2660,6 @@ eventDialogPersistenceRuntime.load();
 sideDockRuntime = createSideDockRuntime();
 uiHighlightRuntime = createUiHighlightRuntime();
 uiHighlightRuntime.registerTarget("hud.inspect", inspectStatusPanelEl);
-uiHighlightRuntime.registerTarget("hud.activity.pathfinding", hudPathfindingBtn);
-uiHighlightRuntime.registerTarget("hud.activity.gathering", hudGatheringBtn);
-uiHighlightRuntime.registerTarget("hud.activity.water", hudGatherWaterBtn);
 sideDockRuntime.registerPanel({
   id: "rd",
   priority: 4,
@@ -3798,6 +3795,7 @@ let resourceSearchRuntime = null;
 let resourceStockRuntime = null;
 let resourceDiscoveryRuntime = null;
 let gameplayHudRuntime = null;
+let localActivityMenuRuntime = null;
 let resourceDebugPanelRuntime = null;
 let rdOverlayShortcutRailRuntime = null;
 let inspectPerceptionRuntime = null;
@@ -4609,7 +4607,10 @@ registerRuntimeEventHandlers(eventBus, {
   invalidateResourceContourOverlay,
   syncResourceStockPanel: () => resourceDebugPanelRuntime?.syncStock?.(),
   refreshInspectSample,
-  syncGameplayHud: () => gameplayHudRuntime?.sync(),
+  syncGameplayHud: () => {
+    gameplayHudRuntime?.sync();
+    localActivityMenuRuntime?.sync();
+  },
   updateMovementStatusPanel: () => updateMovementStatusPanel(movementSystem.getSnapshot()),
   requestOverlayDraw: () => overlayDirtyRuntime.requestOverlayDraw(),
 });
@@ -4620,6 +4621,7 @@ const conditionRuntime = createConditionRuntime({
     conditionEventTriggerRuntime?.sync("condition-change");
     inventoryPanelRuntime?.sync();
     gameplayHudRuntime?.sync();
+    localActivityMenuRuntime?.sync();
   },
 });
 conditionEventTriggerRuntime = createConditionEventTriggerRuntime({
@@ -4857,6 +4859,14 @@ resourceDebugPanelRuntime = createResourceDebugPanelRuntime({
   routePlanningSlopeCutoffAddValue,
   routeDebugOverlayModeInput,
   routeClearBtn,
+  localActivityMenuRadiusInput,
+  localActivityMenuRadiusValue,
+  getLocalActivityMenuRadius: () => localActivityMenuRadius,
+  setLocalActivityMenuRadius: (value) => {
+    localActivityMenuRadius = Math.max(24, Math.min(140, Math.round(Number(value) || DEFAULT_LOCAL_ACTIVITY_MENU_RADIUS)));
+    localActivityMenuRuntime?.setRadius(localActivityMenuRadius);
+    setStatus(`Activity menu radius: ${localActivityMenuRadius}px.`);
+  },
   getSettings: () => resourceDebugSettings,
   getStockSettings: (resourceId) => resourceStockRuntime.getResourceSettings(resourceId),
   updateStockSettings: (resourceId, patch) => {
@@ -5362,6 +5372,21 @@ sideDockRuntime.registerPanel({
   close: () => inventoryPanelRuntime?.setVisible?.(false),
   setSide: (side) => applySideDockClass(inventoryPanelEl, side),
 });
+localActivityMenuRuntime = createLocalActivityMenuRuntime({
+  document,
+  rootEl: localActivityMenuEl,
+  activityDefinitions: ACTIVITY_DEFINITIONS,
+  dispatchCoreCommand,
+  getInteractionMode: () => getInteractionModeSnapshot(),
+  getActivitySnapshot,
+  getMovementSnapshot: () => movementSystem.getSnapshot(),
+  rebuildMovementField,
+  radius: localActivityMenuRadius,
+  setStatus,
+});
+uiHighlightRuntime.registerTarget("hud.activity.pathfinding", localActivityMenuEl);
+uiHighlightRuntime.registerTarget("hud.activity.gathering", localActivityMenuEl);
+uiHighlightRuntime.registerTarget("hud.activity.water", localActivityMenuEl);
 gameplayHudRuntime = createGameplayHudRuntime({
   document,
   activityDefinitions: ACTIVITY_DEFINITIONS,
@@ -5369,14 +5394,14 @@ gameplayHudRuntime = createGameplayHudRuntime({
   conditionThresholds: CONDITION_THRESHOLDS,
   conditionEffectStripEl,
   conditionEffectTooltipEl,
-  pathfindingBtn: hudPathfindingBtn,
+  pathfindingBtn: null,
   routePlanningBtn: hudRoutePlanningBtn,
-  gatheringBtn: hudGatheringBtn,
-  gatherWaterBtn: hudGatherWaterBtn,
-  huntingBtn: hudHuntingBtn,
+  gatheringBtn: null,
+  gatherWaterBtn: null,
+  huntingBtn: null,
   inspectBtn: null,
-  scoutBtn: hudScoutBtn,
-  restBtn: hudRestBtn,
+  scoutBtn: null,
+  restBtn: null,
   inventoryBtn: hudInventoryBtn,
   showPlayerBtn: hudShowPlayerBtn,
   dispatchCoreCommand,
@@ -6542,6 +6567,8 @@ runAppShellLifecycleRuntime(createAppShellLifecycleAssemblyRuntime({
     updatePathPreviewFromPointer,
     updateRoutePreviewFromPointer,
     updateInspectFromPointer,
+    openLocalActivityMenu: (input) => localActivityMenuRuntime?.openAt(input),
+    canHandleTerrainClicks: () => getRuntimeMode() === "gameplay" && titleScreenEl.classList.contains("hidden"),
     isMiddleDragging: () => isMiddleDragging,
     isCursorLightEnabled: () => getCursorLightSnapshot().enabled,
     getInteractionMode: () => getInteractionModeSnapshot(),

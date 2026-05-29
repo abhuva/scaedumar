@@ -442,12 +442,27 @@ test("legacy mode names do not re-enable no-mode teleport", () => {
   });
   registerInteractionCommands(commandBus, deps);
 
-  commandBus.dispatch({ type: "core/interaction/clickMapPixel", x: 8, y: 9 });
+  const result = commandBus.dispatch({ type: "core/interaction/clickMapPixel", x: 8, y: 9 });
 
   assert.equal(deps.calls.setPlayerPosition, 0);
   assert.equal(deps.calls.cancelMovementQueue, 0);
   assert.equal(deps.calls.requestOverlayDraw, 1);
   assert.equal(deps.calls.status, "Use PF to choose a destination.");
+  assert.deepEqual(result, { consumed: false });
+});
+
+test("active primary activities still allow fallback local menu clicks", () => {
+  const commandBus = createCommandBus();
+  const deps = createDeps({
+    isActivityActive: () => true,
+  });
+  registerInteractionCommands(commandBus, deps);
+
+  const result = commandBus.dispatch({ type: "core/interaction/clickMapPixel", x: 8, y: 9 });
+
+  assert.equal(deps.calls.cancelMovementQueue, 0);
+  assert.equal(deps.calls.status, "Use PF to choose a destination.");
+  assert.deepEqual(result, { consumed: false });
 });
 
 test("inspect activity start triggers first-use tutorial event", () => {

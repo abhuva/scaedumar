@@ -170,6 +170,7 @@ export function createResourceDebugPanelRuntime(deps) {
     });
     syncStock();
     syncRoute();
+    syncLocalActivityMenu();
   }
 
   function syncStock() {
@@ -195,6 +196,13 @@ export function createResourceDebugPanelRuntime(deps) {
     for (const [key, input, valueEl, digits] of routeControls) {
       setRange(input, valueEl, settings[key], digits);
     }
+  }
+
+  function syncLocalActivityMenu() {
+    const radius = typeof deps.getLocalActivityMenuRadius === "function"
+      ? deps.getLocalActivityMenuRadius()
+      : undefined;
+    setRange(deps.localActivityMenuRadiusInput, deps.localActivityMenuRadiusValue, radius, 0);
   }
 
   function bindDiscoveryRange(key, input, valueEl, digits) {
@@ -396,6 +404,13 @@ export function createResourceDebugPanelRuntime(deps) {
     deps.routeClearBtn.addEventListener("click", () => {
       deps.clearRoute?.();
       syncRoute();
+    });
+  }
+  if (deps.localActivityMenuRadiusInput) {
+    deps.localActivityMenuRadiusInput.addEventListener("input", () => {
+      const value = Math.round(finite(deps.localActivityMenuRadiusInput.value, 72));
+      if (deps.localActivityMenuRadiusValue) deps.localActivityMenuRadiusValue.textContent = String(value);
+      deps.setLocalActivityMenuRadius?.(value);
     });
   }
 

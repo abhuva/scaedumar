@@ -166,21 +166,13 @@
       </section>
       <div class="gameplay-action-slots" aria-label="Activities">
         <div class="gameplay-utility-actions" aria-label="Utility actions">
+          <button id="hudRoutePlanningBtn" class="hud-action-btn" type="button" title="Plan Route" data-wiki-id="gameplay.travel">Nav</button>
           <button id="hudInventoryBtn" class="hud-action-btn" type="button" title="Inventory">In</button>
           <button id="hudShowPlayerBtn" class="hud-action-btn" type="button" title="Center camera on player">P</button>
         </div>
-        <div class="gameplay-action-divider" aria-hidden="true"></div>
-        <div class="gameplay-primary-actions" aria-label="Primary activities">
-          <button id="hudPathfindingBtn" class="hud-action-btn" type="button" data-wiki-id="gameplay.travel">PF</button>
-          <button id="hudRoutePlanningBtn" class="hud-action-btn" type="button" title="Plan Route" data-wiki-id="gameplay.travel">Nav</button>
-          <button id="hudGatheringBtn" class="hud-action-btn" type="button" title="Gather" data-wiki-id="gameplay.gathering">G</button>
-          <button id="hudGatherWaterBtn" class="hud-action-btn" type="button" title="Gather Water" data-wiki-id="gameplay.water">W</button>
-          <button id="hudHuntingBtn" class="hud-action-btn" type="button" title="Hunt" data-wiki-id="gameplay.hunting">HU</button>
-          <button id="hudScoutBtn" class="hud-action-btn" type="button" title="Scout">SC</button>
-          <button id="hudRestBtn" class="hud-action-btn" type="button" title="Rest" data-wiki-id="gameplay.rest">R</button>
-        </div>
       </div>
     </section>
+    <div id="localActivityMenu" class="local-activity-menu hidden" aria-label="Local activities" aria-hidden="true"></div>
     <aside id="inspectStatusPanel" class="inspect-status-panel" aria-live="polite">
       <div class="inspect-panel-header">
         <h2 id="inspectStatusTitle">Inspect:</h2>
