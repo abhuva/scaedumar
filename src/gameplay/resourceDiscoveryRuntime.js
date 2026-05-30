@@ -48,6 +48,32 @@ function getRevealFalloff(deps, resourceId) {
   return Math.max(0, Math.min(8, finite(configured && configured.revealFalloff, 0.15)));
 }
 
+// Brush geometry is keyed by grid/radius/falloff. Keep it bounded for long sessions.
+const DEFAULT_REVEAL_BRUSH_CACHE_MAX_SIZE = 128;
+
+function createBoundedLruCache(maxSize = DEFAULT_REVEAL_BRUSH_CACHE_MAX_SIZE) {
+  const safeMaxSize = Math.max(1, Math.round(finite(maxSize, DEFAULT_REVEAL_BRUSH_CACHE_MAX_SIZE)));
+  const entries = new Map();
+  return {
+    get(key) {
+      if (!entries.has(key)) return null;
+      const value = entries.get(key);
+      entries.delete(key);
+      entries.set(key, value);
+      return value;
+    },
+    set(key, value) {
+      if (entries.has(key)) entries.delete(key);
+      entries.set(key, value);
+      while (entries.size > safeMaxSize) {
+        const oldestKey = entries.keys().next().value;
+        entries.delete(oldestKey);
+      }
+      return value;
+    },
+  };
+}
+
 function createMask(searches, resourceId, mapWidth, mapHeight, discoveryOverride = null) {
   const search = getSearchConfig(searches, resourceId);
   const discovery = discoveryOverride || (search && search.discovery) || {};
@@ -81,7 +107,7 @@ export function createResourceDiscoveryRuntime(deps = {}) {
   const masks = new Map();
   const versions = new Map();
   const decayTickRemainders = new Map();
-  const revealBrushCache = new Map();
+  const revealBrushCache = createBoundedLruCache(deps.revealBrushCacheMaxSize);
   let batchDepth = 0;
   let batchChanged = false;
 

@@ -17,6 +17,12 @@ export function bindSwarmPanelControls(deps) {
     return String(Math.round(Number(value) || 0));
   }
 
+  function fixed(value, decimals) {
+    const parsed = Number(value);
+    const safeDecimals = Math.max(0, Math.min(6, Math.round(Number(decimals) || 0)));
+    return (Number.isFinite(parsed) ? parsed : 0).toFixed(safeDecimals);
+  }
+
   function dispatchSwarmSettingChange(action, payload = {}) {
     deps.dispatchCoreCommand({
       type: "core/swarm/settingsChanged",

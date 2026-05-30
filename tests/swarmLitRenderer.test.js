@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 
 import { createSwarmLitRenderer } from "../src/render/swarmLitRenderer.js";
 
-function createNoopGl() {
+function createNoopGl(calls) {
   return {
     TEXTURE0: 0,
     TEXTURE1: 1,
@@ -22,12 +22,15 @@ function createNoopGl() {
     uniform3f: () => {},
     bindVertexArray: () => {},
     bindBuffer: () => {},
-    bufferData: () => {},
+    bufferData: (_target, data) => {
+      calls.bufferData = Array.from(data);
+    },
     drawArrays: () => {},
   };
 }
 
 function createRenderer(count) {
+  const calls = { bufferData: null, shadowCalls: 0 };
   const swarmState = {
     count,
     x: new Float32Array(count).fill(10),
@@ -35,40 +38,47 @@ function createRenderer(count) {
     z: new Float32Array(count).fill(20),
     hawks: [],
   };
-  return createSwarmLitRenderer({
-    gl: createNoopGl(),
-    swarmState,
-    swarmLitAgentScratch: {},
-    swarmLitHawkScratch: {},
-    writeInterpolatedSwarmAgentPos: (index, out) => {
-      out.x = swarmState.x[index];
-      out.y = swarmState.y[index];
-      out.z = swarmState.z[index];
-      return out;
-    },
-    writeInterpolatedSwarmHawkPos: () => ({ x: 0, y: 0, z: 0 }),
-    clamp: (value, min, max) => Math.min(max, Math.max(min, Number(value) || 0)),
-    getViewHalfExtents: () => ({ x: 1, y: 1 }),
-    hexToRgb01: () => [1, 0, 0],
-    getMapAspect: () => 1,
-    heightSize: { width: 64, height: 64 },
-    splatSize: { width: 64, height: 64 },
-    canvas: { width: 320, height: 200 },
-    swarmUniforms: new Proxy({}, { get: () => ({}) }),
-    swarmProgram: {},
-    normalsTex: {},
-    heightTex: {},
-    pointLightTex: {},
-    cloudNoiseTex: {},
-    swarmHeightMax: 256,
-    pointLightEdgeMin: 0,
-    swarmPointVao: {},
-    swarmPointBuffer: {},
-  });
+  return {
+    render: createSwarmLitRenderer({
+      gl: createNoopGl(calls),
+      swarmState,
+      swarmLitAgentScratch: {},
+      swarmLitHawkScratch: {},
+      writeInterpolatedSwarmAgentPos: (index, out) => {
+        out.x = swarmState.x[index];
+        out.y = swarmState.y[index];
+        out.z = swarmState.z[index];
+        return out;
+      },
+      writeInterpolatedSwarmHawkPos: () => ({ x: 0, y: 0, z: 0 }),
+      clamp: (value, min, max) => Math.min(max, Math.max(min, Number(value) || 0)),
+      getViewHalfExtents: () => ({ x: 1, y: 1 }),
+      hexToRgb01: () => [1, 0, 0],
+      getMapAspect: () => 1,
+      heightSize: { width: 64, height: 64 },
+      splatSize: { width: 64, height: 64 },
+      canvas: { width: 320, height: 200 },
+      swarmUniforms: new Proxy({}, { get: () => ({}) }),
+      swarmProgram: {},
+      normalsTex: {},
+      heightTex: {},
+      pointLightTex: {},
+      cloudNoiseTex: {},
+      swarmHeightMax: 256,
+      pointLightEdgeMin: 0,
+      swarmPointVao: {},
+      swarmPointBuffer: {},
+      computeTerrainShadows: () => {
+        calls.shadowCalls += 1;
+        return 0;
+      },
+    }),
+    calls,
+  };
 }
 
 test("lit swarm renderer does not CPU raycast terrain shadows for agents", () => {
-  const render = createRenderer(200);
+  const { render, calls } = createRenderer(200);
   const params = {
     sunDir: [1, 0, 1],
     moonDir: [-1, 0, 1],
@@ -90,5 +100,11 @@ test("lit swarm renderer does not CPU raycast terrain shadows for agents", () =>
     shadowStrength: 0.5,
   });
 
-  assert.ok(true);
+  assert.equal(calls.shadowCalls, 0);
+  assert.ok(calls.bufferData);
+  assert.equal(calls.bufferData.length, 200 * 6);
+  for (let i = 0; i < 200; i++) {
+    assert.equal(calls.bufferData[i * 6 + 4], 1);
+    assert.equal(calls.bufferData[i * 6 + 5], 1);
+  }
 });
