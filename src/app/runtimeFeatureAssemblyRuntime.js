@@ -36,7 +36,6 @@ export function createSwarmRuntimeAssemblyRuntime(deps) {
     setSwarmFollowHawkIndex: deps.setSwarmFollowHawkIndex,
     swarmFollowTargetInput: deps.swarmFollowTargetInput,
     syncSwarmFollowTargetInput: deps.syncSwarmFollowTargetInput,
-    resetSwarmFollowSpeedSmoothing: deps.resetSwarmFollowSpeedSmoothing,
     updateSwarmFollowButtonUi: deps.updateSwarmFollowButtonUi,
   };
 }

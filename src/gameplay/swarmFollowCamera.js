@@ -1,7 +1,11 @@
 export function createSwarmFollowCameraUpdater(deps) {
-  function clampSmoothing(value) {
-    return deps.clamp(Number(value), 0, 1);
-  }
+  const state = {
+    key: "",
+    x: Number.NaN,
+    y: Number.NaN,
+    zoom: Number.NaN,
+    lastMs: Number.NaN,
+  };
 
   function getZoomMin() {
     return typeof deps.getZoomMin === "function" ? deps.getZoomMin() : deps.zoomMin;
@@ -11,10 +15,68 @@ export function createSwarmFollowCameraUpdater(deps) {
     return typeof deps.getZoomMax === "function" ? deps.getZoomMax() : deps.zoomMax;
   }
 
-  return function updateSwarmFollowCamera() {
+  function clampGain(value, fallback) {
+    const parsed = Number(value);
+    return deps.clamp(Number.isFinite(parsed) ? parsed : fallback, 0, 1);
+  }
+
+  function getFrameScale(nowMs) {
+    const now = Number(nowMs);
+    const last = Number(state.lastMs);
+    if (!Number.isFinite(now) || !Number.isFinite(last) || now < last) return 1;
+    return deps.clamp((now - last) / (1000 / 60), 0, 8);
+  }
+
+  function gainToAlpha(gain, frameScale) {
+    if (gain <= 0) return 0;
+    if (gain >= 1) return 1;
+    return 1 - ((1 - gain) ** frameScale);
+  }
+
+  function getAgentId(index) {
+    return deps.swarmState.agentId && Number.isFinite(Number(deps.swarmState.agentId[index]))
+      ? Math.round(Number(deps.swarmState.agentId[index]))
+      : index + 1;
+  }
+
+  function applyCameraTarget({ key, x, y, speedNorm, nowMs, settings }) {
+    const currentZoom = deps.getZoom();
+    const frameScale = getFrameScale(nowMs);
+    const positionGain = clampGain(settings.followCameraPositionSmoothing, 0.12);
+    const zoomGain = clampGain(settings.followAgentZoomSmoothing, 0.12);
+    const targetChanged = state.key !== key || !Number.isFinite(state.x) || !Number.isFinite(state.y);
+
+    if (targetChanged) {
+      state.key = key;
+      state.x = x;
+      state.y = y;
+      state.zoom = currentZoom;
+    } else {
+      const positionAlpha = gainToAlpha(positionGain, frameScale);
+      state.x += (x - state.x) * positionAlpha;
+      state.y += (y - state.y) * positionAlpha;
+    }
+
+    let nextZoom = Number.isFinite(state.zoom) ? state.zoom : currentZoom;
+    const targetZoom = settings.followZoomIn
+      + (settings.followZoomOut - settings.followZoomIn) * deps.clamp(speedNorm, 0, 1);
+    nextZoom += (targetZoom - nextZoom) * gainToAlpha(zoomGain, frameScale);
+    state.zoom = deps.clamp(nextZoom, getZoomMin(), getZoomMax());
+    state.lastMs = Number.isFinite(Number(nowMs)) ? Number(nowMs) : state.lastMs;
+
+    deps.dispatchCoreCommand({
+      type: "core/camera/setPose",
+      panX: state.x,
+      panY: state.y,
+      zoom: state.zoom,
+      requestOverlay: false,
+    });
+  }
+
+  return function updateSwarmFollowCamera(nowMs) {
     const follow = deps.getSwarmFollowSnapshot();
     if (!follow.enabled) return;
-    if (!deps.isSwarmEnabled() || deps.swarmState.count <= 0) {
+    if (!deps.isSwarmEnabled() || (deps.swarmState.count <= 0 && deps.swarmState.hawks.length <= 0)) {
       deps.stopSwarmFollow({ syncStore: true });
       return;
     }
@@ -39,27 +101,13 @@ export function createSwarmFollowCameraUpdater(deps) {
       const hawk = deps.swarmState.hawks[hawkIndex];
       const hawkPos = deps.writeInterpolatedSwarmHawkPos(hawkIndex, deps.swarmFollowHawkScratch);
       const hawkWorld = deps.mapCoordToWorld(hawkPos.x, hawkPos.y);
-      let nextZoom = deps.getZoom();
-      if (settings.followZoomBySpeed) {
-        const speedNormRaw = deps.clamp(Math.hypot(hawk.vx, hawk.vy) / Math.max(1, settings.hawkSpeed), 0, 1);
-        const speedSmoothing = clampSmoothing(settings.followAgentSpeedSmoothing);
-        const zoomSmoothing = clampSmoothing(settings.followAgentZoomSmoothing);
-        const speedNormFiltered = deps.getSwarmFollowSpeedNormFiltered();
-        if (!Number.isFinite(speedNormFiltered)) {
-          deps.setSwarmFollowSpeedNormFiltered(speedNormRaw);
-        } else {
-          deps.setSwarmFollowSpeedNormFiltered(speedNormFiltered + (speedNormRaw - speedNormFiltered) * speedSmoothing);
-        }
-        const targetZoom = settings.followZoomIn
-          + (settings.followZoomOut - settings.followZoomIn) * deps.getSwarmFollowSpeedNormFiltered();
-        nextZoom = deps.clamp(deps.getZoom() + (targetZoom - deps.getZoom()) * zoomSmoothing, getZoomMin(), getZoomMax());
-      }
-      deps.dispatchCoreCommand({
-        type: "core/camera/setPose",
-        panX: hawkWorld.x,
-        panY: hawkWorld.y,
-        zoom: nextZoom,
-        requestOverlay: false,
+      applyCameraTarget({
+        key: `hawk:${hawkIndex}`,
+        x: hawkWorld.x,
+        y: hawkWorld.y,
+        speedNorm: Math.hypot(hawk.vx, hawk.vy) / Math.max(1, settings.hawkSpeed),
+        nowMs,
+        settings,
       });
       return;
     }
@@ -77,35 +125,13 @@ export function createSwarmFollowCameraUpdater(deps) {
 
     const agentPos = deps.writeInterpolatedSwarmAgentPos(agentIndex, deps.swarmFollowAgentScratch);
     const world = deps.mapCoordToWorld(agentPos.x, agentPos.y);
-    let nextZoom = deps.getZoom();
-    if (settings.followZoomBySpeed) {
-      const speedNormRaw = deps.clamp(
-        Math.hypot(deps.swarmState.vx[agentIndex], deps.swarmState.vy[agentIndex]) / Math.max(1, settings.maxSpeed),
-        0,
-        1,
-      );
-      const speedNormFiltered = deps.getSwarmFollowSpeedNormFiltered();
-      if (!Number.isFinite(speedNormFiltered)) {
-        deps.setSwarmFollowSpeedNormFiltered(speedNormRaw);
-      } else {
-        deps.setSwarmFollowSpeedNormFiltered(
-          speedNormFiltered + (speedNormRaw - speedNormFiltered) * clampSmoothing(settings.followAgentSpeedSmoothing),
-        );
-      }
-      const targetZoom = settings.followZoomIn
-        + (settings.followZoomOut - settings.followZoomIn) * deps.getSwarmFollowSpeedNormFiltered();
-      nextZoom = deps.clamp(
-        deps.getZoom() + (targetZoom - deps.getZoom()) * clampSmoothing(settings.followAgentZoomSmoothing),
-        getZoomMin(),
-        getZoomMax(),
-      );
-    }
-    deps.dispatchCoreCommand({
-      type: "core/camera/setPose",
-      panX: world.x,
-      panY: world.y,
-      zoom: nextZoom,
-      requestOverlay: false,
+    applyCameraTarget({
+      key: `agent:${getAgentId(agentIndex)}`,
+      x: world.x,
+      y: world.y,
+      speedNorm: Math.hypot(deps.swarmState.vx[agentIndex], deps.swarmState.vy[agentIndex]) / Math.max(1, settings.maxSpeed),
+      nowMs,
+      settings,
     });
   };
 }

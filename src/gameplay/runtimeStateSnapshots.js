@@ -31,8 +31,8 @@ export function getSwarmSettings(deps) {
   const followZoomOut = deps.clamp(Number(source.followZoomOut), deps.zoomMin, deps.zoomMax);
   const rawFollowZoomIn = deps.clamp(Number(source.followZoomIn), deps.zoomMin, deps.zoomMax);
   const followZoomIn = Math.max(followZoomOut, rawFollowZoomIn);
-  const followAgentSpeedSmoothing = deps.clamp(Number(source.followAgentSpeedSmoothing), 0.01, 0.25);
-  const followAgentZoomSmoothing = deps.clamp(Number(source.followAgentZoomSmoothing), 0.01, 0.25);
+  const followAgentZoomSmoothing = deps.clamp(Number(source.followAgentZoomSmoothing), 0, 1);
+  const followCameraPositionSmoothing = deps.clamp(Number(source.followCameraPositionSmoothing), 0, 1);
   const backgroundColor = typeof source.backgroundColor === "string" && /^#?[0-9a-fA-F]{6}$/.test(source.backgroundColor)
     ? (source.backgroundColor.startsWith("#") ? source.backgroundColor : `#${source.backgroundColor}`)
     : deps.defaultSwarmSettings.backgroundColor;
@@ -43,12 +43,11 @@ export function getSwarmSettings(deps) {
     ...source,
     useAgentSwarm: Boolean(source.useAgentSwarm),
     useLitSwarm: Boolean(source.useLitSwarm),
-    followZoomBySpeed: Boolean(source.followZoomBySpeed),
     followZoomIn,
     followZoomOut,
     followHawkRangeGizmo: Boolean(source.followHawkRangeGizmo),
-    followAgentSpeedSmoothing,
     followAgentZoomSmoothing,
+    followCameraPositionSmoothing,
     showStatsPanel: Boolean(source.showStatsPanel),
     showTerrainInSwarm: Boolean(source.showTerrainInSwarm),
     backgroundColor,

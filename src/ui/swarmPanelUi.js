@@ -12,8 +12,8 @@ export function createSwarmPanelUi(deps) {
     swarmAgentCountValue,
     swarmFollowZoomInValue,
     swarmFollowZoomOutValue,
-    swarmFollowAgentSpeedSmoothingValue,
     swarmFollowAgentZoomSmoothingValue,
+    swarmFollowCameraPositionSmoothingValue,
     swarmUpdateIntervalValue,
     swarmMaxSpeedValue,
     swarmSteeringMaxValue,
@@ -39,12 +39,11 @@ export function createSwarmPanelUi(deps) {
     swarmShowTerrainToggle,
     swarmLitModeToggle,
     swarmFollowTargetInput,
-    swarmFollowZoomToggle,
     swarmFollowZoomInInput,
     swarmFollowZoomOutInput,
     swarmFollowHawkRangeGizmoToggle,
-    swarmFollowAgentSpeedSmoothingInput,
     swarmFollowAgentZoomSmoothingInput,
+    swarmFollowCameraPositionSmoothingInput,
     swarmStatsPanelToggle,
     swarmBackgroundColorInput,
     swarmAgentCountInput,
@@ -80,8 +79,8 @@ export function createSwarmPanelUi(deps) {
     swarmAgentCountValue.textContent = String(settings.agentCount);
     swarmFollowZoomInValue.textContent = `${settings.followZoomIn.toFixed(1)}x`;
     swarmFollowZoomOutValue.textContent = `${settings.followZoomOut.toFixed(1)}x`;
-    swarmFollowAgentSpeedSmoothingValue.textContent = settings.followAgentSpeedSmoothing.toFixed(2);
     swarmFollowAgentZoomSmoothingValue.textContent = settings.followAgentZoomSmoothing.toFixed(2);
+    if (swarmFollowCameraPositionSmoothingValue) swarmFollowCameraPositionSmoothingValue.textContent = settings.followCameraPositionSmoothing.toFixed(2);
     swarmUpdateIntervalValue.textContent = `${settings.simulationSpeed.toFixed(1)}x`;
     swarmMaxSpeedValue.textContent = `${Math.round(settings.maxSpeed)} px/s`;
     swarmSteeringMaxValue.textContent = `${Math.round(settings.maxSteering)} px/s^2`;
@@ -117,18 +116,17 @@ export function createSwarmPanelUi(deps) {
     const swarmEnabled = Boolean(settings.useAgentSwarm);
     const cursorMode = settings.cursorMode;
     const cursorControlsEnabled = swarmEnabled && cursorMode !== "none";
-    const followZoomControlsEnabled = swarmEnabled && Boolean(settings.followZoomBySpeed || swarmFollowZoomToggle.checked);
+    const followZoomControlsEnabled = swarmEnabled;
     syncSwarmStatsPanelVisibility();
     swarmShowTerrainToggle.disabled = !swarmEnabled;
     swarmLitModeToggle.disabled = !swarmEnabled;
     swarmFollowToggleBtn.disabled = !swarmEnabled;
     swarmFollowTargetInput.disabled = !swarmEnabled;
-    swarmFollowZoomToggle.disabled = !swarmEnabled;
     swarmFollowZoomInInput.disabled = !followZoomControlsEnabled;
     swarmFollowZoomOutInput.disabled = !followZoomControlsEnabled;
     swarmFollowHawkRangeGizmoToggle.disabled = !swarmEnabled;
-    swarmFollowAgentSpeedSmoothingInput.disabled = !followZoomControlsEnabled;
     swarmFollowAgentZoomSmoothingInput.disabled = !followZoomControlsEnabled;
+    if (swarmFollowCameraPositionSmoothingInput) swarmFollowCameraPositionSmoothingInput.disabled = !swarmEnabled;
     swarmStatsPanelToggle.disabled = false;
     swarmBackgroundColorInput.disabled = !swarmEnabled;
     swarmAgentCountInput.disabled = !swarmEnabled;

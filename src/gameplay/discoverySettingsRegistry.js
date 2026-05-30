@@ -33,6 +33,7 @@ export const DEFAULT_DISCOVERY_SETTINGS = {
       speedForZoomOut: 120,
       speedSmoothing: 0.08,
       zoomSmoothing: 0.10,
+      positionSmoothing: 0.35,
     },
   },
 };
@@ -82,6 +83,7 @@ export function normalizeDiscoverySettings(rawSettings = {}, fallback = DEFAULT_
         speedForZoomOut: Math.max(1, finite(sourceCamera.speedForZoomOut, fallbackCamera.speedForZoomOut)),
         speedSmoothing: clamp(finite(sourceCamera.speedSmoothing, fallbackCamera.speedSmoothing), 0, 1),
         zoomSmoothing: clamp(finite(sourceCamera.zoomSmoothing, fallbackCamera.zoomSmoothing), 0, 1),
+        positionSmoothing: clamp(finite(sourceCamera.positionSmoothing, fallbackCamera.positionSmoothing), 0, 1),
       },
     },
   };

@@ -6,12 +6,11 @@ import { normalizeSlimeSettings } from "../slime/slimeState.js";
 const PERSISTED_SWARM_KEYS = [
   "useAgentSwarm",
   "useLitSwarm",
-  "followZoomBySpeed",
   "followZoomIn",
   "followZoomOut",
   "followHawkRangeGizmo",
-  "followAgentSpeedSmoothing",
   "followAgentZoomSmoothing",
+  "followCameraPositionSmoothing",
   "showStatsPanel",
   "showTerrainInSwarm",
   "backgroundColor",

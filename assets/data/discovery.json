@@ -28,7 +28,8 @@
       "zoomOut": 12,
       "speedForZoomOut": 120,
       "speedSmoothing": 0.08,
-      "zoomSmoothing": 0.10
+      "zoomSmoothing": 0.10,
+      "positionSmoothing": 0.35
     }
   }
 }

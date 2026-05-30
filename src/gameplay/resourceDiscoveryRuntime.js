@@ -48,6 +48,32 @@ function getRevealFalloff(deps, resourceId) {
   return Math.max(0, Math.min(8, finite(configured && configured.revealFalloff, 0.15)));
 }
 
+// Brush geometry is keyed by grid/radius/falloff. Keep it bounded for long sessions.
+const DEFAULT_REVEAL_BRUSH_CACHE_MAX_SIZE = 128;
+
+function createBoundedLruCache(maxSize = DEFAULT_REVEAL_BRUSH_CACHE_MAX_SIZE) {
+  const safeMaxSize = Math.max(1, Math.round(finite(maxSize, DEFAULT_REVEAL_BRUSH_CACHE_MAX_SIZE)));
+  const entries = new Map();
+  return {
+    get(key) {
+      if (!entries.has(key)) return null;
+      const value = entries.get(key);
+      entries.delete(key);
+      entries.set(key, value);
+      return value;
+    },
+    set(key, value) {
+      if (entries.has(key)) entries.delete(key);
+      entries.set(key, value);
+      while (entries.size > safeMaxSize) {
+        const oldestKey = entries.keys().next().value;
+        entries.delete(oldestKey);
+      }
+      return value;
+    },
+  };
+}
+
 function createMask(searches, resourceId, mapWidth, mapHeight, discoveryOverride = null) {
   const search = getSearchConfig(searches, resourceId);
   const discovery = discoveryOverride || (search && search.discovery) || {};
@@ -81,6 +107,37 @@ export function createResourceDiscoveryRuntime(deps = {}) {
   const masks = new Map();
   const versions = new Map();
   const decayTickRemainders = new Map();
+  const revealBrushCache = createBoundedLruCache(deps.revealBrushCacheMaxSize);
+  let batchDepth = 0;
+  let batchChanged = false;
+
+  function notifyChange() {
+    if (batchDepth > 0) {
+      batchChanged = true;
+      return;
+    }
+    if (typeof deps.onChange === "function") {
+      deps.onChange();
+    }
+  }
+
+  function withMutationBatch(callback) {
+    if (typeof callback !== "function") return false;
+    batchDepth += 1;
+    let changed = false;
+    try {
+      changed = callback() === true;
+    } finally {
+      batchDepth = Math.max(0, batchDepth - 1);
+      if (batchDepth === 0 && batchChanged) {
+        batchChanged = false;
+        if (typeof deps.onChange === "function") {
+          deps.onChange();
+        }
+      }
+    }
+    return changed;
+  }
 
   function bumpVersion(resourceId = "") {
     const id = String(resourceId || "*");
@@ -128,9 +185,44 @@ export function createResourceDiscoveryRuntime(deps = {}) {
       decayTickRemainders.clear();
       bumpVersion("*");
     }
-    if (typeof deps.onChange === "function") {
-      deps.onChange();
+    notifyChange();
+  }
+
+  function getRevealBrush(mask, safeRadius, falloff, safeStrength) {
+    const cellWidth = mask.mapWidth / mask.width;
+    const cellHeight = mask.mapHeight / mask.height;
+    const key = [
+      mask.width,
+      mask.height,
+      mask.mapWidth,
+      mask.mapHeight,
+      safeRadius.toFixed(6),
+      falloff.toFixed(6),
+      safeStrength.toFixed(6),
+    ].join("|");
+    const cached = revealBrushCache.get(key);
+    if (cached) return cached;
+
+    const maxDx = Math.ceil(safeRadius / Math.max(cellWidth, 0.000001));
+    const maxDy = Math.ceil(safeRadius / Math.max(cellHeight, 0.000001));
+    const hardValue = Math.round(safeStrength * 255);
+    const entries = [];
+    for (let dy = -maxDy; dy <= maxDy; dy++) {
+      for (let dx = -maxDx; dx <= maxDx; dx++) {
+        let value = hardValue;
+        if (dx !== 0 || dy !== 0) {
+          const dist = Math.sqrt((dx * cellWidth) ** 2 + (dy * cellHeight) ** 2);
+          if (dist > safeRadius) continue;
+          value = falloff <= 0
+            ? hardValue
+            : Math.round(safeStrength * Math.pow(Math.max(0, 1 - dist / safeRadius), falloff) * 255);
+        }
+        if (value <= 0) continue;
+        entries.push({ dx, dy, value });
+      }
     }
+    revealBrushCache.set(key, entries);
+    return entries;
   }
 
   function revealCircle(resourceId, centerX, centerY, radius, strength = 1) {
@@ -143,43 +235,25 @@ export function createResourceDiscoveryRuntime(deps = {}) {
     const falloff = getRevealFalloff(deps, resourceId);
     const mapX = clamp(finite(centerX, 0), 0, mask.mapWidth - 1);
     const mapY = clamp(finite(centerY, 0), 0, mask.mapHeight - 1);
-    const minGridX = Math.round(clamp(Math.floor(((mapX - safeRadius) / mask.mapWidth) * mask.width), 0, mask.width - 1));
-    const maxGridX = Math.round(clamp(Math.ceil(((mapX + safeRadius) / mask.mapWidth) * mask.width), 0, mask.width - 1));
-    const minGridY = Math.round(clamp(Math.floor(((mapY - safeRadius) / mask.mapHeight) * mask.height), 0, mask.height - 1));
-    const maxGridY = Math.round(clamp(Math.ceil(((mapY + safeRadius) / mask.mapHeight) * mask.height), 0, mask.height - 1));
-    const radiusSq = safeRadius * safeRadius;
-    const hardValue = Math.round(safeStrength * 255);
     const centerGridX = clamp(Math.floor((mapX / mask.mapWidth) * mask.width), 0, mask.width - 1);
     const centerGridY = clamp(Math.floor((mapY / mask.mapHeight) * mask.height), 0, mask.height - 1);
+    const brush = getRevealBrush(mask, safeRadius, falloff, safeStrength);
     let changed = false;
 
-    for (let gy = minGridY; gy <= maxGridY; gy++) {
-      const sampleY = ((gy + 0.5) / mask.height) * mask.mapHeight;
-      for (let gx = minGridX; gx <= maxGridX; gx++) {
-        const sampleX = ((gx + 0.5) / mask.width) * mask.mapWidth;
-        const dx = sampleX - mapX;
-        const dy = sampleY - mapY;
-        const distSq = dx * dx + dy * dy;
-        if (distSq > radiusSq) continue;
-        const value = gx === centerGridX && gy === centerGridY
-          ? hardValue
-          : falloff <= 0
-          ? hardValue
-          : Math.round(safeStrength * Math.pow(Math.max(0, 1 - Math.sqrt(distSq) / safeRadius), falloff) * 255);
-        if (value <= 0) continue;
-        const index = gy * mask.width + gx;
-        if (index < 0 || index >= mask.cells.length) continue;
-        if (mask.cells[index] >= value) continue;
-        mask.cells[index] = value;
-        changed = true;
-      }
+    for (const entry of brush) {
+      const gx = centerGridX + entry.dx;
+      const gy = centerGridY + entry.dy;
+      if (gx < 0 || gx >= mask.width || gy < 0 || gy >= mask.height) continue;
+      const value = entry.value;
+      const index = gy * mask.width + gx;
+      if (mask.cells[index] >= value) continue;
+      mask.cells[index] = value;
+      changed = true;
     }
 
     if (changed) {
       bumpVersion(normalizeKnowledgeMapId(resourceId));
-      if (typeof deps.onChange === "function") {
-        deps.onChange();
-      }
+      notifyChange();
     }
     return changed;
   }
@@ -190,6 +264,21 @@ export function createResourceDiscoveryRuntime(deps = {}) {
     const gx = clamp(Math.floor((clamp(finite(x, 0), 0, mask.mapWidth - 1) / mask.mapWidth) * mask.width), 0, mask.width - 1);
     const gy = clamp(Math.floor((clamp(finite(y, 0), 0, mask.mapHeight - 1) / mask.mapHeight) * mask.height), 0, mask.height - 1);
     return (mask.cells[gy * mask.width + gx] || 0) / 255;
+  }
+
+  function getGridCell(resourceId, x, y) {
+    const mask = getMask(resourceId);
+    if (!mask) return null;
+    return {
+      resourceId: mask.resourceId,
+      x: clamp(Math.floor((clamp(finite(x, 0), 0, mask.mapWidth - 1) / mask.mapWidth) * mask.width), 0, mask.width - 1),
+      y: clamp(Math.floor((clamp(finite(y, 0), 0, mask.mapHeight - 1) / mask.mapHeight) * mask.height), 0, mask.height - 1),
+      width: mask.width,
+      height: mask.height,
+      mapWidth: mask.mapWidth,
+      mapHeight: mask.mapHeight,
+      gridSize: mask.gridSize,
+    };
   }
 
   function getSnapshot(resourceId) {
@@ -225,9 +314,7 @@ export function createResourceDiscoveryRuntime(deps = {}) {
     if (!mask) return false;
     mask.cells.fill(Math.round(Math.max(0, Math.min(1, finite(value, 0))) * 255));
     bumpVersion(normalizeKnowledgeMapId(resourceId));
-    if (typeof deps.onChange === "function") {
-      deps.onChange();
-    }
+    notifyChange();
     return true;
   }
 
@@ -247,9 +334,7 @@ export function createResourceDiscoveryRuntime(deps = {}) {
       }
     }
     bumpVersion(normalizeKnowledgeMapId(resourceId));
-    if (typeof deps.onChange === "function") {
-      deps.onChange();
-    }
+    notifyChange();
     return true;
   }
 
@@ -268,9 +353,7 @@ export function createResourceDiscoveryRuntime(deps = {}) {
     }
     if (changed) {
       bumpVersion(id);
-      if (typeof deps.onChange === "function") {
-        deps.onChange();
-      }
+      notifyChange();
     }
     return changed;
   }
@@ -307,13 +390,16 @@ export function createResourceDiscoveryRuntime(deps = {}) {
   return {
     name: "resource-discovery-runtime",
     reset,
+    resolveKnowledgeMapId: normalizeKnowledgeMapId,
     revealCircle,
     revealMovement,
+    withMutationBatch,
     resolveRevealRadius: (resourceId, radius) => Math.max(0, finite(radius, 0) * getRevealRadiusMultiplier(deps, resourceId)),
     fill,
     fillNoise,
     decay,
     sampleKnowledge,
+    getGridCell,
     getSnapshot,
     getVersion,
     update,

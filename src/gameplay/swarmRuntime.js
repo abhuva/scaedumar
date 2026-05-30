@@ -51,7 +51,6 @@ export function createSwarmRuntime(deps) {
     setSwarmFollowTargetType: deps.setSwarmFollowTargetType,
     setSwarmFollowAgentIndex: deps.setSwarmFollowAgentIndex,
     setSwarmFollowHawkIndex: deps.setSwarmFollowHawkIndex,
-    resetSwarmFollowSpeedSmoothing: deps.resetSwarmFollowSpeedSmoothing,
     updateSwarmFollowButtonUi: deps.updateSwarmFollowButtonUi,
     syncSwarmFollowToStore,
   });

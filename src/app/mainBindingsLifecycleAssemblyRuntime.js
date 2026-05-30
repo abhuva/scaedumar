@@ -31,16 +31,15 @@ export function createMainBindingsLifecycleAssemblyRuntime(deps) {
     pathBaseCostInput: deps.pathBaseCostInput,
     swarmShowTerrainToggle: deps.swarmShowTerrainToggle,
     swarmLitModeToggle: deps.swarmLitModeToggle,
-    swarmFollowZoomToggle: deps.swarmFollowZoomToggle,
     swarmFollowZoomInInput: deps.swarmFollowZoomInInput,
     swarmFollowZoomInValue: deps.swarmFollowZoomInValue,
     swarmFollowZoomOutInput: deps.swarmFollowZoomOutInput,
     swarmFollowZoomOutValue: deps.swarmFollowZoomOutValue,
     swarmFollowHawkRangeGizmoToggle: deps.swarmFollowHawkRangeGizmoToggle,
-    swarmFollowAgentSpeedSmoothingInput: deps.swarmFollowAgentSpeedSmoothingInput,
-    swarmFollowAgentSpeedSmoothingValue: deps.swarmFollowAgentSpeedSmoothingValue,
     swarmFollowAgentZoomSmoothingInput: deps.swarmFollowAgentZoomSmoothingInput,
     swarmFollowAgentZoomSmoothingValue: deps.swarmFollowAgentZoomSmoothingValue,
+    swarmFollowCameraPositionSmoothingInput: deps.swarmFollowCameraPositionSmoothingInput,
+    swarmFollowCameraPositionSmoothingValue: deps.swarmFollowCameraPositionSmoothingValue,
     swarmStatsPanelToggle: deps.swarmStatsPanelToggle,
     swarmBackgroundColorInput: deps.swarmBackgroundColorInput,
     swarmAgentCountInput: deps.swarmAgentCountInput,
@@ -103,7 +102,6 @@ export function createMainBindingsLifecycleAssemblyRuntime(deps) {
     normalizeSwarmFollowZoomInputs: deps.normalizeSwarmFollowZoomInputs,
     normalizeSwarmHeightRangeInputs: deps.normalizeSwarmHeightRangeInputs,
     reseedSwarmAgents: deps.reseedSwarmAgents,
-    resetSwarmFollowSpeedSmoothing: deps.resetSwarmFollowSpeedSmoothing,
     updateSwarmFollowButtonUi: deps.updateSwarmFollowButtonUi,
     setStatus: deps.setStatus,
     swarmFollowToggleBtn: deps.swarmFollowToggleBtn,
@@ -350,3 +348,5 @@ export function createMainBindingsLifecycleAssemblyRuntime(deps) {
     slimeSeedInput: deps.slimeSeedInput,
   };
 }
+
+

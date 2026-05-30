@@ -22,6 +22,32 @@ function byteArrayFromArray(values, expectedLength) {
   return output;
 }
 
+// Brush geometry is keyed by grid/radius. Keep it bounded for long sessions.
+const DEFAULT_REVEAL_BRUSH_CACHE_MAX_SIZE = 128;
+
+function createBoundedLruCache(maxSize = DEFAULT_REVEAL_BRUSH_CACHE_MAX_SIZE) {
+  const safeMaxSize = Math.max(1, Math.round(finite(maxSize, DEFAULT_REVEAL_BRUSH_CACHE_MAX_SIZE)));
+  const entries = new Map();
+  return {
+    get(key) {
+      if (!entries.has(key)) return null;
+      const value = entries.get(key);
+      entries.delete(key);
+      entries.set(key, value);
+      return value;
+    },
+    set(key, value) {
+      if (entries.has(key)) entries.delete(key);
+      entries.set(key, value);
+      while (entries.size > safeMaxSize) {
+        const oldestKey = entries.keys().next().value;
+        entries.delete(oldestKey);
+      }
+      return value;
+    },
+  };
+}
+
 function createField(resourceId, settings, mapWidth, mapHeight) {
   const safeMapWidth = Math.max(1, Math.round(finite(mapWidth, 1)));
   const safeMapHeight = Math.max(1, Math.round(finite(mapHeight, 1)));
@@ -60,6 +86,34 @@ export function createResourceStockRuntime(deps = {}) {
   const fields = new Map();
   const versions = new Map();
   const replenishTickRemainders = new Map();
+  const revealBrushCache = createBoundedLruCache(deps.revealBrushCacheMaxSize);
+  let batchDepth = 0;
+  let batchChangedResourceId = null;
+
+  function notifyChange(resourceId = "*") {
+    if (batchDepth > 0) {
+      batchChangedResourceId = batchChangedResourceId || resourceId || "*";
+      return;
+    }
+    if (typeof deps.onChange === "function") deps.onChange(resourceId || "*");
+  }
+
+  function withMutationBatch(callback) {
+    if (typeof callback !== "function") return false;
+    batchDepth += 1;
+    let changed = false;
+    try {
+      changed = callback() === true;
+    } finally {
+      batchDepth = Math.max(0, batchDepth - 1);
+      if (batchDepth === 0 && batchChangedResourceId) {
+        const resourceId = batchChangedResourceId;
+        batchChangedResourceId = null;
+        if (typeof deps.onChange === "function") deps.onChange(resourceId);
+      }
+    }
+    return changed;
+  }
 
   function bumpVersion(resourceId = "") {
     const id = String(resourceId || "*");
@@ -159,7 +213,7 @@ export function createResourceStockRuntime(deps = {}) {
       return true;
     }
     bumpVersion(id);
-    if (typeof deps.onChange === "function") deps.onChange(id);
+    notifyChange(id);
     return true;
   }
 
@@ -248,9 +302,37 @@ export function createResourceStockRuntime(deps = {}) {
     });
     if (changed) {
       bumpVersion(resourceId);
-      if (typeof deps.onChange === "function") deps.onChange(resourceId);
+      notifyChange(resourceId);
     }
     return changed;
+  }
+
+  function getRevealBrush(field, safeRadius) {
+    const cellWidth = field.mapWidth / field.width;
+    const cellHeight = field.mapHeight / field.height;
+    const key = [
+      field.width,
+      field.height,
+      field.mapWidth,
+      field.mapHeight,
+      safeRadius.toFixed(6),
+    ].join("|");
+    const cached = revealBrushCache.get(key);
+    if (cached) return cached;
+
+    const maxDx = Math.ceil(safeRadius / Math.max(cellWidth, 0.000001));
+    const maxDy = Math.ceil(safeRadius / Math.max(cellHeight, 0.000001));
+    const radiusSq = safeRadius * safeRadius;
+    const entries = [];
+    for (let dy = -maxDy; dy <= maxDy; dy++) {
+      for (let dx = -maxDx; dx <= maxDx; dx++) {
+        const distSq = (dx * cellWidth) ** 2 + (dy * cellHeight) ** 2;
+        if (distSq > radiusSq) continue;
+        entries.push({ dx, dy });
+      }
+    }
+    revealBrushCache.set(key, entries);
+    return entries;
   }
 
   function revealKnown(resourceId, centerX, centerY, radius) {
@@ -260,29 +342,23 @@ export function createResourceStockRuntime(deps = {}) {
     if (safeRadius <= 0) return false;
     const mapX = clamp(finite(centerX, 0), 0, field.mapWidth - 1);
     const mapY = clamp(finite(centerY, 0), 0, field.mapHeight - 1);
-    const minGridX = Math.round(clamp(Math.floor(((mapX - safeRadius) / field.mapWidth) * field.width), 0, field.width - 1));
-    const maxGridX = Math.round(clamp(Math.ceil(((mapX + safeRadius) / field.mapWidth) * field.width), 0, field.width - 1));
-    const minGridY = Math.round(clamp(Math.floor(((mapY - safeRadius) / field.mapHeight) * field.height), 0, field.height - 1));
-    const maxGridY = Math.round(clamp(Math.ceil(((mapY + safeRadius) / field.mapHeight) * field.height), 0, field.height - 1));
-    const radiusSq = safeRadius * safeRadius;
+    const centerGridX = clamp(Math.floor((mapX / field.mapWidth) * field.width), 0, field.width - 1);
+    const centerGridY = clamp(Math.floor((mapY / field.mapHeight) * field.height), 0, field.height - 1);
+    const brush = getRevealBrush(field, safeRadius);
     let changed = false;
-    for (let gy = minGridY; gy <= maxGridY; gy++) {
-      const sampleY = ((gy + 0.5) / field.height) * field.mapHeight;
-      for (let gx = minGridX; gx <= maxGridX; gx++) {
-        const sampleX = ((gx + 0.5) / field.width) * field.mapWidth;
-        const dx = sampleX - mapX;
-        const dy = sampleY - mapY;
-        if (dx * dx + dy * dy > radiusSq) continue;
-        const index = gy * field.width + gx;
-        const value = field.stock[index];
-        if (field.knownStock[index] === value) continue;
-        field.knownStock[index] = value;
-        changed = true;
-      }
+    for (const entry of brush) {
+      const gx = centerGridX + entry.dx;
+      const gy = centerGridY + entry.dy;
+      if (gx < 0 || gx >= field.width || gy < 0 || gy >= field.height) continue;
+      const index = gy * field.width + gx;
+      const value = field.stock[index];
+      if (field.knownStock[index] === value) continue;
+      field.knownStock[index] = value;
+      changed = true;
     }
     if (changed) {
       bumpVersion(resourceId);
-      if (typeof deps.onChange === "function") deps.onChange(resourceId);
+      notifyChange(resourceId);
     }
     return changed;
   }
@@ -302,7 +378,7 @@ export function createResourceStockRuntime(deps = {}) {
     }
     if (changed) {
       bumpVersion(resourceId);
-      if (typeof deps.onChange === "function") deps.onChange(resourceId);
+      notifyChange(resourceId);
     }
     return changed;
   }
@@ -348,7 +424,7 @@ export function createResourceStockRuntime(deps = {}) {
     }
     if (changed) {
       bumpVersion(resourceId);
-      if (typeof deps.onChange === "function") deps.onChange(resourceId);
+      notifyChange(resourceId);
     }
     return changed;
   }
@@ -403,7 +479,7 @@ export function createResourceStockRuntime(deps = {}) {
       replenishTickRemainders.clear();
       bumpVersion("*");
     }
-    if (typeof deps.onChange === "function") deps.onChange(resourceId || "*");
+    notifyChange(resourceId || "*");
   }
 
   function fill(resourceId, value, target = "stock") {
@@ -416,7 +492,7 @@ export function createResourceStockRuntime(deps = {}) {
     if (fillLive) field.stock.fill(byte);
     if (fillKnown) field.knownStock.fill(byte);
     bumpVersion(resourceId);
-    if (typeof deps.onChange === "function") deps.onChange(resourceId);
+    notifyChange(resourceId);
     return true;
   }
 
@@ -433,6 +509,7 @@ export function createResourceStockRuntime(deps = {}) {
     sampleKnownFactor,
     deplete,
     revealKnown,
+    withMutationBatch,
     replenish,
     getSnapshot,
     getVersion,

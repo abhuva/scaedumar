@@ -12,6 +12,13 @@ export function createPlayerActivityUpkeepController(deps) {
   const runtime = deps.runtime;
 
   function applyUpkeepTicks(ticksToProcess) {
+    if (typeof deps.onUpkeepTicks === "function") {
+      deps.onUpkeepTicks({
+        activityType: runtime.type,
+        ticks: ticksToProcess,
+      });
+      return;
+    }
     for (let i = 0; i < ticksToProcess; i++) {
       if (typeof deps.onUpkeepTick === "function") {
         deps.onUpkeepTick({

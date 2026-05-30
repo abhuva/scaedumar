@@ -247,3 +247,53 @@ test("resource discovery can alias resources to one shared knowledge map", () =>
   assert.equal(runtime.getSnapshot("water").resourceId, "world");
   assert.deepEqual(Array.from(runtime.getSnapshot("water").cells), Array.from(runtime.getSnapshot("plants").cells));
 });
+
+test("resource discovery exposes canonical ids and grid cells", () => {
+  const runtime = createResourceDiscoveryRuntime({
+    resourceSearches: {
+      water: { discovery: { gridSize: 8, movementRevealRadius: 4 } },
+      plants: { discovery: { gridSize: 8, movementRevealRadius: 4 } },
+    },
+    getMapWidth: () => 16,
+    getMapHeight: () => 16,
+    getKnowledgeMapId: (id) => (id === "tracks" ? "tracks" : "world"),
+    getDiscoveryConfig: () => ({ gridSize: 8, movementRevealRadius: 4 }),
+  });
+
+  assert.equal(runtime.resolveKnowledgeMapId("water"), "world");
+  assert.equal(runtime.resolveKnowledgeMapId("tracks"), "tracks");
+  assert.deepEqual(runtime.getGridCell("plants", 3, 5), {
+    resourceId: "world",
+    x: 1,
+    y: 2,
+    width: 8,
+    height: 8,
+    mapWidth: 16,
+    mapHeight: 16,
+    gridSize: 8,
+  });
+});
+
+test("resource discovery batches reveal change notifications", () => {
+  let changed = 0;
+  const runtime = createResourceDiscoveryRuntime({
+    resourceSearches: {
+      water: { discovery: { gridSize: 32, movementRevealRadius: 4 } },
+      plants: { discovery: { gridSize: 32, movementRevealRadius: 4 } },
+    },
+    getMapWidth: () => 64,
+    getMapHeight: () => 64,
+    onChange: () => {
+      changed += 1;
+    },
+  });
+
+  const didChange = runtime.withMutationBatch(() => {
+    const waterChanged = runtime.revealMovement("water", 16, 16);
+    const plantsChanged = runtime.revealMovement("plants", 48, 48);
+    return waterChanged || plantsChanged;
+  });
+
+  assert.equal(didChange, true);
+  assert.equal(changed, 1);
+});

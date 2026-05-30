@@ -1,6 +1,6 @@
 import { createMapImageRuntime } from "./mapImageRuntime.js";
 import { createMapSampling } from "./mapSampling.js";
-import { createShadowOcclusion } from "./shadowOcclusion.js";
+import { createPointLightOcclusion } from "./pointLightOcclusion.js";
 import {
   normalizeMapFolderPath as normalizeMapFolderPathUtil,
   isAbsoluteFsPath as isAbsoluteFsPathUtil,
@@ -17,7 +17,7 @@ import {
 export function createMapSupportRuntime(deps) {
   let mapImageRuntime = null;
   let mapSamplingRuntime = null;
-  let shadowOcclusionRuntime = null;
+  let pointLightOcclusionRuntime = null;
   const getSplatSize = () => (typeof deps.getSplatSize === "function" ? deps.getSplatSize() : deps.splatSize);
   const getNormalsSize = () => (typeof deps.getNormalsSize === "function" ? deps.getNormalsSize() : deps.normalsSize);
   const getHeightSize = () => (typeof deps.getHeightSize === "function" ? deps.getHeightSize() : deps.heightSize);
@@ -122,15 +122,15 @@ export function createMapSupportRuntime(deps) {
     return mapSamplingRuntime;
   }
 
-  function getShadowOcclusionRuntime() {
-    if (shadowOcclusionRuntime) return shadowOcclusionRuntime;
-    shadowOcclusionRuntime = createShadowOcclusion({
+  function getPointLightOcclusionRuntime() {
+    if (pointLightOcclusionRuntime) return pointLightOcclusionRuntime;
+    pointLightOcclusionRuntime = createPointLightOcclusion({
       getSplatSize,
       sampleHeightAtMapCoord: (mapX, mapY) => getMapSamplingRuntime().sampleHeightAtMapCoord(mapX, mapY),
       sampleHeightAtMapPixel: (pixelX, pixelY) => getMapSamplingRuntime().sampleHeightAtMapPixel(pixelX, pixelY),
       swarmZMax: deps.swarmZMax,
     });
-    return shadowOcclusionRuntime;
+    return pointLightOcclusionRuntime;
   }
 
   return {
@@ -153,10 +153,8 @@ export function createMapSupportRuntime(deps) {
     sampleNormalAtMapPixel: (pixelX, pixelY) => getMapSamplingRuntime().sampleNormalAtMapPixel(pixelX, pixelY),
     sampleHeightAtMapPixel: (pixelX, pixelY) => getMapSamplingRuntime().sampleHeightAtMapPixel(pixelX, pixelY),
     sampleHeightAtMapCoord: (mapX, mapY) => getMapSamplingRuntime().sampleHeightAtMapCoord(mapX, mapY),
-    computeSwarmDirectionalShadow: (mapX, mapY, sourceHeight, lightDir, blockedShadowFactor) =>
-      getShadowOcclusionRuntime().computeSwarmDirectionalShadow(mapX, mapY, sourceHeight, lightDir, blockedShadowFactor),
     hasLineOfSightToLight: (surfaceX, surfaceY, surfaceH, lightX, lightY, lightH, heightScaleValue) =>
-      getShadowOcclusionRuntime().hasLineOfSightToLight(
+      getPointLightOcclusionRuntime().hasLineOfSightToLight(
         surfaceX,
         surfaceY,
         surfaceH,

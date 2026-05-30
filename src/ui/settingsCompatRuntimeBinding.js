@@ -13,12 +13,11 @@ export function createSettingsCompatRuntimeBinding(deps) {
     getSwarmSettings: deps.getSwarmSettings,
     swarmEnabledToggle: deps.swarmEnabledToggle,
     swarmLitModeToggle: deps.swarmLitModeToggle,
-    swarmFollowZoomToggle: deps.swarmFollowZoomToggle,
     swarmFollowZoomInInput: deps.swarmFollowZoomInInput,
     swarmFollowZoomOutInput: deps.swarmFollowZoomOutInput,
     swarmFollowHawkRangeGizmoToggle: deps.swarmFollowHawkRangeGizmoToggle,
-    swarmFollowAgentSpeedSmoothingInput: deps.swarmFollowAgentSpeedSmoothingInput,
     swarmFollowAgentZoomSmoothingInput: deps.swarmFollowAgentZoomSmoothingInput,
+    swarmFollowCameraPositionSmoothingInput: deps.swarmFollowCameraPositionSmoothingInput,
     swarmStatsPanelToggle: deps.swarmStatsPanelToggle,
     swarmShowTerrainToggle: deps.swarmShowTerrainToggle,
     swarmBackgroundColorInput: deps.swarmBackgroundColorInput,
@@ -248,3 +247,5 @@ export function createSettingsCompatRuntimeBinding(deps) {
     serializeWaterSettingsCompat: renderFxDataSerializer.serializeWaterSettingsCompat,
   };
 }
+
+

@@ -39,8 +39,6 @@ export function createSwarmRenderSetupRuntime(deps) {
     getSwarmFollowSnapshot: deps.getSwarmFollowSnapshot,
     setSwarmFollowAgentIndex: deps.setSwarmFollowAgentIndex,
     setSwarmFollowHawkIndex: deps.setSwarmFollowHawkIndex,
-    getSwarmFollowSpeedNormFiltered: deps.getSwarmFollowSpeedNormFiltered,
-    setSwarmFollowSpeedNormFiltered: deps.setSwarmFollowSpeedNormFiltered,
   });
 
   const swarmOverlayRuntime = createSwarmOverlayRuntime({
@@ -67,7 +65,6 @@ export function createSwarmRenderSetupRuntime(deps) {
     writeInterpolatedSwarmHawkPos: swarmLoopRuntime.writeInterpolatedSwarmHawkPos,
     swarmLitAgentScratch: deps.swarmLitAgentScratch,
     swarmLitHawkScratch: deps.swarmLitHawkScratch,
-    computeSwarmDirectionalShadow: deps.computeSwarmDirectionalShadow,
     getViewHalfExtents: deps.getViewHalfExtents,
     getMapAspect: deps.getMapAspect,
     hexToRgb01: deps.hexToRgb01,

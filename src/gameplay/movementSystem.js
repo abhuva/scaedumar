@@ -132,8 +132,13 @@ export function createMovementSystem(deps) {
         pixelY: deps.playerState.pixelY,
       });
     }
-    if (options.rebuildMovementField && typeof deps.rebuildMovementField === "function") {
-      deps.rebuildMovementField();
+    if (options.rebuildMovementField) {
+      const shouldRebuildMovementField = typeof deps.shouldRebuildMovementField === "function"
+        ? deps.shouldRebuildMovementField()
+        : true;
+      if (shouldRebuildMovementField && typeof deps.rebuildMovementField === "function") {
+        deps.rebuildMovementField();
+      }
     }
     if ((playerChanged || movementChanged || options.requestOverlayDraw) && typeof deps.requestOverlayDraw === "function") {
       deps.requestOverlayDraw();

@@ -104,5 +104,6 @@ export function getRoutedSystemTime(frameTimeState, systemName, frameDtSec) {
     timeSec: route === ROUTE_GLOBAL ? globalTimeSec : detachedTimeSec,
     interpolationAlpha,
     simTickHours,
+    cycleSpeedHoursPerSec: clamp(finite(state.cycleSpeedHoursPerSec, 0), 0, 1),
   };
 }

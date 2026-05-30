@@ -139,7 +139,6 @@ export function createMainCommandAssemblyRuntime(deps) {
     swarmCursorState: deps.swarmCursorState,
     isSwarmEnabled: deps.isSwarmEnabled,
     getSwarmSettings: deps.getSwarmSettings,
-    resetSwarmFollowSpeedSmoothing: deps.resetSwarmFollowSpeedSmoothing,
     updateSwarmFollowButtonUi: deps.updateSwarmFollowButtonUi,
     chooseRandomFollowHawkIndex: deps.chooseRandomFollowHawkIndex,
     chooseRandomFollowAgentIndex: deps.chooseRandomFollowAgentIndex,

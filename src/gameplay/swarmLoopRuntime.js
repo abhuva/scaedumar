@@ -40,8 +40,6 @@ export function createSwarmLoopRuntime(deps) {
     getSwarmFollowSnapshot: deps.getSwarmFollowSnapshot,
     setSwarmFollowAgentIndex: deps.setSwarmFollowAgentIndex,
     setSwarmFollowHawkIndex: deps.setSwarmFollowHawkIndex,
-    getSwarmFollowSpeedNormFiltered: deps.getSwarmFollowSpeedNormFiltered,
-    setSwarmFollowSpeedNormFiltered: deps.setSwarmFollowSpeedNormFiltered,
   });
 
   return {

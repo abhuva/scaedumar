@@ -62,6 +62,7 @@ export function createScoutActivityController(deps) {
     runtime.scoutBirdY = null;
     runtime.scoutDisconnectReason = "";
     runtime.lastScoutSyncMs = 0;
+    runtime.lastScoutUpdateMs = 0;
     deps.syncStore();
     if (typeof deps.setStatus === "function") {
       deps.setStatus("Scouting: listening for nearby birds.");
@@ -94,6 +95,7 @@ export function createScoutActivityController(deps) {
         index: runtime.scoutPossessedIndex,
         agentId: runtime.scoutPossessedId,
         revealRadius: runtime.scoutRevealRadius,
+        nowMs: runtime.lastScoutUpdateMs,
       })
       : null;
     if (!result || result.valid === false) {
@@ -147,6 +149,7 @@ export function createScoutActivityController(deps) {
 
   function updateScout(nowMs = 0) {
     if (!runtime.active || runtime.ending || runtime.type !== activityType) return false;
+    const safeNowMs = Number.isFinite(Number(nowMs)) ? Number(nowMs) : 0;
     const previous = {
       phase: runtime.scoutPhase,
       candidateIndex: runtime.scoutCandidateIndex,
@@ -156,6 +159,7 @@ export function createScoutActivityController(deps) {
     };
 
     if (runtime.scoutPhase === "possessed") {
+      runtime.lastScoutUpdateMs = safeNowMs;
       updatePossessedScout();
     }
 
@@ -163,7 +167,6 @@ export function createScoutActivityController(deps) {
       updateScanningScout(previous);
     }
 
-    const safeNowMs = Number.isFinite(Number(nowMs)) ? Number(nowMs) : 0;
     const shouldSync = previous.phase !== runtime.scoutPhase
       || previous.candidateIndex !== runtime.scoutCandidateIndex
       || previous.possessedIndex !== runtime.scoutPossessedIndex

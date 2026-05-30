@@ -13,8 +13,6 @@ export function createSwarmLitRenderer(deps) {
     if (totalCount <= 0) return;
 
     ensureSwarmPointVertexCapacity(totalCount);
-    const useAgentRayShadows = Boolean(uniformInput && uniformInput.useShadows);
-    const blockedShadowFactor = 1 - deps.clamp(Number(uniformInput && uniformInput.shadowStrength), 0, 1);
     let writeIndex = 0;
 
     for (let i = 0; i < deps.swarmState.count; i++) {
@@ -22,35 +20,23 @@ export function createSwarmLitRenderer(deps) {
       const mapX = agentPos.x;
       const mapY = agentPos.y;
       const agentZ = agentPos.z;
-      const sunShadow = useAgentRayShadows
-        ? deps.computeSwarmDirectionalShadow(mapX, mapY, agentZ, params.sunDir, blockedShadowFactor)
-        : 1;
-      const moonShadow = useAgentRayShadows
-        ? deps.computeSwarmDirectionalShadow(mapX, mapY, agentZ, params.moonDir, blockedShadowFactor)
-        : 1;
       swarmPointVertexData[writeIndex++] = mapX;
       swarmPointVertexData[writeIndex++] = mapY;
       swarmPointVertexData[writeIndex++] = agentZ;
       swarmPointVertexData[writeIndex++] = 0;
-      swarmPointVertexData[writeIndex++] = sunShadow;
-      swarmPointVertexData[writeIndex++] = moonShadow;
+      swarmPointVertexData[writeIndex++] = 1;
+      swarmPointVertexData[writeIndex++] = 1;
     }
 
     if (settings.useHawk) {
       for (let i = 0; i < deps.swarmState.hawks.length; i++) {
         const hawkPos = deps.writeInterpolatedSwarmHawkPos(i, deps.swarmLitHawkScratch);
-        const sunShadow = useAgentRayShadows
-          ? deps.computeSwarmDirectionalShadow(hawkPos.x, hawkPos.y, hawkPos.z, params.sunDir, blockedShadowFactor)
-          : 1;
-        const moonShadow = useAgentRayShadows
-          ? deps.computeSwarmDirectionalShadow(hawkPos.x, hawkPos.y, hawkPos.z, params.moonDir, blockedShadowFactor)
-          : 1;
         swarmPointVertexData[writeIndex++] = hawkPos.x;
         swarmPointVertexData[writeIndex++] = hawkPos.y;
         swarmPointVertexData[writeIndex++] = hawkPos.z;
         swarmPointVertexData[writeIndex++] = 1;
-        swarmPointVertexData[writeIndex++] = sunShadow;
-        swarmPointVertexData[writeIndex++] = moonShadow;
+        swarmPointVertexData[writeIndex++] = 1;
+        swarmPointVertexData[writeIndex++] = 1;
       }
     }
 
