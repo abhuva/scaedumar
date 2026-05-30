@@ -254,6 +254,7 @@ export function createPlayerActivityRuntime(deps) {
 
   const upkeepController = createPlayerActivityUpkeepController({
     runtime,
+    onUpkeepTicks: deps.onUpkeepTicks,
     onUpkeepTick: deps.onUpkeepTick,
   });
 

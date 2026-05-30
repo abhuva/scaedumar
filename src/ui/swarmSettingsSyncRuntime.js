@@ -15,12 +15,13 @@ export function createSwarmSettingsSyncRuntime(deps) {
     const zoomMax = typeof deps.getZoomMax === "function" ? deps.getZoomMax() : deps.zoomMax;
     deps.swarmEnabledToggle.checked = Boolean(settings.useAgentSwarm);
     deps.swarmLitModeToggle.checked = Boolean(settings.useLitSwarm);
-    deps.swarmFollowZoomToggle.checked = Boolean(settings.followZoomBySpeed);
     deps.swarmFollowZoomInInput.value = deps.clamp(finiteOr(settings.followZoomIn, 1), zoomMin, zoomMax).toFixed(1);
     deps.swarmFollowZoomOutInput.value = deps.clamp(finiteOr(settings.followZoomOut, 1), zoomMin, zoomMax).toFixed(1);
     deps.swarmFollowHawkRangeGizmoToggle.checked = Boolean(settings.followHawkRangeGizmo);
-    deps.swarmFollowAgentSpeedSmoothingInput.value = deps.clamp(finiteOr(settings.followAgentSpeedSmoothing, 0.1), 0.01, 0.25).toFixed(2);
-    deps.swarmFollowAgentZoomSmoothingInput.value = deps.clamp(finiteOr(settings.followAgentZoomSmoothing, 0.1), 0.01, 0.25).toFixed(2);
+    deps.swarmFollowAgentZoomSmoothingInput.value = deps.clamp(finiteOr(settings.followAgentZoomSmoothing, 0.12), 0, 1).toFixed(2);
+    if (deps.swarmFollowCameraPositionSmoothingInput) {
+      deps.swarmFollowCameraPositionSmoothingInput.value = deps.clamp(finiteOr(settings.followCameraPositionSmoothing, 0.12), 0, 1).toFixed(2);
+    }
     deps.swarmStatsPanelToggle.checked = Boolean(settings.showStatsPanel);
     deps.swarmShowTerrainToggle.checked = Boolean(settings.showTerrainInSwarm);
     deps.swarmBackgroundColorInput.value = stringOr(settings.backgroundColor, "#000000");

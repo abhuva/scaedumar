@@ -101,3 +101,55 @@ test("movementSystem emits lifecycle hooks for queued movement", () => {
     "queue-completed",
   ]);
 });
+
+test("movementSystem skips movement-field rebuild when owner says it is not needed", () => {
+  const playerState = { pixelX: 0, pixelY: 0 };
+  let rebuilds = 0;
+  const system = createMovementSystem({
+    entityStore: null,
+    playerState,
+    getMapWidth: () => 10,
+    getMapHeight: () => 10,
+    computeMoveStepCost: () => 1,
+    shouldRebuildMovementField: () => false,
+    rebuildMovementField: () => {
+      rebuilds += 1;
+    },
+    requestOverlayDraw: () => {},
+    setStatus: () => {},
+    setPlayerSnapshot: () => {},
+    setMovementSnapshot: () => {},
+  });
+
+  assert.equal(system.replaceQueue([{ x: 0, y: 0 }, { x: 1, y: 0 }], 0.01), true);
+  system.update({ time: { systems: { movement: { ticksProcessed: 1 } } } }, {});
+
+  assert.equal(system.getSnapshot().active, false);
+  assert.equal(rebuilds, 0);
+});
+
+test("movementSystem rebuilds movement field when owner says it is needed", () => {
+  const playerState = { pixelX: 0, pixelY: 0 };
+  let rebuilds = 0;
+  const system = createMovementSystem({
+    entityStore: null,
+    playerState,
+    getMapWidth: () => 10,
+    getMapHeight: () => 10,
+    computeMoveStepCost: () => 1,
+    shouldRebuildMovementField: () => true,
+    rebuildMovementField: () => {
+      rebuilds += 1;
+    },
+    requestOverlayDraw: () => {},
+    setStatus: () => {},
+    setPlayerSnapshot: () => {},
+    setMovementSnapshot: () => {},
+  });
+
+  assert.equal(system.replaceQueue([{ x: 0, y: 0 }, { x: 1, y: 0 }], 0.01), true);
+  system.update({ time: { systems: { movement: { ticksProcessed: 1 } } } }, {});
+
+  assert.equal(system.getSnapshot().active, false);
+  assert.equal(rebuilds, 1);
+});

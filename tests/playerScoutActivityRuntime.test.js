@@ -68,7 +68,7 @@ test("scout controller scans, possesses a bird, and updates possessed sight", ()
   assert.equal(runtime.scoutBirdX, 42);
   assert.equal(runtime.scoutBirdY, 24);
   assert.equal(runtime.scoutEffectiveRevealRadius, 40);
-  assert.deepEqual(updates, [{ index: 2, agentId: 102, revealRadius: 40 }]);
+  assert.deepEqual(updates, [{ index: 2, agentId: 102, revealRadius: 40, nowMs: 200 }]);
 });
 
 test("scout controller reports when the possessed bird is killed", () => {

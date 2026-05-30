@@ -1,10 +1,10 @@
 export function bindSwarmPanelControls(deps) {
   function syncFollowZoomControlsFromDom() {
-    const enabled = Boolean(deps.swarmEnabledToggle.checked && deps.swarmFollowZoomToggle.checked);
+    const enabled = Boolean(deps.swarmEnabledToggle.checked);
     deps.swarmFollowZoomInInput.disabled = !enabled;
     deps.swarmFollowZoomOutInput.disabled = !enabled;
-    deps.swarmFollowAgentSpeedSmoothingInput.disabled = !enabled;
     deps.swarmFollowAgentZoomSmoothingInput.disabled = !enabled;
+    if (deps.swarmFollowCameraPositionSmoothingInput) deps.swarmFollowCameraPositionSmoothingInput.disabled = !deps.swarmEnabledToggle.checked;
   }
 
   function setText(el, value) {
@@ -15,10 +15,6 @@ export function bindSwarmPanelControls(deps) {
 
   function rounded(value) {
     return String(Math.round(Number(value) || 0));
-  }
-
-  function fixed(value, digits) {
-    return Number(value || 0).toFixed(digits);
   }
 
   function dispatchSwarmSettingChange(action, payload = {}) {
@@ -38,13 +34,6 @@ export function bindSwarmPanelControls(deps) {
   deps.swarmLitModeToggle.addEventListener("change", () => {
     dispatchSwarmSettingChange("litModeChanged", {
       value: deps.swarmLitModeToggle.checked,
-    });
-  });
-
-  deps.swarmFollowZoomToggle.addEventListener("change", () => {
-    syncFollowZoomControlsFromDom();
-    dispatchSwarmSettingChange("followZoomToggleChanged", {
-      value: deps.swarmFollowZoomToggle.checked,
     });
   });
 
@@ -68,19 +57,20 @@ export function bindSwarmPanelControls(deps) {
     });
   });
 
-  deps.swarmFollowAgentSpeedSmoothingInput.addEventListener("input", () => {
-    setText(deps.swarmFollowAgentSpeedSmoothingValue, Number(deps.swarmFollowAgentSpeedSmoothingInput.value).toFixed(2));
-    dispatchSwarmSettingChange("followAgentSpeedSmoothingChanged", {
-      value: Number(deps.swarmFollowAgentSpeedSmoothingInput.value),
-    });
-  });
   deps.swarmFollowAgentZoomSmoothingInput.addEventListener("input", () => {
     setText(deps.swarmFollowAgentZoomSmoothingValue, Number(deps.swarmFollowAgentZoomSmoothingInput.value).toFixed(2));
     dispatchSwarmSettingChange("followAgentZoomSmoothingChanged", {
       value: Number(deps.swarmFollowAgentZoomSmoothingInput.value),
     });
   });
-
+  if (deps.swarmFollowCameraPositionSmoothingInput) {
+    deps.swarmFollowCameraPositionSmoothingInput.addEventListener("input", () => {
+      setText(deps.swarmFollowCameraPositionSmoothingValue, Number(deps.swarmFollowCameraPositionSmoothingInput.value).toFixed(2));
+      dispatchSwarmSettingChange("followCameraPositionSmoothingChanged", {
+        value: Number(deps.swarmFollowCameraPositionSmoothingInput.value),
+      });
+    });
+  }
   deps.swarmStatsPanelToggle.addEventListener("change", () => {
     dispatchSwarmSettingChange("statsPanelChanged", {
       value: deps.swarmStatsPanelToggle.checked,

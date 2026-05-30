@@ -4,7 +4,6 @@ function normalizeSwarmFollowTargetType(value) {
 
 export function createSwarmFollowStateController(deps) {
   function applySwarmFollowState(nextState, options = {}) {
-    const resetSpeed = options.resetSpeed !== false;
     const enabled = Boolean(nextState && nextState.enabled);
     const targetType = normalizeSwarmFollowTargetType(nextState && nextState.targetType);
     const agentIndex = Number.isFinite(Number(nextState && nextState.agentIndex))
@@ -19,9 +18,6 @@ export function createSwarmFollowStateController(deps) {
     deps.setSwarmFollowHawkIndex(enabled ? hawkIndex : -1);
     if (typeof deps.syncSwarmFollowTargetInput === "function") {
       deps.syncSwarmFollowTargetInput(targetType);
-    }
-    if (resetSpeed) {
-      deps.resetSwarmFollowSpeedSmoothing();
     }
     deps.updateSwarmFollowButtonUi();
     if (options.syncStore) {

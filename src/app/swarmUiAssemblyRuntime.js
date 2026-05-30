@@ -33,8 +33,8 @@ export function createSwarmUiAssemblyRuntime(deps) {
     swarmAgentCountValue: deps.swarmAgentCountValue,
     swarmFollowZoomInValue: deps.swarmFollowZoomInValue,
     swarmFollowZoomOutValue: deps.swarmFollowZoomOutValue,
-    swarmFollowAgentSpeedSmoothingValue: deps.swarmFollowAgentSpeedSmoothingValue,
     swarmFollowAgentZoomSmoothingValue: deps.swarmFollowAgentZoomSmoothingValue,
+    swarmFollowCameraPositionSmoothingValue: deps.swarmFollowCameraPositionSmoothingValue,
     swarmUpdateIntervalValue: deps.swarmUpdateIntervalValue,
     swarmMaxSpeedValue: deps.swarmMaxSpeedValue,
     swarmSteeringMaxValue: deps.swarmSteeringMaxValue,
@@ -60,12 +60,11 @@ export function createSwarmUiAssemblyRuntime(deps) {
     swarmEnabledToggle: deps.swarmEnabledToggle,
     swarmLitModeToggle: deps.swarmLitModeToggle,
     swarmFollowTargetInput: deps.swarmFollowTargetInput,
-    swarmFollowZoomToggle: deps.swarmFollowZoomToggle,
     swarmFollowZoomInInput: deps.swarmFollowZoomInInput,
     swarmFollowZoomOutInput: deps.swarmFollowZoomOutInput,
     swarmFollowHawkRangeGizmoToggle: deps.swarmFollowHawkRangeGizmoToggle,
-    swarmFollowAgentSpeedSmoothingInput: deps.swarmFollowAgentSpeedSmoothingInput,
     swarmFollowAgentZoomSmoothingInput: deps.swarmFollowAgentZoomSmoothingInput,
+    swarmFollowCameraPositionSmoothingInput: deps.swarmFollowCameraPositionSmoothingInput,
     swarmStatsPanelToggle: deps.swarmStatsPanelToggle,
     swarmShowTerrainToggle: deps.swarmShowTerrainToggle,
     swarmBackgroundColorInput: deps.swarmBackgroundColorInput,
@@ -106,3 +105,5 @@ export function createSwarmUiAssemblyRuntime(deps) {
 export function createSwarmUiSetupRuntime(deps) {
   return createSwarmUiRuntimeBinding(createSwarmUiAssemblyRuntime(deps));
 }
+
+

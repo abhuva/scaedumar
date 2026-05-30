@@ -59,3 +59,19 @@ test("activity effect runtime applies resolved effects through dependency", () =
   });
   assert.deepEqual(applied, [effects]);
 });
+
+test("activity effect runtime can batch repeated effects with effectScale", () => {
+  const runtime = createActivityEffectRuntime({
+    activityCosts: COSTS,
+  });
+
+  assert.deepEqual(runtime.resolve("movement.step", {
+    movementCost: 1,
+    load: 0,
+    effectScale: 3,
+  }), {
+    nutrition: -3,
+    hydration: -6,
+    fatigue: 9,
+  });
+});

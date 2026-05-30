@@ -40,9 +40,6 @@ export function createSwarmFollowRuntimeState(deps) {
       targetType: normalizeFollowTargetType(coreSwarm.followTargetType),
       agentIndex: normalizeFollowIndex(coreSwarm.followAgentIndex),
       hawkIndex: normalizeFollowIndex(coreSwarm.followHawkIndex),
-      speedNormFiltered: Number.isFinite(Number(deps.swarmFollowState.speedNormFiltered))
-        ? Number(deps.swarmFollowState.speedNormFiltered)
-        : null,
     };
   }
 
@@ -66,27 +63,11 @@ export function createSwarmFollowRuntimeState(deps) {
     updateCoreSwarm({ followHawkIndex: hawkIndex });
   }
 
-  function setSwarmFollowSpeedNormFiltered(value) {
-    deps.swarmFollowState.speedNormFiltered = Number.isFinite(Number(value)) ? Number(value) : null;
-  }
-
-  function getSwarmFollowSpeedNormFiltered() {
-    const stored = Number(deps.swarmFollowState.speedNormFiltered);
-    return Number.isFinite(stored) ? stored : null;
-  }
-
-  function resetSwarmFollowSpeedNormFiltered() {
-    deps.swarmFollowState.speedNormFiltered = null;
-  }
-
   return {
     getSwarmFollowSnapshot,
     setSwarmFollowEnabled,
     setSwarmFollowTargetType,
     setSwarmFollowAgentIndex,
     setSwarmFollowHawkIndex,
-    getSwarmFollowSpeedNormFiltered,
-    setSwarmFollowSpeedNormFiltered,
-    resetSwarmFollowSpeedNormFiltered,
   };
 }

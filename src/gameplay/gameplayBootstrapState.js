@@ -50,6 +50,7 @@ export function createGameplayBootstrapState() {
     prevHawkX: new Float32Array(0),
     prevHawkY: new Float32Array(0),
     prevHawkZ: new Float32Array(0),
+    renderNowMs: 0,
     alpha: 1,
     hasPrev: false,
   };
@@ -65,7 +66,6 @@ export function createGameplayBootstrapState() {
     targetType: "agent",
     agentIndex: -1,
     hawkIndex: -1,
-    speedNormFiltered: null,
   };
 
   function createScratch() {

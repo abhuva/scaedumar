@@ -1,5 +1,6 @@
 export function createSwarmUpdateLoop(deps) {
   return function updateSwarm(nowMs, dtSec, routedTiming) {
+    const settings = deps.getSwarmSettings();
     deps.swarmRenderState.alpha = routedTiming && Number.isFinite(Number(routedTiming.interpolationAlpha))
       ? deps.clamp(Number(routedTiming.interpolationAlpha), 0, 1)
       : 1;
@@ -7,7 +8,6 @@ export function createSwarmUpdateLoop(deps) {
       return;
     }
 
-    const settings = deps.getSwarmSettings();
     if (deps.swarmState.count <= 0 && (!settings.useHawk || deps.swarmState.hawks.length <= 0)) {
       return;
     }
@@ -18,12 +18,12 @@ export function createSwarmUpdateLoop(deps) {
     const scaledDt = baseDt * settings.simulationSpeed;
     if (scaledDt <= 0) return;
 
-    deps.captureSwarmRenderPreviousState();
     let remaining = scaledDt;
     const maxStep = 0.05;
     let guard = 0;
     while (remaining > 0.000001 && guard < 8) {
       const stepDt = Math.min(maxStep, remaining);
+      deps.captureSwarmRenderPreviousState();
       deps.stepSwarm(settings, stepDt, nowMs);
       deps.swarmState.stepCount += 1;
       remaining -= stepDt;

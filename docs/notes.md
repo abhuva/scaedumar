@@ -4,7 +4,7 @@
 - general pathfinding / movement (in gathering also) has still performance issues - one idea would be to avoid updating full textures, but only parts of them that changed.
 - check warum die plant / water overlay maps (eventually all that uses the same idea) - with hard very visible low rez pattern dissapear (with the knowledge map) - because the map itself is rather smooth. What is the render logic here - just to make sure that we dont loose visual detail for nothing.
 
-- Trails / Tracks. Currently i would see the map we have more like a scent map, But we could make a seperate real trails map out of the same data. 
+- Trails / Tracks. Currently i would see the map we have more like a scent map, But we could make a seperate real trails map out of the same data.
   each step we write the current agent position into a trail texture (stamping it on)
   then we substract a full value (the decay)
   NO diffuse or anything. We basically just record exact position over time.

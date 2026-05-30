@@ -34,6 +34,7 @@ test("normalizeDiscoverySettings clamps scout and day-night reveal settings", ()
         speedForZoomOut: 180,
         speedSmoothing: 0.2,
         zoomSmoothing: 0.3,
+        positionSmoothing: 0.4,
       },
     },
   });
@@ -54,6 +55,7 @@ test("normalizeDiscoverySettings clamps scout and day-night reveal settings", ()
   assert.equal(settings.scout.camera.speedForZoomOut, 180);
   assert.equal(settings.scout.camera.speedSmoothing, 0.2);
   assert.equal(settings.scout.camera.zoomSmoothing, 0.3);
+  assert.equal(settings.scout.camera.positionSmoothing, 0.4);
 
   const clamped = normalizeDiscoverySettings({
     timeOfDay: {
@@ -83,6 +85,7 @@ test("normalizeDiscoverySettings clamps scout and day-night reveal settings", ()
         speedForZoomOut: -100,
         speedSmoothing: 9,
         zoomSmoothing: -9,
+        positionSmoothing: 9,
       },
     },
   });
@@ -100,4 +103,5 @@ test("normalizeDiscoverySettings clamps scout and day-night reveal settings", ()
   assert.equal(clamped.scout.camera.speedForZoomOut, 1);
   assert.equal(clamped.scout.camera.speedSmoothing, 1);
   assert.equal(clamped.scout.camera.zoomSmoothing, 0);
+  assert.equal(clamped.scout.camera.positionSmoothing, 1);
 });

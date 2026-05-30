@@ -203,3 +203,21 @@ test("resource stock serializes and restores live and known fields", () => {
   assert.equal(restored.sampleFactor("water", 32, 32), runtime.sampleFactor("water", 32, 32));
   assert.equal(restored.sampleKnownFactor("water", 32, 32), runtime.sampleKnownFactor("water", 32, 32));
 });
+
+test("resource stock batches reveal change notifications", () => {
+  let changed = 0;
+  const runtime = createRuntime({
+    onChange: () => {
+      changed += 1;
+    },
+  });
+
+  const didChange = runtime.withMutationBatch(() => {
+    const first = runtime.revealKnown("water", 16, 16, 10);
+    const second = runtime.revealKnown("water", 48, 48, 10);
+    return first || second;
+  });
+
+  assert.equal(didChange, true);
+  assert.equal(changed, 1);
+});

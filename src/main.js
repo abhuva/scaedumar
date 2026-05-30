@@ -102,6 +102,7 @@ import { sampleSunAtHour as sampleSunAtHourModel } from "./sim/sunModel.js";
 import { createTimeLightingSetupRuntime } from "./sim/timeLightingSetupRuntime.js";
 import { createEntityStore } from "./gameplay/entityStore.js";
 import { createMovementSystem } from "./gameplay/movementSystem.js";
+import { createPlayerLocalKnowledgeRevealRuntime } from "./gameplay/playerLocalKnowledgeRevealRuntime.js";
 import { createMovementStoreSyncRuntime } from "./gameplay/movementStoreSyncRuntime.js";
 import { createActivityStoreSyncRuntime } from "./gameplay/activityStoreSyncRuntime.js";
 import { createInventoryStoreSyncRuntime } from "./gameplay/inventoryStoreSyncRuntime.js";
@@ -147,9 +148,9 @@ import { loadItemDefinitions } from "./gameplay/itemRegistry.js";
 import { createLightInteractionRuntimeBinding } from "./gameplay/lightInteractionRuntimeBinding.js";
 import { createMapSupportRuntime } from "./gameplay/mapSupportRuntime.js";
 import { parsePointLightsPayload, serializePointLightsPayload } from "./gameplay/pointLightsPersistence.js";
-import { createSwarmFollowSmoothingRuntime } from "./gameplay/swarmFollowSmoothingRuntime.js";
 import { createSwarmFollowRuntimeState } from "./gameplay/swarmFollowRuntimeState.js";
 import { createSwarmRuntime } from "./gameplay/swarmRuntime.js";
+import { createScoutCameraSmoothingRuntime } from "./gameplay/scoutCameraSmoothingRuntime.js";
 import { createGameplayBootstrapState } from "./gameplay/gameplayBootstrapState.js";
 import { syncPlayerState } from "./gameplay/stateSync.js";
 import {
@@ -579,16 +580,15 @@ const cursorLightGizmoToggle = getRequiredElementById("cursorLightGizmoToggle");
 const swarmEnabledToggle = getRequiredElementById("swarmEnabledToggle");
 const swarmFollowToggleBtn = getRequiredElementById("swarmFollowToggle");
 const swarmFollowTargetInput = getRequiredElementById("swarmFollowTarget");
-const swarmFollowZoomToggle = getRequiredElementById("swarmFollowZoomToggle");
 const swarmFollowZoomInInput = getRequiredElementById("swarmFollowZoomIn");
 const swarmFollowZoomInValue = getRequiredElementById("swarmFollowZoomInValue");
 const swarmFollowZoomOutInput = getRequiredElementById("swarmFollowZoomOut");
 const swarmFollowZoomOutValue = getRequiredElementById("swarmFollowZoomOutValue");
 const swarmFollowHawkRangeGizmoToggle = getRequiredElementById("swarmFollowHawkRangeGizmoToggle");
-const swarmFollowAgentSpeedSmoothingInput = getRequiredElementById("swarmFollowAgentSpeedSmoothing");
-const swarmFollowAgentSpeedSmoothingValue = getRequiredElementById("swarmFollowAgentSpeedSmoothingValue");
 const swarmFollowAgentZoomSmoothingInput = getRequiredElementById("swarmFollowAgentZoomSmoothing");
 const swarmFollowAgentZoomSmoothingValue = getRequiredElementById("swarmFollowAgentZoomSmoothingValue");
+const swarmFollowCameraPositionSmoothingInput = getRequiredElementById("swarmFollowCameraPositionSmoothing");
+const swarmFollowCameraPositionSmoothingValue = getRequiredElementById("swarmFollowCameraPositionSmoothingValue");
 const swarmStatsPanelToggle = getRequiredElementById("swarmStatsPanelToggle");
 const swarmShowTerrainToggle = getRequiredElementById("swarmShowTerrainToggle");
 const swarmLitModeToggle = getRequiredElementById("swarmLitModeToggle");
@@ -1098,7 +1098,6 @@ const {
   sampleNormalAtMapPixel,
   sampleHeightAtMapPixel,
   sampleHeightAtMapCoord,
-  computeSwarmDirectionalShadow,
   hasLineOfSightToLight,
 } = mapSupportRuntime;
 
@@ -3328,14 +3327,10 @@ const swarmFollowRuntimeState = createSwarmFollowRuntimeState({
   getStore: () => runtimeCore.store,
   swarmFollowState,
 });
-const swarmFollowSmoothingRuntime = createSwarmFollowSmoothingRuntime({
-  resetSwarmFollowSpeedNormFiltered: swarmFollowRuntimeState.resetSwarmFollowSpeedNormFiltered,
-});
 const serializeNpcStateFromBinding = playerRuntimeBinding.serializeNpcState;
 const parseNpcPlayerFromBinding = playerRuntimeBinding.parseNpcPlayer;
 const applyLoadedNpcFromBinding = playerRuntimeBinding.applyLoadedNpc;
 const getSwarmFollowSnapshot = swarmFollowRuntimeState.getSwarmFollowSnapshot;
-const resetSwarmFollowSpeedSmoothing = swarmFollowSmoothingRuntime.resetSwarmFollowSpeedSmoothing;
 
 const pointLightBakeRuntimeBinding = createPointLightBakeRuntimeBinding({
   document,
@@ -3763,7 +3758,6 @@ const swarmRuntime = createSwarmRuntime(createSwarmRuntimeAssemblyRuntime({
   setSwarmFollowHawkIndex: swarmFollowRuntimeState.setSwarmFollowHawkIndex,
   swarmFollowTargetInput,
   syncSwarmFollowTargetInput: (targetType) => interactionUiSyncRuntime.syncSwarmFollowTargetInput(targetType),
-  resetSwarmFollowSpeedSmoothing,
   updateSwarmFollowButtonUi: () => updateSwarmFollowButtonUi(),
 }));
 const applySwarmFollowState = swarmRuntime.applySwarmFollowState;
@@ -3794,6 +3788,8 @@ let routePlanningRuntime = null;
 let resourceSearchRuntime = null;
 let resourceStockRuntime = null;
 let resourceDiscoveryRuntime = null;
+let playerLocalKnowledgeRevealRuntime = null;
+let scoutLocalKnowledgeRevealRuntime = null;
 let gameplayHudRuntime = null;
 let localActivityMenuRuntime = null;
 let resourceDebugPanelRuntime = null;
@@ -3888,6 +3884,8 @@ function resetKnowledgeMapForConfig() {
   tracksDiscoveryInitialized = false;
   seedDiscoveryNoise(WORLD_KNOWLEDGE_MAP_ID);
   resourceDiscoveryRuntime?.revealMovement(WORLD_KNOWLEDGE_MAP_ID, playerState.pixelX, playerState.pixelY);
+  playerLocalKnowledgeRevealRuntime?.reset();
+  scoutLocalKnowledgeRevealRuntime?.reset();
   initializeTracksDiscoveryMap({ force: true });
   for (const resourceId of getResourceSearchIds()) {
     resourceStockRuntime?.revealKnown(resourceId, playerState.pixelX, playerState.pixelY, resolveDiscoveryRevealRadius(
@@ -3902,6 +3900,8 @@ function initializeTracksDiscoveryMap(options = {}) {
   const fillValue = Number.isFinite(Number(options.fillValue)) ? clampUtil(Number(options.fillValue), 0, 1) : 0;
   const changed = resourceDiscoveryRuntime.fill(TRACKS_KNOWLEDGE_MAP_ID, fillValue) === true;
   tracksDiscoveryInitialized = true;
+  playerLocalKnowledgeRevealRuntime?.reset();
+  scoutLocalKnowledgeRevealRuntime?.reset();
   return changed;
 }
 
@@ -4080,6 +4080,13 @@ function getResourceMovementRevealRadius(resourceId) {
   return Number.isFinite(Number(discovery.movementRevealRadius)) ? Number(discovery.movementRevealRadius) : 80;
 }
 
+function getObservedStockResourceIds() {
+  if (resourceStockOverlayMode !== "known") return [];
+  if (!inspectPerceptionRuntime?.isEnabled?.()) return [];
+  const resourceId = getInspectOverlayResourceId(getInspectOverlayLayer());
+  return resourceId ? [resourceId] : [];
+}
+
 function revealResourceMovementKnowledge(resourceId, x, y) {
   const discoveryChanged = resourceDiscoveryRuntime?.revealMovement(resourceId, x, y) === true;
   const stockChanged = resourceStockRuntime?.revealKnown(resourceId, x, y, resolveDiscoveryRevealRadius(
@@ -4093,15 +4100,14 @@ function revealTrackMovementKnowledge(x, y) {
   return resourceDiscoveryRuntime?.revealMovement(TRACKS_KNOWLEDGE_MAP_ID, x, y) === true;
 }
 
+function revealPlayerLocalResourceKnowledge() {
+  return playerLocalKnowledgeRevealRuntime?.revealAt(playerState.pixelX, playerState.pixelY).changed === true;
+}
+
 function refreshPlayerLocalResourceKnowledgeForTicks(ctx = {}) {
   const ticks = Math.max(0, Math.round(Number(ctx.time && ctx.time.ticksProcessed) || 0));
   if (ticks <= 0) return false;
-  let changed = false;
-  changed = revealTrackMovementKnowledge(playerState.pixelX, playerState.pixelY) || changed;
-  for (const resourceId of getResourceSearchIds()) {
-    changed = revealResourceMovementKnowledge(resourceId, playerState.pixelX, playerState.pixelY) || changed;
-  }
-  return changed;
+  return revealPlayerLocalResourceKnowledge();
 }
 
 function getResourceStockOverlayFactor(resourceId, x, y) {
@@ -4389,6 +4395,8 @@ function seedDiscoveryNoise(resourceId = null) {
     changed = resourceDiscoveryRuntime.fillNoise(id, settings) || changed;
   }
   if (changed) {
+    playerLocalKnowledgeRevealRuntime?.reset();
+    scoutLocalKnowledgeRevealRuntime?.reset();
     overlayDirtyRuntime.requestOverlayDraw();
   }
   return changed;
@@ -4566,15 +4574,14 @@ const movementSystem = createMovementSystem(createMovementAssemblyRuntime({
   computeMoveStepCost,
   getMoveCostContext,
   rebuildMovementField,
+  shouldRebuildMovementField: () => getInteractionModeSnapshot() === "pathfinding",
   requestOverlayDraw: () => overlayDirtyRuntime.requestOverlayDraw(),
   setStatus,
   setPlayerSnapshot: movementStoreSyncRuntime.setPlayerSnapshot,
   setMovementSnapshot: movementStoreSyncRuntime.setMovementSnapshot,
   onMovementSnapshot: updateMovementStatusPanel,
   onStepCompleted: (step, snapshot) => {
-    for (const resourceId of getResourceSearchIds()) {
-      revealResourceMovementKnowledge(resourceId, playerState.pixelX, playerState.pixelY);
-    }
+    revealPlayerLocalResourceKnowledge();
     emitInspectChanged({ reason: "movement-step" });
     advanceCommittedTravelPathPreview();
     const conditionModifiers = conditionEffectRuntime?.getModifiers() || {};
@@ -4693,6 +4700,29 @@ resourceDiscoveryRuntime = createResourceDiscoveryRuntime({
     emitResourceDiscoveryChanged({ resourceId: "*", reason: "runtime-change" });
   },
 });
+playerLocalKnowledgeRevealRuntime = createPlayerLocalKnowledgeRevealRuntime({
+  worldKnowledgeMapId: WORLD_KNOWLEDGE_MAP_ID,
+  tracksKnowledgeMapId: TRACKS_KNOWLEDGE_MAP_ID,
+  getResourceDiscoveryRuntime: () => resourceDiscoveryRuntime,
+  getResourceStockRuntime: () => resourceStockRuntime,
+  getObservedStockResourceIds,
+  resolveStockRevealRadius: (resourceId) => resolveDiscoveryRevealRadius(
+    resourceId,
+    getResourceMovementRevealRadius(resourceId),
+  ),
+});
+scoutLocalKnowledgeRevealRuntime = createPlayerLocalKnowledgeRevealRuntime({
+  worldKnowledgeMapId: WORLD_KNOWLEDGE_MAP_ID,
+  tracksKnowledgeMapId: TRACKS_KNOWLEDGE_MAP_ID,
+  revealTracks: false,
+  getResourceDiscoveryRuntime: () => resourceDiscoveryRuntime,
+  getResourceStockRuntime: () => resourceStockRuntime,
+  getObservedStockResourceIds,
+  resolveStockRevealRadius: (resourceId, radius) => resolveDiscoveryRevealRadius(
+    resourceId,
+    Number.isFinite(Number(radius)) ? Number(radius) : getResourceMovementRevealRadius(resourceId),
+  ),
+});
 inspectPerceptionRuntime = createInspectPerceptionRuntime({
   initialEnabled: true,
   initialLayer: "none",
@@ -4715,7 +4745,11 @@ inspectPerceptionRuntime = createInspectPerceptionRuntime({
     resourceDebugOverlayResourceId = resourceId;
   },
   revealResourceKnowledge: (resourceId) => {
-    revealResourceMovementKnowledge(resourceId, playerState.pixelX, playerState.pixelY);
+    const discoveryChanged = resourceDiscoveryRuntime?.revealMovement(resourceId, playerState.pixelX, playerState.pixelY) === true;
+    const stockChanged = resourceStockOverlayMode === "known"
+      ? playerLocalKnowledgeRevealRuntime?.revealObservedStockAt(resourceId, playerState.pixelX, playerState.pixelY) === true
+      : false;
+    return discoveryChanged || stockChanged;
   },
   onDebugLayerSelected: (debugLayer) => {
     resourceDebugSettings = normalizeResourceDebugSettings({
@@ -4979,6 +5013,8 @@ resourceDebugPanelRuntime = createResourceDebugPanelRuntime({
   },
   fillVisibilityDiscovery: (value) => {
     resourceDiscoveryRuntime.fill(WORLD_KNOWLEDGE_MAP_ID, value);
+    playerLocalKnowledgeRevealRuntime?.reset();
+    scoutLocalKnowledgeRevealRuntime?.reset();
     setStatus(value >= 1
       ? "Shared Knowledge Map filled known."
       : "Shared Knowledge Map filled unknown.");
@@ -5044,6 +5080,7 @@ const inventoryRuntime = createInventoryRuntime({
   requestOverlayDraw: () => overlayDirtyRuntime.requestOverlayDraw(),
 });
 let scoutSpeedNormFiltered = Number.NaN;
+const scoutCameraSmoothingRuntime = createScoutCameraSmoothingRuntime();
 
 function findScoutBirdCandidate(centerX, centerY, radiusPx) {
   if (!mainRuntimeStateBinding.isSwarmEnabled() || !swarmState || swarmState.count <= 0) return null;
@@ -5097,16 +5134,30 @@ function updatePossessedScoutBird(target) {
   if (!Number.isFinite(rawX) || !Number.isFinite(rawY)) {
     return { valid: false };
   }
-  let effectiveRevealRadius = 0;
+  let effectiveRevealRadius = resolveDiscoveryRevealRadius(WORLD_KNOWLEDGE_MAP_ID, revealRadius);
   for (const resourceId of getResourceSearchIds()) {
-    resourceDiscoveryRuntime?.revealCircle(resourceId, rawX, rawY, revealRadius, 1);
-    const resourceRevealRadius = resolveDiscoveryRevealRadius(resourceId, revealRadius);
-    resourceStockRuntime?.revealKnown(resourceId, rawX, rawY, resourceRevealRadius);
-    effectiveRevealRadius = Math.max(effectiveRevealRadius, resourceRevealRadius);
+    effectiveRevealRadius = Math.max(effectiveRevealRadius, resolveDiscoveryRevealRadius(resourceId, revealRadius));
   }
+  scoutLocalKnowledgeRevealRuntime?.revealAt(rawX, rawY, {
+    revealTracks: false,
+    worldRevealRadius: revealRadius,
+    stockRevealRadius: revealRadius,
+  });
   const cameraPos = writeInterpolatedSwarmAgentPos(index, {});
-  const cameraX = Number.isFinite(Number(cameraPos && cameraPos.x)) ? Number(cameraPos.x) : rawX;
-  const cameraY = Number.isFinite(Number(cameraPos && cameraPos.y)) ? Number(cameraPos.y) : rawY;
+  const cameraTarget = scoutCameraSmoothingRuntime.updateTarget({
+    agentId: swarmState.agentId && Number.isFinite(Number(swarmState.agentId[index]))
+      ? Math.round(Number(swarmState.agentId[index]))
+      : agentId,
+    x: Number.isFinite(Number(cameraPos && cameraPos.x)) ? Number(cameraPos.x) : rawX,
+    y: Number.isFinite(Number(cameraPos && cameraPos.y)) ? Number(cameraPos.y) : rawY,
+    nowMs: target && target.nowMs,
+    settings: {
+      ...(DISCOVERY_SETTINGS.scout?.camera || {}),
+      positionSmoothing: getSwarmSettings().followCameraPositionSmoothing,
+    },
+  });
+  const cameraX = cameraTarget.x;
+  const cameraY = cameraTarget.y;
   const world = mapCoordToWorld(cameraX, cameraY);
   const camera = runtimeCore.store.getState().camera || {};
   const scoutCamera = DISCOVERY_SETTINGS.scout?.camera || {};
@@ -5143,6 +5194,7 @@ function updatePossessedScoutBird(target) {
 
 function restoreCameraAfterScout() {
   scoutSpeedNormFiltered = Number.NaN;
+  scoutCameraSmoothingRuntime.reset();
   dispatchCoreCommand({ type: "core/player/show" });
 }
 
@@ -5286,11 +5338,12 @@ playerActivityRuntime = createPlayerActivityRuntime({
       conditionModifiers,
     });
   },
-  onUpkeepTick: () => {
+  onUpkeepTicks: ({ ticks }) => {
     const conditionModifiers = conditionEffectRuntime?.getModifiers() || {};
     activityEffectRuntime.apply(getActivityCostKey("idle", "upkeep", "idle.tick"), {
       activityIntensity: 1,
       conditionModifiers,
+      effectScale: Math.max(0, Number(ticks) || 0),
     });
   },
   onRestTick: () => {
@@ -5577,10 +5630,14 @@ registerMainCommands(runtimeCore.commandBus, createMainCommandAssemblyRuntime({
   startScoutActivity: () => {
     stopSwarmFollow({ syncStore: true });
     scoutSpeedNormFiltered = Number.NaN;
+    scoutCameraSmoothingRuntime.reset();
+    scoutLocalKnowledgeRevealRuntime?.reset();
     return playerActivityRuntime.startScout();
   },
   possessScoutBird: () => {
     scoutSpeedNormFiltered = Number.NaN;
+    scoutCameraSmoothingRuntime.reset();
+    scoutLocalKnowledgeRevealRuntime?.reset();
     return playerActivityRuntime.possessScoutCandidate();
   },
   startRestActivity: () => playerActivityRuntime.startRest(),
@@ -5672,7 +5729,6 @@ registerMainCommands(runtimeCore.commandBus, createMainCommandAssemblyRuntime({
   swarmCursorState,
   isSwarmEnabled: () => isSwarmEnabled(),
   getSwarmSettings: (...args) => getSwarmSettings(...args),
-  resetSwarmFollowSpeedSmoothing,
   updateSwarmFollowButtonUi: () => updateSwarmFollowButtonUi(),
   chooseRandomFollowHawkIndex: (...args) => chooseRandomFollowHawkIndex(...args),
   chooseRandomFollowAgentIndex: (...args) => chooseRandomFollowAgentIndex(...args),
@@ -5822,8 +5878,8 @@ const {
   swarmAgentCountValue,
   swarmFollowZoomInValue,
   swarmFollowZoomOutValue,
-  swarmFollowAgentSpeedSmoothingValue,
   swarmFollowAgentZoomSmoothingValue,
+  swarmFollowCameraPositionSmoothingValue,
   swarmUpdateIntervalValue,
   swarmMaxSpeedValue,
   swarmSteeringMaxValue,
@@ -5849,12 +5905,11 @@ const {
   swarmEnabledToggle,
   swarmLitModeToggle,
   swarmFollowTargetInput,
-  swarmFollowZoomToggle,
   swarmFollowZoomInInput,
   swarmFollowZoomOutInput,
   swarmFollowHawkRangeGizmoToggle,
-  swarmFollowAgentSpeedSmoothingInput,
   swarmFollowAgentZoomSmoothingInput,
+  swarmFollowCameraPositionSmoothingInput,
   swarmStatsPanelToggle,
   swarmShowTerrainToggle,
   swarmBackgroundColorInput,
@@ -5926,12 +5981,11 @@ const swarmIntegrationSetupRuntime = createSwarmIntegrationSetupRuntime(
       getSwarmSettings,
       swarmEnabledToggle,
       swarmLitModeToggle,
-      swarmFollowZoomToggle,
       swarmFollowZoomInInput,
       swarmFollowZoomOutInput,
       swarmFollowHawkRangeGizmoToggle,
-      swarmFollowAgentSpeedSmoothingInput,
       swarmFollowAgentZoomSmoothingInput,
+      swarmFollowCameraPositionSmoothingInput,
       swarmStatsPanelToggle,
       swarmShowTerrainToggle,
       swarmBackgroundColorInput,
@@ -6114,8 +6168,6 @@ const swarmIntegrationSetupRuntime = createSwarmIntegrationSetupRuntime(
     getZoom: () => getActiveCameraState().zoom,
     dispatchCoreCommand,
     setSwarmFollowHawkIndex: swarmFollowRuntimeState.setSwarmFollowHawkIndex,
-    getSwarmFollowSpeedNormFiltered: swarmFollowRuntimeState.getSwarmFollowSpeedNormFiltered,
-    setSwarmFollowSpeedNormFiltered: swarmFollowRuntimeState.setSwarmFollowSpeedNormFiltered,
     swarmOverlayAgentScratch,
     swarmOverlayHawkScratch,
     swarmGizmoHawkScratch,
@@ -6125,7 +6177,6 @@ const swarmIntegrationSetupRuntime = createSwarmIntegrationSetupRuntime(
     swarmZMax: SWARM_Z_MAX,
     swarmLitAgentScratch,
     swarmLitHawkScratch,
-    computeSwarmDirectionalShadow,
     getViewHalfExtents: (...args) => getViewHalfExtents(...args),
     getMapAspect: (...args) => getMapAspect(...args),
     gl,
@@ -6215,7 +6266,7 @@ const writeInterpolatedSwarmHawkPos = swarmLoopRuntime.writeInterpolatedSwarmHaw
 const updateSwarm = swarmLoopRuntime.updateSwarm;
 const updateSwarmFollowCamera = swarmLoopRuntime.updateSwarmFollowCamera;
 function updateSwarmFollowAndScoutCamera(nowMs) {
-  updateSwarmFollowCamera();
+  updateSwarmFollowCamera(nowMs);
   playerActivityRuntime?.updateScout(nowMs);
 }
 
@@ -6597,16 +6648,15 @@ runAppShellLifecycleRuntime(createAppShellLifecycleAssemblyRuntime({
     pathBaseCostInput,
     swarmShowTerrainToggle,
     swarmLitModeToggle,
-    swarmFollowZoomToggle,
     swarmFollowZoomInInput,
     swarmFollowZoomInValue,
     swarmFollowZoomOutInput,
     swarmFollowZoomOutValue,
     swarmFollowHawkRangeGizmoToggle,
-    swarmFollowAgentSpeedSmoothingInput,
-    swarmFollowAgentSpeedSmoothingValue,
     swarmFollowAgentZoomSmoothingInput,
     swarmFollowAgentZoomSmoothingValue,
+    swarmFollowCameraPositionSmoothingInput,
+    swarmFollowCameraPositionSmoothingValue,
     swarmStatsPanelToggle,
     swarmBackgroundColorInput,
     swarmAgentCountInput,
@@ -6669,7 +6719,6 @@ runAppShellLifecycleRuntime(createAppShellLifecycleAssemblyRuntime({
     normalizeSwarmFollowZoomInputs,
     normalizeSwarmHeightRangeInputs,
     reseedSwarmAgents,
-    resetSwarmFollowSpeedSmoothing,
     updateSwarmFollowButtonUi,
     setStatus,
     swarmFollowToggleBtn,
@@ -6971,3 +7020,5 @@ runAppShellLifecycleRuntime(createAppShellLifecycleAssemblyRuntime({
   resize,
   render,
 }));
+
+

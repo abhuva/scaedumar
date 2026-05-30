@@ -14,10 +14,6 @@ export function getRdAgentsFollowPanelHtml() {
             </select>
           </div>
           <div class="row">
-            <label for="swarmFollowZoomToggle">Speed Zoom</label>
-            <input id="swarmFollowZoomToggle" type="checkbox" />
-          </div>
-          <div class="row">
             <label for="swarmFollowZoomIn">Max Zoom In</label>
             <div class="inline-control">
               <input id="swarmFollowZoomIn" type="range" min="0.5" max="32" step="0.1" value="2.2" />
@@ -32,17 +28,17 @@ export function getRdAgentsFollowPanelHtml() {
             </div>
           </div>
           <div class="row">
-            <label for="swarmFollowAgentSpeedSmoothing">Bird Speed Smooth</label>
+            <label for="swarmFollowAgentZoomSmoothing">Zoom Gain</label>
             <div class="inline-control">
-              <input id="swarmFollowAgentSpeedSmoothing" type="range" min="0.01" max="0.25" step="0.01" value="0.04" />
-              <span id="swarmFollowAgentSpeedSmoothingValue">0.04</span>
+              <input id="swarmFollowAgentZoomSmoothing" type="range" min="0" max="1" step="0.01" value="0.12" />
+              <span id="swarmFollowAgentZoomSmoothingValue">0.12</span>
             </div>
           </div>
           <div class="row">
-            <label for="swarmFollowAgentZoomSmoothing">Bird Zoom Smooth</label>
+            <label for="swarmFollowCameraPositionSmoothing">Position Gain</label>
             <div class="inline-control">
-              <input id="swarmFollowAgentZoomSmoothing" type="range" min="0.01" max="0.25" step="0.01" value="0.07" />
-              <span id="swarmFollowAgentZoomSmoothingValue">0.07</span>
+              <input id="swarmFollowCameraPositionSmoothing" type="range" min="0" max="1" step="0.01" value="0.12" />
+              <span id="swarmFollowCameraPositionSmoothingValue">0.12</span>
             </div>
           </div>
             </div>`;

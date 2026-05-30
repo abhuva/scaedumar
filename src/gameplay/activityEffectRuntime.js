@@ -38,9 +38,12 @@ export function createActivityEffectRuntime(deps = {}) {
   function resolve(activityType, context) {
     const effects = resolveActivityEffects(activityCosts, activityType, context);
     if (typeof deps.applyConditionEffectModifiers === "function") {
-      return deps.applyConditionEffectModifiers(effects, context && context.conditionModifiers);
+      return scaleEffects(
+        deps.applyConditionEffectModifiers(effects, context && context.conditionModifiers),
+        context && context.effectScale,
+      );
     }
-    return effects;
+    return scaleEffects(effects, context && context.effectScale);
   }
 
   function apply(activityType, context) {
@@ -54,5 +57,15 @@ export function createActivityEffectRuntime(deps = {}) {
   return {
     resolve,
     apply,
+  };
+}
+
+function scaleEffects(effects, scale) {
+  const multiplier = finite(scale, 1);
+  if (multiplier === 1) return effects;
+  return {
+    nutrition: finite(effects && effects.nutrition, 0) * multiplier,
+    hydration: finite(effects && effects.hydration, 0) * multiplier,
+    fatigue: finite(effects && effects.fatigue, 0) * multiplier,
   };
 }

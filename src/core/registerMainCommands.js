@@ -481,10 +481,6 @@ export function registerMainCommands(commandBus, deps) {
         shouldSyncSwarmPanelUi = true;
         deps.requestOverlayDraw();
         break;
-      case "followZoomToggleChanged":
-        updateSwarmSettings({ followZoomBySpeed: Boolean(command.value) });
-        shouldSyncSwarmPanelUi = true;
-        break;
       case "followZoomInChanged": {
         const zoomOut = deps.clamp(
           Number(command.zoomOut ?? settings.followZoomOut),
@@ -512,15 +508,15 @@ export function registerMainCommands(commandBus, deps) {
         shouldSyncSwarmPanelUi = true;
         deps.requestOverlayDraw();
         break;
-      case "followAgentSpeedSmoothingChanged": {
-        const value = deps.clamp(Number(command.value), 0.01, 0.25);
-        updateSwarmSettings({ followAgentSpeedSmoothing: value });
+      case "followAgentZoomSmoothingChanged": {
+        const value = deps.clamp(Number(command.value), 0, 1);
+        updateSwarmSettings({ followAgentZoomSmoothing: value });
         shouldSyncSwarmPanelUi = true;
         break;
       }
-      case "followAgentZoomSmoothingChanged": {
-        const value = deps.clamp(Number(command.value), 0.01, 0.25);
-        updateSwarmSettings({ followAgentZoomSmoothing: value });
+      case "followCameraPositionSmoothingChanged": {
+        const value = deps.clamp(Number(command.value), 0, 1);
+        updateSwarmSettings({ followCameraPositionSmoothing: value });
         shouldSyncSwarmPanelUi = true;
         break;
       }

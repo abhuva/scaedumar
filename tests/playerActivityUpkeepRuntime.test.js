@@ -33,3 +33,24 @@ test("upkeep controller applies one callback per processed movement tick", () =>
     { activityType: "gathering", tickIndex: 2 },
   ]);
 });
+
+test("upkeep controller prefers one batch callback when available", () => {
+  const runtime = createPlayerActivityState("idle");
+  runtime.type = "travel";
+  const batches = [];
+  const ticks = [];
+  const controller = createPlayerActivityUpkeepController({
+    runtime,
+    onUpkeepTicks: (payload) => {
+      batches.push(payload);
+    },
+    onUpkeepTick: (payload) => {
+      ticks.push(payload);
+    },
+  });
+
+  assert.equal(controller.update({ time: { systems: { movement: { ticksProcessed: 4 } } } }), 4);
+
+  assert.deepEqual(batches, [{ activityType: "travel", ticks: 4 }]);
+  assert.deepEqual(ticks, []);
+});

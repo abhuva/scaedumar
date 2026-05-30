@@ -3,12 +3,11 @@ export function createSwarmSettingsApplier(deps) {
     const settings = deps.getSwarmSettings();
     deps.swarmEnabledToggle.checked = Boolean(settings.useAgentSwarm);
     deps.swarmLitModeToggle.checked = Boolean(settings.useLitSwarm);
-    deps.swarmFollowZoomToggle.checked = Boolean(settings.followZoomBySpeed);
     deps.swarmFollowZoomInInput.value = settings.followZoomIn.toFixed(1);
     deps.swarmFollowZoomOutInput.value = settings.followZoomOut.toFixed(1);
     deps.swarmFollowHawkRangeGizmoToggle.checked = Boolean(settings.followHawkRangeGizmo);
-    deps.swarmFollowAgentSpeedSmoothingInput.value = settings.followAgentSpeedSmoothing.toFixed(2);
     deps.swarmFollowAgentZoomSmoothingInput.value = settings.followAgentZoomSmoothing.toFixed(2);
+    if (deps.swarmFollowCameraPositionSmoothingInput) deps.swarmFollowCameraPositionSmoothingInput.value = settings.followCameraPositionSmoothing.toFixed(2);
     deps.swarmStatsPanelToggle.checked = Boolean(settings.showStatsPanel);
     deps.swarmShowTerrainToggle.checked = Boolean(settings.showTerrainInSwarm);
     deps.swarmBackgroundColorInput.value = settings.backgroundColor;
