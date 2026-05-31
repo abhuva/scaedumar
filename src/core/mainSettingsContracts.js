@@ -87,6 +87,8 @@ export const DEFAULT_INTERACTION_SETTINGS = {
   pathWeightWater: 0.0,
   pathSlopeCutoff: 90,
   pathBaseCost: 1.0,
+  pathAllowTerrainDiagonalCornerCutting: true,
+  pathAllowStructureDiagonalCornerCutting: false,
   cursorLightEnabled: false,
   cursorLightFollowHeight: true,
   cursorLightColor: "#ff9b2f",

@@ -201,6 +201,25 @@ export function createMovementSystem(deps) {
     });
   }
 
+  function isStepBlocked(step) {
+    if (!step || typeof deps.isMovementStepBlocked !== "function") return false;
+    return deps.isMovementStepBlocked(step.toX, step.toY, step) === true;
+  }
+
+  function blockQueue(step) {
+    const snapshotBeforeBlock = getSnapshot();
+    resetRuntime();
+    if (typeof deps.setStatus === "function") {
+      deps.setStatus(`Movement blocked at (${Math.round(finite(step && step.toX, 0))}, ${Math.round(finite(step && step.toY, 0))}).`);
+    }
+    emitHook("onMovementBlocked", step, snapshotBeforeBlock);
+    syncStore({
+      forceMovementSync: true,
+      rebuildMovementField: true,
+      requestOverlayDraw: true,
+    });
+  }
+
   return {
     replaceQueue,
     cancelQueue,
@@ -219,6 +238,15 @@ export function createMovementSystem(deps) {
       const wasActive = runtime.active;
       let moved = false;
       while (remaining > 0 && runtime.active) {
+        const activeStep = runtime.queue[runtime.currentStepIndex] || null;
+        if (!activeStep) {
+          resetRuntime();
+          break;
+        }
+        if (isStepBlocked(activeStep)) {
+          blockQueue(activeStep);
+          break;
+        }
         if (runtime.ticksRemaining > 0) {
           runtime.ticksRemaining -= 1;
           remaining -= 1;
@@ -227,10 +255,6 @@ export function createMovementSystem(deps) {
           continue;
         }
         const currentStep = runtime.queue[runtime.currentStepIndex] || null;
-        if (!currentStep) {
-          resetRuntime();
-          break;
-        }
         deps.playerState.pixelX = toSafePixel(currentStep.toX, maxX);
         deps.playerState.pixelY = toSafePixel(currentStep.toY, maxY);
         moved = true;

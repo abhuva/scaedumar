@@ -19,6 +19,7 @@ function createController(overrides = {}) {
     serializeResourceDebugSettings: () => ({ resourceDebug: true }),
     serializeResourceStockSettings: () => ({ resourceStock: true }),
     serializeSwarmData: () => ({ swarm: true }),
+    serializeStructureData: () => ({ structures: true }),
     serializeNpcState: () => ({ npc: true }),
     normalizeMapFolderPath: (value) => value || "assets/map1",
     getCurrentMapFolderPath: () => "assets/map1",
@@ -37,4 +38,6 @@ test("Save All includes map-local resource debug settings", () => {
   assert.deepEqual(JSON.parse(files["resource_stock.json"]), { resourceStock: true });
   assert.ok(files["slime.json"]);
   assert.deepEqual(JSON.parse(files["slime.json"]), { slime: true });
+  assert.ok(files["structures.json"]);
+  assert.deepEqual(JSON.parse(files["structures.json"]), { structures: true });
 });

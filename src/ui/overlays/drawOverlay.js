@@ -2,6 +2,7 @@ import { drawResourceContourOverlay } from "./resourceContourOverlay.js";
 import { drawDiscoveryMaskOverlay } from "./discoveryMaskOverlay.js";
 import { drawDiscoveryTerrainVisibilityOverlay } from "./discoveryTerrainVisibilityOverlay.js";
 import { drawRoutePlanningOverlay } from "./routePlanningOverlay.js";
+import { drawStructureOccupancyOverlay, drawStructurePlacementPreviewOverlay } from "./structureOccupancyOverlay.js";
 
 export function createOverlayDrawer(deps) {
   return function drawOverlay() {
@@ -196,6 +197,31 @@ export function createOverlayDrawer(deps) {
       });
     }
 
+    const structureOccupancyOverlay = typeof deps.getStructureOccupancyOverlaySnapshot === "function"
+      ? deps.getStructureOccupancyOverlaySnapshot()
+      : null;
+    if (structureOccupancyOverlay) {
+      drawStructureOccupancyOverlay({
+        ctx: deps.overlayCtx,
+        snapshot: structureOccupancyOverlay,
+        mapPixelToWorld: deps.mapPixelToWorld,
+        worldToScreen: deps.worldToScreen,
+      });
+    }
+
+    // Draw the active placement candidate after occupancy so the edit intent wins visually.
+    const structurePlacementPreview = typeof deps.getStructurePlacementPreviewOverlaySnapshot === "function"
+      ? deps.getStructurePlacementPreviewOverlaySnapshot()
+      : null;
+    if (structurePlacementPreview) {
+      drawStructurePlacementPreviewOverlay({
+        ctx: deps.overlayCtx,
+        snapshot: structurePlacementPreview,
+        mapPixelToWorld: deps.mapPixelToWorld,
+        worldToScreen: deps.worldToScreen,
+      });
+    }
+
     if (activitySnapshot && activitySnapshot.active && (activitySnapshot.type === "gathering" || activitySnapshot.resourceId)) {
       const radius = Math.max(0, Number(activitySnapshot.radius) || 0);
       drawMapCircle(activitySnapshot.originX, activitySnapshot.originY, radius, "rgba(180, 126, 71, 0.85)", 2);
@@ -227,10 +253,18 @@ export function createOverlayDrawer(deps) {
       deps.overlayCtx.fillText("B", centerScreen.x, centerScreen.y);
     }
 
-    drawMapDot(deps.playerState.pixelX, deps.playerState.pixelY, deps.playerState.color);
+    const playerSpriteVisible = typeof deps.isPlayerSpriteRenderVisible === "function"
+      ? deps.isPlayerSpriteRenderVisible()
+      : false;
+    if (!playerSpriteVisible) {
+      drawMapDot(deps.playerState.pixelX, deps.playerState.pixelY, deps.playerState.color);
+    }
     if (deps.isSwarmEnabled()) {
       const swarmSettings = deps.getSwarmSettings();
-      if (!swarmSettings.useLitSwarm) {
+      const swarmSpriteMode = typeof deps.isSwarmSpriteRenderMode === "function"
+        ? deps.isSwarmSpriteRenderMode()
+        : false;
+      if (!swarmSettings.useLitSwarm && !swarmSpriteMode) {
         deps.drawSwarmUnlitOverlay(swarmSettings);
       }
       deps.drawSwarmGizmos(swarmSettings);

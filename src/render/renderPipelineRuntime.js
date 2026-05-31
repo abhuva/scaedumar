@@ -4,12 +4,39 @@ import { createTerrainUniformUploader } from "./uniformUploader.js";
 import { createShadowPass } from "./passes/shadowPass.js";
 import { createBlurPass } from "./passes/blurPass.js";
 import { createMainTerrainPass } from "./passes/mainTerrainPass.js";
+import { createStructurePass } from "./passes/structurePass.js";
+import { createAgentSpritePass } from "./passes/agentSpritePass.js";
+import { createMapSpriteRenderer } from "./mapSpriteRenderer.js";
 
 const DEFAULT_BG = [0, 0, 0];
 
 export function createRenderPipelineRuntime(deps) {
   const renderResources = createRenderResources({ gl: deps.gl, canvas: deps.canvas });
   const renderer = createRenderer({ resources: renderResources, gl: deps.gl });
+  const structureRenderer = createMapSpriteRenderer({
+    gl: deps.gl,
+    document: deps.document,
+    loadImageFromUrl: deps.loadImageFromUrl,
+    normalsTex: deps.normalsTex,
+    pointLightTex: deps.pointLightTex,
+    shadowBlurTex: deps.shadowBlurTex,
+    shadowRawTex: deps.shadowRawTex,
+    splatSize: deps.splatSize,
+    getViewHalfExtents: deps.getViewHalfExtents,
+    getMapAspect: deps.getMapAspect,
+  });
+  const agentSpriteRenderer = createMapSpriteRenderer({
+    gl: deps.gl,
+    document: deps.document,
+    loadImageFromUrl: deps.loadImageFromUrl,
+    normalsTex: deps.normalsTex,
+    pointLightTex: deps.pointLightTex,
+    shadowBlurTex: deps.shadowBlurTex,
+    shadowRawTex: deps.shadowRawTex,
+    splatSize: deps.splatSize,
+    getViewHalfExtents: deps.getViewHalfExtents,
+    getMapAspect: deps.getMapAspect,
+  });
   const uploadUniforms = createTerrainUniformUploader({
     gl: deps.gl,
     document: deps.document,
@@ -68,6 +95,18 @@ export function createRenderPipelineRuntime(deps) {
     drawTerrain: () => {
       deps.gl.drawArrays(deps.gl.TRIANGLES, 0, 6);
     },
+  }));
+
+  renderer.registerPass("structures", createStructurePass({
+    structureRenderer,
+    getStructureRenderSnapshot: deps.getStructureRenderSnapshot,
+    isVisible: deps.isStructureRenderVisible,
+  }));
+
+  renderer.registerPass("agentSprites", createAgentSpritePass({
+    agentSpriteRenderer,
+    getAgentSpriteRenderSnapshot: deps.getAgentSpriteRenderSnapshot,
+    isVisible: deps.isAgentSpriteRenderVisible,
   }));
 
   renderer.registerPass("backgroundClear", {

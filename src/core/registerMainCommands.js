@@ -91,6 +91,50 @@ export function registerMainCommands(commandBus, deps) {
 
   registerInteractionCommands(commandBus, deps);
 
+  commandBus.register("structure/place", (command) => {
+    if (typeof deps.placeStructure !== "function") {
+      return { ok: false, reason: "Structure runtime is unavailable." };
+    }
+    const result = deps.placeStructure(command.structureType || command.typeId, command.pixelX, command.pixelY, command.state || {}, {
+      id: command.id,
+    });
+    if (result && result.ok) {
+      deps.requestOverlayDraw?.();
+      deps.setStatus?.(`Placed structure ${result.structure.id}.`);
+    } else if (result && result.reason) {
+      deps.setStatus?.(result.reason);
+    }
+    return result;
+  });
+
+  commandBus.register("structure/remove", (command) => {
+    if (typeof deps.removeStructure !== "function") {
+      return { ok: false, reason: "Structure runtime is unavailable." };
+    }
+    const result = deps.removeStructure(command.id || command.structureId);
+    if (result && result.ok) {
+      deps.requestOverlayDraw?.();
+      deps.setStatus?.("Structure removed.");
+    } else if (result && result.reason) {
+      deps.setStatus?.(result.reason);
+    }
+    return result;
+  });
+
+  commandBus.register("structure/updateState", (command) => {
+    if (typeof deps.updateStructureState !== "function") {
+      return { ok: false, reason: "Structure runtime is unavailable." };
+    }
+    const result = deps.updateStructureState(command.id || command.structureId, command.patch || {});
+    if (result && result.ok) {
+      deps.requestOverlayDraw?.();
+      deps.setStatus?.("Structure updated.");
+    } else if (result && result.reason) {
+      deps.setStatus?.(result.reason);
+    }
+    return result;
+  });
+
   commandBus.register("core/renderFx/changed", (command) => {
     const section = String(command.section || "");
     const patch = command.patch && typeof command.patch === "object" ? command.patch : null;

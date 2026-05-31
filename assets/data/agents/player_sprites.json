@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "sprites": {
+    "player": {
+      "spriteSlot": 0,
+      "spriteSrc": "assets/sprites/agents/default/player.png",
+      "slotWidth": 64,
+      "slotHeight": 64,
+      "visualWidthPx": 1,
+      "visualHeightPx": 1,
+      "pivotX": 0.5,
+      "pivotY": 0.5,
+      "directionCount": 1,
+      "frameCount": 1,
+      "animationFps": 0,
+      "animationMode": "none",
+      "animationPhase": "none",
+      "layer": "ground"
+    }
+  }
+}

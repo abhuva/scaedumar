@@ -90,5 +90,7 @@ export function getPathfindingStateSnapshot(deps) {
     weightWater: deps.clamp(Number(corePathfinding.weightWater), 0, 100),
     slopeCutoff: Math.round(deps.clamp(Number(corePathfinding.slopeCutoff), 0, 90)),
     baseCost: deps.clamp(Number(corePathfinding.baseCost), 0, 2),
+    allowTerrainDiagonalCornerCutting: corePathfinding.allowTerrainDiagonalCornerCutting !== false,
+    allowStructureDiagonalCornerCutting: corePathfinding.allowStructureDiagonalCornerCutting === true,
   };
 }

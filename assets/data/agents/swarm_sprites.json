@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "sprites": {
+    "bird": {
+      "spriteSlot": 4,
+      "spriteSrc": "assets/sprites/agents/default/bird.png",
+      "slotWidth": 32,
+      "slotHeight": 32,
+      "visualWidthPx": 1,
+      "visualHeightPx": 1,
+      "pivotX": 0.5,
+      "pivotY": 0.5,
+      "directionCount": 1,
+      "rotateToVelocity": true,
+      "sourceForwardRadians": -1.5707963267948966,
+      "frameCount": 6,
+      "animationFps": 10,
+      "animationMode": "renderTime",
+      "animationPhase": "stableId",
+      "transparentColor": "#ffffff",
+      "transparentColorTolerance": 0,
+      "minHeight": 0,
+      "maxHeight": 100,
+      "baseScale": 1,
+      "maxHeightScale": 1.5,
+      "layer": "flying"
+    },
+    "hawk": {
+      "spriteSlot": 12,
+      "spriteSrc": "assets/sprites/agents/default/hawk.png",
+      "slotWidth": 32,
+      "slotHeight": 32,
+      "visualWidthPx": 1.25,
+      "visualHeightPx": 1.25,
+      "pivotX": 0.5,
+      "pivotY": 0.5,
+      "directionCount": 1,
+      "rotateToVelocity": true,
+      "sourceForwardRadians": -1.5707963267948966,
+      "frameCount": 1,
+      "animationFps": 0,
+      "animationMode": "none",
+      "animationPhase": "none",
+      "minHeight": 0,
+      "maxHeight": 100,
+      "baseScale": 1,
+      "maxHeightScale": 1.6,
+      "layer": "flying"
+    }
+  }
+}

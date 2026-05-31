@@ -171,6 +171,48 @@ test("pathfinding click starts explicit travel after queuing movement", () => {
   }]);
 });
 
+test("structure debug map selection consumes no-mode map clicks when active", () => {
+  const commandBus = createCommandBus();
+  let selected = null;
+  const deps = createDeps({
+    trySelectStructureAtPixel: (x, y) => {
+      selected = { x, y };
+      return true;
+    },
+  });
+  registerInteractionCommands(commandBus, deps);
+
+  const result = commandBus.dispatch({ type: "core/interaction/clickMapPixel", x: 8, y: 9 });
+
+  assert.deepEqual(selected, { x: 8, y: 9 });
+  assert.deepEqual(result, { consumed: true });
+  assert.equal(deps.calls.status, "");
+  assert.equal(deps.calls.requestOverlayDraw, 1);
+});
+
+test("structure placement mode consumes no-mode map clicks before selection", () => {
+  const commandBus = createCommandBus();
+  let placed = null;
+  let selected = false;
+  const deps = createDeps({
+    tryPlaceStructureAtPixel: (x, y) => {
+      placed = { x, y };
+      return true;
+    },
+    trySelectStructureAtPixel: () => {
+      selected = true;
+      return true;
+    },
+  });
+  registerInteractionCommands(commandBus, deps);
+
+  const result = commandBus.dispatch({ type: "core/interaction/clickMapPixel", x: 8, y: 9 });
+
+  assert.deepEqual(placed, { x: 8, y: 9 });
+  assert.equal(selected, false);
+  assert.deepEqual(result, { consumed: true });
+});
+
 test("failed travel start does not trigger travel tutorial event", () => {
   const commandBus = createCommandBus();
   const deps = createDeps({
@@ -508,4 +550,23 @@ test("pathfinding setting commands ignore non-finite values", () => {
   commandBus.dispatch({ type: "core/pathfinding/setWeightSlope", value: "not-a-number" });
 
   assert.equal(patch, null);
+});
+
+test("pathfinding diagonal corner-cutting toggles patch boolean settings", () => {
+  const commandBus = createCommandBus();
+  const patches = [];
+  const deps = createDeps({
+    patchPathfindingStateToStore: (nextPatch) => {
+      patches.push(nextPatch);
+    },
+  });
+  registerInteractionCommands(commandBus, deps);
+
+  commandBus.dispatch({ type: "core/pathfinding/setAllowTerrainDiagonalCornerCutting", value: false });
+  commandBus.dispatch({ type: "core/pathfinding/setAllowStructureDiagonalCornerCutting", value: true });
+
+  assert.deepEqual(patches, [
+    { allowTerrainDiagonalCornerCutting: false },
+    { allowStructureDiagonalCornerCutting: true },
+  ]);
 });

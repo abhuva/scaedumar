@@ -1,0 +1,99 @@
+{
+  "version": 1,
+  "atlas": {
+    "src": "",
+    "filter": "nearest",
+    "slotWidth": 128,
+    "slotHeight": 128,
+    "gridColumns": 1,
+    "gridRows": 1
+  },
+  "types": [
+    {
+      "id": "nomadic_tent",
+      "name": "Nomadic Tent",
+      "spriteId": "nomadic_tent_01",
+      "spriteSlot": 0,
+      "spriteSrc": "assets/sprites/structures/default/nomadic_tent_01.png",
+      "visualWidthPx": 4,
+      "visualHeightPx": 4,
+      "footprint": {
+        "width": 4,
+        "height": 4,
+        "mask": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ]
+      },
+      "interactionRadiusPx": 4,
+      "blocksMovement": true,
+      "capabilities": [
+        "shelter"
+      ],
+      "stateDefaults": {
+        "hidden": false
+      }
+    }
+  ],
+  "structures": [
+    {
+      "id": "nomadic_tent_001",
+      "type": "nomadic_tent",
+      "pixelX": 326,
+      "pixelY": 797,
+      "state": {
+        "hidden": false
+      }
+    },
+    {
+      "id": "nomadic_tent_1",
+      "type": "nomadic_tent",
+      "pixelX": 319,
+      "pixelY": 797,
+      "state": {
+        "hidden": false
+      }
+    },
+    {
+      "id": "nomadic_tent_3",
+      "type": "nomadic_tent",
+      "pixelX": 324,
+      "pixelY": 806,
+      "state": {
+        "hidden": false
+      }
+    },
+    {
+      "id": "nomadic_tent_5",
+      "type": "nomadic_tent",
+      "pixelX": 335,
+      "pixelY": 803,
+      "state": {
+        "hidden": false
+      }
+    },
+    {
+      "id": "nomadic_tent_6",
+      "type": "nomadic_tent",
+      "pixelX": 324,
+      "pixelY": 788,
+      "state": {
+        "hidden": false
+      }
+    }
+  ]
+}

@@ -108,6 +108,7 @@ export function createFrameRuntime(deps) {
       hexToRgb01: deps.hexToRgb01,
       renderer: deps.renderer,
       renderSwarmLit: deps.renderSwarmLit,
+      isSwarmSpriteRenderMode: deps.isSwarmSpriteRenderMode,
       profile,
       now,
     });

@@ -16,6 +16,7 @@ export function createMapDataSaveRuntime(deps) {
     serializeResourceDebugSettings: deps.serializeResourceDebugSettings,
     serializeResourceStockSettings: deps.serializeResourceStockSettings,
     serializeSwarmData: deps.serializeSwarmData,
+    serializeStructureData: deps.serializeStructureData,
     serializeNpcState: deps.serializeNpcState,
     normalizeMapFolderPath: deps.normalizeMapFolderPath,
     getCurrentMapFolderPath: deps.getCurrentMapFolderPath,

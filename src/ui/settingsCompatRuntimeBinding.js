@@ -73,6 +73,8 @@ export function createSettingsCompatRuntimeBinding(deps) {
     pathWeightWaterInput: deps.pathWeightWaterInput,
     pathSlopeCutoffInput: deps.pathSlopeCutoffInput,
     pathBaseCostInput: deps.pathBaseCostInput,
+    pathAllowTerrainDiagonalCornerCuttingInput: deps.pathAllowTerrainDiagonalCornerCuttingInput,
+    pathAllowStructureDiagonalCornerCuttingInput: deps.pathAllowStructureDiagonalCornerCuttingInput,
     updatePathfindingRangeLabel: deps.updatePathfindingRangeLabel,
     updatePathWeightLabels: deps.updatePathWeightLabels,
     updatePathSlopeCutoffLabel: deps.updatePathSlopeCutoffLabel,

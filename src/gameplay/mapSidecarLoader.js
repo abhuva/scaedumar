@@ -53,6 +53,7 @@ export function createMapSidecarLoader(deps) {
       resourceDebug: false,
       resourceStock: false,
       swarm: false,
+      structures: false,
       npc: false,
     };
   }
@@ -200,6 +201,14 @@ export function createMapSidecarLoader(deps) {
         onErrorLabel: `Failed to load swarm.json from ${folder}`,
       },
       {
+        key: "structures",
+        fileName: "structures.json",
+        loadJson: loadOptionalUrlJson(jsonPath("structures.json")),
+        applyFn: (rawData) => deps.applyStructureData(rawData),
+        onAbsentOrFailed: () => deps.applyStructureData(null),
+        onErrorLabel: `Failed to load structures.json from ${folder}`,
+      },
+      {
         key: "npc",
         fileName: "npc.json",
         loadJson: loadOptionalUrlJson(jsonPath("npc.json")),
@@ -325,6 +334,14 @@ export function createMapSidecarLoader(deps) {
         loadJson: loadOptionalFileJson("swarm.json"),
         applyFn: (rawData) => deps.applySwarmData(rawData),
         onErrorLabel: "Failed to parse swarm.json from selected folder",
+      },
+      {
+        key: "structures",
+        fileName: "structures.json",
+        loadJson: loadOptionalFileJson("structures.json"),
+        applyFn: (rawData) => deps.applyStructureData(rawData),
+        onAbsentOrFailed: () => deps.applyStructureData(null),
+        onErrorLabel: "Failed to parse structures.json from selected folder",
       },
       {
         key: "npc",

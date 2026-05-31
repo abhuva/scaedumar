@@ -6,6 +6,9 @@ export function renderFrameSwarmLayers(deps) {
   const swarmSettings = deps.getSwarmSettings();
   const swarmEnabled = swarmSettings.useAgentSwarm;
   const showTerrain = !swarmEnabled || swarmSettings.showTerrainInSwarm;
+  const swarmSpriteMode = typeof deps.isSwarmSpriteRenderMode === "function"
+    ? deps.isSwarmSpriteRenderMode()
+    : false;
   const buildStart = now();
   const frameState = deps.buildFrameRenderState({
     coreState: deps.coreState,
@@ -21,7 +24,7 @@ export function renderFrameSwarmLayers(deps) {
     showTerrain,
     backgroundColorRgb: deps.hexToRgb01(swarmSettings.backgroundColor),
     swarmEnabled,
-    swarmLitEnabled: swarmSettings.useLitSwarm,
+    swarmLitEnabled: swarmSettings.useLitSwarm && !swarmSpriteMode,
   });
   if (profile) profile.frameStateMs = now() - buildStart;
   const terrainStart = now();

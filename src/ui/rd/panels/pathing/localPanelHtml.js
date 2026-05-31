@@ -44,5 +44,19 @@ export function getRdPathingLocalPanelHtml() {
               <span id="pathBaseCostValue">1.0</span>
             </div>
           </div>
+          <div class="row">
+            <label for="pathAllowTerrainDiagonalCornerCutting">Terrain Diagonal Cut</label>
+            <div class="inline-control">
+              <input id="pathAllowTerrainDiagonalCornerCutting" type="checkbox" checked aria-label="Allow diagonal movement through terrain-blocked corners" />
+              <span>allow</span>
+            </div>
+          </div>
+          <div class="row">
+            <label for="pathAllowStructureDiagonalCornerCutting">Structure Diagonal Cut</label>
+            <div class="inline-control">
+              <input id="pathAllowStructureDiagonalCornerCutting" type="checkbox" aria-label="Allow diagonal movement through structure-blocked corners" />
+              <span>allow</span>
+            </div>
+          </div>
           </div>          `;
 }

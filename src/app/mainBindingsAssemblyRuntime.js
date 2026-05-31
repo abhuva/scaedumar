@@ -12,6 +12,7 @@ export function createMainBindingsAssemblyRuntime(deps) {
       updateCursorLightFromPointer: deps.updateCursorLightFromPointer,
       updatePathPreviewFromPointer: deps.updatePathPreviewFromPointer,
       updateRoutePreviewFromPointer: deps.updateRoutePreviewFromPointer,
+      updateStructurePlacementPreviewFromPointer: deps.updateStructurePlacementPreviewFromPointer,
       updateInspectFromPointer: deps.updateInspectFromPointer,
       openLocalActivityMenu: deps.openLocalActivityMenu,
       canHandleTerrainClicks: deps.canHandleTerrainClicks,
@@ -35,6 +36,8 @@ export function createMainBindingsAssemblyRuntime(deps) {
       pathWeightWaterInput: deps.pathWeightWaterInput,
       pathSlopeCutoffInput: deps.pathSlopeCutoffInput,
       pathBaseCostInput: deps.pathBaseCostInput,
+      pathAllowTerrainDiagonalCornerCuttingInput: deps.pathAllowTerrainDiagonalCornerCuttingInput,
+      pathAllowStructureDiagonalCornerCuttingInput: deps.pathAllowStructureDiagonalCornerCuttingInput,
       dispatchCoreCommand: deps.dispatchCoreCommand,
     },
     swarmPanelBinding: {

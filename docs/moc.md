@@ -23,7 +23,7 @@
 ## Rendering / Visual Representation
 
 [[CRISP_MATERIAL_TRANSITIONS]]
-
+[[SPRITE_DETAILS_RENDERING_DESIGN]]
 # Website (Zensical)
 
 [[index]]

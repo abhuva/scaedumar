@@ -15,6 +15,13 @@ export function getRdAgentsSwarmPanelHtml() {
             <input id="swarmLitModeToggle" type="checkbox" />
           </div>
           <div class="row">
+            <label for="swarmSpriteRenderModeToggle">Render Sprites</label>
+            <div class="inline-control">
+              <input id="swarmSpriteRenderModeToggle" type="checkbox" checked aria-label="Render swarm as sprites instead of square agents" />
+              <span>not squares</span>
+            </div>
+          </div>
+          <div class="row">
             <label for="swarmBackgroundColor">Studio Background</label>
             <input id="swarmBackgroundColor" type="color" value="#1c2b44" />
           </div>

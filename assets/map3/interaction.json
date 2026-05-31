@@ -6,6 +6,8 @@
   "pathWeightWater": 100,
   "pathSlopeCutoff": 51,
   "pathBaseCost": 0.7,
+  "pathAllowTerrainDiagonalCornerCutting": true,
+  "pathAllowStructureDiagonalCornerCutting": false,
   "cursorLightEnabled": false,
   "cursorLightFollowHeight": true,
   "cursorLightColor": "#ff9b2f",

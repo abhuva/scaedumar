@@ -2,6 +2,19 @@ import { createGlResourceRuntime } from "./glResourceRuntime.js";
 import { createFlowMapRuntime } from "./flowMapRuntime.js";
 import { createShadowPipelineRuntime } from "./shadowPipelineRuntime.js";
 
+export function withImageCacheBust(url, nowMs = Date.now()) {
+  const text = String(url || "");
+  if (!text || text.startsWith("data:") || text.startsWith("blob:")) return text;
+  if (
+    text.startsWith("asset:")
+    || text.startsWith("file:")
+  ) {
+    return text;
+  }
+  const separator = text.includes("?") ? "&" : "?";
+  return `${text}${separator}terrainImageBust=${Math.max(0, Math.round(Number(nowMs) || 0))}`;
+}
+
 export function createRenderSupportRuntime(deps) {
   let glResourceRuntime = null;
   let flowMapRuntime = null;
@@ -44,22 +57,6 @@ export function createRenderSupportRuntime(deps) {
       getShadowMapScale: deps.getShadowMapScale,
     });
     return shadowPipelineRuntime;
-  }
-
-  function withImageCacheBust(url) {
-    const text = String(url || "");
-    if (!text || text.startsWith("data:") || text.startsWith("blob:")) return text;
-    if (
-      text.startsWith("assets/")
-      || text.startsWith("./assets/")
-      || text.startsWith("../assets/")
-      || text.startsWith("asset:")
-      || text.startsWith("file:")
-    ) {
-      return text;
-    }
-    const separator = text.includes("?") ? "&" : "?";
-    return `${text}${separator}terrainImageBust=${Date.now()}`;
   }
 
   function getImageUrlCandidates(url) {

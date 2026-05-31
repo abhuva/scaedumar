@@ -11,6 +11,8 @@ export function createInteractionDataSerializer(deps) {
       pathWeightWater: interaction.weightWater,
       pathSlopeCutoff: interaction.slopeCutoff,
       pathBaseCost: interaction.baseCost,
+      pathAllowTerrainDiagonalCornerCutting: Boolean(interaction.allowTerrainDiagonalCornerCutting),
+      pathAllowStructureDiagonalCornerCutting: Boolean(interaction.allowStructureDiagonalCornerCutting),
       cursorLightEnabled: Boolean(cursorLight.enabled),
       cursorLightFollowHeight: Boolean(cursorLight.useTerrainHeight),
       cursorLightColor: cursorLight.colorHex,

@@ -17,5 +17,6 @@ export function getRdOverlayRailHtml() {
             <button class="rd-overlay-rail-btn" type="button" data-rd-overlay-shortcut="knowledge-map" title="Knowledge map overlay" aria-label="Knowledge map overlay">KM</button>
             <button class="rd-overlay-rail-btn" type="button" data-rd-overlay-shortcut="route-cost" title="NAV route cost field" aria-label="NAV route cost field">CF</button>
             <button class="rd-overlay-rail-btn" type="button" data-rd-overlay-shortcut="route-knowledge" title="NAV route knowledge" aria-label="NAV route knowledge">NK</button>
+            <button class="rd-overlay-rail-btn" type="button" data-rd-overlay-shortcut="structure-occupancy" title="Structure occupancy debug overlay" aria-label="Structure occupancy debug overlay">SO</button>
           </div>`;
 }

@@ -31,6 +31,8 @@ export function createMainCommandAssemblyRuntime(deps) {
     setInteractionMode: deps.setInteractionMode,
     triggerEvent: deps.triggerEvent,
     requestOverlayDraw: deps.requestOverlayDraw,
+    tryPlaceStructureAtPixel: deps.tryPlaceStructureAtPixel,
+    trySelectStructureAtPixel: deps.trySelectStructureAtPixel,
     emitTravelPlanningChanged: deps.emitTravelPlanningChanged,
     updateCycleHourLabel: deps.updateCycleHourLabel,
     updateCursorLightModeUi: deps.updateCursorLightModeUi,
@@ -146,5 +148,9 @@ export function createMainCommandAssemblyRuntime(deps) {
     syncSimTickHoursInput: deps.syncSimTickHoursInput,
     syncCycleSpeedInput: deps.syncCycleSpeedInput,
     syncRoutingInput: deps.syncRoutingInput,
+    placeStructure: deps.placeStructure,
+    removeStructure: deps.removeStructure,
+    updateStructureState: deps.updateStructureState,
+    canPlaceStructure: deps.canPlaceStructure,
   };
 }

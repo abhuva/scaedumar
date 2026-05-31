@@ -126,6 +126,14 @@ import { loadResourceSearches } from "./gameplay/resourceSearchRegistry.js";
 import { computeResourceSearchChance, createResourceSearchRuntime } from "./gameplay/resourceSearchRuntime.js";
 import { loadResourceStockSettings } from "./gameplay/resourceStockRegistry.js";
 import { createResourceStockRuntime } from "./gameplay/resourceStockRuntime.js";
+import { createStructureRuntime } from "./gameplay/structureRuntime.js";
+import { createPlayerSpriteRuntime } from "./gameplay/playerSpriteRuntime.js";
+import { createSwarmAgentSpriteRuntime } from "./gameplay/swarmAgentSpriteRuntime.js";
+import {
+  DEFAULT_PLAYER_SPRITE_DEFINITIONS_URL,
+  DEFAULT_SWARM_SPRITE_DEFINITIONS_URL,
+  loadAgentSpriteDefinitionFile,
+} from "./gameplay/agentSpriteDefinitionRegistry.js";
 import { createResourceDiscoveryRuntime } from "./gameplay/resourceDiscoveryRuntime.js";
 import {
   createInspectPerceptionRuntime,
@@ -203,6 +211,7 @@ import { createDetailPanelRuntime } from "./ui/detailPanelRuntime.js";
 import { createModulePresetRuntime } from "./ui/modulePresetRuntime.js";
 import { createInventoryPanelRuntime } from "./ui/inventoryPanelRuntime.js";
 import { createResourceDebugPanelRuntime } from "./ui/resourceDebugPanelRuntime.js";
+import { createStructureDebugPanelRuntime } from "./ui/structureDebugPanelRuntime.js";
 import { injectResourceDebugMarkup } from "./ui/rd/resourceDebugMarkupRuntime.js";
 import { createRdOverlayShortcutRailRuntime } from "./ui/rdOverlayShortcutRailRuntime.js";
 import { createGameplayHudRuntime } from "./ui/gameplayHudRuntime.js";
@@ -239,6 +248,12 @@ const CONDITION_EFFECTS = await loadConditionEffects();
 const RESOURCE_SEARCHES = await loadResourceSearches();
 const RESOURCE_STOCK_SETTINGS = await loadResourceStockSettings({ resourceIds: Object.keys(RESOURCE_SEARCHES) });
 const DISCOVERY_SETTINGS = await loadDiscoverySettings();
+const PLAYER_SPRITE_DEFINITION_FILE = await loadAgentSpriteDefinitionFile({
+  url: DEFAULT_PLAYER_SPRITE_DEFINITIONS_URL,
+});
+const SWARM_SPRITE_DEFINITION_FILE = await loadAgentSpriteDefinitionFile({
+  url: DEFAULT_SWARM_SPRITE_DEFINITIONS_URL,
+});
 let EVENT_DEFINITIONS = [];
 let activeEventDefinitions = [];
 let activeMapEventDefinitionCount = 0;
@@ -260,6 +275,7 @@ const DEFAULT_HUNTING_SETTINGS = {
 const DEFAULT_RESOURCE_DEBUG_SETTINGS = createDefaultResourceDebugSettings(RESOURCE_SEARCHES, "water", DISCOVERY_SETTINGS);
 let resourceDebugSettings = normalizeResourceDebugSettings(null, DEFAULT_RESOURCE_DEBUG_SETTINGS);
 let localActivityMenuRadius = DEFAULT_LOCAL_ACTIVITY_MENU_RADIUS;
+let structureDebugPanelRuntime = null;
 
 function getActivityCostKey(activityId, costRole, fallback) {
   const definition = ACTIVITY_DEFINITIONS[activityId];
@@ -482,6 +498,17 @@ const resourceStockRevealHereBtn = getRequiredElementById("resourceStockRevealHe
 const resourceStockFillFullBtn = getRequiredElementById("resourceStockFillFullBtn");
 const resourceStockFillEmptyBtn = getRequiredElementById("resourceStockFillEmptyBtn");
 const resourceStockResetBtn = getRequiredElementById("resourceStockResetBtn");
+const structureDebugTypeSelect = getRequiredElementById("structureDebugTypeSelect");
+const structureDebugPanel = getRequiredElementById("structureDebugPanel");
+const structureDebugSelectedValue = getRequiredElementById("structureDebugSelectedValue");
+const structureDebugReadout = getRequiredElementById("structureDebugReadout");
+const structureDebugShowOccupancyToggle = getRequiredElementById("structureDebugShowOccupancyToggle");
+const structureDebugRenderVisibleToggle = getRequiredElementById("structureDebugRenderVisibleToggle");
+const structureDebugPlaceModeToggle = getRequiredElementById("structureDebugPlaceModeToggle");
+const structureDebugPlaceAtPlayerBtn = getRequiredElementById("structureDebugPlaceAtPlayerBtn");
+const structureDebugSelectNearestBtn = getRequiredElementById("structureDebugSelectNearestBtn");
+const structureDebugRemoveSelectedBtn = getRequiredElementById("structureDebugRemoveSelectedBtn");
+const structureDebugRefreshBtn = getRequiredElementById("structureDebugRefreshBtn");
 const slimeAvailabilityOverlayEnabledInput = getRequiredElementById("slimeAvailabilityOverlayEnabled");
 const slimeAvailabilityOverlayOpacityInput = getRequiredElementById("slimeAvailabilityOverlayOpacity");
 const slimeAvailabilityOverlayOpacityValue = getRequiredElementById("slimeAvailabilityOverlayOpacityValue");
@@ -569,6 +596,8 @@ const pathSlopeCutoffInput = getRequiredElementById("pathSlopeCutoff");
 const pathSlopeCutoffValue = getRequiredElementById("pathSlopeCutoffValue");
 const pathBaseCostInput = getRequiredElementById("pathBaseCost");
 const pathBaseCostValue = getRequiredElementById("pathBaseCostValue");
+const pathAllowTerrainDiagonalCornerCuttingInput = getRequiredElementById("pathAllowTerrainDiagonalCornerCutting");
+const pathAllowStructureDiagonalCornerCuttingInput = getRequiredElementById("pathAllowStructureDiagonalCornerCutting");
 const cursorLightModeToggle = getRequiredElementById("cursorLightModeToggle");
 const cursorLightFollowHeightToggle = getRequiredElementById("cursorLightFollowHeightToggle");
 const cursorLightColorInput = getRequiredElementById("cursorLightColor");
@@ -592,6 +621,9 @@ const swarmFollowCameraPositionSmoothingValue = getRequiredElementById("swarmFol
 const swarmStatsPanelToggle = getRequiredElementById("swarmStatsPanelToggle");
 const swarmShowTerrainToggle = getRequiredElementById("swarmShowTerrainToggle");
 const swarmLitModeToggle = getRequiredElementById("swarmLitModeToggle");
+const swarmSpriteRenderModeToggle = getRequiredElementById("swarmSpriteRenderModeToggle");
+const agentSpritePlayerRenderToggle = getRequiredElementById("agentSpritePlayerRenderToggle");
+const agentSpriteSwarmRenderModeToggle = getRequiredElementById("agentSpriteSwarmRenderModeToggle");
 const swarmBackgroundColorInput = getRequiredElementById("swarmBackgroundColor");
 const swarmAgentCountInput = getRequiredElementById("swarmAgentCount");
 const swarmAgentCountValue = getRequiredElementById("swarmAgentCountValue");
@@ -3323,6 +3355,11 @@ const playerRuntimeBinding = createPlayerRuntimeBinding({
   clamp,
   splatSize,
 });
+const playerSpriteRuntime = createPlayerSpriteRuntime({
+  playerState,
+  definition: PLAYER_SPRITE_DEFINITION_FILE.sprites.player,
+});
+let swarmAgentSpriteRuntime = null;
 const swarmFollowRuntimeState = createSwarmFollowRuntimeState({
   getStore: () => runtimeCore.store,
   swarmFollowState,
@@ -3465,6 +3502,14 @@ const refreshPathPreview = (...args) => pathfindingRuntimeBinding.refreshPathPre
 const updatePathPreviewFromPointer = (...args) => pathfindingRuntimeBinding.updatePathPreviewFromPointer(...args);
 const getCurrentPathMetrics = (...args) => pathfindingRuntimeBinding.getCurrentPathMetrics(...args);
 const updateRoutePreviewFromPointer = (...args) => routePlanningRuntime?.updateHoverFromPointer?.(...args);
+function updateStructurePlacementPreviewFromPointer(clientX, clientY) {
+  const pixel = clientToMapPixel(clientX, clientY);
+  if (!pixel) {
+    structureDebugPanelRuntime?.clearPlacementHover?.();
+    return;
+  }
+  structureDebugPanelRuntime?.updatePlacementHover?.(pixel);
+}
 
 const updatePathfindingRangeLabel = (...args) => pathfindingLabelRuntime.updatePathfindingRangeLabel(...args);
 const updatePathWeightLabels = (...args) => pathfindingLabelRuntime.updatePathWeightLabels(...args);
@@ -3497,6 +3542,19 @@ const updatePointLightFlickerLabel = (...args) => lightLabelRuntime.updatePointL
 const updatePointLightFlickerSpeedLabel = (...args) => lightLabelRuntime.updatePointLightFlickerSpeedLabel(...args);
 const updateCursorLightStrengthLabel = (...args) => lightLabelRuntime.updateCursorLightStrengthLabel(...args);
 const updateCursorLightHeightOffsetLabel = (...args) => lightLabelRuntime.updateCursorLightHeightOffsetLabel(...args);
+
+const structureRuntime = createStructureRuntime({
+  getMapSize: () => ({ width: splatSize.width, height: splatSize.height }),
+  onChanged: () => {
+    overlayDirtyRuntime.requestOverlayDraw();
+    structureDebugPanelRuntime?.sync?.();
+    if (pathfindingRuntimeBinding && resolveInteractionModeSnapshot({
+      getCoreGameplay: () => runtimeCore.store.getState().gameplay || null,
+    }) === "pathfinding") {
+      pathfindingRuntimeBinding?.rebuildMovementField?.();
+    }
+  },
+});
 
 ({
   pointLightRuntime,
@@ -3564,6 +3622,7 @@ const updateCursorLightHeightOffsetLabel = (...args) => lightLabelRuntime.update
   applyResourceDebugSettings: (...args) => applyResourceDebugSettingsRuntime(...args),
   applyResourceStockSettings: (...args) => applyResourceStockSettingsRuntime(...args),
   applySwarmSettings: (...args) => applySwarmSettings(...args),
+  applyStructureData: (...args) => structureRuntime.applyStructureData(...args),
   reseedSwarmAgents: (...args) => reseedSwarmAgents(...args),
   getSwarmSettings: (...args) => getSwarmSettings(...args),
   applySwarmData: (...args) => applySwarmData(...args),
@@ -3595,6 +3654,7 @@ const updateCursorLightHeightOffsetLabel = (...args) => lightLabelRuntime.update
   serializeResourceDebugSettings: () => serializeResourceDebugSettingsRuntime(),
   serializeResourceStockSettings: () => serializeResourceStockSettingsRuntime(),
   serializeSwarmData: (...args) => serializeSwarmData(...args),
+  serializeStructureData: () => structureRuntime.serializeStructureData(),
   serializeNpcState: (...args) => serializeNpcStateFromBinding(...args),
   confirm: (text) => window.confirm(text),
   pickMapFolderViaTauri,
@@ -4349,6 +4409,95 @@ function getResourceContourOverlaySnapshot() {
   };
 }
 
+const agentSpriteRenderSettings = {
+  showPlayerSprite: true,
+  useSwarmSprites: true,
+};
+
+function requestAgentSpriteRenderRefresh() {
+  overlayDirtyRuntime.requestOverlayDraw();
+}
+
+function setSwarmSpriteRenderMode(value) {
+  const enabled = Boolean(value);
+  agentSpriteRenderSettings.useSwarmSprites = enabled;
+  swarmSpriteRenderModeToggle.checked = enabled;
+  agentSpriteSwarmRenderModeToggle.checked = enabled;
+  requestAgentSpriteRenderRefresh();
+}
+
+function setPlayerSpriteRenderVisible(value) {
+  const enabled = Boolean(value);
+  agentSpriteRenderSettings.showPlayerSprite = enabled;
+  agentSpritePlayerRenderToggle.checked = enabled;
+  requestAgentSpriteRenderRefresh();
+}
+
+function isSwarmSpriteRenderMode() {
+  return agentSpriteRenderSettings.useSwarmSprites === true;
+}
+
+function isPlayerSpriteRenderVisible() {
+  return agentSpriteRenderSettings.showPlayerSprite === true;
+}
+
+function isAgentSpriteRenderVisible() {
+  return isPlayerSpriteRenderVisible() || isSwarmSpriteRenderMode();
+}
+
+swarmSpriteRenderModeToggle.addEventListener("change", () => {
+  setSwarmSpriteRenderMode(swarmSpriteRenderModeToggle.checked);
+});
+agentSpriteSwarmRenderModeToggle.addEventListener("change", () => {
+  setSwarmSpriteRenderMode(agentSpriteSwarmRenderModeToggle.checked);
+});
+agentSpritePlayerRenderToggle.addEventListener("change", () => {
+  setPlayerSpriteRenderVisible(agentSpritePlayerRenderToggle.checked);
+});
+setSwarmSpriteRenderMode(swarmSpriteRenderModeToggle.checked);
+setPlayerSpriteRenderVisible(agentSpritePlayerRenderToggle.checked);
+
+function getAgentSpriteRenderSnapshot(frame = null) {
+  const renderTimeSec = Number(frame?.time?.nowSec);
+  const playerSnapshot = isPlayerSpriteRenderVisible()
+    ? playerSpriteRuntime.getPlayerSpriteRenderSnapshot()
+    : null;
+  const swarmSnapshot = isSwarmSpriteRenderMode()
+    ? (swarmAgentSpriteRuntime?.getSwarmAgentSpriteRenderSnapshot?.({
+      renderTimeSec: Number.isFinite(renderTimeSec) ? renderTimeSec : 0,
+    }) || null)
+    : null;
+  return {
+    version: Math.max(
+      Number(playerSnapshot && playerSnapshot.version) || 0,
+      Number(swarmSnapshot && swarmSnapshot.version) || 0,
+    ),
+    atlas: {
+      filter: "nearest",
+      slotWidth: Math.max(
+        1,
+        Number(playerSnapshot?.atlas?.slotWidth) || 0,
+        Number(swarmSnapshot?.atlas?.slotWidth) || 0,
+      ),
+      slotHeight: Math.max(
+        1,
+        Number(playerSnapshot?.atlas?.slotHeight) || 0,
+        Number(swarmSnapshot?.atlas?.slotHeight) || 0,
+      ),
+      gridColumns: 16,
+      gridRows: Math.max(
+        1,
+        Number(playerSnapshot?.atlas?.gridRows) || 0,
+        Number(swarmSnapshot?.atlas?.gridRows) || 0,
+      ),
+    },
+    agents: [
+      ...(Array.isArray(playerSnapshot && playerSnapshot.agents) ? playerSnapshot.agents : []),
+      ...(Array.isArray(swarmSnapshot && swarmSnapshot.agents) ? swarmSnapshot.agents : []),
+    ],
+  };
+}
+
 function getDiscoveryMaskOverlaySnapshot() {
   if (resourceDebugSettings.discovery.showMaskOverlay !== true) return null;
   const snapshot = resourceDiscoveryRuntime?.getSnapshot(WORLD_KNOWLEDGE_MAP_ID);
@@ -4572,6 +4721,7 @@ const movementSystem = createMovementSystem(createMovementAssemblyRuntime({
   getMapWidth: () => splatSize.width,
   getMapHeight: () => splatSize.height,
   computeMoveStepCost,
+  isMovementStepBlocked: (toX, toY) => structureRuntime.isMovementBlocked(toX, toY),
   getMoveCostContext,
   rebuildMovementField,
   shouldRebuildMovementField: () => getInteractionModeSnapshot() === "pathfinding",
@@ -4580,6 +4730,9 @@ const movementSystem = createMovementSystem(createMovementAssemblyRuntime({
   setPlayerSnapshot: movementStoreSyncRuntime.setPlayerSnapshot,
   setMovementSnapshot: movementStoreSyncRuntime.setMovementSnapshot,
   onMovementSnapshot: updateMovementStatusPanel,
+  onStepStarted: (step) => {
+    playerSpriteRuntime.recordMovementStep(step);
+  },
   onStepCompleted: (step, snapshot) => {
     revealPlayerLocalResourceKnowledge();
     emitInspectChanged({ reason: "movement-step" });
@@ -4604,6 +4757,14 @@ const movementSystem = createMovementSystem(createMovementAssemblyRuntime({
   onMovementCanceled: (...args) => {
     const activityWasActive = Boolean(playerActivityRuntime?.isActivityActive());
     playerActivityRuntime?.onMovementCanceled(...args);
+    if (!activityWasActive) {
+      setActivityTimeSpeed1x();
+    }
+    clearCommittedTravelPathPreview();
+  },
+  onMovementBlocked: (...args) => {
+    const activityWasActive = Boolean(playerActivityRuntime?.isActivityActive());
+    playerActivityRuntime?.onMovementCanceled?.(...args);
     if (!activityWasActive) {
       setActivityTimeSpeed1x();
     }
@@ -5022,6 +5183,30 @@ resourceDebugPanelRuntime = createResourceDebugPanelRuntime({
   saveSettings: () => saveAllMapDataFiles(),
 });
 
+structureDebugPanelRuntime = createStructureDebugPanelRuntime({
+  document,
+  panelEl: structureDebugPanel,
+  typeSelect: structureDebugTypeSelect,
+  selectedValue: structureDebugSelectedValue,
+  readout: structureDebugReadout,
+  showOccupancyToggle: structureDebugShowOccupancyToggle,
+  renderVisibleToggle: structureDebugRenderVisibleToggle,
+  placeModeToggle: structureDebugPlaceModeToggle,
+  placeAtPlayerBtn: structureDebugPlaceAtPlayerBtn,
+  selectNearestBtn: structureDebugSelectNearestBtn,
+  removeSelectedBtn: structureDebugRemoveSelectedBtn,
+  refreshBtn: structureDebugRefreshBtn,
+  getStructureSnapshot: () => structureRuntime.getStructureSnapshot(),
+  getStructureIdAt: (x, y) => structureRuntime.getStructureIdAt(x, y),
+  getOccupiedCells: (id) => structureRuntime.getOccupiedCells(id),
+  getNearestStructureByType: (typeId, x, y) => structureRuntime.getNearestStructureByType(typeId, x, y),
+  canPlaceStructure: (typeId, x, y) => structureRuntime.canPlaceStructure(typeId, x, y),
+  getPlayerPixel: () => ({ x: playerState.pixelX, y: playerState.pixelY }),
+  dispatchCommand: dispatchCoreCommand,
+  requestOverlayDraw: () => overlayDirtyRuntime.requestOverlayDraw(),
+  setStatus,
+});
+
 terrainDebugViewModeInput.addEventListener("change", () => {
   const next = terrainDebugViewModeInput.value;
   terrainDebugViewMode = next === "height" || next === "slope" || next === "wetness" || next === "water" ? next : "none";
@@ -5039,6 +5224,7 @@ rdOverlayShortcutRailRuntime = createRdOverlayShortcutRailRuntime({
   slimeAvailabilityOverlayEnabledInput,
   resourceDebugShowMaskOverlayInput,
   routeDebugOverlayModeInput,
+  structureDebugShowOccupancyToggle,
 });
 
 for (const [layer, button] of [
@@ -5508,6 +5694,7 @@ registerMainSettingsContracts(runtimeCore.settingsRegistry, {
 const renderPipelineRuntime = createRenderPipelineRuntime(createRenderPipelineAssemblyRuntime({
   gl,
   document,
+  loadImageFromUrl,
   canvas,
   program,
   uniforms,
@@ -5535,12 +5722,17 @@ const renderPipelineRuntime = createRenderPipelineRuntime(createRenderPipelineAs
   heightSize,
   splatSize,
   getViewHalfExtents: (...args) => getViewHalfExtents(...args),
+  getMapAspect: () => getMapAspect(),
   cursorLightState,
   applyPointLightUsagePass,
   getDiscoveryVisibilitySettings,
   getDiscoveryVisibilitySnapshot,
   getSlimeTrailOverlaySnapshot,
   getSlimeTerrainUnderlaySnapshot,
+  getStructureRenderSnapshot: () => structureRuntime.getStructureRenderSnapshot(),
+  isStructureRenderVisible: () => structureDebugPanelRuntime?.isRenderVisible?.() !== false,
+  getAgentSpriteRenderSnapshot: (frame) => getAgentSpriteRenderSnapshot(frame),
+  isAgentSpriteRenderVisible: () => isAgentSpriteRenderVisible(),
   renderShadowPipeline,
   shadowSize,
   shadowBlurFbo,
@@ -5736,6 +5928,12 @@ registerMainCommands(runtimeCore.commandBus, createMainCommandAssemblyRuntime({
   syncSimTickHoursInput: (value) => syncSimTickHoursInput(value),
   syncCycleSpeedInput: (value) => syncCycleSpeedInput(value),
   syncRoutingInput: (target, mode) => syncRoutingInput(target, mode),
+  placeStructure: (...args) => structureRuntime.placeStructure(...args),
+  removeStructure: (...args) => structureRuntime.removeStructure(...args),
+  updateStructureState: (...args) => structureRuntime.updateStructureState(...args),
+  canPlaceStructure: (...args) => structureRuntime.canPlaceStructure(...args),
+  tryPlaceStructureAtPixel: (x, y) => structureDebugPanelRuntime?.tryPlaceAtPixel?.(x, y) === true,
+  trySelectStructureAtPixel: (x, y) => structureDebugPanelRuntime?.trySelectAtPixel?.(x, y) === true,
 }));
 
 pointLightGizmoToggle.addEventListener("change", () => {
@@ -6033,6 +6231,8 @@ const swarmIntegrationSetupRuntime = createSwarmIntegrationSetupRuntime(
       pathWeightWaterInput,
       pathSlopeCutoffInput,
       pathBaseCostInput,
+      pathAllowTerrainDiagonalCornerCuttingInput,
+      pathAllowStructureDiagonalCornerCuttingInput,
       updatePathfindingRangeLabel,
       updatePathWeightLabels,
       updatePathSlopeCutoffLabel,
@@ -6263,6 +6463,13 @@ const swarmRenderSetupRuntime = swarmIntegrationSetupRuntime.swarmRenderSetupRun
 const swarmLoopRuntime = swarmRenderSetupRuntime.swarmLoopRuntime;
 const writeInterpolatedSwarmAgentPos = swarmLoopRuntime.writeInterpolatedSwarmAgentPos;
 const writeInterpolatedSwarmHawkPos = swarmLoopRuntime.writeInterpolatedSwarmHawkPos;
+swarmAgentSpriteRuntime = createSwarmAgentSpriteRuntime({
+  swarmState,
+  birdDefinition: SWARM_SPRITE_DEFINITION_FILE.sprites.bird,
+  hawkDefinition: SWARM_SPRITE_DEFINITION_FILE.sprites.hawk,
+  writeInterpolatedSwarmAgentPos,
+  writeInterpolatedSwarmHawkPos,
+});
 const updateSwarm = swarmLoopRuntime.updateSwarm;
 const updateSwarmFollowCamera = swarmLoopRuntime.updateSwarmFollowCamera;
 function updateSwarmFollowAndScoutCamera(nowMs) {
@@ -6396,6 +6603,9 @@ const interactionUiSetupRuntime = createInteractionUiSetupRuntime(createInteract
   getSlopeImageData: () => slopeImageData,
   getHeightImageData: () => heightImageData,
   getWaterImageData: () => waterImageData,
+  isStructureMovementBlocked: (x, y) => structureRuntime.isMovementBlocked(x, y),
+  getMovementBlockedCellsInBounds: (minX, minY, maxX, maxY) =>
+    structureRuntime.getMovementBlockedCellsInBounds(minX, minY, maxX, maxY),
   travelPlanningRuntime,
   getInteractionModeSnapshot,
   requestOverlayDraw: () => overlayDirtyRuntime.requestOverlayDraw(),
@@ -6549,12 +6759,16 @@ const renderShellSetupRuntime = createRenderShellSetupRuntime(createRenderShellA
   getResourceContourOverlaySnapshot,
   getDiscoveryMaskOverlaySnapshot,
   getDiscoveryTerrainVisibilityOverlaySnapshot,
+  getStructureOccupancyOverlaySnapshot: () => structureDebugPanelRuntime?.getOccupancyOverlaySnapshot?.() || null,
+  getStructurePlacementPreviewOverlaySnapshot: () => structureDebugPanelRuntime?.getPlacementPreviewOverlaySnapshot?.() || null,
   getInventoryBundles: () => inventoryRuntime.listBundles(),
   playerState,
   drawSwarmUnlitOverlay,
   drawSwarmGizmos,
   updateSwarm,
   updateSwarmFollowCamera: updateSwarmFollowAndScoutCamera,
+  isSwarmSpriteRenderMode: () => isSwarmSpriteRenderMode(),
+  isPlayerSpriteRenderVisible: () => isPlayerSpriteRenderVisible(),
   computeFrameTiming,
   runtimeFrame: runtimeCore.frame,
   getCoreState: () => runtimeCore.store.getState(),
@@ -6625,6 +6839,7 @@ runAppShellLifecycleRuntime(createAppShellLifecycleAssemblyRuntime({
     updateCursorLightFromPointer,
     updatePathPreviewFromPointer,
     updateRoutePreviewFromPointer,
+    updateStructurePlacementPreviewFromPointer,
     updateInspectFromPointer,
     openLocalActivityMenu: (input) => localActivityMenuRuntime?.openAt(input),
     canHandleTerrainClicks: () => getRuntimeMode() === "gameplay" && titleScreenEl.classList.contains("hidden"),
@@ -6646,6 +6861,8 @@ runAppShellLifecycleRuntime(createAppShellLifecycleAssemblyRuntime({
     pathWeightWaterInput,
     pathSlopeCutoffInput,
     pathBaseCostInput,
+    pathAllowTerrainDiagonalCornerCuttingInput,
+    pathAllowStructureDiagonalCornerCuttingInput,
     swarmShowTerrainToggle,
     swarmLitModeToggle,
     swarmFollowZoomInInput,

@@ -3,7 +3,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { dirname, normalize } from "node:path";
 import test from "node:test";
 
-const RD_PANEL_NAMES = ["terrain", "agents", "trail", "gameplay", "events", "audio", "pathing", "io"];
+const RD_PANEL_NAMES = ["terrain", "agents", "trail", "knowledge", "sprites", "events", "audio", "pathing", "io"];
 
 function readUtf8(path) {
   return readFileSync(path, "utf8");
@@ -83,6 +83,7 @@ test("RD overlay shortcut rail stays injected through the shell host", () => {
     "knowledge-map",
     "route-cost",
     "route-knowledge",
+    "structure-occupancy",
   ];
 
   assert.equal(countLiteral(indexMarkup, 'id="rdOverlayRailHost"'), 1);

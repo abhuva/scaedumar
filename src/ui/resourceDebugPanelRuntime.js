@@ -264,7 +264,7 @@ export function createResourceDebugPanelRuntime(deps) {
       deps.updateRouteSettings?.({ [key]: value });
     });
   });
-  bindTabList(deps.devTabButtons, deps.devTabPanels, "rdDevTab", "rdDevPanel", "gameplay");
+  bindTabList(deps.devTabButtons, deps.devTabPanels, "rdDevTab", "rdDevPanel", "knowledge");
   if (!bindScopedTabGroups(deps.tabGroups)) {
     bindTabList(deps.tabButtons, deps.tabPanels, "rdTab", "rdPanel", "knowledge");
   }

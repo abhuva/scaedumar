@@ -301,6 +301,8 @@ export function createAppliedSettingsStoreSync(deps) {
               weightWater: deps.clamp(Number(normalized.pathWeightWater), 0, 100),
               slopeCutoff: Math.round(deps.clamp(Number(normalized.pathSlopeCutoff), 0, 90)),
               baseCost: deps.clamp(Number(normalized.pathBaseCost), 0, 2),
+              allowTerrainDiagonalCornerCutting: normalized.pathAllowTerrainDiagonalCornerCutting !== false,
+              allowStructureDiagonalCornerCutting: normalized.pathAllowStructureDiagonalCornerCutting === true,
             },
             cursorLight: {
               ...(prev.gameplay && prev.gameplay.cursorLight ? prev.gameplay.cursorLight : {}),
