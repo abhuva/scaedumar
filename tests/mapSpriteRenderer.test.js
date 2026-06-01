@@ -7,6 +7,8 @@ import {
   resolveMapSpriteSourceFrameRect,
 } from "../src/render/mapSpriteRenderer.js";
 
+const STRIDE = 9;
+
 test("map sprite vertex packing creates two triangles per structure", () => {
   const vertices = packMapSpriteVertices([
     {
@@ -24,21 +26,21 @@ test("map sprite vertex packing creates two triangles per structure", () => {
     color: [1, 1, 1, 1],
   });
 
-  assert.equal(vertices.length, 6 * 8);
-  assert.deepEqual(Array.from(vertices.slice(0, 8)), [
+  assert.equal(vertices.length, 6 * STRIDE);
+  assert.deepEqual(Array.from(vertices.slice(0, STRIDE)), [
     2, 3,
     0.125, 0.25,
-    1, 1, 1, 1,
+    1, 1, 1, 1, -1,
   ]);
-  assert.deepEqual(Array.from(vertices.slice(8, 16)), [
+  assert.deepEqual(Array.from(vertices.slice(STRIDE, STRIDE * 2)), [
     6, 3,
     0.25, 0.25,
-    1, 1, 1, 1,
+    1, 1, 1, 1, -1,
   ]);
-  assert.deepEqual(Array.from(vertices.slice(40, 48)), [
+  assert.deepEqual(Array.from(vertices.slice(STRIDE * 5, STRIDE * 6)), [
     6, 8,
     0.25, 0.125,
-    1, 1, 1, 1,
+    1, 1, 1, 1, -1,
   ]);
 });
 
@@ -78,8 +80,8 @@ test("map sprite vertex packing preserves fractional map coordinates", () => {
   });
 
   assert.deepEqual(Array.from(vertices.slice(0, 2)), [2.25, 3.5]);
-  assert.deepEqual(Array.from(vertices.slice(8, 10)), [3.75, 3.5]);
-  assert.deepEqual(Array.from(vertices.slice(40, 42)), [3.75, 5.75]);
+  assert.deepEqual(Array.from(vertices.slice(STRIDE, STRIDE + 2)), [3.75, 3.5]);
+  assert.deepEqual(Array.from(vertices.slice(STRIDE * 5, (STRIDE * 5) + 2)), [3.75, 5.75]);
 });
 
 test("map sprite vertex packing accepts agent render items", () => {
@@ -100,7 +102,7 @@ test("map sprite vertex packing accepts agent render items", () => {
     atlasHeight: 32,
   });
 
-  assert.equal(vertices.length, 6 * 8);
+  assert.equal(vertices.length, 6 * STRIDE);
   assert.deepEqual(Array.from(vertices.slice(0, 4)), [10, 11, 0.5, 1]);
 });
 
@@ -123,6 +125,27 @@ test("map sprite vertex packing forces sprite color alpha to opaque", () => {
   });
 
   assert.equal(vertices[7], 1);
+});
+
+test("map sprite vertex packing stores grayscale LUT row for palette sprites", () => {
+  const vertices = packMapSpriteVertices([
+    {
+      pixelX: 0,
+      pixelY: 0,
+      visualWidthPx: 1,
+      visualHeightPx: 1,
+      spriteSlot: 0,
+      paletteMode: "grayscale-lut",
+      paletteRow: 12,
+    },
+  ], {
+    slotWidth: 32,
+    slotHeight: 32,
+    atlasWidth: 32,
+    atlasHeight: 32,
+  });
+
+  assert.equal(vertices[8], 12);
 });
 
 test("transparent color key turns exact matching pixels into alpha cutout", () => {
@@ -221,9 +244,9 @@ test("map sprite vertex packing rotates quads around render origin", () => {
   });
 
   assert.deepEqual(Array.from(vertices.slice(0, 2)), [11, 19]);
-  assert.deepEqual(Array.from(vertices.slice(8, 10)), [11, 21]);
-  assert.deepEqual(Array.from(vertices.slice(16, 18)), [9, 19]);
-  assert.deepEqual(Array.from(vertices.slice(40, 42)), [9, 21]);
+  assert.deepEqual(Array.from(vertices.slice(STRIDE, STRIDE + 2)), [11, 21]);
+  assert.deepEqual(Array.from(vertices.slice(STRIDE * 2, (STRIDE * 2) + 2)), [9, 19]);
+  assert.deepEqual(Array.from(vertices.slice(STRIDE * 5, (STRIDE * 5) + 2)), [9, 21]);
 });
 
 test("map sprite vertex packing returns empty buffer for empty structures", () => {

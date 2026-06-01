@@ -19,6 +19,16 @@
       "animationPhase": "stableId",
       "transparentColor": "#ffffff",
       "transparentColorTolerance": 0,
+      "palette": {
+        "mode": "grayscale-lut",
+        "selection": "stable-random",
+        "lutRefs": [
+          { "id": "animal.bird.dark" },
+          { "id": "animal.bird.pale" },
+          { "id": "animal.bird.rare.white", "rare": true },
+          { "range": { "family": "animal.bird.dark", "start": 0, "count": 16 } }
+        ]
+      },
       "minHeight": 0,
       "maxHeight": 100,
       "baseScale": 1,

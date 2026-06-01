@@ -23,6 +23,8 @@
 ## Rendering / Visual Representation
 
 [[CRISP_MATERIAL_TRANSITIONS]]
+[[RENDER_LUT_DESIGN]]
+[[RENDER_LUT_IMPLEMENTATION_PLAN]]
 [[SPRITE_DETAILS_RENDERING_DESIGN]]
 # Website (Zensical)
 

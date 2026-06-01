@@ -110,6 +110,58 @@ test("RD encounter tab keeps legacy event ids while showing encounter copy", () 
   assert.match(markup, />Seen Encounters<\/h3>/);
 });
 
+test("RD sprites LUT panel exposes LUT readout and preview", () => {
+  const markup = collectRdMarkup();
+
+  assert.equal(countLiteral(markup, 'id="spriteLutDebugTab"'), 1);
+  assert.equal(countLiteral(markup, 'id="spriteLutDebugPanel"'), 1);
+  assert.equal(countLiteral(markup, 'id="agentSpriteLutReadout"'), 1);
+  assert.equal(countLiteral(markup, 'id="agentSpriteLutPreviewSelect"'), 1);
+  assert.equal(countLiteral(markup, 'id="agentSpriteLutPreviewCanvas"'), 1);
+  assert.equal(countLiteral(markup, 'id="agentSpriteLutPreviewLabel"'), 1);
+  assert.equal(countLiteral(markup, 'id="spriteLutSourceReadout"'), 1);
+  assert.equal(countLiteral(markup, 'id="spriteLutStopEditor"'), 1);
+  assert.equal(countLiteral(markup, 'id="spriteLutOpenEditorBtn"'), 1);
+  assert.equal(countLiteral(markup, 'id="spriteLutApplyBtn"'), 1);
+  assert.equal(countLiteral(markup, 'id="spriteLutResetBtn"'), 1);
+  assert.equal(countLiteral(markup, 'id="spriteLutEditorOverlay"'), 1);
+  assert.equal(countLiteral(markup, 'id="spriteLutEditorSelect"'), 1);
+  assert.equal(countLiteral(markup, 'id="spriteLutEditorScopeSelect"'), 1);
+  assert.equal(countLiteral(markup, 'id="spriteLutEditorIdInput"'), 1);
+  assert.equal(countLiteral(markup, 'id="spriteLutEditorCreateBtn"'), 1);
+  assert.equal(countLiteral(markup, 'id="spriteLutEditorRenameBtn"'), 1);
+  assert.equal(countLiteral(markup, 'id="spriteLutEditorDeleteBtn"'), 1);
+  assert.equal(countLiteral(markup, 'id="spriteLutEditorCanvas"'), 1);
+  assert.equal(countLiteral(markup, 'id="spriteLutEditorHandleLayer"'), 1);
+  assert.equal(countLiteral(markup, 'id="spriteLutEditorApplyBtn"'), 1);
+  assert.equal(countLiteral(markup, 'id="spriteLutEditorSaveGlobalBtn"'), 1);
+  assert.equal(countLiteral(markup, 'id="spriteLutEditorResetDraftBtn"'), 1);
+  assert.equal(countLiteral(markup, 'id="spriteLutEditorSaveReadout"'), 1);
+  assert.equal(countLiteral(markup, 'id="spriteLutEditorVariantCanvas"'), 1);
+  assert.equal(countLiteral(markup, 'id="spriteLutEditorVariantReadout"'), 1);
+  assert.equal(countLiteral(markup, 'id="spriteLutEditorUsageReadout"'), 1);
+  assert.equal(countLiteral(markup, 'id="spriteLutEditorVariantFamily"'), 1);
+  assert.equal(countLiteral(markup, 'id="spriteLutEditorVariantIdPreview"'), 1);
+  assert.equal(countLiteral(markup, 'id="spriteLutEditorVariantCount"'), 1);
+  assert.equal(countLiteral(markup, 'id="spriteLutEditorVariantSeed"'), 1);
+  assert.equal(countLiteral(markup, 'id="spriteLutEditorVariantPosition"'), 1);
+  assert.equal(countLiteral(markup, 'id="spriteLutEditorVariantBrightness"'), 1);
+  assert.equal(countLiteral(markup, 'id="spriteLutEditorVariantColor"'), 1);
+  assert.equal(countLiteral(markup, 'id="spriteLutEditorStopPos"'), 0);
+  assert.match(markup, /data-rd-panel="lut"/);
+  assert.match(markup, />LUTs<\/label>/);
+});
+
+test("RD agents swarm panel exposes bird LUT assignment controls", () => {
+  const markup = collectRdMarkup();
+
+  assert.equal(countLiteral(markup, 'id="swarmBirdLutReadout"'), 1);
+  assert.equal(countLiteral(markup, 'id="swarmBirdLutFamilySelect"'), 1);
+  assert.equal(countLiteral(markup, 'id="swarmBirdLutApplyBtn"'), 1);
+  assert.equal(countLiteral(markup, 'id="swarmBirdLutVariantCount"'), 1);
+  assert.equal(countLiteral(markup, 'id="swarmBirdLutVariantCountValue"'), 1);
+});
+
 test("RD markup module relative imports resolve to existing files", () => {
   const jsPaths = collectJsPaths("src/ui/rd");
 

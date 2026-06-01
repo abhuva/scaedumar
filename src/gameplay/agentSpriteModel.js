@@ -26,6 +26,7 @@ export const DEFAULT_AGENT_SPRITE_DEFINITION = Object.freeze({
   opacity: 1,
   transparentColor: "",
   transparentColorTolerance: 0,
+  palette: null,
 });
 
 function finiteOr(value, fallback) {
@@ -51,6 +52,43 @@ function normalizeDirectionCount(value) {
 function positiveInteger(value, fallback) {
   const num = Math.round(finiteOr(value, fallback));
   return num > 0 ? num : fallback;
+}
+
+function normalizeLutRefs(value) {
+  if (!Array.isArray(value)) return [];
+  const refs = [];
+  for (const ref of value) {
+    const source = ref && typeof ref === "object" ? ref : {};
+    const hasExplicitWeight = Object.prototype.hasOwnProperty.call(source, "weight");
+    const rare = source.rare === true;
+    const normalizedWeight = Math.max(0, finiteOr(hasExplicitWeight ? source.weight : (rare ? 0.1 : 1), rare ? 0.1 : 1));
+    const tags = Array.isArray(source.tags)
+      ? [...new Set(source.tags.map((tag) => (typeof tag === "string" ? tag.trim() : "")).filter(Boolean))]
+      : [];
+    if (typeof source.id === "string" && source.id.trim()) {
+      refs.push({ id: source.id.trim(), weight: normalizedWeight, rare, tags });
+      continue;
+    }
+    const range = source.range && typeof source.range === "object" ? source.range : null;
+    if (!range) continue;
+    const family = typeof range.family === "string" ? range.family.trim() : "";
+    const start = Math.max(0, Math.round(finiteOr(range.start, 0)));
+    const count = Math.max(0, Math.round(finiteOr(range.count, 0)));
+    if (family && count > 0) {
+      refs.push({ range: { family, start, count }, weight: normalizedWeight, rare, tags });
+    }
+  }
+  return refs;
+}
+
+function normalizePalette(value) {
+  const source = value && typeof value === "object" ? value : null;
+  if (!source || source.mode !== "grayscale-lut") return null;
+  return {
+    mode: "grayscale-lut",
+    lutRefs: normalizeLutRefs(source.lutRefs),
+    selection: source.selection === "stable-random" ? "stable-random" : "stable-random",
+  };
 }
 
 export function normalizeAgentSpriteDefinition(raw = {}) {
@@ -88,6 +126,7 @@ export function normalizeAgentSpriteDefinition(raw = {}) {
     opacity: clamp(finiteOr(source.opacity, DEFAULT_AGENT_SPRITE_DEFINITION.opacity), 0, 1),
     transparentColor: typeof source.transparentColor === "string" ? source.transparentColor.trim() : "",
     transparentColorTolerance: Math.max(0, Math.round(finiteOr(source.transparentColorTolerance, 0))),
+    palette: normalizePalette(source.palette),
   };
 }
 
@@ -236,5 +275,7 @@ export function buildAgentSpriteRenderItem(agent = {}, definitionInput = {}, opt
     layer: definition.layer,
     tint: agent.tint || definition.tint,
     opacity: clamp(finiteOr(agent.opacity, definition.opacity), 0, 1),
+    paletteMode: options.paletteRow >= 0 && definition.palette?.mode === "grayscale-lut" ? "grayscale-lut" : "none",
+    paletteRow: options.paletteRow >= 0 ? Math.round(finiteOr(options.paletteRow, -1)) : -1,
   };
 }

@@ -1,6 +1,6 @@
 export function createMapDataSaveController(deps) {
   function createMapDataFileTexts() {
-    return {
+    const files = {
       "pointlights.json": `${JSON.stringify(deps.serializePointLights(), null, 2)}\n`,
       "lighting.json": `${JSON.stringify(deps.serializeLightingSettings(), null, 2)}\n`,
       "interaction.json": `${JSON.stringify(deps.serializeInteractionSettings(), null, 2)}\n`,
@@ -18,6 +18,11 @@ export function createMapDataSaveController(deps) {
       "structures.json": `${JSON.stringify(deps.serializeStructureData(), null, 2)}\n`,
       "npc.json": `${JSON.stringify(deps.serializeNpcState(), null, 2)}\n`,
     };
+    if (typeof deps.serializeRenderLutMapLocalDefinition === "function") {
+      const renderLuts = deps.serializeRenderLutMapLocalDefinition();
+      if (renderLuts) files["render_luts.json"] = `${JSON.stringify(renderLuts, null, 2)}\n`;
+    }
+    return files;
   }
 
   function downloadTextFile(fileName, text) {
@@ -39,7 +44,7 @@ export function createMapDataSaveController(deps) {
     const confirmed = deps.confirm(`Save map data files (${names}) for ${folder}?`);
     if (!confirmed) {
       deps.setStatus("Save all canceled.");
-      return;
+      return false;
     }
 
     if (deps.tauriInvoke) {
@@ -49,7 +54,7 @@ export function createMapDataSaveController(deps) {
           targetFolder = await deps.pickMapFolderViaTauri();
           if (!targetFolder) {
             deps.setStatus("Save all canceled.");
-            return;
+            return false;
           }
         }
         for (const [name, text] of Object.entries(files)) {
@@ -57,7 +62,7 @@ export function createMapDataSaveController(deps) {
           await deps.invokeTauri("save_json_file", { path: targetPath, content: text });
         }
         deps.setStatus(`Saved map data (${names}) to ${targetFolder}.`);
-        return;
+        return true;
       } catch (error) {
         console.warn("Tauri Save All failed, falling back to browser flow.", error);
         deps.setStatus("Native Save All failed. Trying browser fallback...");
@@ -74,11 +79,11 @@ export function createMapDataSaveController(deps) {
           await writable.close();
         }
         deps.setStatus(`Saved map data (${names}) to selected folder. Recommended map path: ${folder}`);
-        return;
+        return true;
       } catch (error) {
         if (error && error.name === "AbortError") {
           deps.setStatus("Save canceled by user.");
-          return;
+          return false;
         }
         console.warn("Native Save All failed, falling back to downloads.", error);
         deps.setStatus("Native Save All failed. Trying browser fallback...");
@@ -89,6 +94,7 @@ export function createMapDataSaveController(deps) {
       downloadTextFile(name, text);
     }
     deps.setStatus(`Downloaded ${names}. Move them to ${folder}.`);
+    return false;
   }
 
   async function saveMapDataFile(fileName) {

@@ -32,6 +32,13 @@ test("normalizes agent sprite definitions with bounded defaults", () => {
     animationPhase: "stableId",
     transparentColor: "#ffffff",
     transparentColorTolerance: 0,
+    palette: {
+      mode: "grayscale-lut",
+      lutRefs: [
+        { id: "animal.bird.dark", weight: 2, tags: ["forest", "forest"] },
+        { range: { family: "animal.bird", start: 0, count: 4 }, rare: true, tags: ["winter"] },
+      ],
+    },
   });
 
   assert.equal(definition.id, "bird");
@@ -51,6 +58,11 @@ test("normalizes agent sprite definitions with bounded defaults", () => {
   assert.equal(definition.animationPhase, "stableId");
   assert.equal(definition.transparentColor, "#ffffff");
   assert.equal(definition.transparentColorTolerance, 0);
+  assert.equal(definition.palette.mode, "grayscale-lut");
+  assert.deepEqual(definition.palette.lutRefs, [
+    { id: "animal.bird.dark", weight: 2, rare: false, tags: ["forest"] },
+    { range: { family: "animal.bird", start: 0, count: 4 }, weight: 0.1, rare: true, tags: ["winter"] },
+  ]);
   assert.equal(definition.opacity, 1);
   assert.equal(definition.layer, "flying");
 });
@@ -144,8 +156,12 @@ test("buildAgentSpriteRenderItem returns renderer-compatible data without gamepl
       animationMode: "renderTime",
       animationPhase: "none",
       transparentColor: "#ffffff",
+      palette: {
+        mode: "grayscale-lut",
+        lutRefs: [{ id: "animal.bird.dark" }],
+      },
     },
-    { renderTimeSec: 1.4 },
+    { renderTimeSec: 1.4, paletteRow: 7 },
   );
 
   assert.equal(item.id, "42");
@@ -159,6 +175,8 @@ test("buildAgentSpriteRenderItem returns renderer-compatible data without gamepl
   assert.equal(item.sourceFrameIndex, 5);
   assert.equal(item.transparentColor, "#ffffff");
   assert.equal(item.transparentColorTolerance, 0);
+  assert.equal(item.paletteMode, "grayscale-lut");
+  assert.equal(item.paletteRow, 7);
   assert.equal(item.animationFrameIndex, 2);
   assert.equal(item.directionIndex, 1);
   assert.equal(item.rotationRadians, Math.PI);

@@ -28,6 +28,7 @@
   --player-hud-panel-z: 8;
   --player-hud-highlight-z: 10;
   --pixel-ui-font: "Courier New", "Lucida Console", Monaco, monospace;
+  --rd-ui-font-size: 13px;
 }
 
 * {
@@ -1413,6 +1414,10 @@ body.runtime-gameplay .topic-panel[data-active-topic="resource-debug"] .topic-pa
   padding: 0;
 }
 
+body.runtime-gameplay .topic-panel[data-active-topic="resource-debug"] {
+  font: var(--rd-ui-font-size)/1.25 var(--pixel-ui-font);
+}
+
 .topic-card {
   display: none;
   border: 1px solid var(--panel-border);
@@ -1632,6 +1637,51 @@ input[type="file"] {
   width: 100%;
 }
 
+input[type="range"] {
+  height: 18px;
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 6px;
+  border: 1px solid rgba(230, 206, 132, 0.28);
+  border-radius: 0;
+  background: rgba(11, 18, 20, 0.88);
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  width: 10px;
+  height: 16px;
+  margin-top: -6px;
+  border: 1px solid rgba(229, 202, 124, 0.72);
+  border-radius: 0;
+  background: #f2dfa8;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+input[type="range"]::-moz-range-track {
+  height: 6px;
+  border: 1px solid rgba(230, 206, 132, 0.28);
+  border-radius: 0;
+  background: rgba(11, 18, 20, 0.88);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 10px;
+  height: 16px;
+  border: 1px solid rgba(229, 202, 124, 0.72);
+  border-radius: 0;
+  background: #f2dfa8;
+}
+
+input[type="range"]:focus-visible {
+  outline: 1px solid rgba(159, 236, 255, 0.95);
+  outline-offset: 2px;
+}
+
 .row input[type="text"],
 .row select {
   width: 100%;
@@ -1688,6 +1738,11 @@ body.runtime-gameplay .row input[type="number"] {
   background: rgba(255, 255, 255, 0.14);
 }
 
+.row-action-btn:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
 #eventDebugPanel .row-action-btn {
   min-width: 28px;
   padding: 5px 6px;
@@ -1699,6 +1754,253 @@ body.runtime-gameplay .row input[type="number"] {
   text-align: right;
   font-size: 12px;
   color: var(--muted);
+}
+
+.lut-editor-overlay.hidden {
+  display: none;
+}
+
+.lut-editor-overlay {
+  position: fixed;
+  inset: 16px 16px calc(var(--player-ui-height) + 16px) calc(var(--wiki-journal-side-width) + 16px);
+  z-index: 18;
+  display: flex;
+  justify-content: stretch;
+  align-items: stretch;
+  pointer-events: auto;
+}
+
+body.runtime-gameplay .lut-editor-overlay {
+  top: 0;
+  right: 0;
+  bottom: calc(var(--player-ui-bottom) + var(--player-ui-height));
+  left: var(--wiki-journal-side-width);
+}
+
+.lut-editor-panel {
+  width: 100%;
+  border: 1px solid rgba(230, 206, 132, 0.42);
+  background:
+    linear-gradient(135deg, rgba(23, 31, 28, 0.98), rgba(8, 13, 15, 0.98)),
+    rgba(8, 13, 15, 0.98);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.48);
+  color: var(--text);
+  padding: 14px;
+  overflow: auto;
+}
+
+.lut-editor-header,
+.lut-editor-toolbar,
+.lut-editor-stop-panel,
+.lut-editor-variant-panel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.lut-editor-header {
+  justify-content: space-between;
+}
+
+.lut-editor-header h2 {
+  margin: 0 0 4px;
+  font: 18px/1.1 var(--pixel-ui-font);
+  letter-spacing: 0.04em;
+}
+
+.lut-editor-toolbar select {
+  min-width: 260px;
+}
+
+.lut-editor-save-readout {
+  margin: -4px 0 10px;
+  padding: 6px 8px;
+  border: 1px solid rgba(230, 206, 132, 0.22);
+  background: rgba(5, 9, 10, 0.36);
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.lut-editor-surface {
+  position: relative;
+  height: 102px;
+  margin: 18px 0 14px;
+  padding-top: 38px;
+}
+
+.lut-editor-canvas {
+  width: 100%;
+  height: 48px;
+  image-rendering: pixelated;
+  border: 1px solid rgba(230, 206, 132, 0.35);
+  background: #000;
+  display: block;
+}
+
+.lut-editor-handle-layer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 86px;
+}
+
+.lut-stop-handle {
+  position: absolute;
+  top: 6px;
+  width: 18px;
+  height: 18px;
+  transform: translateX(-50%);
+  border: 2px solid rgba(255, 247, 203, 0.9);
+  border-radius: 999px;
+  cursor: grab;
+  padding: 0;
+}
+
+.lut-stop-handle::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 18px;
+  width: 1px;
+  height: 60px;
+  background: rgba(255, 247, 203, 0.62);
+}
+
+.lut-stop-handle.active {
+  outline: 2px solid #f7d66f;
+  outline-offset: 2px;
+}
+
+.lut-editor-stop-panel input[type="color"] {
+  width: 44px;
+  height: 28px;
+  padding: 0;
+}
+
+.lut-editor-variant-panel {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(0, 2fr);
+  align-items: stretch;
+}
+
+.lut-editor-usage-box,
+.lut-editor-variant-box {
+  min-width: 0;
+  border: 1px solid rgba(230, 206, 132, 0.24);
+  background: rgba(5, 9, 10, 0.42);
+  padding: 10px;
+}
+
+.lut-editor-variant-box {
+  display: grid;
+  grid-template-columns: minmax(160px, 0.85fr) minmax(260px, 1.15fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.lut-editor-variant-preview {
+  min-width: 0;
+}
+
+.lut-editor-usage-box h3,
+.lut-editor-variant-preview h3 {
+  margin: 0 0 6px;
+  font: 13px/1.2 var(--pixel-ui-font);
+  letter-spacing: 0.04em;
+}
+
+.lut-editor-debug-list {
+  display: grid;
+  gap: 5px;
+  font: 11px/1.25 var(--pixel-ui-font);
+  color: var(--muted);
+}
+
+.lut-editor-debug-row {
+  display: grid;
+  grid-template-columns: 92px 1fr;
+  gap: 8px;
+  align-items: start;
+}
+
+.lut-editor-debug-row strong {
+  color: #f2dfa8;
+  font-weight: 950;
+}
+
+.lut-editor-debug-row span {
+  overflow-wrap: anywhere;
+}
+
+.lut-editor-variant-controls {
+  display: grid;
+  grid-template-columns: minmax(74px, auto) minmax(120px, 1fr) 42px;
+  gap: 6px 8px;
+  min-width: 0;
+  align-items: center;
+}
+
+.lut-editor-variant-controls .panel-note {
+  grid-column: 1 / -1;
+  margin: 0 0 4px;
+}
+
+.lut-editor-variant-controls input[type="range"] {
+  width: 100%;
+}
+
+.lut-editor-variant-canvas {
+  width: 100%;
+  min-height: 28px;
+  max-height: 88px;
+  image-rendering: pixelated;
+  border: 1px solid rgba(230, 206, 132, 0.35);
+  background: #000;
+  display: block;
+}
+
+body.runtime-gameplay .topic-panel[data-active-topic="resource-debug"] .topic-panel-header h1,
+body.runtime-gameplay .topic-panel[data-active-topic="resource-debug"] .topic-panel-header button,
+body.runtime-gameplay .topic-panel[data-active-topic="resource-debug"] .rd-dev-tab,
+body.runtime-gameplay .topic-panel[data-active-topic="resource-debug"] .rd-tab,
+body.runtime-gameplay .topic-panel[data-active-topic="resource-debug"] .rd-overlay-rail-btn,
+body.runtime-gameplay .topic-panel[data-active-topic="resource-debug"] .row,
+body.runtime-gameplay .topic-panel[data-active-topic="resource-debug"] .row label,
+body.runtime-gameplay .topic-panel[data-active-topic="resource-debug"] .row input,
+body.runtime-gameplay .topic-panel[data-active-topic="resource-debug"] .row select,
+body.runtime-gameplay .topic-panel[data-active-topic="resource-debug"] .row button,
+body.runtime-gameplay .topic-panel[data-active-topic="resource-debug"] .row-action-btn,
+body.runtime-gameplay .topic-panel[data-active-topic="resource-debug"] .help,
+body.runtime-gameplay .topic-panel[data-active-topic="resource-debug"] .status,
+body.runtime-gameplay .topic-panel[data-active-topic="resource-debug"] .panel-note,
+body.runtime-gameplay .topic-panel[data-active-topic="resource-debug"] .inline-control span,
+body.runtime-gameplay .topic-panel[data-active-topic="resource-debug"] .light-editor-empty,
+body.runtime-gameplay .topic-panel[data-active-topic="resource-debug"] .light-editor-coord,
+body.runtime-gameplay .topic-panel[data-active-topic="resource-debug"] .light-editor-actions button,
+body.runtime-gameplay .topic-panel[data-active-topic="resource-debug"] .light-persist-actions button,
+body.runtime-gameplay .topic-panel[data-active-topic="resource-debug"] .event-debug-card h3,
+body.runtime-gameplay .topic-panel[data-active-topic="resource-debug"] .event-debug-card pre {
+  font-size: var(--rd-ui-font-size);
+  line-height: 1.25;
+}
+
+.lut-editor-overlay {
+  font: var(--rd-ui-font-size)/1.25 var(--pixel-ui-font);
+}
+
+.lut-editor-overlay h2,
+.lut-editor-overlay h3,
+.lut-editor-overlay button,
+.lut-editor-overlay select,
+.lut-editor-overlay input,
+.lut-editor-overlay .panel-note,
+.lut-editor-overlay .lut-editor-save-readout,
+.lut-editor-overlay .lut-editor-debug-list,
+.lut-editor-overlay .lut-editor-variant-controls {
+  font-size: var(--rd-ui-font-size);
+  line-height: 1.25;
 }
 
 .help,

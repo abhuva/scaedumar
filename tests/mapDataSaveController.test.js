@@ -40,4 +40,21 @@ test("Save All includes map-local resource debug settings", () => {
   assert.deepEqual(JSON.parse(files["slime.json"]), { slime: true });
   assert.ok(files["structures.json"]);
   assert.deepEqual(JSON.parse(files["structures.json"]), { structures: true });
+  assert.equal(files["../data/render_luts.json"], undefined);
+  assert.equal(files["render_luts.json"], undefined);
+});
+
+test("Save All includes map-local render LUTs when present", () => {
+  const files = createController({
+    serializeRenderLutMapLocalDefinition: () => ({
+      version: 1,
+      luts: {
+        "map.bird": { type: "grayscale-ramp", stops: [] },
+      },
+      variants: [],
+    }),
+  }).createMapDataFileTexts();
+
+  assert.ok(files["render_luts.json"]);
+  assert.equal(JSON.parse(files["render_luts.json"]).luts["map.bird"].type, "grayscale-ramp");
 });

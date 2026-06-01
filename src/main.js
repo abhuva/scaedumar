@@ -134,6 +134,16 @@ import {
   DEFAULT_SWARM_SPRITE_DEFINITIONS_URL,
   loadAgentSpriteDefinitionFile,
 } from "./gameplay/agentSpriteDefinitionRegistry.js";
+import {
+  DEFAULT_RENDER_LUTS_URL,
+  buildGrayscaleRampRow,
+  buildRenderLutRegistry,
+  expandRenderLutRefIds,
+  formatMissingSpritePaletteLutRefs,
+  getRenderLutRowRgba,
+  validateSpritePaletteLutRefs,
+} from "./render/renderLutRegistry.js";
+import { createRenderLutRuntime } from "./render/renderLutRuntime.js";
 import { createResourceDiscoveryRuntime } from "./gameplay/resourceDiscoveryRuntime.js";
 import {
   createInspectPerceptionRuntime,
@@ -254,6 +264,31 @@ const PLAYER_SPRITE_DEFINITION_FILE = await loadAgentSpriteDefinitionFile({
 const SWARM_SPRITE_DEFINITION_FILE = await loadAgentSpriteDefinitionFile({
   url: DEFAULT_SWARM_SPRITE_DEFINITIONS_URL,
 });
+const RENDER_LUT_SOURCE_DEFINITION = await (async () => {
+  const response = await fetch(DEFAULT_RENDER_LUTS_URL, { cache: "no-store" });
+  if (!response || !response.ok) {
+    const status = response ? `${response.status} ${response.statusText || ""}`.trim() : "no response";
+    throw new Error(`Failed to load render LUT registry from ${DEFAULT_RENDER_LUTS_URL}: ${status}`);
+  }
+  return response.json();
+})();
+const renderLutRuntime = createRenderLutRuntime({
+  sourceDefinition: RENDER_LUT_SOURCE_DEFINITION,
+});
+const RENDER_LUT_GLOBAL_SAVE_PATH = "assets/data/render_luts.json";
+let renderLutGlobalSourceDefinition = JSON.parse(JSON.stringify(RENDER_LUT_SOURCE_DEFINITION));
+let renderLutMapLocalSourceDefinition = null;
+let renderLutMapLocalSourceLabel = "";
+let renderLutLastSavedSourceText = JSON.stringify(renderLutGlobalSourceDefinition);
+let renderLutLastSavedMapLocalText = "";
+const RENDER_LUT_REGISTRY = renderLutRuntime.getRegistry();
+const RENDER_LUT_SPRITE_VALIDATION = validateSpritePaletteLutRefs([
+  { label: "player_sprites", sprites: PLAYER_SPRITE_DEFINITION_FILE.sprites },
+  { label: "swarm_sprites", sprites: SWARM_SPRITE_DEFINITION_FILE.sprites },
+], RENDER_LUT_REGISTRY);
+if (!RENDER_LUT_SPRITE_VALIDATION.ok) {
+  throw new Error(`Render LUT sprite references are invalid:\n${formatMissingSpritePaletteLutRefs(RENDER_LUT_SPRITE_VALIDATION)}`);
+}
 let EVENT_DEFINITIONS = [];
 let activeEventDefinitions = [];
 let activeMapEventDefinitionCount = 0;
@@ -622,8 +657,59 @@ const swarmStatsPanelToggle = getRequiredElementById("swarmStatsPanelToggle");
 const swarmShowTerrainToggle = getRequiredElementById("swarmShowTerrainToggle");
 const swarmLitModeToggle = getRequiredElementById("swarmLitModeToggle");
 const swarmSpriteRenderModeToggle = getRequiredElementById("swarmSpriteRenderModeToggle");
+const swarmBirdLutReadout = getRequiredElementById("swarmBirdLutReadout");
+const swarmBirdLutFamilySelect = getRequiredElementById("swarmBirdLutFamilySelect");
+const swarmBirdLutApplyBtn = getRequiredElementById("swarmBirdLutApplyBtn");
+const swarmBirdLutVariantCount = getRequiredElementById("swarmBirdLutVariantCount");
+const swarmBirdLutVariantCountValue = getRequiredElementById("swarmBirdLutVariantCountValue");
 const agentSpritePlayerRenderToggle = getRequiredElementById("agentSpritePlayerRenderToggle");
 const agentSpriteSwarmRenderModeToggle = getRequiredElementById("agentSpriteSwarmRenderModeToggle");
+const agentSpriteLutReadout = getRequiredElementById("agentSpriteLutReadout");
+const agentSpriteLutPreviewSelect = getRequiredElementById("agentSpriteLutPreviewSelect");
+const agentSpriteLutPreviewCanvas = getRequiredElementById("agentSpriteLutPreviewCanvas");
+const agentSpriteLutPreviewLabel = getRequiredElementById("agentSpriteLutPreviewLabel");
+const spriteLutSourceReadout = getRequiredElementById("spriteLutSourceReadout");
+const spriteLutStopEditor = getRequiredElementById("spriteLutStopEditor");
+const spriteLutOpenEditorBtn = getRequiredElementById("spriteLutOpenEditorBtn");
+const spriteLutApplyBtn = getRequiredElementById("spriteLutApplyBtn");
+const spriteLutResetBtn = getRequiredElementById("spriteLutResetBtn");
+const spriteLutEditorOverlay = getRequiredElementById("spriteLutEditorOverlay");
+const spriteLutEditorStatus = getRequiredElementById("spriteLutEditorStatus");
+const spriteLutEditorCloseBtn = getRequiredElementById("spriteLutEditorCloseBtn");
+const spriteLutEditorSelect = getRequiredElementById("spriteLutEditorSelect");
+const spriteLutEditorScopeSelect = getRequiredElementById("spriteLutEditorScopeSelect");
+const spriteLutEditorIdInput = getRequiredElementById("spriteLutEditorIdInput");
+const spriteLutEditorCreateBtn = getRequiredElementById("spriteLutEditorCreateBtn");
+const spriteLutEditorRenameBtn = getRequiredElementById("spriteLutEditorRenameBtn");
+const spriteLutEditorDeleteBtn = getRequiredElementById("spriteLutEditorDeleteBtn");
+const spriteLutEditorApplyBtn = getRequiredElementById("spriteLutEditorApplyBtn");
+const spriteLutEditorSaveGlobalBtn = getRequiredElementById("spriteLutEditorSaveGlobalBtn");
+const spriteLutEditorResetDraftBtn = getRequiredElementById("spriteLutEditorResetDraftBtn");
+const spriteLutEditorSaveReadout = getRequiredElementById("spriteLutEditorSaveReadout");
+const spriteLutEditorSurface = getRequiredElementById("spriteLutEditorSurface");
+const spriteLutEditorHandleLayer = getRequiredElementById("spriteLutEditorHandleLayer");
+const spriteLutEditorCanvas = getRequiredElementById("spriteLutEditorCanvas");
+const spriteLutEditorStopReadout = getRequiredElementById("spriteLutEditorStopReadout");
+const spriteLutEditorStopPosValue = getRequiredElementById("spriteLutEditorStopPosValue");
+const spriteLutEditorStopColor = getRequiredElementById("spriteLutEditorStopColor");
+const spriteLutEditorAddStopBtn = getRequiredElementById("spriteLutEditorAddStopBtn");
+const spriteLutEditorDeleteStopBtn = getRequiredElementById("spriteLutEditorDeleteStopBtn");
+const spriteLutEditorVariantCanvas = getRequiredElementById("spriteLutEditorVariantCanvas");
+const spriteLutEditorVariantReadout = getRequiredElementById("spriteLutEditorVariantReadout");
+const spriteLutEditorUsageReadout = getRequiredElementById("spriteLutEditorUsageReadout");
+const spriteLutEditorVariantFamily = getRequiredElementById("spriteLutEditorVariantFamily");
+const spriteLutEditorVariantIdPreview = getRequiredElementById("spriteLutEditorVariantIdPreview");
+const spriteLutEditorVariantCount = getRequiredElementById("spriteLutEditorVariantCount");
+const spriteLutEditorVariantCountValue = getRequiredElementById("spriteLutEditorVariantCountValue");
+const spriteLutEditorVariantSeed = getRequiredElementById("spriteLutEditorVariantSeed");
+const spriteLutEditorVariantSeedValue = getRequiredElementById("spriteLutEditorVariantSeedValue");
+const spriteLutEditorVariantPosition = getRequiredElementById("spriteLutEditorVariantPosition");
+const spriteLutEditorVariantPositionValue = getRequiredElementById("spriteLutEditorVariantPositionValue");
+const spriteLutEditorVariantBrightness = getRequiredElementById("spriteLutEditorVariantBrightness");
+const spriteLutEditorVariantBrightnessValue = getRequiredElementById("spriteLutEditorVariantBrightnessValue");
+const spriteLutEditorVariantColor = getRequiredElementById("spriteLutEditorVariantColor");
+const spriteLutEditorVariantColorValue = getRequiredElementById("spriteLutEditorVariantColorValue");
+document.body.appendChild(spriteLutEditorOverlay);
 const swarmBackgroundColorInput = getRequiredElementById("swarmBackgroundColor");
 const swarmAgentCountInput = getRequiredElementById("swarmAgentCount");
 const swarmAgentCountValue = getRequiredElementById("swarmAgentCountValue");
@@ -1137,6 +1223,7 @@ const SWARM_Z_MAX = 256;
 const SWARM_TERRAIN_CLEARANCE = 1;
 const SWARM_Z_NEIGHBOR_SCALE = 1;
 const LIGHTING_SAVE_PRECISION = 2;
+const swarmBirdSpriteDefinitionDraft = cloneJson(SWARM_SPRITE_DEFINITION_FILE.sprites.bird);
 
 const settingsCoreSetupRuntime = createSettingsCoreSetupRuntime(createSettingsCoreAssemblyRuntime({
   runtimeCore,
@@ -2452,8 +2539,12 @@ function downloadTextFile(fileName, text) {
   mapLifecycleRuntime.downloadTextFile(fileName, text);
 }
 
-function saveAllMapDataFiles() {
-  return mapLifecycleRuntime.saveAllMapDataFiles();
+async function saveAllMapDataFiles() {
+  const saved = await mapLifecycleRuntime.saveAllMapDataFiles();
+  if (saved) {
+    renderLutLastSavedMapLocalText = renderLutMapLocalSourceDefinition ? JSON.stringify(renderLutMapLocalSourceDefinition) : "";
+  }
+  if (lutEditorDraft.open) syncLutEditorSaveState();
 }
 
 function saveSlimeSettingsFile() {
@@ -3622,6 +3713,7 @@ const structureRuntime = createStructureRuntime({
   applyResourceDebugSettings: (...args) => applyResourceDebugSettingsRuntime(...args),
   applyResourceStockSettings: (...args) => applyResourceStockSettingsRuntime(...args),
   applySwarmSettings: (...args) => applySwarmSettings(...args),
+  applyRenderLutMapLocalDefinition: (...args) => applyRenderLutMapLocalDefinition(...args),
   applyStructureData: (...args) => structureRuntime.applyStructureData(...args),
   reseedSwarmAgents: (...args) => reseedSwarmAgents(...args),
   getSwarmSettings: (...args) => getSwarmSettings(...args),
@@ -3654,6 +3746,7 @@ const structureRuntime = createStructureRuntime({
   serializeResourceDebugSettings: () => serializeResourceDebugSettingsRuntime(),
   serializeResourceStockSettings: () => serializeResourceStockSettingsRuntime(),
   serializeSwarmData: (...args) => serializeSwarmData(...args),
+  serializeRenderLutMapLocalDefinition: () => serializeRenderLutMapLocalDefinition(),
   serializeStructureData: () => structureRuntime.serializeStructureData(),
   serializeNpcState: (...args) => serializeNpcStateFromBinding(...args),
   confirm: (text) => window.confirm(text),
@@ -4445,17 +4538,1107 @@ function isAgentSpriteRenderVisible() {
   return isPlayerSpriteRenderVisible() || isSwarmSpriteRenderMode();
 }
 
+function getBirdPaletteRows() {
+  const birdPalette = SWARM_SPRITE_DEFINITION_FILE.sprites.bird?.palette;
+  return birdPalette?.mode === "grayscale-lut"
+    ? renderLutRuntime.resolveRows(birdPalette.lutRefs)
+    : [];
+}
+
+function drawAgentSpriteLutPreview(rowIndex) {
+  const debug = renderLutRuntime.getDebugSnapshot();
+  const previewRow = Number.isFinite(Number(rowIndex)) ? renderLutRuntime.setSelectedRow(rowIndex) : -1;
+  const previewId = previewRow >= 0 ? debug.rowIds[previewRow] || `row ${previewRow}` : "None";
+  agentSpriteLutPreviewLabel.textContent = previewId;
+  const ctx = typeof agentSpriteLutPreviewCanvas.getContext === "function"
+    ? agentSpriteLutPreviewCanvas.getContext("2d")
+    : null;
+  if (!ctx || previewRow < 0) return;
+  const preview = renderLutRuntime.getPreviewImageData(previewRow, {
+    height: Math.max(1, Number(agentSpriteLutPreviewCanvas.height) || 12),
+  });
+  if (preview.width <= 0 || preview.height <= 0) return;
+  const imageData = new ImageData(preview.data, preview.width, preview.height);
+  ctx.imageSmoothingEnabled = false;
+  ctx.putImageData(imageData, 0, 0);
+  syncSpriteLutSourceEditor();
+}
+
+function lutRgbToHex(rgb) {
+  const channels = Array.isArray(rgb) ? rgb : [0, 0, 0];
+  return `#${channels.map((channel) => Math.max(0, Math.min(255, Math.round(Number(channel) || 0))).toString(16).padStart(2, "0")).join("")}`;
+}
+
+function lutHexToRgb(hex) {
+  if (typeof hex !== "string" || !/^#[0-9a-fA-F]{6}$/.test(hex)) return [0, 0, 0];
+  return [
+    Number.parseInt(hex.slice(1, 3), 16),
+    Number.parseInt(hex.slice(3, 5), 16),
+    Number.parseInt(hex.slice(5, 7), 16),
+  ];
+}
+
+function syncSpriteLutSourceEditor() {
+  const source = renderLutRuntime.getSelectedSourceSnapshot();
+  const stateLabel = source.editable
+    ? "editable explicit"
+    : (source.generated ? `generated ${source.family} #${String(source.variantIndex).padStart(2, "0")}` : "read-only");
+  spriteLutSourceReadout.textContent = source.id
+    ? `${source.id} | ${source.type} | ${stateLabel}`
+    : "No LUT selected.";
+  spriteLutStopEditor.innerHTML = "";
+  if (!source.editable) {
+    const note = document.createElement("p");
+    note.className = "panel-note";
+    note.textContent = source.generated
+      ? "Generated variant rows are read-only. Edit the source variant family in a later editor slice."
+      : "This LUT row is read-only.";
+    spriteLutStopEditor.appendChild(note);
+    spriteLutApplyBtn.disabled = true;
+    return;
+  }
+  spriteLutApplyBtn.disabled = false;
+  for (const stop of source.stops) {
+    const row = document.createElement("div");
+    row.className = "row";
+    row.dataset.lutStop = "true";
+
+    const label = document.createElement("label");
+    label.textContent = "Stop";
+    row.appendChild(label);
+
+    const controls = document.createElement("div");
+    controls.className = "inline-control";
+
+    const pos = document.createElement("input");
+    pos.type = "range";
+    pos.min = "0";
+    pos.max = "255";
+    pos.step = "1";
+    pos.value = String(stop.pos);
+    pos.dataset.lutStopPos = "true";
+    pos.setAttribute("aria-label", "LUT stop grayscale position");
+    controls.appendChild(pos);
+
+    const posValue = document.createElement("span");
+    posValue.textContent = String(stop.pos);
+    controls.appendChild(posValue);
+    pos.addEventListener("input", () => {
+      posValue.textContent = pos.value;
+    });
+
+    const color = document.createElement("input");
+    color.type = "color";
+    color.value = lutRgbToHex(stop.rgb);
+    color.dataset.lutStopColor = "true";
+    color.setAttribute("aria-label", "LUT stop output color");
+    controls.appendChild(color);
+
+    row.appendChild(controls);
+    spriteLutStopEditor.appendChild(row);
+  }
+}
+
+function collectEditedSpriteLutStops() {
+  return [...spriteLutStopEditor.querySelectorAll("[data-lut-stop='true']")].map((row) => {
+    const pos = row.querySelector("[data-lut-stop-pos='true']");
+    const color = row.querySelector("[data-lut-stop-color='true']");
+    return {
+      pos: Number(pos?.value) || 0,
+      rgb: lutHexToRgb(color?.value),
+    };
+  });
+}
+
+const lutEditorDraft = {
+  open: false,
+  lutId: "",
+  scope: "global",
+  stops: [],
+  variantFamily: null,
+  baselineText: "",
+  selectedIndex: 0,
+  draggingIndex: -1,
+};
+
+function cloneLutStops(stops) {
+  return (Array.isArray(stops) ? stops : []).map((stop) => ({
+    pos: Math.max(0, Math.min(255, Math.round(Number(stop.pos) || 0))),
+    rgb: Array.isArray(stop.rgb) ? stop.rgb.map((value) => Math.max(0, Math.min(255, Math.round(Number(value) || 0)))) : [0, 0, 0],
+  })).sort((a, b) => a.pos - b.pos);
+}
+
+function cloneJson(value) {
+  return value == null ? value : JSON.parse(JSON.stringify(value));
+}
+
+function normalizeRenderLutSourceDefinition(raw) {
+  const source = raw && typeof raw === "object" ? raw : {};
+  const luts = source.luts && typeof source.luts === "object" ? cloneJson(source.luts) : {};
+  const variants = Array.isArray(source.variants) ? cloneJson(source.variants) : [];
+  return {
+    version: Math.max(1, Math.round(Number(source.version) || 1)),
+    luts,
+    variants,
+  };
+}
+
+function composeRenderLutSourceDefinition() {
+  const globalSource = normalizeRenderLutSourceDefinition(renderLutGlobalSourceDefinition);
+  const mapSource = renderLutMapLocalSourceDefinition
+    ? normalizeRenderLutSourceDefinition(renderLutMapLocalSourceDefinition)
+    : null;
+  if (!mapSource) return globalSource;
+  const next = {
+    version: Math.max(globalSource.version || 1, mapSource.version || 1),
+    luts: {
+      ...(globalSource.luts || {}),
+      ...(mapSource.luts || {}),
+    },
+    variants: [...(globalSource.variants || [])],
+  };
+  const variantKey = (variant) => {
+    const source = variant && typeof variant === "object" ? variant : {};
+    return `${String(source.baseLutId || "")}|${String(source.family || "")}`;
+  };
+  const indexes = new Map(next.variants.map((variant, index) => [variantKey(variant), index]));
+  for (const variant of mapSource.variants || []) {
+    const key = variantKey(variant);
+    if (indexes.has(key)) next.variants[indexes.get(key)] = variant;
+    else next.variants.push(variant);
+  }
+  return next;
+}
+
+function rebuildRenderLutRuntimeFromSources() {
+  renderLutRuntime.rebuild(composeRenderLutSourceDefinition());
+  syncAgentSpriteLutReadout?.();
+}
+
+function getRenderLutSourceByScope(scope) {
+  if (scope === "map") {
+    if (!renderLutMapLocalSourceDefinition) {
+      renderLutMapLocalSourceDefinition = normalizeRenderLutSourceDefinition({ version: 1, luts: {}, variants: [] });
+    }
+    return renderLutMapLocalSourceDefinition;
+  }
+  return renderLutGlobalSourceDefinition;
+}
+
+function findRenderLutScope(lutId) {
+  if (renderLutMapLocalSourceDefinition?.luts && renderLutMapLocalSourceDefinition.luts[lutId]) return "map";
+  if (renderLutGlobalSourceDefinition?.luts && renderLutGlobalSourceDefinition.luts[lutId]) return "global";
+  return "global";
+}
+
+function applyRenderLutMapLocalDefinition(rawData, sourceLabel = "") {
+  renderLutMapLocalSourceDefinition = rawData ? normalizeRenderLutSourceDefinition(rawData) : null;
+  renderLutMapLocalSourceLabel = sourceLabel || "";
+  renderLutLastSavedMapLocalText = renderLutMapLocalSourceDefinition ? JSON.stringify(renderLutMapLocalSourceDefinition) : "";
+  rebuildRenderLutRuntimeFromSources();
+}
+
+function serializeRenderLutMapLocalDefinition() {
+  if (!renderLutMapLocalSourceDefinition) return null;
+  return normalizeRenderLutSourceDefinition(renderLutMapLocalSourceDefinition);
+}
+
+function cloneLutVariantFamily(variant) {
+  const source = variant && typeof variant === "object" ? variant : null;
+  if (!source) return null;
+  return {
+    family: typeof source.family === "string" ? source.family : "",
+    baseLutId: typeof source.baseLutId === "string" ? source.baseLutId : "",
+    type: source.type === "grayscale-ramp" ? "grayscale-ramp" : "grayscale-ramp",
+    count: Math.max(0, Math.min(100, Math.round(Number(source.count) || 0))),
+    seed: Math.max(0, Math.min(9999, Math.round(Number(source.seed) || 0))),
+    positionJitter: Math.max(0, Math.min(32, Math.round(Number(source.positionJitter) || 0))),
+    brightnessJitter: Math.max(0, Math.min(0.5, Number(source.brightnessJitter) || 0)),
+    colorJitter: Math.max(0, Math.min(0.5, Number(source.colorJitter) || 0)),
+  };
+}
+
+function createDefaultLutVariantFamily(baseLutId) {
+  return {
+    family: typeof baseLutId === "string" && baseLutId ? baseLutId : "lut",
+    baseLutId: typeof baseLutId === "string" ? baseLutId : "",
+    type: "grayscale-ramp",
+    count: 0,
+    seed: 0,
+    positionJitter: 0,
+    brightnessJitter: 0,
+    colorJitter: 0,
+  };
+}
+
+function serializeLutEditorDraftState() {
+  return JSON.stringify({
+    lutId: lutEditorDraft.lutId || "",
+    scope: lutEditorDraft.scope || "global",
+    stops: cloneLutStops(lutEditorDraft.stops),
+    variantFamily: lutEditorDraft.variantFamily ? cloneLutVariantFamily(lutEditorDraft.variantFamily) : null,
+  });
+}
+
+function getRenderLutRuntimeSourceText() {
+  return JSON.stringify(renderLutRuntime.serializeSourceDefinition());
+}
+
+function hasLutEditorDraftChanges() {
+  return Boolean(lutEditorDraft.lutId) && serializeLutEditorDraftState() !== lutEditorDraft.baselineText;
+}
+
+function hasRenderLutUnsavedRuntimeChanges() {
+  return JSON.stringify(renderLutGlobalSourceDefinition) !== renderLutLastSavedSourceText
+    || (renderLutMapLocalSourceDefinition ? JSON.stringify(renderLutMapLocalSourceDefinition) : "") !== renderLutLastSavedMapLocalText;
+}
+
+function hasRenderLutUnsavedGlobalChanges() {
+  return JSON.stringify(renderLutGlobalSourceDefinition) !== renderLutLastSavedSourceText;
+}
+
+function hasRenderLutUnsavedMapLocalChanges() {
+  return (renderLutMapLocalSourceDefinition ? JSON.stringify(renderLutMapLocalSourceDefinition) : "") !== renderLutLastSavedMapLocalText;
+}
+
+function getRenderLutSaveDiagnostics() {
+  const mapFolder = normalizeMapFolderPath(mapLifecycleRuntime.getCurrentMapFolderPath?.() || "");
+  const derivedPath = getRenderLutNativeSavePathFromMapFolder();
+  const hasTauri = Boolean(tauriInvoke);
+  const hasFilePicker = typeof window.showSaveFilePicker === "function";
+  const hasDirectoryPicker = typeof window.showDirectoryPicker === "function";
+  let mode = "download fallback";
+  let target = RENDER_LUT_GLOBAL_SAVE_PATH;
+  if (hasTauri && derivedPath) {
+    mode = "Tauri native path";
+    target = derivedPath;
+  } else if (hasTauri) {
+    mode = "Tauri folder prompt";
+    target = "select project assets/data";
+  } else if (hasFilePicker) {
+    mode = "browser file picker";
+    target = "choose assets/data/render_luts.json";
+  } else if (hasDirectoryPicker) {
+    mode = "browser directory picker";
+    target = "choose project assets/data";
+  }
+  return {
+    mode,
+    target,
+    mapFolder: mapFolder || "none",
+    tauri: hasTauri,
+    filePicker: hasFilePicker,
+    directoryPicker: hasDirectoryPicker,
+  };
+}
+
+function collectSpriteLutUsageDetails(lutId, variantFamilyId) {
+  const targets = [
+    { file: "player_sprites", sprites: PLAYER_SPRITE_DEFINITION_FILE.sprites },
+    { file: "swarm_sprites", sprites: SWARM_SPRITE_DEFINITION_FILE.sprites },
+  ];
+  const details = {
+    explicit: [],
+    range: [],
+    missing: [],
+  };
+  const registry = renderLutRuntime.getRegistry();
+  for (const target of targets) {
+    const sprites = target.sprites && typeof target.sprites === "object" ? target.sprites : {};
+    for (const [spriteKey, sprite] of Object.entries(sprites)) {
+      const spriteId = sprite?.id || spriteKey;
+      const palette = sprite && sprite.palette && typeof sprite.palette === "object" ? sprite.palette : null;
+      if (!palette || palette.mode !== "grayscale-lut") continue;
+      const refs = Array.isArray(palette.lutRefs) ? palette.lutRefs : [];
+      const ids = expandRenderLutRefIds(refs);
+      if (ids.includes(lutId)) details.explicit.push(`${target.file}:${spriteId}`);
+      for (const ref of refs) {
+        const range = ref && typeof ref === "object" && ref.range && typeof ref.range === "object" ? ref.range : null;
+        if (!range || String(range.family || "").trim() !== variantFamilyId) continue;
+        details.range.push(`${target.file}:${spriteId} ${range.start || 0}+${range.count || 0}`);
+      }
+      for (const id of ids) {
+        if (!Number.isFinite(Number(registry.rowsById?.[id]))) {
+          details.missing.push(`${target.file}:${spriteId} -> ${id}`);
+        }
+      }
+    }
+  }
+  return details;
+}
+
+function syncLutEditorUsageDebug(registry, rows) {
+  const family = lutEditorDraft.variantFamily || createDefaultLutVariantFamily(lutEditorDraft.lutId);
+  const details = collectSpriteLutUsageDetails(lutEditorDraft.lutId, family.family);
+  const explicitRow = Number.isFinite(Number(registry.rowsById?.[lutEditorDraft.lutId]))
+    ? registry.rowsById[lutEditorDraft.lutId]
+    : "missing";
+  const rowsText = Array.isArray(rows) && rows.length > 0
+    ? `${rows.length} (${rows[0]}..${rows[rows.length - 1]})`
+    : "0";
+  const data = [
+    ["LUT", lutEditorDraft.lutId || "none"],
+    ["Family", family.family || "none"],
+    ["Explicit Row", String(explicitRow)],
+    ["Variant Rows", rowsText],
+    ["ID Refs", details.explicit.length > 0 ? details.explicit.join(", ") : "none"],
+    ["Range Refs", details.range.length > 0 ? details.range.join(", ") : "none"],
+    ["Missing", details.missing.length > 0 ? details.missing.join(", ") : "none"],
+  ];
+  spriteLutEditorUsageReadout.innerHTML = "";
+  for (const [label, value] of data) {
+    const row = document.createElement("div");
+    row.className = "lut-editor-debug-row";
+    const key = document.createElement("strong");
+    key.textContent = label;
+    const text = document.createElement("span");
+    text.textContent = value;
+    row.append(key, text);
+    spriteLutEditorUsageReadout.appendChild(row);
+  }
+}
+
+function syncLutEditorSaveState() {
+  const draftDirty = hasLutEditorDraftChanges();
+  const runtimeDirty = hasRenderLutUnsavedRuntimeChanges();
+  const globalDirty = hasRenderLutUnsavedGlobalChanges();
+  const mapDirty = hasRenderLutUnsavedMapLocalChanges();
+  const diagnostics = getRenderLutSaveDiagnostics();
+  const dirtyText = [
+    `Draft: ${draftDirty ? "unsaved" : "clean"}`,
+    `Global: ${globalDirty ? "save needed" : "saved"}`,
+    `Map: ${mapDirty ? "Save All needed" : "saved"}`,
+  ].join(" | ");
+  spriteLutEditorStatus.textContent = lutEditorDraft.lutId
+    ? `${lutEditorDraft.lutId} | ${dirtyText}`
+    : dirtyText;
+  spriteLutEditorSaveGlobalBtn.disabled = !(globalDirty || (draftDirty && lutEditorDraft.scope === "global"));
+  spriteLutEditorApplyBtn.disabled = !draftDirty;
+  spriteLutEditorResetDraftBtn.disabled = !draftDirty;
+  spriteLutEditorSaveReadout.textContent = [
+    `Save: ${diagnostics.mode}`,
+    `Target: ${diagnostics.target}`,
+    `Map: ${diagnostics.mapFolder}`,
+    `APIs: tauri=${diagnostics.tauri ? "yes" : "no"}, file=${diagnostics.filePicker ? "yes" : "no"}, dir=${diagnostics.directoryPicker ? "yes" : "no"}`,
+  ].join(" | ");
+}
+
+function upsertLutVariantFamily(source, lutId, family) {
+  if (!Array.isArray(source.variants)) source.variants = [];
+  const variant = {
+    ...cloneLutVariantFamily(family),
+    baseLutId: lutId,
+    family: family?.family || lutId,
+    type: "grayscale-ramp",
+  };
+  const index = source.variants.findIndex((entry) => (
+    entry && typeof entry === "object" && String(entry.baseLutId || "").trim() === lutId
+  ));
+  if (index >= 0) source.variants[index] = variant;
+  else source.variants.push(variant);
+}
+
+function applyLutEditorDraftToSource() {
+  if (!lutEditorDraft.lutId) return false;
+  const source = getRenderLutSourceByScope(lutEditorDraft.scope);
+  if (!source.luts || typeof source.luts !== "object") source.luts = {};
+  source.luts[lutEditorDraft.lutId] = {
+    ...(source.luts[lutEditorDraft.lutId] || {}),
+    id: lutEditorDraft.lutId,
+    type: "grayscale-ramp",
+    stops: cloneLutStops(lutEditorDraft.stops),
+  };
+  if (lutEditorDraft.variantFamily) {
+    upsertLutVariantFamily(source, lutEditorDraft.lutId, lutEditorDraft.variantFamily);
+  }
+  rebuildRenderLutRuntimeFromSources();
+  renderLutRuntime.setSelectedRowById(lutEditorDraft.lutId);
+  lutEditorDraft.baselineText = serializeLutEditorDraftState();
+  syncLutEditorDraftUi();
+  return true;
+}
+
+function getSourceVariantFamilyForBase(source, baseLutId) {
+  const variants = Array.isArray(source?.variants) ? source.variants : [];
+  return variants.find((variant) => (
+    variant
+    && typeof variant === "object"
+    && typeof variant.baseLutId === "string"
+    && variant.baseLutId.trim() === baseLutId
+  )) || null;
+}
+
+function getDraftSelectedStop() {
+  return lutEditorDraft.stops[Math.max(0, Math.min(lutEditorDraft.stops.length - 1, lutEditorDraft.selectedIndex))] || null;
+}
+
+function drawLutEditorDraftPreview() {
+  const ctx = typeof spriteLutEditorCanvas.getContext === "function" ? spriteLutEditorCanvas.getContext("2d") : null;
+  if (!ctx) return;
+  const width = Math.max(1, Number(spriteLutEditorCanvas.width) || 768);
+  const height = Math.max(1, Number(spriteLutEditorCanvas.height) || 48);
+  const row = buildGrayscaleRampRow(lutEditorDraft.stops);
+  const imageData = ctx.createImageData(width, height);
+  for (let x = 0; x < width; x += 1) {
+    const sourceX = Math.max(0, Math.min(255, Math.round((x / Math.max(1, width - 1)) * 255)));
+    const sourceOffset = sourceX * 4;
+    for (let y = 0; y < height; y += 1) {
+      const targetOffset = ((y * width) + x) * 4;
+      imageData.data[targetOffset] = row[sourceOffset];
+      imageData.data[targetOffset + 1] = row[sourceOffset + 1];
+      imageData.data[targetOffset + 2] = row[sourceOffset + 2];
+      imageData.data[targetOffset + 3] = 255;
+    }
+  }
+  ctx.imageSmoothingEnabled = false;
+  ctx.putImageData(imageData, 0, 0);
+}
+
+function buildLutEditorDraftRegistry() {
+  const source = renderLutRuntime.getSourceDefinitionSnapshot();
+  if (!lutEditorDraft.lutId || !source.luts || !source.luts[lutEditorDraft.lutId]) {
+    return buildRenderLutRegistry(source);
+  }
+  source.luts[lutEditorDraft.lutId] = {
+    ...source.luts[lutEditorDraft.lutId],
+    type: "grayscale-ramp",
+    stops: cloneLutStops(lutEditorDraft.stops),
+  };
+  if (lutEditorDraft.variantFamily) {
+    if (!Array.isArray(source.variants)) source.variants = [];
+    const variantIndex = source.variants.findIndex((variant) => (
+      variant
+      && typeof variant === "object"
+      && typeof variant.baseLutId === "string"
+      && variant.baseLutId.trim() === lutEditorDraft.lutId
+    ));
+    if (variantIndex >= 0) {
+      source.variants[variantIndex] = {
+        ...source.variants[variantIndex],
+        ...lutEditorDraft.variantFamily,
+        baseLutId: lutEditorDraft.lutId,
+      };
+    } else {
+      source.variants.push({
+        ...lutEditorDraft.variantFamily,
+        baseLutId: lutEditorDraft.lutId,
+      });
+    }
+  }
+  return buildRenderLutRegistry(source);
+}
+
+function syncLutEditorVariantControls(family) {
+  const controls = [
+    spriteLutEditorVariantCount,
+    spriteLutEditorVariantSeed,
+    spriteLutEditorVariantPosition,
+    spriteLutEditorVariantBrightness,
+    spriteLutEditorVariantColor,
+  ];
+  if (!family) {
+    for (const control of controls) control.disabled = control !== spriteLutEditorVariantCount;
+    spriteLutEditorVariantCount.value = "0";
+    spriteLutEditorVariantCountValue.textContent = "0";
+    spriteLutEditorVariantSeedValue.textContent = "0";
+    spriteLutEditorVariantPositionValue.textContent = "0";
+    spriteLutEditorVariantBrightnessValue.textContent = "0";
+    spriteLutEditorVariantColorValue.textContent = "0";
+    return;
+  }
+  const disabled = family.count <= 0;
+  for (const control of controls) control.disabled = control !== spriteLutEditorVariantCount && disabled;
+  spriteLutEditorVariantCount.value = String(family.count);
+  spriteLutEditorVariantSeed.value = String(family.seed);
+  spriteLutEditorVariantPosition.value = String(family.positionJitter);
+  spriteLutEditorVariantBrightness.value = String(family.brightnessJitter);
+  spriteLutEditorVariantColor.value = String(family.colorJitter);
+  spriteLutEditorVariantFamily.value = family.family || lutEditorDraft.lutId;
+  spriteLutEditorVariantCountValue.textContent = String(family.count);
+  spriteLutEditorVariantSeedValue.textContent = String(family.seed);
+  spriteLutEditorVariantPositionValue.textContent = String(family.positionJitter);
+  spriteLutEditorVariantBrightnessValue.textContent = family.brightnessJitter.toFixed(2);
+  spriteLutEditorVariantColorValue.textContent = family.colorJitter.toFixed(2);
+  const end = Math.max(0, family.count - 1);
+  spriteLutEditorVariantIdPreview.textContent = family.count > 0
+    ? `${family.family}.variant.00..${String(end).padStart(2, "0")}`
+    : "none";
+}
+
+function drawLutEditorVariantPreview() {
+  const ctx = typeof spriteLutEditorVariantCanvas.getContext === "function" ? spriteLutEditorVariantCanvas.getContext("2d") : null;
+  if (!ctx) return;
+  const registry = buildLutEditorDraftRegistry();
+  const draftFamily = lutEditorDraft.variantFamily || createDefaultLutVariantFamily(lutEditorDraft.lutId);
+  const families = Array.isArray(registry.variantFamilies)
+    ? registry.variantFamilies.filter((family) => family.baseLutId === lutEditorDraft.lutId)
+    : [];
+  const rows = families.flatMap((family) => family.rows);
+  syncLutEditorUsageDebug(registry, rows);
+  if (rows.length === 0) {
+    spriteLutEditorVariantCanvas.width = 256;
+    spriteLutEditorVariantCanvas.height = 1;
+    ctx.clearRect(0, 0, spriteLutEditorVariantCanvas.width, spriteLutEditorVariantCanvas.height);
+    spriteLutEditorVariantReadout.textContent = lutEditorDraft.variantFamily
+      ? `${lutEditorDraft.variantFamily.family} | variants disabled`
+      : "Variants disabled.";
+    syncLutEditorVariantControls(lutEditorDraft.variantFamily);
+    return;
+  }
+
+  const width = Math.max(1, registry.width || 256);
+  spriteLutEditorVariantCanvas.width = width;
+  spriteLutEditorVariantCanvas.height = rows.length;
+  const imageData = ctx.createImageData(width, rows.length);
+  rows.forEach((row, index) => {
+    imageData.data.set(getRenderLutRowRgba(registry, row), index * width * 4);
+  });
+  ctx.imageSmoothingEnabled = false;
+  ctx.putImageData(imageData, 0, 0);
+
+  const family = families[0];
+  spriteLutEditorVariantReadout.textContent = `${family.family} | ${rows.length} generated rows`;
+  syncLutEditorVariantControls(lutEditorDraft.variantFamily || family);
+}
+
+function syncLutEditorStopControls() {
+  const stop = getDraftSelectedStop();
+  if (!stop) {
+    spriteLutEditorStopReadout.textContent = "No stop selected.";
+    spriteLutEditorStopPosValue.textContent = "-";
+    spriteLutEditorStopColor.disabled = true;
+    spriteLutEditorDeleteStopBtn.disabled = true;
+    return;
+  }
+  const endpoint = lutEditorDraft.selectedIndex === 0 || lutEditorDraft.selectedIndex === lutEditorDraft.stops.length - 1;
+  spriteLutEditorStopReadout.textContent = `Stop ${lutEditorDraft.selectedIndex + 1} / ${lutEditorDraft.stops.length}${endpoint ? " | endpoint locked" : ""}`;
+  spriteLutEditorStopPosValue.textContent = String(stop.pos);
+  spriteLutEditorStopColor.disabled = false;
+  spriteLutEditorStopColor.value = lutRgbToHex(stop.rgb);
+  spriteLutEditorDeleteStopBtn.disabled = endpoint || lutEditorDraft.stops.length <= 2;
+}
+
+function renderLutEditorHandles() {
+  spriteLutEditorHandleLayer.innerHTML = "";
+  lutEditorDraft.stops.forEach((stop, index) => {
+    const handle = document.createElement("button");
+    handle.type = "button";
+    handle.className = `lut-stop-handle${index === lutEditorDraft.selectedIndex ? " active" : ""}`;
+    handle.style.left = `${(stop.pos / 255) * 100}%`;
+    handle.style.background = lutRgbToHex(stop.rgb);
+    handle.dataset.stopIndex = String(index);
+    handle.setAttribute("aria-label", `Select LUT stop at ${stop.pos}`);
+    handle.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      lutEditorDraft.selectedIndex = index;
+      lutEditorDraft.draggingIndex = index;
+      handle.setPointerCapture?.(event.pointerId);
+      syncLutEditorDraftUi();
+    });
+    spriteLutEditorHandleLayer.appendChild(handle);
+  });
+}
+
+function syncLutEditorDraftUi() {
+  drawLutEditorDraftPreview();
+  drawLutEditorVariantPreview();
+  renderLutEditorHandles();
+  syncLutEditorStopControls();
+  syncLutEditorSaveState();
+}
+
+function loadLutEditorDraft(lutId) {
+  const scope = findRenderLutScope(lutId);
+  const source = getRenderLutSourceByScope(scope);
+  const lut = source.luts && source.luts[lutId];
+  const sourceVariantFamily = cloneLutVariantFamily(getSourceVariantFamilyForBase(source, lutId));
+  lutEditorDraft.lutId = lutId;
+  lutEditorDraft.scope = scope;
+  lutEditorDraft.stops = cloneLutStops(lut?.stops);
+  lutEditorDraft.variantFamily = sourceVariantFamily || createDefaultLutVariantFamily(lutId);
+  lutEditorDraft.selectedIndex = 0;
+  lutEditorDraft.draggingIndex = -1;
+  lutEditorDraft.baselineText = serializeLutEditorDraftState();
+  spriteLutEditorScopeSelect.value = scope;
+  spriteLutEditorIdInput.value = lutId;
+  syncLutEditorDraftUi();
+}
+
+function populateLutEditorSelect(preferredId = "") {
+  const source = composeRenderLutSourceDefinition();
+  const editable = Object.keys(source.luts || {}).map((id) => ({ id })).sort((a, b) => a.id.localeCompare(b.id));
+  spriteLutEditorSelect.innerHTML = "";
+  for (const lut of editable) {
+    const option = document.createElement("option");
+    option.value = lut.id;
+    option.textContent = lut.id;
+    spriteLutEditorSelect.appendChild(option);
+  }
+  const selected = editable.some((lut) => lut.id === preferredId) ? preferredId : editable[0]?.id || "";
+  if (selected) spriteLutEditorSelect.value = selected;
+  return selected;
+}
+
+function openLutEditor() {
+  const selectedSource = renderLutRuntime.getSelectedSourceSnapshot();
+  const selectedId = populateLutEditorSelect(selectedSource.editable ? selectedSource.id : "");
+  if (selectedId) loadLutEditorDraft(selectedId);
+  else syncLutEditorSaveState();
+  lutEditorDraft.open = true;
+  spriteLutEditorOverlay.classList.remove("hidden");
+  spriteLutEditorOverlay.setAttribute("aria-hidden", "false");
+}
+
+function confirmDiscardLutEditorChanges(actionLabel) {
+  const draftDirty = hasLutEditorDraftChanges();
+  const runtimeDirty = hasRenderLutUnsavedRuntimeChanges();
+  if (!draftDirty && !runtimeDirty) return true;
+  const parts = [];
+  if (draftDirty) parts.push("the current LUT draft has unapplied edits");
+  if (runtimeDirty) parts.push("runtime LUT edits have not been saved globally");
+  return window.confirm(`${actionLabel}?\n\n${parts.join(" and ")}.`);
+}
+
+function closeLutEditor() {
+  if (!confirmDiscardLutEditorChanges("Close LUT editor")) return;
+  lutEditorDraft.open = false;
+  lutEditorDraft.draggingIndex = -1;
+  spriteLutEditorOverlay.classList.add("hidden");
+  spriteLutEditorOverlay.setAttribute("aria-hidden", "true");
+}
+
+function getRenderLutNativeSavePathFromMapFolder() {
+  const folder = normalizeMapFolderPath(mapLifecycleRuntime.getCurrentMapFolderPath?.() || "");
+  if (!isAbsoluteFsPath(folder)) return "";
+  const normalized = folder.replace(/[\\/]+$/, "");
+  const separator = normalized.includes("\\") ? "\\" : "/";
+  const parts = normalized.split(/[\\/]/);
+  const tauriDistIndex = parts.lastIndexOf(".tauri-dist");
+  if (tauriDistIndex > 0) {
+    const projectRoot = parts.slice(0, tauriDistIndex).join(separator);
+    return joinFsPath(projectRoot, `assets${separator}data${separator}render_luts.json`);
+  }
+  const parent = parts.slice(0, -1).join(separator);
+  return parent ? joinFsPath(parent, `data${separator}render_luts.json`) : "";
+}
+
+async function saveRenderLutsWithBrowserFilePicker(text) {
+  if (typeof window.showSaveFilePicker !== "function") return "fallback";
+  try {
+    const handle = await window.showSaveFilePicker({
+      suggestedName: "render_luts.json",
+      types: [
+        {
+          description: "JSON",
+          accept: { "application/json": [".json"] },
+        },
+      ],
+    });
+    const writable = await handle.createWritable();
+    await writable.write(text);
+    await writable.close();
+    setStatus(`Saved render_luts.json. Expected project path: ${RENDER_LUT_GLOBAL_SAVE_PATH}.`);
+    return "saved";
+  } catch (error) {
+    if (error && error.name === "AbortError") {
+      setStatus("Render LUT save canceled.");
+      return "canceled";
+    }
+    console.warn("Browser render LUT file save failed, falling back to folder save or download.", error);
+    setStatus("Browser file save failed. Trying folder save...");
+    return "fallback";
+  }
+}
+
+async function saveRenderLutsWithBrowserDirectoryPicker(text) {
+  if (typeof window.showDirectoryPicker !== "function") return "fallback";
+  try {
+    const dir = await window.showDirectoryPicker({
+      mode: "readwrite",
+      startIn: "documents",
+    });
+    const handle = await dir.getFileHandle("render_luts.json", { create: true });
+    const writable = await handle.createWritable();
+    await writable.write(text);
+    await writable.close();
+    setStatus(`Saved render_luts.json to selected folder. Expected project folder: ${RENDER_LUT_GLOBAL_SAVE_PATH}.`);
+    return "saved";
+  } catch (error) {
+    if (error && error.name === "AbortError") {
+      setStatus("Render LUT save canceled.");
+      return "canceled";
+    }
+    console.warn("Browser render LUT directory save failed, falling back to download.", error);
+    setStatus("Browser folder save failed. Downloading render_luts.json instead.");
+    return "fallback";
+  }
+}
+
+async function resolveRenderLutNativeSavePath() {
+  const derivedPath = getRenderLutNativeSavePathFromMapFolder();
+  if (derivedPath) return derivedPath;
+  setStatus("Select the project's assets/data folder for global render LUT save.");
+  const selectedFolder = await pickMapFolderViaTauri();
+  if (!selectedFolder) return "";
+  return joinFsPath(selectedFolder, "render_luts.json");
+}
+
+async function saveRenderLutsGlobal() {
+  const confirmed = window.confirm(
+    `Save global LUT definitions to ${RENDER_LUT_GLOBAL_SAVE_PATH}?\n\n` +
+      "This is global data, not map Save All data. If prompted for a folder, select assets/data.",
+  );
+  if (!confirmed) {
+    setStatus("Render LUT save canceled.");
+    return;
+  }
+  if (lutEditorDraft.lutId) applyLutEditorDraftToSource();
+  const text = `${JSON.stringify(normalizeRenderLutSourceDefinition(renderLutGlobalSourceDefinition), null, 2)}\n`;
+  if (tauriInvoke) {
+    try {
+      const targetPath = await resolveRenderLutNativeSavePath();
+      if (!targetPath) {
+        setStatus("Render LUT save canceled.");
+        syncLutEditorSaveState();
+        return;
+      }
+      await invokeTauri("save_json_file", { path: targetPath, content: text });
+      renderLutLastSavedSourceText = JSON.stringify(normalizeRenderLutSourceDefinition(renderLutGlobalSourceDefinition));
+      setStatus(`Saved global render LUTs to ${targetPath}.`);
+      syncAgentSpriteLutReadout();
+      if (lutEditorDraft.lutId) loadLutEditorDraft(lutEditorDraft.lutId);
+      return;
+    } catch (error) {
+      console.warn("Native render LUT save failed, falling back to browser file/folder save or download.", error);
+      setStatus("Native render LUT save failed. Trying browser file save...");
+    }
+  }
+  const filePickerResult = await saveRenderLutsWithBrowserFilePicker(text);
+  if (filePickerResult === "saved") {
+    renderLutLastSavedSourceText = JSON.stringify(normalizeRenderLutSourceDefinition(renderLutGlobalSourceDefinition));
+    syncAgentSpriteLutReadout();
+    if (lutEditorDraft.lutId) loadLutEditorDraft(lutEditorDraft.lutId);
+    return;
+  }
+  if (filePickerResult === "canceled") {
+    syncLutEditorSaveState();
+    return;
+  }
+  const directoryPickerResult = await saveRenderLutsWithBrowserDirectoryPicker(text);
+  if (directoryPickerResult === "saved") {
+    renderLutLastSavedSourceText = JSON.stringify(normalizeRenderLutSourceDefinition(renderLutGlobalSourceDefinition));
+    syncAgentSpriteLutReadout();
+    if (lutEditorDraft.lutId) loadLutEditorDraft(lutEditorDraft.lutId);
+    return;
+  }
+  if (directoryPickerResult === "canceled") {
+    syncLutEditorSaveState();
+    return;
+  }
+  downloadTextFile("render_luts.json", text);
+  setStatus(`Downloaded render_luts.json. Browser could not write ${RENDER_LUT_GLOBAL_SAVE_PATH} directly.`);
+  syncLutEditorSaveState();
+}
+
+function editorPointerToPos(event) {
+  const rect = spriteLutEditorCanvas.getBoundingClientRect();
+  const x = Math.max(0, Math.min(rect.width, event.clientX - rect.left));
+  return Math.max(0, Math.min(255, Math.round((x / Math.max(1, rect.width)) * 255)));
+}
+
+function selectStopBySortedPosition(pos) {
+  lutEditorDraft.stops.sort((a, b) => a.pos - b.pos);
+  lutEditorDraft.selectedIndex = lutEditorDraft.stops.findIndex((stop) => stop.pos === pos);
+  if (lutEditorDraft.selectedIndex < 0) lutEditorDraft.selectedIndex = 0;
+}
+
+function sampleDraftColor(pos) {
+  const row = buildGrayscaleRampRow(lutEditorDraft.stops);
+  const offset = Math.max(0, Math.min(255, Math.round(pos))) * 4;
+  return [row[offset], row[offset + 1], row[offset + 2]];
+}
+
+function syncAgentSpriteLutPreviewOptions(birdRows) {
+  const rows = Array.isArray(birdRows) ? birdRows : [];
+  const debug = renderLutRuntime.getDebugSnapshot();
+  const previous = agentSpriteLutPreviewSelect.value;
+  agentSpriteLutPreviewSelect.innerHTML = "";
+  for (const row of rows) {
+    const option = document.createElement("option");
+    option.value = String(row);
+    option.textContent = debug.rowIds[row] || `row ${row}`;
+    agentSpriteLutPreviewSelect.appendChild(option);
+  }
+  if (rows.some((row) => String(row) === previous)) {
+    agentSpriteLutPreviewSelect.value = previous;
+  } else if (rows.length > 0) {
+    agentSpriteLutPreviewSelect.value = String(rows[0]);
+  }
+}
+
+function syncAgentSpriteLutReadout() {
+  const debug = renderLutRuntime.getDebugSnapshot();
+  const birdRows = getBirdPaletteRows();
+  agentSpriteLutReadout.textContent = `LUTs: ${debug.rowCount} | Bird refs: ${birdRows.length} | Duplicates: ${debug.duplicateIds.length}`;
+  syncAgentSpriteLutPreviewOptions(birdRows);
+  drawAgentSpriteLutPreview(agentSpriteLutPreviewSelect.value);
+  syncSwarmBirdLutUi();
+}
+
+function getRenderLutFamilySummaries() {
+  const registry = renderLutRuntime.getRegistry();
+  const families = Array.isArray(registry.variantFamilies) ? registry.variantFamilies : [];
+  return families.map((family) => ({
+    family: family.family,
+    count: family.count,
+    baseLutId: family.baseLutId,
+  }));
+}
+
+function syncSwarmBirdLutUi() {
+  const refs = swarmBirdSpriteDefinitionDraft.palette?.lutRefs || [];
+  const rangeRef = refs.find((ref) => ref && ref.range);
+  const activeFamily = rangeRef?.range?.family || "";
+  const activeCount = Math.max(0, Math.round(Number(rangeRef?.range?.count) || 0));
+  const families = getRenderLutFamilySummaries();
+  const previous = swarmBirdLutFamilySelect.value || activeFamily;
+  swarmBirdLutFamilySelect.innerHTML = "";
+  for (const family of families) {
+    const option = document.createElement("option");
+    option.value = family.family;
+    option.textContent = `${family.family} (${family.count})`;
+    swarmBirdLutFamilySelect.appendChild(option);
+  }
+  if (families.some((family) => family.family === previous)) swarmBirdLutFamilySelect.value = previous;
+  else if (families.some((family) => family.family === activeFamily)) swarmBirdLutFamilySelect.value = activeFamily;
+  const selectedFamily = swarmBirdLutFamilySelect.value || activeFamily;
+  swarmBirdLutVariantCount.value = String(activeCount);
+  swarmBirdLutVariantCountValue.textContent = String(activeCount);
+  swarmBirdLutReadout.textContent = refs.map((ref) => {
+    if (ref.id) return ref.id;
+    if (ref.range) return `${ref.range.family}.variant.${String(ref.range.start || 0).padStart(2, "0")} x ${ref.range.count || 0}`;
+    return "unknown";
+  }).join(" | ") || "No bird LUT refs.";
+  if (selectedFamily && selectedFamily !== activeFamily) {
+    const family = families.find((entry) => entry.family === selectedFamily);
+    if (family) {
+      swarmBirdLutVariantCount.value = String(family.count);
+      swarmBirdLutVariantCountValue.textContent = String(family.count);
+    }
+  }
+}
+
+function applySwarmBirdLutSelection() {
+  const family = String(swarmBirdLutFamilySelect.value || "").trim();
+  const count = Math.max(0, Math.min(100, Math.round(Number(swarmBirdLutVariantCount.value) || 0)));
+  if (!swarmBirdSpriteDefinitionDraft.palette || swarmBirdSpriteDefinitionDraft.palette.mode !== "grayscale-lut") {
+    swarmBirdSpriteDefinitionDraft.palette = { mode: "grayscale-lut", selection: "stable-random", lutRefs: [] };
+  }
+  const refs = (swarmBirdSpriteDefinitionDraft.palette.lutRefs || []).filter((ref) => !(ref && ref.range));
+  if (family && count > 0) refs.push({ range: { family, start: 0, count } });
+  swarmBirdSpriteDefinitionDraft.palette.lutRefs = refs;
+  syncSwarmBirdLutUi();
+  syncAgentSpriteLutReadout();
+}
+
 swarmSpriteRenderModeToggle.addEventListener("change", () => {
   setSwarmSpriteRenderMode(swarmSpriteRenderModeToggle.checked);
 });
 agentSpriteSwarmRenderModeToggle.addEventListener("change", () => {
   setSwarmSpriteRenderMode(agentSpriteSwarmRenderModeToggle.checked);
 });
+swarmBirdLutFamilySelect.addEventListener("change", () => {
+  const family = getRenderLutFamilySummaries().find((entry) => entry.family === swarmBirdLutFamilySelect.value);
+  if (family) {
+    swarmBirdLutVariantCount.value = String(family.count);
+    swarmBirdLutVariantCountValue.textContent = String(family.count);
+  }
+});
+swarmBirdLutVariantCount.addEventListener("input", () => {
+  swarmBirdLutVariantCountValue.textContent = String(Math.round(Number(swarmBirdLutVariantCount.value) || 0));
+});
+swarmBirdLutApplyBtn.addEventListener("click", () => {
+  applySwarmBirdLutSelection();
+});
 agentSpritePlayerRenderToggle.addEventListener("change", () => {
   setPlayerSpriteRenderVisible(agentSpritePlayerRenderToggle.checked);
 });
+agentSpriteLutPreviewSelect.addEventListener("change", () => {
+  drawAgentSpriteLutPreview(agentSpriteLutPreviewSelect.value);
+});
+spriteLutApplyBtn.addEventListener("click", () => {
+  const source = renderLutRuntime.getSelectedSourceSnapshot();
+  if (!source.editable) return;
+  renderLutRuntime.patchExplicitLutStops(source.id, collectEditedSpriteLutStops());
+  syncAgentSpriteLutReadout();
+  if (lutEditorDraft.open) syncLutEditorSaveState();
+});
+spriteLutResetBtn.addEventListener("click", () => {
+  renderLutGlobalSourceDefinition = normalizeRenderLutSourceDefinition(JSON.parse(renderLutLastSavedSourceText));
+  renderLutMapLocalSourceDefinition = renderLutLastSavedMapLocalText
+    ? normalizeRenderLutSourceDefinition(JSON.parse(renderLutLastSavedMapLocalText))
+    : null;
+  rebuildRenderLutRuntimeFromSources();
+  syncAgentSpriteLutReadout();
+  if (lutEditorDraft.open) {
+    if (lutEditorDraft.lutId) loadLutEditorDraft(lutEditorDraft.lutId);
+    else syncLutEditorSaveState();
+  }
+});
+spriteLutOpenEditorBtn.addEventListener("click", () => {
+  openLutEditor();
+});
+spriteLutEditorCloseBtn.addEventListener("click", () => {
+  closeLutEditor();
+});
+spriteLutEditorSelect.addEventListener("change", () => {
+  if (!confirmDiscardLutEditorChanges("Switch editable LUT")) {
+    spriteLutEditorSelect.value = lutEditorDraft.lutId;
+    return;
+  }
+  loadLutEditorDraft(spriteLutEditorSelect.value);
+});
+spriteLutEditorScopeSelect.addEventListener("change", () => {
+  lutEditorDraft.scope = spriteLutEditorScopeSelect.value === "map" ? "map" : "global";
+  lutEditorDraft.baselineText = serializeLutEditorDraftState();
+  syncLutEditorSaveState();
+});
+spriteLutEditorIdInput.addEventListener("input", () => {
+  syncLutEditorSaveState();
+});
+spriteLutEditorCreateBtn.addEventListener("click", () => {
+  const id = String(spriteLutEditorIdInput.value || "").trim();
+  if (!id) {
+    setStatus("Enter a LUT id before creating.");
+    return;
+  }
+  const source = getRenderLutSourceByScope(spriteLutEditorScopeSelect.value === "map" ? "map" : "global");
+  if (!source.luts || typeof source.luts !== "object") source.luts = {};
+  if (composeRenderLutSourceDefinition().luts[id] && !window.confirm(`LUT "${id}" already exists. Override in selected scope?`)) return;
+  source.luts[id] = {
+    id,
+    type: "grayscale-ramp",
+    stops: [
+      { pos: 0, rgb: [0, 0, 0] },
+      { pos: 255, rgb: [255, 255, 255] },
+    ],
+  };
+  rebuildRenderLutRuntimeFromSources();
+  populateLutEditorSelect(id);
+  loadLutEditorDraft(id);
+});
+spriteLutEditorRenameBtn.addEventListener("click", () => {
+  const nextId = String(spriteLutEditorIdInput.value || "").trim();
+  const oldId = lutEditorDraft.lutId;
+  if (!oldId || !nextId || nextId === oldId) return;
+  const source = getRenderLutSourceByScope(lutEditorDraft.scope);
+  if (composeRenderLutSourceDefinition().luts[nextId] && !window.confirm(`LUT "${nextId}" already exists. Continue?`)) return;
+  source.luts[nextId] = { ...(source.luts[oldId] || {}), id: nextId };
+  delete source.luts[oldId];
+  if (Array.isArray(source.variants)) {
+    for (const variant of source.variants) {
+      if (variant && variant.baseLutId === oldId) {
+        variant.baseLutId = nextId;
+        if (variant.family === oldId) variant.family = nextId;
+      }
+    }
+  }
+  rebuildRenderLutRuntimeFromSources();
+  populateLutEditorSelect(nextId);
+  loadLutEditorDraft(nextId);
+});
+spriteLutEditorDeleteBtn.addEventListener("click", () => {
+  const id = lutEditorDraft.lutId;
+  if (!id || !window.confirm(`Delete LUT "${id}" from ${lutEditorDraft.scope} scope?`)) return;
+  const source = getRenderLutSourceByScope(lutEditorDraft.scope);
+  delete source.luts[id];
+  if (Array.isArray(source.variants)) {
+    source.variants = source.variants.filter((variant) => !variant || variant.baseLutId !== id);
+  }
+  rebuildRenderLutRuntimeFromSources();
+  const nextId = populateLutEditorSelect("");
+  if (nextId) loadLutEditorDraft(nextId);
+});
+spriteLutEditorApplyBtn.addEventListener("click", () => {
+  if (!lutEditorDraft.lutId) return;
+  applyLutEditorDraftToSource();
+  syncAgentSpriteLutReadout();
+});
+spriteLutEditorSaveGlobalBtn.addEventListener("click", () => {
+  saveRenderLutsGlobal().catch((error) => {
+    console.error("Failed to save global render LUTs", error);
+    setStatus("Failed to save global render LUTs.");
+  });
+});
+spriteLutEditorResetDraftBtn.addEventListener("click", () => {
+  if (hasLutEditorDraftChanges() && !window.confirm("Reset the current LUT draft to the applied runtime data?")) return;
+  if (lutEditorDraft.lutId) loadLutEditorDraft(lutEditorDraft.lutId);
+});
+spriteLutEditorStopColor.addEventListener("input", () => {
+  const stop = getDraftSelectedStop();
+  if (!stop) return;
+  stop.rgb = lutHexToRgb(spriteLutEditorStopColor.value);
+  syncLutEditorDraftUi();
+});
+function syncLutEditorVariantDraftFromControls() {
+  if (!lutEditorDraft.variantFamily) return;
+  lutEditorDraft.variantFamily.family = String(spriteLutEditorVariantFamily.value || lutEditorDraft.lutId).trim() || lutEditorDraft.lutId;
+  lutEditorDraft.variantFamily.count = Math.max(0, Math.min(100, Math.round(Number(spriteLutEditorVariantCount.value) || 0)));
+  lutEditorDraft.variantFamily.seed = Math.max(0, Math.min(9999, Math.round(Number(spriteLutEditorVariantSeed.value) || 0)));
+  lutEditorDraft.variantFamily.positionJitter = Math.max(0, Math.min(32, Math.round(Number(spriteLutEditorVariantPosition.value) || 0)));
+  lutEditorDraft.variantFamily.brightnessJitter = Math.max(0, Math.min(0.5, Number(spriteLutEditorVariantBrightness.value) || 0));
+  lutEditorDraft.variantFamily.colorJitter = Math.max(0, Math.min(0.5, Number(spriteLutEditorVariantColor.value) || 0));
+  syncLutEditorDraftUi();
+}
+for (const input of [
+  spriteLutEditorVariantFamily,
+  spriteLutEditorVariantCount,
+  spriteLutEditorVariantSeed,
+  spriteLutEditorVariantPosition,
+  spriteLutEditorVariantBrightness,
+  spriteLutEditorVariantColor,
+]) {
+  input.addEventListener("input", syncLutEditorVariantDraftFromControls);
+}
+spriteLutEditorDeleteStopBtn.addEventListener("click", () => {
+  const endpoint = lutEditorDraft.selectedIndex === 0 || lutEditorDraft.selectedIndex === lutEditorDraft.stops.length - 1;
+  if (endpoint || lutEditorDraft.stops.length <= 2) return;
+  lutEditorDraft.stops.splice(lutEditorDraft.selectedIndex, 1);
+  lutEditorDraft.selectedIndex = Math.max(0, Math.min(lutEditorDraft.selectedIndex, lutEditorDraft.stops.length - 1));
+  syncLutEditorDraftUi();
+});
+spriteLutEditorAddStopBtn.addEventListener("click", () => {
+  const pos = 128;
+  lutEditorDraft.stops.push({ pos, rgb: sampleDraftColor(pos) });
+  selectStopBySortedPosition(pos);
+  syncLutEditorDraftUi();
+});
+spriteLutEditorCanvas.addEventListener("click", (event) => {
+  const pos = editorPointerToPos(event);
+  lutEditorDraft.stops.push({ pos, rgb: sampleDraftColor(pos) });
+  selectStopBySortedPosition(pos);
+  syncLutEditorDraftUi();
+});
+spriteLutEditorSurface.addEventListener("pointermove", (event) => {
+  if (lutEditorDraft.draggingIndex < 0) return;
+  const endpoint = lutEditorDraft.draggingIndex === 0 || lutEditorDraft.draggingIndex === lutEditorDraft.stops.length - 1;
+  if (endpoint) return;
+  const stop = lutEditorDraft.stops[lutEditorDraft.draggingIndex];
+  stop.pos = editorPointerToPos(event);
+  const selectedPos = stop.pos;
+  selectStopBySortedPosition(selectedPos);
+  lutEditorDraft.draggingIndex = lutEditorDraft.selectedIndex;
+  syncLutEditorDraftUi();
+});
+spriteLutEditorSurface.addEventListener("pointerup", () => {
+  lutEditorDraft.draggingIndex = -1;
+});
+spriteLutEditorSurface.addEventListener("pointercancel", () => {
+  lutEditorDraft.draggingIndex = -1;
+});
 setSwarmSpriteRenderMode(swarmSpriteRenderModeToggle.checked);
 setPlayerSpriteRenderVisible(agentSpritePlayerRenderToggle.checked);
+syncAgentSpriteLutReadout();
 
 function getAgentSpriteRenderSnapshot(frame = null) {
   const renderTimeSec = Number(frame?.time?.nowSec);
@@ -4491,6 +5674,7 @@ function getAgentSpriteRenderSnapshot(frame = null) {
         Number(swarmSnapshot?.atlas?.gridRows) || 0,
       ),
     },
+    lutAtlas: swarmSnapshot?.lutAtlas || null,
     agents: [
       ...(Array.isArray(playerSnapshot && playerSnapshot.agents) ? playerSnapshot.agents : []),
       ...(Array.isArray(swarmSnapshot && swarmSnapshot.agents) ? swarmSnapshot.agents : []),
@@ -6467,6 +7651,8 @@ swarmAgentSpriteRuntime = createSwarmAgentSpriteRuntime({
   swarmState,
   birdDefinition: SWARM_SPRITE_DEFINITION_FILE.sprites.bird,
   hawkDefinition: SWARM_SPRITE_DEFINITION_FILE.sprites.hawk,
+  getBirdDefinition: () => swarmBirdSpriteDefinitionDraft,
+  getLutRegistry: () => renderLutRuntime.getRegistry(),
   writeInterpolatedSwarmAgentPos,
   writeInterpolatedSwarmHawkPos,
 });

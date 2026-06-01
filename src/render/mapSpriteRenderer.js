@@ -4,6 +4,7 @@ precision highp float;
 layout(location = 0) in vec2 aMapCoord;
 layout(location = 1) in vec2 aAtlasUv;
 layout(location = 2) in vec4 aColor;
+layout(location = 3) in float aPaletteRow;
 
 uniform vec2 uMapSize;
 uniform vec2 uViewHalfExtents;
@@ -13,6 +14,7 @@ uniform float uMapAspect;
 out vec2 vAtlasUv;
 out vec2 vMapUv;
 out vec4 vColor;
+out float vPaletteRow;
 
 void main() {
   vec2 uv = vec2(
@@ -25,15 +27,18 @@ void main() {
   vAtlasUv = aAtlasUv;
   vMapUv = uv;
   vColor = aColor;
+  vPaletteRow = aPaletteRow;
 }`;
 
 const MAP_SPRITE_FRAG_SRC = `#version 300 es
 precision highp float;
 
 uniform sampler2D uAtlas;
+uniform sampler2D uPaletteLut;
 uniform sampler2D uNormals;
 uniform sampler2D uPointLightTex;
 uniform sampler2D uShadowTex;
+uniform vec2 uPaletteLutSize;
 
 uniform vec3 uSunDir;
 uniform vec3 uSunColor;
@@ -48,6 +53,7 @@ uniform float uUseShadows;
 in vec2 vAtlasUv;
 in vec2 vMapUv;
 in vec4 vColor;
+in float vPaletteRow;
 
 out vec4 outColor;
 
@@ -56,7 +62,16 @@ void main() {
   if (texel.a <= 0.0) {
     discard;
   }
-  vec3 spriteRgb = texel.rgb * vColor.rgb;
+  vec3 baseRgb = texel.rgb;
+  if (vPaletteRow >= 0.0 && uPaletteLutSize.y > 0.5) {
+    float grayscale = dot(texel.rgb, vec3(0.299, 0.587, 0.114));
+    vec2 lutUv = vec2(
+      ((grayscale * 255.0) + 0.5) / max(1.0, uPaletteLutSize.x),
+      (floor(vPaletteRow + 0.5) + 0.5) / max(1.0, uPaletteLutSize.y)
+    );
+    baseRgb = texture(uPaletteLut, lutUv).rgb;
+  }
+  vec3 spriteRgb = baseRgb * vColor.rgb;
 
   vec3 n = texture(uNormals, vMapUv).xyz * 2.0 - 1.0;
   n = normalize(n);
@@ -199,6 +214,17 @@ function createPlaceholderAtlas(gl) {
   return texture;
 }
 
+function createPlaceholderLut(gl) {
+  const texture = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([255, 255, 255, 255]));
+  return texture;
+}
+
 function createCanvas(documentRef, width, height) {
   if (!documentRef || typeof documentRef.createElement !== "function") {
     throw new Error("Document dependency is required to build a map sprite atlas.");
@@ -226,7 +252,7 @@ export function packMapSpriteVertices(structures, options = {}) {
   const atlasWidth = Math.max(slotWidth, Number(options.atlasWidth) || slotWidth);
   const atlasHeight = Math.max(slotHeight, Number(options.atlasHeight) || slotHeight);
   const color = Array.isArray(options.color) ? options.color : [1, 1, 1, 1];
-  const vertices = new Float32Array(items.length * 6 * 8);
+  const vertices = new Float32Array(items.length * 6 * 9);
   let offset = 0;
 
   function writeVertex(mapX, mapY, u, v, rgba) {
@@ -238,6 +264,7 @@ export function packMapSpriteVertices(structures, options = {}) {
     vertices[offset++] = rgba[1];
     vertices[offset++] = rgba[2];
     vertices[offset++] = rgba[3];
+    vertices[offset++] = rgba[4];
   }
 
   function rotatePoint(x, y, originX, originY, angle) {
@@ -281,12 +308,17 @@ export function packMapSpriteVertices(structures, options = {}) {
     const u1 = ((slotX + 1) * slotWidth) / atlasWidth;
     const v1 = ((slotY + 1) * slotHeight) / atlasHeight;
 
-    writeVertex(p00[0], p00[1], u0, v1, tint);
-    writeVertex(p10[0], p10[1], u1, v1, tint);
-    writeVertex(p01[0], p01[1], u0, v0, tint);
-    writeVertex(p01[0], p01[1], u0, v0, tint);
-    writeVertex(p10[0], p10[1], u1, v1, tint);
-    writeVertex(p11[0], p11[1], u1, v0, tint);
+    const paletteRow = item.paletteMode === "grayscale-lut" && Number.isFinite(Number(item.paletteRow))
+      ? Math.max(0, Math.round(Number(item.paletteRow)))
+      : -1;
+    const vertexColor = [tint[0], tint[1], tint[2], tint[3], paletteRow];
+
+    writeVertex(p00[0], p00[1], u0, v1, vertexColor);
+    writeVertex(p10[0], p10[1], u1, v1, vertexColor);
+    writeVertex(p01[0], p01[1], u0, v0, vertexColor);
+    writeVertex(p01[0], p01[1], u0, v0, vertexColor);
+    writeVertex(p10[0], p10[1], u1, v1, vertexColor);
+    writeVertex(p11[0], p11[1], u1, v0, vertexColor);
   }
 
   return vertices;
@@ -297,9 +329,11 @@ export function createMapSpriteRenderer(deps) {
   const program = createProgram(gl, MAP_SPRITE_VERT_SRC, MAP_SPRITE_FRAG_SRC);
   const uniforms = {
     uAtlas: gl.getUniformLocation(program, "uAtlas"),
+    uPaletteLut: gl.getUniformLocation(program, "uPaletteLut"),
     uNormals: gl.getUniformLocation(program, "uNormals"),
     uPointLightTex: gl.getUniformLocation(program, "uPointLightTex"),
     uShadowTex: gl.getUniformLocation(program, "uShadowTex"),
+    uPaletteLutSize: gl.getUniformLocation(program, "uPaletteLutSize"),
     uMapSize: gl.getUniformLocation(program, "uMapSize"),
     uViewHalfExtents: gl.getUniformLocation(program, "uViewHalfExtents"),
     uPanWorld: gl.getUniformLocation(program, "uPanWorld"),
@@ -321,18 +355,25 @@ export function createMapSpriteRenderer(deps) {
   }
   gl.bindVertexArray(vao);
   gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-  const stride = 8 * 4;
+  const stride = 9 * 4;
   gl.enableVertexAttribArray(0);
   gl.vertexAttribPointer(0, 2, gl.FLOAT, false, stride, 0);
   gl.enableVertexAttribArray(1);
   gl.vertexAttribPointer(1, 2, gl.FLOAT, false, stride, 2 * 4);
   gl.enableVertexAttribArray(2);
   gl.vertexAttribPointer(2, 4, gl.FLOAT, false, stride, 4 * 4);
+  gl.enableVertexAttribArray(3);
+  gl.vertexAttribPointer(3, 1, gl.FLOAT, false, stride, 8 * 4);
   gl.bindVertexArray(null);
   gl.bindBuffer(gl.ARRAY_BUFFER, null);
 
   const placeholderAtlas = createPlaceholderAtlas(gl);
+  const placeholderLut = createPlaceholderLut(gl);
   let atlasTexture = placeholderAtlas;
+  let lutTexture = placeholderLut;
+  let lutKey = "";
+  let lutWidth = 1;
+  let lutHeight = 1;
   let atlasKey = "";
   let atlasLoadingKey = "";
   let atlasSlotWidth = 32;
@@ -358,6 +399,36 @@ export function createMapSpriteRenderer(deps) {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, canvas);
     return texture;
+  }
+
+  function uploadLutData(lutAtlas) {
+    const width = Math.max(1, Math.round(Number(lutAtlas && lutAtlas.width) || 1));
+    const height = Math.max(1, Math.round(Number(lutAtlas && lutAtlas.height) || 1));
+    const data = lutAtlas && lutAtlas.data instanceof Uint8Array ? lutAtlas.data : null;
+    if (!data || data.length < width * height * 4) return;
+    let checksum = 2166136261;
+    for (let i = 0; i < data.length; i += 1) {
+      checksum ^= data[i];
+      checksum = Math.imul(checksum, 16777619);
+    }
+    const key = JSON.stringify({ width, height, dataLength: data.length, checksum: checksum >>> 0 });
+    if (key === lutKey) return;
+    const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+    gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, gl.NONE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
+    if (lutTexture && lutTexture !== placeholderLut) {
+      gl.deleteTexture(lutTexture);
+    }
+    lutTexture = texture;
+    lutKey = key;
+    lutWidth = width;
+    lutHeight = height;
   }
 
 function collectSpriteSources(snapshot) {
@@ -422,7 +493,7 @@ function getSnapshotItems(snapshot) {
         return;
       }
       const canvas = createCanvas(deps.document, slotWidth * gridColumns, slotHeight * gridRows);
-      const ctx = canvas.getContext("2d");
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
       if (!ctx) throw new Error("2D canvas context is required to build structure atlas.");
       ctx.imageSmoothingEnabled = false;
       for (const [slot, source] of sources) {
@@ -474,6 +545,7 @@ function getSnapshotItems(snapshot) {
     const items = getSnapshotItems(snapshot);
     if (items.length === 0) return;
     void rebuildAtlasFromSnapshot(snapshot);
+    uploadLutData(snapshot && snapshot.lutAtlas);
     const camera = frame && frame.camera ? frame.camera : {};
     const map = frame && frame.map ? frame.map : {};
     const mapWidth = Math.max(1, Number(map.width) || Number(deps.splatSize && deps.splatSize.width) || 1);
@@ -505,17 +577,21 @@ function getSnapshotItems(snapshot) {
     gl.bindTexture(gl.TEXTURE_2D, atlasTexture);
     gl.uniform1i(uniforms.uAtlas, 0);
     gl.activeTexture(gl.TEXTURE1);
-    gl.bindTexture(gl.TEXTURE_2D, deps.normalsTex || null);
-    gl.uniform1i(uniforms.uNormals, 1);
+    gl.bindTexture(gl.TEXTURE_2D, lutTexture);
+    gl.uniform1i(uniforms.uPaletteLut, 1);
     gl.activeTexture(gl.TEXTURE2);
-    gl.bindTexture(gl.TEXTURE_2D, deps.pointLightTex || null);
-    gl.uniform1i(uniforms.uPointLightTex, 2);
+    gl.bindTexture(gl.TEXTURE_2D, deps.normalsTex || null);
+    gl.uniform1i(uniforms.uNormals, 2);
     gl.activeTexture(gl.TEXTURE3);
+    gl.bindTexture(gl.TEXTURE_2D, deps.pointLightTex || null);
+    gl.uniform1i(uniforms.uPointLightTex, 3);
+    gl.activeTexture(gl.TEXTURE4);
     gl.bindTexture(
       gl.TEXTURE_2D,
       Number(uniformInput.shadowBlurPx) > 0.001 ? deps.shadowBlurTex || null : deps.shadowRawTex || null,
     );
-    gl.uniform1i(uniforms.uShadowTex, 3);
+    gl.uniform1i(uniforms.uShadowTex, 4);
+    gl.uniform2f(uniforms.uPaletteLutSize, lutWidth, lutHeight);
     gl.uniform2f(uniforms.uMapSize, mapWidth, mapHeight);
     gl.uniform2f(uniforms.uViewHalfExtents, viewHalf.x, viewHalf.y);
     gl.uniform2f(

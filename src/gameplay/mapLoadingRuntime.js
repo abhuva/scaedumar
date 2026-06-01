@@ -18,6 +18,7 @@ export function createMapLoadingRuntime(deps) {
     applyResourceDebugSettings: deps.applyResourceDebugSettings,
     applyResourceStockSettings: deps.applyResourceStockSettings,
     applySwarmData: deps.applySwarmData,
+    applyRenderLutMapLocalDefinition: deps.applyRenderLutMapLocalDefinition,
     applyStructureData: deps.applyStructureData,
     applyLoadedNpc: deps.applyLoadedNpc,
     getFileFromFolderSelection: deps.getFileFromFolderSelection,

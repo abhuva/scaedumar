@@ -22,6 +22,24 @@ export function getRdAgentsSwarmPanelHtml() {
             </div>
           </div>
           <div class="row">
+            <label>Bird LUTs</label>
+            <p id="swarmBirdLutReadout" class="panel-note">No bird LUT refs.</p>
+          </div>
+          <div class="row">
+            <label for="swarmBirdLutFamilySelect">Bird LUT Family</label>
+            <div class="inline-control">
+              <select id="swarmBirdLutFamilySelect"></select>
+              <button id="swarmBirdLutApplyBtn" class="row-action-btn" type="button">Apply</button>
+            </div>
+          </div>
+          <div class="row">
+            <label for="swarmBirdLutVariantCount">Variant Count</label>
+            <div class="inline-control">
+              <input id="swarmBirdLutVariantCount" type="range" min="0" max="100" step="1" value="16" />
+              <span id="swarmBirdLutVariantCountValue">16</span>
+            </div>
+          </div>
+          <div class="row">
             <label for="swarmBackgroundColor">Studio Background</label>
             <input id="swarmBackgroundColor" type="color" value="#1c2b44" />
           </div>

@@ -27,6 +27,13 @@ test("normalizes agent sprite definition files", () => {
         animationMode: "renderTime",
         rotateToVelocity: true,
         transparentColor: "#ffffff",
+        palette: {
+          mode: "grayscale-lut",
+          lutRefs: [
+            { id: "animal.bird.dark", weight: 2, tags: ["forest"] },
+            { range: { family: "animal.bird", start: 0, count: 2 }, rare: true, tags: ["winter"] },
+          ],
+        },
       },
     },
   });
@@ -43,6 +50,11 @@ test("normalizes agent sprite definition files", () => {
   assert.equal(file.sprites.bird.animationMode, "renderTime");
   assert.equal(file.sprites.bird.rotateToVelocity, true);
   assert.equal(file.sprites.bird.transparentColor, "#ffffff");
+  assert.equal(file.sprites.bird.palette.mode, "grayscale-lut");
+  assert.deepEqual(file.sprites.bird.palette.lutRefs, [
+    { id: "animal.bird.dark", weight: 2, rare: false, tags: ["forest"] },
+    { range: { family: "animal.bird", start: 0, count: 2 }, weight: 0.1, rare: true, tags: ["winter"] },
+  ]);
 });
 
 test("loads agent sprite definition files", async () => {
@@ -89,6 +101,11 @@ test("shipped agent sprite definition files declare current player and swarm met
   assert.equal(swarmFile.sprites.bird.spriteSrc, "assets/sprites/agents/default/bird.png");
   assert.equal(swarmFile.sprites.bird.frameCount, 6);
   assert.equal(swarmFile.sprites.bird.animationMode, "renderTime");
+  assert.equal(swarmFile.sprites.bird.palette.mode, "grayscale-lut");
+  assert.equal(
+    swarmFile.sprites.bird.palette.lutRefs.some((ref) => ref.id === "animal.bird.rare.white" && ref.rare === true),
+    true,
+  );
   assert.equal(swarmFile.sprites.hawk.spriteSrc, "assets/sprites/agents/default/hawk.png");
   assert.equal(swarmFile.sprites.hawk.frameCount, 1);
 });

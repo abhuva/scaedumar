@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { createSwarmAgentSpriteRuntime } from "../src/gameplay/swarmAgentSpriteRuntime.js";
+import { buildRenderLutRegistry } from "../src/render/renderLutRegistry.js";
 
 const BIRD_DEFINITION = Object.freeze({
   id: "bird",
@@ -27,6 +28,13 @@ const BIRD_DEFINITION = Object.freeze({
   baseScale: 1,
   maxHeightScale: 1.5,
   layer: "flying",
+  palette: {
+    mode: "grayscale-lut",
+    selection: "stable-random",
+    lutRefs: [
+      { range: { family: "animal.bird", start: 0, count: 4 } },
+    ],
+  },
 });
 
 const HAWK_DEFINITION = Object.freeze({
@@ -85,10 +93,28 @@ function createSwarmState() {
   };
 }
 
+function createLutRegistry() {
+  return buildRenderLutRegistry({
+    version: 1,
+    variants: [
+      {
+        family: "animal.bird",
+        count: 4,
+        seed: 1,
+        stops: [
+          { pos: 0, rgb: [0, 0, 0] },
+          { pos: 255, rgb: [255, 255, 255] },
+        ],
+      },
+    ],
+  });
+}
+
 test("swarm agent sprite snapshot uses interpolated bird positions", () => {
   const swarmState = createSwarmState();
   const runtime = createSwarmAgentSpriteRuntime(withSpriteDefinitions({
     swarmState,
+    lutRegistry: createLutRegistry(),
     birdDefinition: {
       animationPhase: "none",
     },
@@ -116,6 +142,10 @@ test("swarm agent sprite snapshot uses interpolated bird positions", () => {
   assert.equal(snapshot.agents[0].sourceFrameIndex, 0);
   assert.equal(snapshot.agents[0].transparentColor, "#ffffff");
   assert.equal(snapshot.agents[0].transparentColorTolerance, 0);
+  assert.equal(snapshot.agents[0].paletteMode, "grayscale-lut");
+  assert.ok(snapshot.agents[0].paletteRow >= 0);
+  assert.equal(snapshot.lutAtlas.width, 256);
+  assert.equal(snapshot.lutAtlas.height, 4);
   assert.equal(snapshot.agents[0].rotationRadians, Math.PI / 2);
   assert.equal(snapshot.agents[0].heightScale, 1);
   assert.equal(snapshot.agents[1].id, "bird_202");
@@ -218,4 +248,132 @@ test("swarm agent sprite snapshot can filter birds and hawks independently", () 
 
   assert.equal(runtime.getSwarmAgentSpriteRenderSnapshot({ includeBirds: false }).agents.length, 1);
   assert.equal(runtime.getSwarmAgentSpriteRenderSnapshot({ includeHawks: false }).agents.length, 2);
+});
+
+test("swarm bird palette selection supports weighted refs", () => {
+  const swarmState = createSwarmState();
+  const lutRegistry = buildRenderLutRegistry({
+    version: 1,
+    luts: {
+      "animal.bird.common": {
+        stops: [
+          { pos: 0, rgb: [0, 0, 0] },
+          { pos: 255, rgb: [128, 128, 128] },
+        ],
+      },
+      "animal.bird.rare": {
+        stops: [
+          { pos: 0, rgb: [0, 0, 0] },
+          { pos: 255, rgb: [255, 255, 255] },
+        ],
+      },
+    },
+  });
+  const runtime = createSwarmAgentSpriteRuntime(withSpriteDefinitions({
+    swarmState,
+    lutRegistry,
+    birdDefinition: {
+      palette: {
+        mode: "grayscale-lut",
+        selection: "stable-random",
+        lutRefs: [
+          { id: "animal.bird.common", weight: 1 },
+          { id: "animal.bird.rare", rare: true, weight: 0 },
+        ],
+      },
+    },
+  }));
+
+  const snapshot = runtime.getSwarmAgentSpriteRenderSnapshot({ includeHawks: false });
+
+  assert.equal(snapshot.agents[0].paletteRow, 0);
+  assert.equal(snapshot.agents[1].paletteRow, 0);
+});
+
+test("swarm bird palette selection can prefer tagged rows from context", () => {
+  const swarmState = createSwarmState();
+  const lutRegistry = buildRenderLutRegistry({
+    version: 1,
+    luts: {
+      "animal.bird.forest": {
+        stops: [
+          { pos: 0, rgb: [0, 20, 0] },
+          { pos: 255, rgb: [80, 160, 80] },
+        ],
+      },
+      "animal.bird.winter": {
+        stops: [
+          { pos: 0, rgb: [10, 10, 20] },
+          { pos: 255, rgb: [230, 240, 255] },
+        ],
+      },
+    },
+  });
+  const runtime = createSwarmAgentSpriteRuntime(withSpriteDefinitions({
+    swarmState,
+    lutRegistry,
+    birdDefinition: {
+      palette: {
+        mode: "grayscale-lut",
+        selection: "stable-random",
+        lutRefs: [
+          { id: "animal.bird.forest", tags: ["forest"] },
+          { id: "animal.bird.winter", tags: ["winter"] },
+        ],
+      },
+    },
+  }));
+
+  const snapshot = runtime.getSwarmAgentSpriteRenderSnapshot({
+    includeHawks: false,
+    paletteTags: ["winter"],
+  });
+
+  assert.equal(snapshot.agents[0].paletteRow, 1);
+  assert.equal(snapshot.agents[1].paletteRow, 1);
+});
+
+test("swarm agent sprite snapshots read the latest LUT registry", () => {
+  const swarmState = createSwarmState();
+  let lutRegistry = buildRenderLutRegistry({
+    version: 1,
+    luts: {
+      "animal.bird.dark": {
+        stops: [
+          { pos: 0, rgb: [0, 0, 0] },
+          { pos: 255, rgb: [64, 64, 64] },
+        ],
+      },
+    },
+  });
+  const runtime = createSwarmAgentSpriteRuntime(withSpriteDefinitions({
+    swarmState,
+    getLutRegistry: () => lutRegistry,
+    birdDefinition: {
+      palette: {
+        mode: "grayscale-lut",
+        selection: "stable-random",
+        lutRefs: [
+          { id: "animal.bird.dark" },
+        ],
+      },
+    },
+  }));
+
+  const first = runtime.getSwarmAgentSpriteRenderSnapshot({ includeHawks: false });
+  lutRegistry = buildRenderLutRegistry({
+    version: 1,
+    luts: {
+      "animal.bird.dark": {
+        stops: [
+          { pos: 0, rgb: [255, 0, 0] },
+          { pos: 255, rgb: [255, 0, 0] },
+        ],
+      },
+    },
+  });
+  const second = runtime.getSwarmAgentSpriteRenderSnapshot({ includeHawks: false });
+
+  assert.notEqual(first.lutAtlas.data[0], second.lutAtlas.data[0]);
+  assert.equal(second.lutAtlas.data[0], 255);
 });

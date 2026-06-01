@@ -1,4 +1,5 @@
 import { buildAgentSpriteRenderItem, normalizeAgentSpriteDefinition } from "./agentSpriteModel.js";
+import { expandRenderLutWeightedRefs } from "../render/renderLutRegistry.js";
 
 export const DEFAULT_BIRD_SPRITE_DEFINITION = Object.freeze({
   id: "bird",
@@ -21,6 +22,46 @@ function getAgentId(swarmState, index) {
     : index + 1;
 }
 
+function hashUint(value) {
+  const text = String(value ?? "");
+  let hash = 2166136261;
+  for (let i = 0; i < text.length; i += 1) {
+    hash ^= text.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function resolvePaletteRows(definition, lutRegistry) {
+  if (!definition || definition.palette?.mode !== "grayscale-lut") return [];
+  return expandRenderLutWeightedRefs(definition.palette.lutRefs, lutRegistry);
+}
+
+function choosePaletteRow(rows, seed) {
+  const candidates = Array.isArray(rows) ? rows : [];
+  if (candidates.length === 0) return -1;
+  const totalWeight = candidates.reduce((sum, row) => sum + Math.max(0, finiteOr(row && row.weight, 0)), 0);
+  if (totalWeight <= 0) return candidates[hashUint(seed) % candidates.length].row;
+  const target = (hashUint(seed) / 4294967296) * totalWeight;
+  let cursor = 0;
+  for (const row of candidates) {
+    cursor += Math.max(0, finiteOr(row && row.weight, 0));
+    if (target < cursor) return row.row;
+  }
+  return candidates[candidates.length - 1].row;
+}
+
+function filterPaletteRowsByTags(rows, tags) {
+  const candidates = Array.isArray(rows) ? rows : [];
+  const requestedTags = Array.isArray(tags) ? tags.filter(Boolean) : [];
+  if (requestedTags.length === 0) return candidates;
+  const requested = new Set(requestedTags);
+  const taggedMatches = candidates.filter((row) => (
+    Array.isArray(row.tags) && row.tags.some((tag) => requested.has(tag))
+  ));
+  return taggedMatches.length > 0 ? taggedMatches : candidates;
+}
+
 function getRequiredAtlasRows(agents, columns) {
   const safeColumns = Math.max(1, Math.floor(finiteOr(columns, 16)));
   let maxSlot = 0;
@@ -35,16 +76,41 @@ function getRequiredAtlasRows(agents, columns) {
 }
 
 export function createSwarmAgentSpriteRuntime(deps = {}) {
-  const birdDefinition = normalizeAgentSpriteDefinition({
+  const initialBirdDefinition = normalizeAgentSpriteDefinition({
     ...DEFAULT_BIRD_SPRITE_DEFINITION,
     ...(deps.birdDefinition || {}),
   });
-  const hawkDefinition = normalizeAgentSpriteDefinition({
+  const initialHawkDefinition = normalizeAgentSpriteDefinition({
     ...DEFAULT_HAWK_SPRITE_DEFINITION,
     ...(deps.hawkDefinition || {}),
   });
   const agentScratch = { x: 0, y: 0, z: 0 };
   const hawkScratch = { x: 0, y: 0, z: 0 };
+  function getLutRegistry() {
+    return typeof deps.getLutRegistry === "function"
+      ? deps.getLutRegistry()
+      : deps.lutRegistry;
+  }
+
+  function getBirdDefinition() {
+    const source = typeof deps.getBirdDefinition === "function"
+      ? deps.getBirdDefinition()
+      : initialBirdDefinition;
+    return normalizeAgentSpriteDefinition({
+      ...DEFAULT_BIRD_SPRITE_DEFINITION,
+      ...(source || {}),
+    });
+  }
+
+  function getHawkDefinition() {
+    const source = typeof deps.getHawkDefinition === "function"
+      ? deps.getHawkDefinition()
+      : initialHawkDefinition;
+    return normalizeAgentSpriteDefinition({
+      ...DEFAULT_HAWK_SPRITE_DEFINITION,
+      ...(source || {}),
+    });
+  }
 
   function writeAgentPos(index) {
     if (typeof deps.writeInterpolatedSwarmAgentPos === "function") {
@@ -74,12 +140,19 @@ export function createSwarmAgentSpriteRuntime(deps = {}) {
     const includeBirds = options.includeBirds !== false;
     const includeHawks = options.includeHawks !== false;
     const agents = [];
+    const lutRegistry = getLutRegistry();
+    const birdDefinition = getBirdDefinition();
+    const hawkDefinition = getHawkDefinition();
+    const birdPaletteRows = resolvePaletteRows(birdDefinition, lutRegistry);
+    const hawkPaletteRows = resolvePaletteRows(hawkDefinition, lutRegistry);
 
     if (includeBirds) {
+      const birdSelectionRows = filterPaletteRowsByTags(birdPaletteRows, options.paletteTags);
       for (let i = 0; i < count; i += 1) {
+        const agentId = getAgentId(state, i);
         const pos = writeAgentPos(i);
         agents.push(buildAgentSpriteRenderItem({
-          id: `bird_${getAgentId(state, i)}`,
+          id: `bird_${agentId}`,
           owner: "swarm",
           x: pos.x,
           y: pos.y,
@@ -88,11 +161,13 @@ export function createSwarmAgentSpriteRuntime(deps = {}) {
           vy: state.vy && state.vy[i],
         }, birdDefinition, {
           renderTimeSec: options.renderTimeSec,
+          paletteRow: choosePaletteRow(birdSelectionRows, `bird:${agentId}`),
         }));
       }
     }
 
     if (includeHawks && Array.isArray(state.hawks)) {
+      const hawkSelectionRows = filterPaletteRowsByTags(hawkPaletteRows, options.paletteTags);
       for (let i = 0; i < state.hawks.length; i += 1) {
         const hawk = state.hawks[i];
         const pos = writeHawkPos(i);
@@ -106,6 +181,7 @@ export function createSwarmAgentSpriteRuntime(deps = {}) {
           vy: hawk && hawk.vy,
         }, hawkDefinition, {
           renderTimeSec: options.renderTimeSec,
+          paletteRow: choosePaletteRow(hawkSelectionRows, `hawk:${i + 1}`),
         }));
       }
     }
@@ -120,6 +196,13 @@ export function createSwarmAgentSpriteRuntime(deps = {}) {
         gridColumns,
         gridRows: getRequiredAtlasRows(agents, gridColumns),
       },
+      lutAtlas: lutRegistry
+        ? {
+          width: lutRegistry.width,
+          height: lutRegistry.height,
+          data: lutRegistry.data,
+        }
+        : null,
       agents,
     };
   }
