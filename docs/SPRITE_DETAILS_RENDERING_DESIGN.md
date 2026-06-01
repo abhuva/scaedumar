@@ -971,6 +971,54 @@ generated atlas. This lets crisp pixel-art strips use a white background without
 an alpha channel while keeping the renderer itself unchanged. The current bird
 sprite definition uses this exact-white import key.
 
+Agent sprites may also opt into reusable grayscale LUT recoloring. Shared render
+LUT definitions live in:
+
+```txt
+assets/data/render_luts.json
+```
+
+The first supported LUT type is `grayscale-ramp`:
+
+```txt
+input grayscale 0..255 -> output RGB
+```
+
+`src/render/renderLutRegistry.js` normalizes authored color stops, generates
+fixed two-digit variant IDs, and builds a compact `256xN` RGBA atlas where each
+row is one 1D LUT. Sprite definitions reference LUTs by ID or by variant range;
+they do not embed color stops.
+
+Example:
+
+```json
+"palette": {
+  "mode": "grayscale-lut",
+  "selection": "stable-random",
+  "lutRefs": [
+    { "id": "animal.bird.dark" },
+    { "range": { "family": "animal.bird", "start": 0, "count": 16 } }
+  ]
+}
+```
+
+Variant range IDs follow this fixed scheme:
+
+```txt
+<family>.variant.<nn>
+```
+
+Example:
+
+```txt
+animal.bird.dark.variant.00
+animal.bird.dark.variant.01
+```
+
+Swarm birds choose a stable LUT row from their stable agent ID. The map-sprite
+shader samples the LUT before applying the existing terrain lighting path, so
+palette variation still sits in the scene lighting context.
+
 ### Agent Rendering Order
 
 Initial order:
@@ -1028,8 +1076,8 @@ gameplay footprint and from `visualWidthPx`/`visualHeightPx`.
 
 The swarm file currently defines `bird` and `hawk`. Bird metadata owns the
 `6`-frame strip, render-time animation settings, velocity rotation, height
-scaling, and exact-white source color key. Hawk metadata currently owns one
-velocity-rotated frame.
+scaling, exact-white source color key, and reusable grayscale LUT recoloring
+refs. Hawk metadata currently owns one velocity-rotated frame.
 
 The split is intentional: player/NPC visuals and swarm/animal visuals share the
 same renderer-facing schema, but their gameplay owners and future override

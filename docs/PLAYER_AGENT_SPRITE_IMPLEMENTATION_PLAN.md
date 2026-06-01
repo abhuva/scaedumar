@@ -106,6 +106,14 @@ Implemented in this slice:
   instead of an alpha channel. During atlas construction, matching white pixels
   are converted to alpha `0` with tolerance `0`; this is source-import behavior,
   not a shader branch.
+- A reusable grayscale LUT recoloring path is implemented for agent sprites.
+  `assets/data/render_luts.json` defines shared `grayscale-ramp` LUTs and
+  generated two-digit variant families; `src/render/renderLutRegistry.js`
+  resolves those definitions into a `256xN` LUT atlas. Bird metadata references
+  LUTs by `palette.lutRefs`, including explicit IDs and the
+  `animal.bird.dark.variant.00..15` range. Swarm birds choose a stable LUT row from
+  stable agent IDs, and `mapSpriteRenderer` samples the LUT before applying
+  terrain lighting.
 - `src/render/passes/agentSpritePass.js` draws the combined agent snapshot after
   Structures through the shared `mapSpriteRenderer`.
 - `src/render/renderer.js` now executes optional `agentSprites` after

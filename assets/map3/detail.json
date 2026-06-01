@@ -38,7 +38,7 @@
       "slot": 2,
       "micro": {
         "src": "assets/detail/default/grass_micro.png",
-        "scaleMeters": 4,
+        "scaleMeters": 16,
         "colorStrength": 0.75
       }
     },
@@ -62,7 +62,7 @@
     "priorities": [
       -0.02,
       0.095,
-      0,
+      0.2,
       0.03
     ]
   },
