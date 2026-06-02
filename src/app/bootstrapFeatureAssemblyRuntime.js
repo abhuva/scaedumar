@@ -21,11 +21,13 @@ export function createDefaultMapImageAssemblyRuntime(deps) {
     extractImageData: deps.extractImageData,
     rebuildFlowMapTexture: deps.rebuildFlowMapTexture,
     syncPointLightWorkerMapData: deps.syncPointLightWorkerMapData,
+    setSplatImageData: deps.setSplatImageData,
     setNormalsImageData: deps.setNormalsImageData,
     setHeightImageData: deps.setHeightImageData,
     setSlopeImageData: deps.setSlopeImageData,
     setWetnessImageData: deps.setWetnessImageData,
     setWaterImageData: deps.setWaterImageData,
+    setApronImageData: deps.setApronImageData,
   };
 }
 

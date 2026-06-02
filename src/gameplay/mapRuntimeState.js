@@ -14,6 +14,7 @@ export function createMapRuntimeState(deps) {
     deps.applyWaterTrailSettings(deps.getSettingsDefaults("watertrails", deps.defaultWaterTrailSettings));
     deps.applySlimeSettings(deps.getSettingsDefaults("slime", deps.defaultSlimeSettings));
     deps.applyDetailSettings(deps.getSettingsDefaults("detail", deps.defaultDetailSettings));
+    deps.applyApronSettings(deps.getSettingsDefaults("apron", deps.defaultApronSettings));
     deps.applyCameraSettings(deps.getSettingsDefaults("camera", deps.defaultCameraSettings));
     deps.applyAudioSettings(deps.getSettingsDefaults("audio", deps.defaultAudioSettings));
     deps.applySwarmSettings(deps.getSettingsDefaults("swarm", deps.defaultSwarmSettings));

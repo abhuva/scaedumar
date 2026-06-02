@@ -1,6 +1,6 @@
 export function createMapLoader(deps) {
   function sidecarStatusText(prefix, loaded) {
-    return `${prefix} | pointlights: ${loaded.pointLights ? "yes" : "no"} | lighting: ${loaded.lighting ? "yes" : "no"} | interaction: ${loaded.interaction ? "yes" : "no"} | fog: ${loaded.fog ? "yes" : "no"} | clouds: ${loaded.clouds ? "yes" : "no"} | waterfx: ${loaded.waterFx ? "yes" : "no"} | watertrails: ${loaded.waterTrails ? "yes" : "default"} | slime: ${loaded.slime ? "yes" : "default"} | detail: ${loaded.detail ? "yes" : "default"} | camera: ${loaded.camera ? "yes" : "default"} | resource-debug: ${loaded.resourceDebug ? "yes" : "default"} | resource-stock: ${loaded.resourceStock ? "yes" : "default"} | swarm: ${loaded.swarm ? "yes" : "default"} | render-luts: ${loaded.renderLuts ? "yes" : "default"} | npc: ${loaded.npc ? "yes" : "default"}`;
+    return `${prefix} | pointlights: ${loaded.pointLights ? "yes" : "no"} | lighting: ${loaded.lighting ? "yes" : "no"} | interaction: ${loaded.interaction ? "yes" : "no"} | fog: ${loaded.fog ? "yes" : "no"} | clouds: ${loaded.clouds ? "yes" : "no"} | waterfx: ${loaded.waterFx ? "yes" : "no"} | watertrails: ${loaded.waterTrails ? "yes" : "default"} | slime: ${loaded.slime ? "yes" : "default"} | detail: ${loaded.detail ? "yes" : "default"} | apron: ${loaded.apron ? "yes" : "default"} | camera: ${loaded.camera ? "yes" : "default"} | resource-debug: ${loaded.resourceDebug ? "yes" : "default"} | resource-stock: ${loaded.resourceStock ? "yes" : "default"} | swarm: ${loaded.swarm ? "yes" : "default"} | render-luts: ${loaded.renderLuts ? "yes" : "default"} | npc: ${loaded.npc ? "yes" : "default"}`;
   }
 
   function appendMissingGameplayMapWarning(status, availableFiles) {
@@ -52,9 +52,11 @@ export function createMapLoader(deps) {
     const water = await loadRequiredImage("water.png");
     const flow = await loadOptionalImage("flow.png");
     const wetness = await loadOptionalImage("wetness.png");
+    const apron = await loadOptionalImage("apron.png");
+    const apronNormal = await loadOptionalImage("apron_normals.png");
 
     deps.setStatus("Uploading terrain textures...", { progress: 0.43 });
-    await deps.applyMapImages(splat, normals, height, slope, water, flow, wetness);
+    await deps.applyMapImages(splat, normals, height, slope, water, flow, wetness, apron, apronNormal);
     deps.setStatus("Resetting map runtime state...", { progress: 0.48 });
     deps.setCurrentMapFolderPath(folder);
     deps.resetMapRuntimeStateAfterImages();
@@ -72,6 +74,8 @@ export function createMapLoader(deps) {
       "water.png": water,
       "flow.png": flow,
       "wetness.png": wetness,
+      "apron.png": apron,
+      "apron_normals.png": apronNormal,
     }), { progress: 1 });
   }
 
@@ -84,6 +88,8 @@ export function createMapLoader(deps) {
     const waterFile = deps.getFileFromFolderSelection(files, "water.png");
     const flowFile = deps.getFileFromFolderSelection(files, "flow.png");
     const wetnessFile = deps.getFileFromFolderSelection(files, "wetness.png");
+    const apronFile = deps.getFileFromFolderSelection(files, "apron.png");
+    const apronNormalFile = deps.getFileFromFolderSelection(files, "apron_normals.png");
     if (!splatFile || !normalsFile || !heightFile || !slopeFile || !waterFile) {
       throw new Error("Folder must contain splat.png, normals.png, height.png, slope.png, and water.png.");
     }
@@ -97,6 +103,8 @@ export function createMapLoader(deps) {
       { fileName: "water.png", file: waterFile, required: true },
       { fileName: "flow.png", file: flowFile, required: false },
       { fileName: "wetness.png", file: wetnessFile, required: false },
+      { fileName: "apron.png", file: apronFile, required: false },
+      { fileName: "apron_normals.png", file: apronNormalFile, required: false },
     ];
     const activeLoads = imageLoads.filter((entry) => entry.file || entry.required);
     let completedLoads = 0;
@@ -112,11 +120,11 @@ export function createMapLoader(deps) {
         throw new Error(`Failed loading selected map image ${entry.fileName}: ${message}`, { cause: error });
       });
     }
-    const [splat, normals, height, slope, water, flow, wetness] = await Promise.all(
+    const [splat, normals, height, slope, water, flow, wetness, apron, apronNormal] = await Promise.all(
       imageLoads.map(trackSelectedImageLoad)
     );
     deps.setStatus("Uploading terrain textures...", { progress: 0.43 });
-    await deps.applyMapImages(splat, normals, height, slope, water, flow, wetness);
+    await deps.applyMapImages(splat, normals, height, slope, water, flow, wetness, apron, apronNormal);
 
     const relPath = String(splatFile.webkitRelativePath || "");
     const firstFolder = relPath.includes("/") ? relPath.split("/")[0] : "";
@@ -140,6 +148,8 @@ export function createMapLoader(deps) {
       "water.png": waterFile,
       "flow.png": flowFile,
       "wetness.png": wetnessFile,
+      "apron.png": apronFile,
+      "apron_normals.png": apronNormalFile,
     }), { progress: 1 });
   }
 

@@ -11,6 +11,7 @@ export function createMapDataSaveRuntime(deps) {
     serializeWaterTrailSettings: deps.serializeWaterTrailSettings,
     serializeSlimeSettings: deps.serializeSlimeSettings,
     serializeDetailSettings: deps.serializeDetailSettings,
+    serializeApronSettings: deps.serializeApronSettings,
     serializeCameraSettings: deps.serializeCameraSettings,
     serializeAudioSettings: deps.serializeAudioSettings,
     serializeResourceDebugSettings: deps.serializeResourceDebugSettings,

@@ -788,6 +788,23 @@ Normal behavior:
 This keeps the existing height-map shadow system focused on large terrain forms
 while allowing close-up detail to respond believably to lighting.
 
+Experiment note, June 2026:
+
+- Generated micro normals from the current detail textures did improve close-zoom
+  texture definition slightly.
+- Different grayscale/height-source modes were not visually meaningful for the
+  shipped detail textures; RGB channels carry similar local structure, and
+  alpha is constant.
+- Flip and invert controls did not justify the UI/settings surface for this
+  material-detail use case.
+- The visible effect was subtle even under cursor lighting and mostly read as
+  sharper texture definition rather than clear directional bump response.
+- A temporary implementation borrowed the Slime terrain-underlay sampler slot;
+  that sampler debt was removed rather than kept.
+- If detail normals are revisited, expose at most a single normal-strength
+  control per detail/material and implement it only after a proper texture
+  packing pass frees sampler budget cleanly.
+
 ### Atlas Requirements
 
 Atlas building should be automatic.
@@ -813,6 +830,64 @@ Missing assets should fail gracefully:
 - Missing all detail assets disables zoom detail.
 
 This keeps existing maps compatible.
+
+## Terrain Apron
+
+The terrain apron is a visual-only experiment for softening the hard edge of the
+playable terrain. It does not extend gameplay sampling, movement, resources, or
+simulation bounds.
+
+The first implementation bakes a low-resolution background texture from the
+current terrain splat/albedo image, or can use an authored `apron.png`:
+
+- The baked texture covers a `3x3` map footprint centered on the playable map.
+- The center tile lines up with the real terrain, while side tiles mirror the
+  terrain horizontally or vertically and corner tiles mirror both axes.
+- The playable terrain renders over the center tile; the apron is only visible
+  where the main terrain pass discards fragments outside the real map bounds.
+- A distance fade from the exact apron center drives pixel-stable binary
+  dither, but the playable-map edge remains intact so mirrored sides connect
+  cleanly before fragmenting outward. Each apron pixel is either mirrored
+  terrain or the configured background color; it does not use alpha blending or
+  continuous darkening.
+- A cheap dynamic light tint approximates current sun, moon, and ambient
+  lighting so the apron does not read as an unlit background sticker. It is not
+  a full normal-map relight and does not cast or receive terrain shadows.
+
+Runtime settings live under `RD > Terrain > Apron` and persist through optional
+`apron.json`. The controls are intentionally basic for the experiment:
+enabled, generated/authored `apron.png` source selection, generated fallback resolution,
+fade range, dither cell size, dither strength, source Flip X/Y orientation
+tests, and background color.
+
+When `Use apron.png` is enabled and the current map folder contains
+`apron.png`, the renderer uses that complete `3x3` authored apron texture
+instead of the generated mirrored texture. The authored image uses its actual
+dimensions; the bake-resolution dropdown only applies to the generated fallback.
+The dither cell size is normalized against a 1024 reference, so a 2048 authored
+apron doubles the dither cell in texture pixels and keeps the same visual dither
+scale across the `3x3` footprint. The authored middle tile can contain terrain
+pixels because the real terrain renders over it.
+
+Current experiment handoff:
+
+- Prefer an authored `1024x1024` `apron.png` for the current map scale.
+- The tested acceptable baseline is dither cell size `3`.
+- A `2048x2048` authored apron is supported by the loader and dither math, but
+  did not improve the result enough to justify treating it as the target path.
+- Slight visual shimmer while panning is currently accepted. It also appears on
+  other dithered overlays and is likely tied to pixel-grid/camera sampling
+  rather than delayed processing.
+
+If the map folder also contains `apron_normals.png`, the authored apron uses
+that normal map for the same basic ambient/sun/moon diffuse lighting model as
+the terrain. Without it, the apron uses a flat fallback normal. The apron does
+not currently sample terrain shadows, point-light bakes, cursor light, fog,
+cloud masks, water material effects, or zoom-detail modulation.
+
+This pass is separate from the main terrain shader sampler budget. It renders as
+a background WebGL pass before terrain, then the normal terrain, structures,
+agents, and overlays draw on top.
 
 ## Design Guardrails
 

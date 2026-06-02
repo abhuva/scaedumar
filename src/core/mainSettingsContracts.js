@@ -1,7 +1,9 @@
 import { DEFAULT_DETAIL_SETTINGS } from "../gameplay/detailDataSerializer.js";
+import { DEFAULT_TERRAIN_APRON_SETTINGS } from "../render/terrainApronSettings.js";
 import { DEFAULT_CAMERA_SETTINGS } from "../gameplay/cameraSettings.js";
 
 export { DEFAULT_DETAIL_SETTINGS };
+export { DEFAULT_TERRAIN_APRON_SETTINGS };
 export { DEFAULT_CAMERA_SETTINGS };
 
 export const DEFAULT_LIGHTING_SETTINGS = {
@@ -324,6 +326,12 @@ export function registerMainSettingsContracts(settingsRegistry, deps) {
       defaults: DEFAULT_DETAIL_SETTINGS,
       serialize: () => deps.serializeDetail(),
       apply: (input) => deps.applyDetail(input),
+    },
+    {
+      key: "apron",
+      defaults: DEFAULT_TERRAIN_APRON_SETTINGS,
+      serialize: () => deps.serializeApron(),
+      apply: (input) => deps.applyApron(input),
     },
     {
       key: "camera",

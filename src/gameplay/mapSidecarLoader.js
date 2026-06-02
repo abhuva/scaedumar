@@ -55,6 +55,7 @@ export function createMapSidecarLoader(deps) {
       waterTrails: false,
       slime: false,
       detail: false,
+      apron: false,
       camera: false,
       audio: false,
       resourceDebug: false,
@@ -170,6 +171,13 @@ export function createMapSidecarLoader(deps) {
         loadJson: loadOptionalUrlJson(jsonPath("detail.json")),
         applyFn: (rawData) => deps.applyDetailSettings(rawData),
         onErrorLabel: `Failed to load detail.json from ${folder}`,
+      },
+      {
+        key: "apron",
+        fileName: "apron.json",
+        loadJson: loadOptionalUrlJson(jsonPath("apron.json")),
+        applyFn: (rawData) => deps.applyApronSettings(rawData),
+        onErrorLabel: `Failed to load apron.json from ${folder}`,
       },
       {
         key: "camera",
@@ -313,6 +321,13 @@ export function createMapSidecarLoader(deps) {
         loadJson: loadOptionalFileJson("detail.json"),
         applyFn: (rawData) => deps.applyDetailSettings(rawData),
         onErrorLabel: "Failed to parse detail.json from selected folder",
+      },
+      {
+        key: "apron",
+        fileName: "apron.json",
+        loadJson: loadOptionalFileJson("apron.json"),
+        applyFn: (rawData) => deps.applyApronSettings(rawData),
+        onErrorLabel: "Failed to parse apron.json from selected folder",
       },
       {
         key: "camera",

@@ -44,3 +44,27 @@ test("patchSimulationKnobSection accepts detail settings", () => {
     },
   });
 });
+
+test("patchSimulationKnobSection accepts apron settings", () => {
+  const store = createStore({
+    simulation: {
+      knobs: {
+        apron: {},
+      },
+    },
+  });
+
+  patchSimulationKnobSection({
+    store,
+    key: "apron",
+    value: {
+      enabled: true,
+      ditherStrength: 0.75,
+    },
+  });
+
+  assert.deepEqual(store.getState().simulation.knobs.apron, {
+    enabled: true,
+    ditherStrength: 0.75,
+  });
+});

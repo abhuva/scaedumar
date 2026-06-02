@@ -187,6 +187,7 @@ export function createInitialState() {
         clouds: {},
         waterFx: {},
         detail: {},
+        apron: {},
         camera: {},
         audio: {},
         slime: {},

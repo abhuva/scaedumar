@@ -42,6 +42,12 @@ export function createSettingsRuntimeBinding(deps) {
     deps.applyDetailSettingsCompat,
     deps.defaultDetailSettings,
   );
+  const apron = make(
+    "apron",
+    deps.serializeApronSettingsCompat,
+    deps.applyApronSettingsCompat,
+    deps.defaultApronSettings,
+  );
   const camera = make(
     "camera",
     deps.serializeCameraSettingsCompat,
@@ -72,6 +78,8 @@ export function createSettingsRuntimeBinding(deps) {
     applyWaterSettings: waterfx.apply,
     serializeDetailSettings: detail.serialize,
     applyDetailSettings: detail.apply,
+    serializeApronSettings: apron.serialize,
+    applyApronSettings: apron.apply,
     serializeCameraSettings: camera.serialize,
     applyCameraSettings: camera.apply,
     serializeInteractionSettings: interaction.serialize,

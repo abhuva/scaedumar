@@ -13,6 +13,7 @@ export function createMapLoadingRuntime(deps) {
     applyWaterTrailSettings: deps.applyWaterTrailSettings,
     applySlimeSettings: deps.applySlimeSettings,
     applyDetailSettings: deps.applyDetailSettings,
+    applyApronSettings: deps.applyApronSettings,
     applyCameraSettings: deps.applyCameraSettings,
     applyAudioSettings: deps.applyAudioSettings,
     applyResourceDebugSettings: deps.applyResourceDebugSettings,

@@ -241,6 +241,8 @@ export function createSettingsCompatRuntimeBinding(deps) {
     applyWaterSettingsCompat: renderFxSettingsApplier.applyWaterSettingsCompat,
     serializeDetailSettingsCompat: detailDataSerializer.serializeDetailSettingsCompat,
     applyDetailSettingsCompat: detailDataSerializer.applyDetailSettingsCompat,
+    serializeApronSettingsCompat: deps.serializeApronSettingsCompat,
+    applyApronSettingsCompat: deps.applyApronSettingsCompat,
     serializeCameraSettingsCompat: cameraSettingsSerializer.serializeCameraSettingsCompat,
     applyCameraSettingsCompat: cameraSettingsSerializer.applyCameraSettingsCompat,
     serializeLightingSettingsCompat: renderFxDataSerializer.serializeLightingSettingsCompat,

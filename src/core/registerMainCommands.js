@@ -3,6 +3,7 @@ import { registerInteractionCommands } from "../gameplay/interactionCommands.js"
 import { DEFAULT_CURSOR_LIGHT_COLOR_HEX } from "./state.js";
 import { normalizeWorkspaceId } from "../ui/workspaceRegistry.js";
 import { normalizeDetailSettings } from "../gameplay/detailDataSerializer.js";
+import { normalizeTerrainApronSettings } from "../render/terrainApronSettings.js";
 
 export function registerMainCommands(commandBus, deps) {
   function clampRound(value, min, max) {
@@ -167,6 +168,14 @@ export function registerMainCommands(commandBus, deps) {
       );
     }
 
+    function getApronSettings() {
+      const current = deps.serializeApronSettings();
+      return normalizeTerrainApronSettings(
+        mergePlainObject(current, patch || {}),
+        deps.defaultApronSettings,
+      );
+    }
+
     if (section === "lighting") {
       const nextLighting = getLightingSettings();
       updateSimulationSection("lighting", {
@@ -291,6 +300,14 @@ export function registerMainCommands(commandBus, deps) {
         Promise.resolve(deps.rebuildDetailAtlas()).catch((error) => {
           console.warn("Failed to rebuild zoom-detail atlas.", error);
         });
+      }
+      return;
+    }
+
+    if (section === "apron") {
+      updateSimulationSection("apron", getApronSettings());
+      if (command.source !== "terrainApronPanel" && typeof deps.syncApronUi === "function") {
+        deps.syncApronUi();
       }
       return;
     }

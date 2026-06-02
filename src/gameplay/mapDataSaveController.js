@@ -1,4 +1,12 @@
+import { DEFAULT_TERRAIN_APRON_SETTINGS } from "../render/terrainApronSettings.js";
+
 export function createMapDataSaveController(deps) {
+  function serializeApronSettings() {
+    return typeof deps.serializeApronSettings === "function"
+      ? deps.serializeApronSettings()
+      : DEFAULT_TERRAIN_APRON_SETTINGS;
+  }
+
   function createMapDataFileTexts() {
     const files = {
       "pointlights.json": `${JSON.stringify(deps.serializePointLights(), null, 2)}\n`,
@@ -10,6 +18,7 @@ export function createMapDataSaveController(deps) {
       "watertrails.json": `${JSON.stringify(deps.serializeWaterTrailSettings(), null, 2)}\n`,
       "slime.json": `${JSON.stringify(deps.serializeSlimeSettings(), null, 2)}\n`,
       "detail.json": `${JSON.stringify(deps.serializeDetailSettings(), null, 2)}\n`,
+      "apron.json": `${JSON.stringify(serializeApronSettings(), null, 2)}\n`,
       "camera.json": `${JSON.stringify(deps.serializeCameraSettings(), null, 2)}\n`,
       "audio.json": `${JSON.stringify(deps.serializeAudioSettings(), null, 2)}\n`,
       "resource_debug.json": `${JSON.stringify(deps.serializeResourceDebugSettings(), null, 2)}\n`,

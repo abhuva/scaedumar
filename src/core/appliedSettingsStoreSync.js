@@ -1,5 +1,6 @@
 import { DEFAULT_CURSOR_LIGHT_COLOR_HEX } from "./state.js";
 import { normalizeDetailSettings } from "../gameplay/detailDataSerializer.js";
+import { normalizeTerrainApronSettings } from "../render/terrainApronSettings.js";
 import { normalizeCameraSettings } from "../gameplay/cameraSettings.js";
 import { normalizeSlimeSettings } from "../slime/slimeState.js";
 
@@ -258,6 +259,22 @@ export function createAppliedSettingsStoreSync(deps) {
             knobs: {
               ...prev.simulation.knobs,
               detail: nextDetail,
+            },
+          },
+        };
+      }
+      if (key === "apron") {
+        const nextApron = normalizeTerrainApronSettings(
+          normalized,
+          deps.getSettingsDefaults("apron", {}),
+        );
+        return {
+          ...prev,
+          simulation: {
+            ...prev.simulation,
+            knobs: {
+              ...prev.simulation.knobs,
+              apron: nextApron,
             },
           },
         };

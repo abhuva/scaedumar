@@ -60,6 +60,7 @@ import {
   DEFAULT_CLOUD_SETTINGS,
   DEFAULT_WATER_SETTINGS,
   DEFAULT_DETAIL_SETTINGS,
+  DEFAULT_TERRAIN_APRON_SETTINGS,
   DEFAULT_CAMERA_SETTINGS,
   DEFAULT_INTERACTION_SETTINGS,
   DEFAULT_SWARM_SETTINGS,
@@ -218,6 +219,8 @@ import { createPointLightIoUiRuntime } from "./ui/pointLightIoUiRuntime.js";
 import { createWorkspaceRuntime } from "./ui/workspaceRuntime.js";
 import { createGameTimeDioramaRuntime } from "./ui/gameTimeDioramaRuntime.js";
 import { createDetailPanelRuntime } from "./ui/detailPanelRuntime.js";
+import { createTerrainApronPanelRuntime } from "./ui/terrainApronPanelRuntime.js";
+import { normalizeTerrainApronSettings } from "./render/terrainApronSettings.js";
 import { createModulePresetRuntime } from "./ui/modulePresetRuntime.js";
 import { createInventoryPanelRuntime } from "./ui/inventoryPanelRuntime.js";
 import { createResourceDebugPanelRuntime } from "./ui/resourceDebugPanelRuntime.js";
@@ -1153,6 +1156,12 @@ const mapSupportRuntime = createMapSupportRuntime(createMapSupportAssemblyRuntim
   setWetnessImageData: (value) => {
     wetnessImageData = value;
   },
+  setApronImageData: (value) => {
+    apronImageData = value;
+  },
+  setApronNormalImageData: (value) => {
+    apronNormalImageData = value;
+  },
   setFlowImageData: (value) => {
     flowImageData = value;
     if (waterParticleTrailRuntime) {
@@ -1234,6 +1243,7 @@ const settingsCoreSetupRuntime = createSettingsCoreSetupRuntime(createSettingsCo
   defaultWaterSettings: DEFAULT_WATER_SETTINGS,
   defaultWaterTrailSettings: DEFAULT_WATER_TRAIL_SETTINGS,
   defaultDetailSettings: DEFAULT_DETAIL_SETTINGS,
+  defaultApronSettings: DEFAULT_TERRAIN_APRON_SETTINGS,
   defaultCameraSettings: DEFAULT_CAMERA_SETTINGS,
   normalizeTimeRouting,
   normalizeRoutingMode,
@@ -1297,6 +1307,8 @@ const {
   applyWaterSettingsCompat,
   serializeDetailSettingsCompat,
   applyDetailSettingsCompat,
+  serializeApronSettingsCompat,
+  applyApronSettingsCompat,
   serializeCameraSettingsCompat,
   applyCameraSettingsCompat,
   serializeInteractionSettingsCompat,
@@ -1317,6 +1329,8 @@ const {
   applyWaterSettings,
   serializeDetailSettings,
   applyDetailSettings,
+  serializeApronSettings,
+  applyApronSettings,
   serializeCameraSettings,
   applyCameraSettings,
   serializeInteractionSettings,
@@ -1373,6 +1387,76 @@ function getSlimeSettings() {
 
 function getDetailSettings() {
   return getSimulationKnobSectionFromStore("detail") || getSettingsDefaults("detail", DEFAULT_DETAIL_SETTINGS);
+}
+
+function getApronSettings() {
+  return normalizeTerrainApronSettings(
+    getSimulationKnobSectionFromStore("apron") || getSettingsDefaults("apron", DEFAULT_TERRAIN_APRON_SETTINGS),
+    getSettingsDefaults("apron", DEFAULT_TERRAIN_APRON_SETTINGS),
+  );
+}
+
+function getApronDebugInfo() {
+  const settings = getApronSettings();
+  const camera = getCameraRuntimeBinding().getActiveCameraState();
+  const viewHalf = getCameraRuntimeBinding().getViewHalfExtents(camera.zoom);
+  const mapAspect = Math.max(0.0001, getMapAspect());
+  const view = {
+    left: camera.panX - viewHalf.x,
+    right: camera.panX + viewHalf.x,
+    bottom: camera.panY - viewHalf.y,
+    top: camera.panY + viewHalf.y,
+  };
+  const center = {
+    left: -0.5 * mapAspect,
+    right: 0.5 * mapAspect,
+    bottom: -0.5,
+    top: 0.5,
+  };
+  const apron = {
+    left: -1.5 * mapAspect,
+    right: 1.5 * mapAspect,
+    bottom: -1.5,
+    top: 1.5,
+  };
+  const intersectsApronFootprint = view.right > apron.left
+    && view.left < apron.right
+    && view.top > apron.bottom
+    && view.bottom < apron.top;
+  const fullyInsideCenter = view.left >= center.left
+    && view.right <= center.right
+    && view.bottom >= center.bottom
+    && view.top <= center.top;
+  return {
+    enabled: settings.enabled,
+    hasSplatData: Boolean(splatImageData && splatImageData.data && splatImageData.width && splatImageData.height),
+    hasAuthoredImage: Boolean(apronImageData && apronImageData.data && apronImageData.width && apronImageData.height),
+    hasAuthoredNormalImage: Boolean(apronNormalImageData && apronNormalImageData.data && apronNormalImageData.width && apronNormalImageData.height),
+    authoredImageSize: apronImageData && apronImageData.width && apronImageData.height
+      ? `${apronImageData.width}x${apronImageData.height}`
+      : "",
+    useAuthoredImage: settings.useAuthoredImage,
+    cameraSeesApron: intersectsApronFootprint && !fullyInsideCenter,
+    culled: fullyInsideCenter || !intersectsApronFootprint,
+    cullReason: fullyInsideCenter
+      ? "terrain-covers-view"
+      : (!intersectsApronFootprint ? "outside-apron-footprint" : "visible"),
+  };
+}
+
+function serializeApronSettingsCompatImpl() {
+  return getApronSettings();
+}
+
+function applyApronSettingsCompatImpl(rawData) {
+  const next = normalizeTerrainApronSettings(
+    rawData,
+    getSettingsDefaults("apron", DEFAULT_TERRAIN_APRON_SETTINGS),
+  );
+  mainRuntimeStateBinding.patchSimulationKnobSectionToStore("apron", next);
+  if (terrainApronPanelRuntime) {
+    terrainApronPanelRuntime.syncApronUi();
+  }
 }
 
 function getCameraSettings() {
@@ -1456,6 +1540,7 @@ function clampCameraToBounds() {
 
 let detailAtlasRuntime = null;
 let detailPanelRuntime = null;
+let terrainApronPanelRuntime = null;
 let waterParticleTrailRuntime = null;
 function rebuildDetailAtlas() {
   if (!detailAtlasRuntime) return Promise.resolve(null);
@@ -3335,6 +3420,8 @@ let heightImageData = null;
 let slopeImageData = null;
 let waterImageData = null;
 let wetnessImageData = null;
+let apronImageData = null;
+let apronNormalImageData = null;
 let flowImageData = null;
 waterParticleTrailRuntime = createWaterParticleTrailRuntime({
   gl,
@@ -3516,6 +3603,9 @@ initializeDefaultMapImagesRuntime({
   extractImageData: extractImageDataRender,
   rebuildFlowMapTexture,
   syncPointLightWorkerMapData,
+  setSplatImageData: (value) => {
+    splatImageData = value;
+  },
   setNormalsImageData: (value) => {
     normalsImageData = value;
   },
@@ -3530,6 +3620,12 @@ initializeDefaultMapImagesRuntime({
   },
   setWetnessImageData: (value) => {
     wetnessImageData = value;
+  },
+  setApronImageData: (value) => {
+    apronImageData = value;
+  },
+  setApronNormalImageData: (value) => {
+    apronNormalImageData = value;
   },
 });
 
@@ -3697,6 +3793,7 @@ const structureRuntime = createStructureRuntime({
   defaultWaterTrailSettings: DEFAULT_WATER_TRAIL_SETTINGS,
   defaultSlimeSettings: DEFAULT_SLIME_SETTINGS,
   defaultDetailSettings: DEFAULT_DETAIL_SETTINGS,
+  defaultApronSettings: DEFAULT_TERRAIN_APRON_SETTINGS,
   defaultCameraSettings: DEFAULT_CAMERA_SETTINGS,
   defaultAudioSettings: DEFAULT_AUDIO_SETTINGS,
   defaultSwarmSettings: DEFAULT_SWARM_SETTINGS,
@@ -3708,6 +3805,7 @@ const structureRuntime = createStructureRuntime({
   applyWaterTrailSettings: (...args) => applyWaterTrailSettings(...args),
   applySlimeSettings: (...args) => applySlimeSettingsCompatImpl(...args),
   applyDetailSettings: (...args) => applyDetailSettings(...args),
+  applyApronSettings: (...args) => applyApronSettings(...args),
   applyCameraSettings: (...args) => applyCameraSettings(...args),
   applyAudioSettings: (...args) => applyAudioSettings(...args),
   applyResourceDebugSettings: (...args) => applyResourceDebugSettingsRuntime(...args),
@@ -3741,6 +3839,7 @@ const structureRuntime = createStructureRuntime({
   serializeWaterTrailSettings: (...args) => serializeWaterTrailSettings(...args),
   serializeSlimeSettings: (...args) => serializeSlimeSettingsCompatImpl(...args),
   serializeDetailSettings: (...args) => serializeDetailSettings(...args),
+  serializeApronSettings: (...args) => serializeApronSettings(...args),
   serializeCameraSettings: (...args) => serializeCameraSettings(...args),
   serializeAudioSettings: (...args) => serializeAudioSettings(...args),
   serializeResourceDebugSettings: () => serializeResourceDebugSettingsRuntime(),
@@ -6864,6 +6963,8 @@ registerMainSettingsContracts(runtimeCore.settingsRegistry, {
   applyWater: applyWaterSettingsCompat,
   serializeDetail: serializeDetailSettingsCompat,
   applyDetail: applyDetailSettingsCompat,
+  serializeApron: serializeApronSettingsCompat,
+  applyApron: applyApronSettingsCompat,
   serializeCamera: serializeCameraSettingsCompat,
   applyCamera: applyCameraSettingsCompat,
   serializeInteraction: serializeInteractionSettingsCompat,
@@ -6903,6 +7004,11 @@ const renderPipelineRuntime = createRenderPipelineRuntime(createRenderPipelineAs
   discoveryMaskTextureState,
   slimeTracksMaskTextureState,
   detailAtlasState,
+  defaultTerrainApronSettings: DEFAULT_TERRAIN_APRON_SETTINGS,
+  getTerrainApronSettings: () => getApronSettings(),
+  getSplatImageData: () => splatImageData,
+  getApronImageData: () => apronImageData,
+  getApronNormalImageData: () => apronNormalImageData,
   heightSize,
   splatSize,
   getViewHalfExtents: (...args) => getViewHalfExtents(...args),
@@ -6937,6 +7043,14 @@ detailPanelRuntime = createDetailPanelRuntime({
   dispatchCoreCommand,
   setTimeout: (fn, ms) => window.setTimeout(fn, ms),
   clearTimeout: (id) => window.clearTimeout(id),
+  requestAnimationFrame: (fn) => window.requestAnimationFrame(fn),
+});
+terrainApronPanelRuntime = createTerrainApronPanelRuntime({
+  document,
+  serializeApronSettings,
+  defaultApronSettings: DEFAULT_TERRAIN_APRON_SETTINGS,
+  dispatchCoreCommand,
+  getApronDebugInfo,
   requestAnimationFrame: (fn) => window.requestAnimationFrame(fn),
 });
 
@@ -7048,6 +7162,7 @@ registerMainCommands(runtimeCore.commandBus, createMainCommandAssemblyRuntime({
   syncRenderFxCloudUi,
   syncRenderFxWaterUi,
   syncDetailUi,
+  syncApronUi: () => terrainApronPanelRuntime?.syncApronUi?.(),
   rebuildFlowMapTexture,
   rebuildDetailAtlas,
   schedulePointLightBake,
@@ -7056,7 +7171,9 @@ registerMainCommands(runtimeCore.commandBus, createMainCommandAssemblyRuntime({
   serializeCloudSettings,
   serializeWaterSettings,
   serializeDetailSettings,
+  serializeApronSettings,
   defaultDetailSettings: DEFAULT_DETAIL_SETTINGS,
+  defaultApronSettings: DEFAULT_TERRAIN_APRON_SETTINGS,
   serializeAudioSettingsCompat,
   serializeAudioSettings,
   syncAudioUi,
@@ -7355,6 +7472,7 @@ const swarmIntegrationSetupRuntime = createSwarmIntegrationSetupRuntime(
       defaultCloudSettings: DEFAULT_CLOUD_SETTINGS,
     defaultWaterSettings: DEFAULT_WATER_SETTINGS,
     defaultDetailSettings: DEFAULT_DETAIL_SETTINGS,
+    defaultApronSettings: DEFAULT_TERRAIN_APRON_SETTINGS,
     defaultCameraSettings: DEFAULT_CAMERA_SETTINGS,
     defaultInteractionSettings: DEFAULT_INTERACTION_SETTINGS,
     defaultSwarmSettings: DEFAULT_SWARM_SETTINGS,
@@ -7440,6 +7558,8 @@ const swarmIntegrationSetupRuntime = createSwarmIntegrationSetupRuntime(
       getCloudSettings: () => getSimulationKnobSectionFromStore("clouds") || getSettingsDefaults("clouds", DEFAULT_CLOUD_SETTINGS),
       getWaterSettings: () => getSimulationKnobSectionFromStore("waterFx") || getSettingsDefaults("waterfx", DEFAULT_WATER_SETTINGS),
       getDetailSettings,
+      serializeApronSettingsCompat: () => serializeApronSettingsCompatImpl(),
+      applyApronSettingsCompat: (rawData) => applyApronSettingsCompatImpl(rawData),
       getCameraSettings,
       getCameraState: () => runtimeCore.store.getState().camera || {},
       clampCameraToBounds,
@@ -7643,6 +7763,7 @@ const reseedSwarmAgents = swarmIntegrationSetupRuntime.reseedSwarmAgents;
 settingsCompatBindings = swarmIntegrationSetupRuntime.settingsCompatBindings;
 settingsRuntimeBinding = swarmIntegrationSetupRuntime.settingsRuntimeBinding;
 detailPanelRuntime.bindDetailControls();
+terrainApronPanelRuntime.bindApronControls();
 const swarmRenderSetupRuntime = swarmIntegrationSetupRuntime.swarmRenderSetupRuntime;
 const swarmLoopRuntime = swarmRenderSetupRuntime.swarmLoopRuntime;
 const writeInterpolatedSwarmAgentPos = swarmLoopRuntime.writeInterpolatedSwarmAgentPos;
@@ -7980,7 +8101,10 @@ const renderShellSetupRuntime = createRenderShellSetupRuntime(createRenderShellA
   defaultWaterSettings: DEFAULT_WATER_SETTINGS,
   defaultDetailSettings: DEFAULT_DETAIL_SETTINGS,
   hexToRgb01,
-  updateInfoPanel,
+  updateInfoPanel: () => {
+    updateInfoPanel();
+    terrainApronPanelRuntime?.syncApronStatus?.();
+  },
   updateSwarmStatsPanel,
   updateCycleHourLabel,
   updateGameTimeDiorama: (hour, cycleSpeed) => gameTimeDioramaRuntime.update(hour, cycleSpeed),
