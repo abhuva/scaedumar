@@ -25,7 +25,6 @@ These notes define wiki, encounter, journal, tutorial, and player-facing prose r
 - [ENCOUNTER\_AUTHORING\_CONTRACT](ENCOUNTER_AUTHORING_CONTRACT.md)
 - [EVENT\_DIALOG\_IMPLEMENTATION\_NOTES](EVENT_DIALOG_IMPLEMENTATION_NOTES.md)
 - [WRITING\_STYLE\_SCHEME](WRITING_STYLE_SCHEME.md)
-- [meaning-and-worldview](design/meaning-and-worldview.md)
 
 ## World, Meaning, And Tone
 
