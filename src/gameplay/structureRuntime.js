@@ -143,9 +143,28 @@ export function createStructureRuntime(deps = {}) {
   }
 
   function applyStructureData(rawData) {
-    data = normalizeStructureData(rawData || EMPTY_STRUCTURE_DATA);
+    const normalized = normalizeStructureData(rawData || EMPTY_STRUCTURE_DATA);
+    data = normalized;
     rebuildMaps();
-    rebuildOccupancy();
+    try {
+      rebuildOccupancy();
+    } catch (error) {
+      console.warn("Skipping invalid loaded structures after occupancy rebuild failed.", error);
+      const accepted = [];
+      for (const structure of normalized.structures) {
+        data = { ...normalized, structures: [...accepted, structure] };
+        rebuildMaps();
+        try {
+          rebuildOccupancy();
+          accepted.push(structure);
+        } catch (structureError) {
+          console.warn(`Skipping loaded structure '${structure.id}' after occupancy validation failed.`, structureError);
+        }
+      }
+      data = { ...normalized, structures: accepted };
+      rebuildMaps();
+      rebuildOccupancy();
+    }
     touch();
     return getStructureSnapshot();
   }

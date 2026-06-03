@@ -103,7 +103,7 @@ export function createMapDataSaveController(deps) {
       downloadTextFile(name, text);
     }
     deps.setStatus(`Downloaded ${names}. Move them to ${folder}.`);
-    return false;
+    return true;
   }
 
   async function saveMapDataFile(fileName) {

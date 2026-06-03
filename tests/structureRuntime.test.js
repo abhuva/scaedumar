@@ -173,10 +173,14 @@ test("queries structures by capability and radius", () => {
   assert.equal(runtime.getNearestStructureByType("missing", 10, 11), null);
 });
 
-test("apply rejects overlapping sidecar structures", () => {
+test("apply skips overlapping sidecar structures", () => {
   const runtime = createRuntime();
   const data = createData();
   data.structures.push({ id: "cache_002", type: "cache", pixelX: 3, pixelY: 4 });
 
-  assert.throws(() => runtime.applyStructureData(data), /overlaps/);
+  const snapshot = runtime.applyStructureData(data);
+
+  assert.deepEqual(snapshot.structures.map((structure) => structure.id), ["cache_001"]);
+  assert.equal(runtime.getStructureIdAt(2, 3), "cache_001");
+  assert.equal(runtime.getStructureIdAt(3, 4), "cache_001");
 });

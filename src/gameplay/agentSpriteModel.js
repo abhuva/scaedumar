@@ -84,10 +84,11 @@ function normalizeLutRefs(value) {
 function normalizePalette(value) {
   const source = value && typeof value === "object" ? value : null;
   if (!source || source.mode !== "grayscale-lut") return null;
+  const allowedSelections = new Set(["stable-random"]);
   return {
     mode: "grayscale-lut",
     lutRefs: normalizeLutRefs(source.lutRefs),
-    selection: source.selection === "stable-random" ? "stable-random" : "stable-random",
+    selection: allowedSelections.has(source.selection) ? source.selection : "stable-random",
   };
 }
 

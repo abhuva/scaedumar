@@ -2,12 +2,16 @@ import { createGlResourceRuntime } from "./glResourceRuntime.js";
 import { createFlowMapRuntime } from "./flowMapRuntime.js";
 import { createShadowPipelineRuntime } from "./shadowPipelineRuntime.js";
 
-export function withImageCacheBust(url, nowMs = Date.now()) {
+export function withImageCacheBust(url, nowMs = undefined) {
   const text = String(url || "");
   if (!text || text.startsWith("data:") || text.startsWith("blob:")) return text;
   if (
     text.startsWith("asset:")
     || text.startsWith("file:")
+    || text.startsWith("assets/")
+    || text.startsWith("./assets/")
+    || text.startsWith("../assets/")
+    || nowMs == null
   ) {
     return text;
   }

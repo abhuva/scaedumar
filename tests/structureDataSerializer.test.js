@@ -91,6 +91,20 @@ test("missing optional fields use defaults", () => {
   assert.deepEqual(data.structures[0].state, {});
 });
 
+test("missing footprint defaults to one grid cell independent of visual size", () => {
+  const data = normalizeStructureData({
+    version: 1,
+    types: [
+      { id: "large_visual", visualWidthPx: 64, visualHeightPx: 48 },
+    ],
+    structures: [
+      { id: "large_visual_001", type: "large_visual", pixelX: 4, pixelY: 5 },
+    ],
+  });
+
+  assert.deepEqual(data.types[0].footprint, { width: 1, height: 1, mask: [1] });
+});
+
 test("unknown future fields are tolerated where intended", () => {
   const data = normalizeStructureData(createValidData({
     futureRootField: { ignored: true },

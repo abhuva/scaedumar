@@ -57,3 +57,26 @@ test("buildStructurePlacementPreviewCells expands candidate footprint with aggre
     { x: 5, y: 6, valid: false },
   ]);
 });
+
+test("buildStructurePlacementPreviewCells expands valid candidate footprint", () => {
+  const cells = buildStructurePlacementPreviewCells({
+    snapshot: {
+      types: [
+        {
+          id: "tent",
+          footprint: { width: 2, height: 2, mask: [1, 1, 0, 1] },
+        },
+      ],
+    },
+    typeId: "tent",
+    pixelX: 4,
+    pixelY: 5,
+    placement: { ok: true },
+  });
+
+  assert.deepEqual(cells, [
+    { x: 4, y: 5, valid: true },
+    { x: 5, y: 5, valid: true },
+    { x: 5, y: 6, valid: true },
+  ]);
+});

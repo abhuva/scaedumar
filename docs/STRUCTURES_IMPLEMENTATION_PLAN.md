@@ -193,7 +193,8 @@ Still intentionally future work:
   - [x] Occupancy indexes match footprint masks.
   - [x] Out-of-bounds footprints are rejected or clipped by explicit rule.
   - [x] Removing a structure clears only its cells.
-  - [x] Rebuilding occupancy catches sidecar overlaps.
+  - [x] Rebuilding occupancy catches sidecar overlaps and skips invalid loaded
+    instances while keeping valid earlier instances.
 - [x] Defer pathfinding integration behind a clear follow-up task unless v1 proof requires blocking.
 
 ## Phase 5: Render Backend

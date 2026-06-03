@@ -1,23 +1,8 @@
+import { getStructureFootprintCells as getRuntimeStructureFootprintCells } from "../../gameplay/structureRuntime.js";
+
 function getType(snapshot, typeId) {
   const types = Array.isArray(snapshot && snapshot.types) ? snapshot.types : [];
   return types.find((type) => type.id === typeId) || null;
-}
-
-function getStructureFootprintCells(type, pixelX, pixelY) {
-  const footprint = type && type.footprint ? type.footprint : null;
-  if (!footprint || !Array.isArray(footprint.mask)) return [];
-  const originX = Math.floor(Number(pixelX) || 0);
-  const originY = Math.floor(Number(pixelY) || 0);
-  const width = Math.max(0, Math.floor(Number(footprint.width) || 0));
-  const height = Math.max(0, Math.floor(Number(footprint.height) || 0));
-  const cells = [];
-  for (let fy = 0; fy < height; fy += 1) {
-    for (let fx = 0; fx < width; fx += 1) {
-      if (!footprint.mask[fy * width + fx]) continue;
-      cells.push({ x: originX + fx, y: originY + fy });
-    }
-  }
-  return cells;
 }
 
 export function buildStructureOccupancyOverlayCells(snapshot, selectedId = "") {
@@ -27,21 +12,12 @@ export function buildStructureOccupancyOverlayCells(snapshot, selectedId = "") {
     const type = getType(snapshot, structure.type);
     const footprint = type && type.footprint ? type.footprint : null;
     if (!footprint || !Array.isArray(footprint.mask)) continue;
-    const originX = Math.floor(Number(structure.pixelX) || 0);
-    const originY = Math.floor(Number(structure.pixelY) || 0);
-    const width = Math.max(0, Math.floor(Number(footprint.width) || 0));
-    const height = Math.max(0, Math.floor(Number(footprint.height) || 0));
-    for (let fy = 0; fy < height; fy += 1) {
-      for (let fx = 0; fx < width; fx += 1) {
-        if (!footprint.mask[fy * width + fx]) continue;
-        cells.push({
-          x: originX + fx,
-          y: originY + fy,
-          structureId: structure.id,
-          selected: Boolean(selectedId && structure.id === selectedId),
-        });
-      }
-    }
+    cells.push(...getRuntimeStructureFootprintCells(type, structure).map((cell) => ({
+      x: cell.x,
+      y: cell.y,
+      structureId: structure.id,
+      selected: Boolean(selectedId && structure.id === selectedId),
+    })));
   }
   return cells;
 }
@@ -51,7 +27,7 @@ export function buildStructurePlacementPreviewCells(input = {}) {
   const type = getType(snapshot, input.typeId);
   if (!type) return [];
   const placement = input.placement || { ok: false };
-  return getStructureFootprintCells(type, input.pixelX, input.pixelY).map((cell) => ({
+  return getRuntimeStructureFootprintCells(type, { pixelX: input.pixelX, pixelY: input.pixelY }).map((cell) => ({
     ...cell,
     valid: placement.ok === true,
   }));

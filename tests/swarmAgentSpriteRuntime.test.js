@@ -63,8 +63,6 @@ const HAWK_DEFINITION = Object.freeze({
 
 function withSpriteDefinitions(deps = {}) {
   return {
-    birdDefinition: BIRD_DEFINITION,
-    hawkDefinition: HAWK_DEFINITION,
     ...deps,
     birdDefinition: {
       ...BIRD_DEFINITION,

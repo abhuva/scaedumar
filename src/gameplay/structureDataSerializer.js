@@ -68,7 +68,7 @@ function normalizeAtlas(rawAtlas) {
   };
 }
 
-function normalizeFootprint(rawFootprint, fallbackWidth, fallbackHeight) {
+function normalizeFootprint(rawFootprint, fallbackWidth = 1, fallbackHeight = 1) {
   const source = rawFootprint && typeof rawFootprint === "object" ? rawFootprint : {};
   const width = normalizePositiveInt(source.width, fallbackWidth, "footprint.width", STRUCTURE_DATA_LIMITS.maxFootprintWidth);
   const height = normalizePositiveInt(source.height, fallbackHeight, "footprint.height", STRUCTURE_DATA_LIMITS.maxFootprintHeight);
@@ -96,7 +96,7 @@ function normalizeType(rawType) {
     : id;
   const visualWidthPx = normalizePositiveInt(source.visualWidthPx, 1, `${id}.visualWidthPx`, STRUCTURE_DATA_LIMITS.maxVisualWidthPx);
   const visualHeightPx = normalizePositiveInt(source.visualHeightPx, 1, `${id}.visualHeightPx`, STRUCTURE_DATA_LIMITS.maxVisualHeightPx);
-  const footprint = normalizeFootprint(source.footprint, visualWidthPx, visualHeightPx);
+  const footprint = normalizeFootprint(source.footprint);
   const capabilities = Array.isArray(source.capabilities)
     ? source.capabilities.filter((item) => typeof item === "string" && item.trim()).map((item) => item.trim())
     : [];

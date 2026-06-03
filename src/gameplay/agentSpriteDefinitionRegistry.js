@@ -31,7 +31,7 @@ export async function loadAgentSpriteDefinitionFile(options = {}) {
   if (typeof fetchFn !== "function") {
     throw new Error("Cannot load agent sprite definitions: fetch is unavailable.");
   }
-  const url = options.url || DEFAULT_PLAYER_SPRITE_DEFINITIONS_URL;
+  const url = options.url ?? DEFAULT_PLAYER_SPRITE_DEFINITIONS_URL;
   const response = await fetchFn(url, { cache: "no-store" });
   if (!response || !response.ok) {
     const status = response ? `${response.status} ${response.statusText || ""}`.trim() : "no response";
@@ -39,4 +39,3 @@ export async function loadAgentSpriteDefinitionFile(options = {}) {
   }
   return normalizeAgentSpriteDefinitionFile(await response.json());
 }
-
