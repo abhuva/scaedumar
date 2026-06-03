@@ -335,15 +335,39 @@ Implemented now:
 - Runtime-local variant-family sliders for count, seed, position jitter,
   brightness jitter, and color jitter.
 - Dedicated global save action for `assets/data/render_luts.json`.
+- Optional map-local LUT overrides through `assets/<mapName>/render_luts.json`.
+- Map-local LUT data included in map `Save All` when present.
 
 Not implemented now:
 
-- Map-local LUT overrides.
 - Per-agent unique generated LUT rows.
 - Palette-index sprite modes.
 - Multi-channel mask recoloring.
 - 3D color-grading LUTs.
 - Material-output LUTs.
+
+## Current Wrap-Up Gaps
+
+Before closing the current LUT branch, verify or address these remaining items:
+
+- Manual browser smoke test for the large LUT editor: create global and
+  map-local LUTs, rename/delete LUTs, edit family name/count, verify generated
+  IDs and previews, run `Save Global`, hard-refresh, run map `Save All`, and
+  reload a map-local LUT.
+- Manual render smoke test: enable swarm sprite mode, confirm bird color
+  variation, confirm hawks/player/structures still render normally, and confirm
+  sprite lighting still responds to sun, shadow, and point lights.
+- Invalid map-local `render_luts.json` handling is not hardened yet. The current
+  optional sidecar loader logs parse/apply failures and falls back instead of
+  surfacing a blocking title/map-load error.
+- Add focused tests for URL and selected-folder map-local LUT loading, clearing
+  absent map-local LUT state, map-local override precedence, and the chosen
+  invalid-sidecar policy.
+- Improve debug/validation reporting for global/map-local duplicate IDs and
+  invalid refs so intentional overrides are distinguishable from authoring
+  mistakes.
+- Optional polish: add a clearer visual badge for active source scope and
+  saved/dirty status in the large LUT editor.
 
 ## Deferred Experiments
 
