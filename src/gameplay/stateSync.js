@@ -2,7 +2,7 @@ import { DEFAULT_CURSOR_LIGHT_COLOR_HEX } from "../core/state.js";
 import { normalizeWorkspaceId } from "../ui/workspaceRegistry.js";
 
 const ALLOWED_TIME_ROUTING_TARGETS = new Set(["swarm", "clouds", "water"]);
-const ALLOWED_SIMULATION_KNOBS = new Set(["lighting", "fog", "clouds", "waterFx", "detail", "audio", "slime"]);
+const ALLOWED_SIMULATION_KNOBS = new Set(["lighting", "fog", "clouds", "waterFx", "detail", "apron", "audio", "slime"]);
 
 export function syncMapState(deps) {
   deps.store.update((prev) => ({

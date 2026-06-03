@@ -10,6 +10,7 @@
 [[WIKI_EVENT_DIALOG_DESIGN]]
 [[ENCOUNTER_AUTHORING_CONTRACT]]
 [[WRITING_STYLE_SCHEME]]
+[[design/meaning-and-worldview]]
 
 ## Sound Design
 
@@ -23,7 +24,9 @@
 ## Rendering / Visual Representation
 
 [[CRISP_MATERIAL_TRANSITIONS]]
-
+[[RENDER_LUT_DESIGN]]
+[[RENDER_LUT_IMPLEMENTATION_PLAN]]
+[[SPRITE_DETAILS_RENDERING_DESIGN]]
 # Website (Zensical)
 
 [[index]]

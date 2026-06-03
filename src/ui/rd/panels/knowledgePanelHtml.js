@@ -1,7 +1,7 @@
-export function getRdGameplayPanelHtml() {
+export function getRdKnowledgePanelHtml() {
   return `
-          <div id="rdDevGameplayPanel" class="rd-dev-panel active" role="tabpanel" data-rd-dev-panel="gameplay" aria-hidden="false">
-          <div class="rd-tabs" role="tablist" aria-label="Resource Debug sections" data-rd-tab-group="gameplay" data-rd-tab-fallback="knowledge">
+          <div id="rdDevKnowledgePanel" class="rd-dev-panel active" role="tabpanel" data-rd-dev-panel="knowledge" aria-hidden="false">
+          <div class="rd-tabs" role="tablist" aria-label="Resource Debug sections" data-rd-tab-group="knowledge" data-rd-tab-fallback="knowledge">
             <button id="resourceDebugKnowledgeTab" class="rd-tab active" type="button" role="tab" data-rd-tab="knowledge" aria-selected="true" aria-controls="resourceDebugKnowledgePanel" tabindex="0">Knowledge</button>
             <button id="resourceDebugOverlayTab" class="rd-tab" type="button" role="tab" data-rd-tab="overlay" aria-selected="false" aria-controls="resourceDebugOverlayPanel" tabindex="-1">Known View</button>
             <button id="resourceDebugStockTab" class="rd-tab" type="button" role="tab" data-rd-tab="stock" aria-selected="false" aria-controls="resourceDebugStockPanel" tabindex="-1">Stock</button>

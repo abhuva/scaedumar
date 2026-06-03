@@ -1,5 +1,6 @@
 import { DEFAULT_CURSOR_LIGHT_COLOR_HEX } from "./state.js";
 import { normalizeDetailSettings } from "../gameplay/detailDataSerializer.js";
+import { normalizeTerrainApronSettings } from "../render/terrainApronSettings.js";
 import { normalizeCameraSettings } from "../gameplay/cameraSettings.js";
 import { normalizeSlimeSettings } from "../slime/slimeState.js";
 
@@ -262,6 +263,22 @@ export function createAppliedSettingsStoreSync(deps) {
           },
         };
       }
+      if (key === "apron") {
+        const nextApron = normalizeTerrainApronSettings(
+          normalized,
+          deps.getSettingsDefaults("apron", {}),
+        );
+        return {
+          ...prev,
+          simulation: {
+            ...prev.simulation,
+            knobs: {
+              ...prev.simulation.knobs,
+              apron: nextApron,
+            },
+          },
+        };
+      }
       if (key === "camera") {
         const nextCamera = normalizeCameraSettings(
           normalized,
@@ -301,6 +318,8 @@ export function createAppliedSettingsStoreSync(deps) {
               weightWater: deps.clamp(Number(normalized.pathWeightWater), 0, 100),
               slopeCutoff: Math.round(deps.clamp(Number(normalized.pathSlopeCutoff), 0, 90)),
               baseCost: deps.clamp(Number(normalized.pathBaseCost), 0, 2),
+              allowTerrainDiagonalCornerCutting: normalized.pathAllowTerrainDiagonalCornerCutting !== false,
+              allowStructureDiagonalCornerCutting: normalized.pathAllowStructureDiagonalCornerCutting === true,
             },
             cursorLight: {
               ...(prev.gameplay && prev.gameplay.cursorLight ? prev.gameplay.cursorLight : {}),

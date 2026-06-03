@@ -18,12 +18,16 @@ export function createDefaultMapImageRuntime(deps) {
     deps.setHeightSizeFromImage(defaultHeightImage);
     deps.setNormalsSizeFromImage(defaultNormalImage);
 
+    deps.setSplatImageData(deps.extractImageData(defaultSplatImage));
     deps.setNormalsImageData(deps.extractImageData(defaultNormalImage));
     deps.setHeightImageData(deps.extractImageData(defaultHeightImage));
     deps.rebuildFlowMapTexture();
     deps.setSlopeImageData(deps.extractImageData(defaultSlopeImage));
     deps.setWetnessImageData(deps.extractImageData(defaultWetnessImage));
     deps.setWaterImageData(deps.extractImageData(defaultWaterImage));
+    if (typeof deps.setApronImageData === "function") {
+      deps.setApronImageData(null);
+    }
     deps.syncPointLightWorkerMapData();
   }
 

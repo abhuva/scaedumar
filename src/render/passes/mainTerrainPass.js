@@ -22,6 +22,9 @@ export function createMainTerrainPass(deps) {
       }
       deps.resources.setViewport();
       deps.resources.clearColor(0, 0, 0, 1);
+      if (typeof deps.drawBackground === "function") {
+        deps.drawBackground(frame);
+      }
       deps.uploadUniforms(frame.lightingParams, frame.time, frame.uniformInput, frame.camera || null);
       deps.drawTerrain();
     },

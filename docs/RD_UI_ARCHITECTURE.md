@@ -17,6 +17,8 @@ The goal is not to rewrite the UI for its own sake. The goal is to keep RD maint
   - `RD > Agents`: `src/ui/rd/panels/agents/`
   - `RD > Pathing`: `src/ui/rd/panels/pathing/`
   - `RD > Audio`: `src/ui/rd/panels/audio/`
+- Top-level `RD > Knowledge` owns the Knowledge/Known View/Stock resource-debug panels.
+- Top-level `RD > Sprites` owns sprite-backed object tooling such as Structures.
 - Their top-level `*PanelHtml.js` files act as assemblers for tab strips and subpanels.
 - `index.html` now owns the RD shell, top-level tab strip, overlay-rail host, and panel host placeholders. Extracted markup keeps original DOM IDs in partial modules.
 - `RD` is the canonical control surface for tools, debug views, tuning, IO, and subsystem controls.
@@ -59,7 +61,8 @@ Each top-level RD area moves into a small JS module that exports markup:
 - `src/ui/rd/panels/terrainPanelHtml.js`
 - `src/ui/rd/panels/agentsPanelHtml.js`
 - `src/ui/rd/panels/trailPanelHtml.js`
-- `src/ui/rd/panels/gameplayPanelHtml.js`
+- `src/ui/rd/panels/knowledgePanelHtml.js`
+- `src/ui/rd/panels/spritesPanelHtml.js`
 - `src/ui/rd/panels/audioPanelHtml.js`
 - `src/ui/rd/panels/pathingPanelHtml.js`
 - `src/ui/rd/panels/ioPanelHtml.js`
@@ -165,7 +168,7 @@ Use small, reversible steps:
 
 1. Create the RD markup assembly runtime with no behavior changes. Done for the first IO slice.
 2. Extract `RD > IO` first because it is small and mostly isolated. Done; `index.html` now keeps an `rdDevIoPanelHost` placeholder and the runtime injects the preserved `rdDevIoPanel` DOM before bindings.
-3. Extract `RD > Gameplay` next because it is the existing resource-debug panel group with stable binding IDs. Done; `index.html` now keeps `rdDevGameplayPanelHost`.
+3. Extract `RD > Knowledge` next because it is the existing resource-debug panel group with stable binding IDs. Done; `index.html` now keeps `rdDevKnowledgePanelHost`.
 4. Validate all required DOM IDs still exist before and after bindings.
 5. Extract `RD > Audio`. Done; `index.html` now keeps `rdDevAudioPanelHost`.
 6. Extract `RD > Pathing`. Done; `index.html` now keeps `rdDevPathingPanelHost`.

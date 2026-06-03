@@ -218,6 +218,16 @@ export function registerInteractionCommands(commandBus, deps) {
       y: Number(command.y),
     };
 
+    if (typeof deps.tryPlaceStructureAtPixel === "function" && deps.tryPlaceStructureAtPixel(pixel.x, pixel.y)) {
+      deps.requestOverlayDraw();
+      return { consumed: true };
+    }
+
+    if (typeof deps.trySelectStructureAtPixel === "function" && deps.trySelectStructureAtPixel(pixel.x, pixel.y)) {
+      deps.requestOverlayDraw();
+      return { consumed: true };
+    }
+
     if (deps.getInteractionMode() === "lighting") {
       const existing = deps.findPointLightAtPixel(pixel.x, pixel.y);
       if (existing) {
@@ -350,4 +360,19 @@ export function registerInteractionCommands(commandBus, deps) {
   registerPathfindingSetter("core/pathfinding/setWeightWater", "weightWater", 0, 100);
   registerPathfindingSetter("core/pathfinding/setSlopeCutoff", "slopeCutoff", 0, 90, true);
   registerPathfindingSetter("core/pathfinding/setBaseCost", "baseCost", 0, 2);
+
+  function registerPathfindingToggle(commandType, field) {
+    commandBus.register(commandType, (command) => {
+      updatePathfindingStoreField({ [field]: command.value === true });
+      deps.syncPathfindingSettingsUi();
+      if (deps.getInteractionMode() === "pathfinding") {
+        deps.rebuildMovementField();
+        notifyTravelPlanningChanged("pathfinding-setting");
+      }
+      syncPathfindingStateToStore();
+    });
+  }
+
+  registerPathfindingToggle("core/pathfinding/setAllowTerrainDiagonalCornerCutting", "allowTerrainDiagonalCornerCutting");
+  registerPathfindingToggle("core/pathfinding/setAllowStructureDiagonalCornerCutting", "allowStructureDiagonalCornerCutting");
 }

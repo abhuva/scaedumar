@@ -65,8 +65,11 @@ Optional authored/runtime sidecars:
 - `pointlights.json`: baked/local point-light definitions.
 - `lighting.json`, `fog.json`, `clouds.json`, `waterfx.json`, `watertrails.json`, `detail.json`, `camera.json`, `audio.json`.
 - `interaction.json`, `npc.json`, `swarm.json`, `resource_debug.json`, `resource_stock.json`.
+- `structures.json`: authored map-space structures.
 
 Shared gameplay definitions live under `assets/data/`.
+
+Shared sprite source art lives under `assets/sprites/`, with structure PNGs under `assets/sprites/structures/default/` for reusable baseline art or `assets/sprites/structures/<mapOrSetName>/` for scoped sets.
 
 ## Run In Browser
 

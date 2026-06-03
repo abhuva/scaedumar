@@ -8,6 +8,8 @@ export function createRenderShellAssemblyRuntime(deps) {
     overlay: {
       isSwarmEnabled: deps.isSwarmEnabled,
       getSwarmSettings: deps.getSwarmSettings,
+      isSwarmSpriteRenderMode: deps.isSwarmSpriteRenderMode,
+      isPlayerSpriteRenderVisible: deps.isPlayerSpriteRenderVisible,
       swarmCursorState: deps.swarmCursorState,
       getSwarmFollowSnapshot: deps.getSwarmFollowSnapshot,
       overlayCtx: deps.overlayCtx,
@@ -31,6 +33,8 @@ export function createRenderShellAssemblyRuntime(deps) {
       getResourceContourOverlaySnapshot: deps.getResourceContourOverlaySnapshot,
       getDiscoveryMaskOverlaySnapshot: deps.getDiscoveryMaskOverlaySnapshot,
       getDiscoveryTerrainVisibilityOverlaySnapshot: deps.getDiscoveryTerrainVisibilityOverlaySnapshot,
+      getStructureOccupancyOverlaySnapshot: deps.getStructureOccupancyOverlaySnapshot,
+      getStructurePlacementPreviewOverlaySnapshot: deps.getStructurePlacementPreviewOverlaySnapshot,
       getInventoryBundles: deps.getInventoryBundles,
       playerState: deps.playerState,
       drawSwarmUnlitOverlay: deps.drawSwarmUnlitOverlay,
@@ -79,6 +83,7 @@ export function createRenderShellAssemblyRuntime(deps) {
       getCurrentMapFolderPath: deps.getCurrentMapFolderPath,
       renderer: deps.renderer,
       renderSwarmLit: deps.renderSwarmLit,
+      isSwarmSpriteRenderMode: deps.isSwarmSpriteRenderMode,
     },
   };
 }

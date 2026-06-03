@@ -1,9 +1,10 @@
 import { getRdAgentsPanelHtml } from "./panels/agentsPanelHtml.js";
 import { getRdAudioPanelHtml } from "./panels/audioPanelHtml.js";
-import { getRdGameplayPanelHtml } from "./panels/gameplayPanelHtml.js";
+import { getRdKnowledgePanelHtml } from "./panels/knowledgePanelHtml.js";
 import { getRdEventsPanelHtml } from "./panels/eventsPanelHtml.js";
 import { getRdIoPanelHtml } from "./panels/ioPanelHtml.js";
 import { getRdPathingPanelHtml } from "./panels/pathingPanelHtml.js";
+import { getRdSpritesPanelHtml } from "./panels/spritesPanelHtml.js";
 import { getRdTerrainPanelHtml } from "./panels/terrainPanelHtml.js";
 import { getRdTrailPanelHtml } from "./panels/trailPanelHtml.js";
 import { getRdOverlayRailHtml } from "./overlayRailHtml.js";
@@ -21,7 +22,8 @@ export function injectResourceDebugMarkup() {
   replaceHostWithMarkup("rdDevTerrainPanelHost", getRdTerrainPanelHtml);
   replaceHostWithMarkup("rdDevAgentsPanelHost", getRdAgentsPanelHtml);
   replaceHostWithMarkup("rdDevTrailPanelHost", getRdTrailPanelHtml);
-  replaceHostWithMarkup("rdDevGameplayPanelHost", getRdGameplayPanelHtml);
+  replaceHostWithMarkup("rdDevKnowledgePanelHost", getRdKnowledgePanelHtml);
+  replaceHostWithMarkup("rdDevSpritesPanelHost", getRdSpritesPanelHtml);
   replaceHostWithMarkup("rdDevEventsPanelHost", getRdEventsPanelHtml);
   replaceHostWithMarkup("rdDevAudioPanelHost", getRdAudioPanelHtml);
   replaceHostWithMarkup("rdDevPathingPanelHost", getRdPathingPanelHtml);

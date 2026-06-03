@@ -3,6 +3,7 @@ import { registerInteractionCommands } from "../gameplay/interactionCommands.js"
 import { DEFAULT_CURSOR_LIGHT_COLOR_HEX } from "./state.js";
 import { normalizeWorkspaceId } from "../ui/workspaceRegistry.js";
 import { normalizeDetailSettings } from "../gameplay/detailDataSerializer.js";
+import { normalizeTerrainApronSettings } from "../render/terrainApronSettings.js";
 
 export function registerMainCommands(commandBus, deps) {
   function clampRound(value, min, max) {
@@ -91,6 +92,50 @@ export function registerMainCommands(commandBus, deps) {
 
   registerInteractionCommands(commandBus, deps);
 
+  commandBus.register("structure/place", (command) => {
+    if (typeof deps.placeStructure !== "function") {
+      return { ok: false, reason: "Structure runtime is unavailable." };
+    }
+    const result = deps.placeStructure(command.structureType || command.typeId, command.pixelX, command.pixelY, command.state || {}, {
+      id: command.id,
+    });
+    if (result && result.ok) {
+      deps.requestOverlayDraw?.();
+      deps.setStatus?.(`Placed structure ${result.structure.id}.`);
+    } else if (result && result.reason) {
+      deps.setStatus?.(result.reason);
+    }
+    return result;
+  });
+
+  commandBus.register("structure/remove", (command) => {
+    if (typeof deps.removeStructure !== "function") {
+      return { ok: false, reason: "Structure runtime is unavailable." };
+    }
+    const result = deps.removeStructure(command.id || command.structureId);
+    if (result && result.ok) {
+      deps.requestOverlayDraw?.();
+      deps.setStatus?.("Structure removed.");
+    } else if (result && result.reason) {
+      deps.setStatus?.(result.reason);
+    }
+    return result;
+  });
+
+  commandBus.register("structure/updateState", (command) => {
+    if (typeof deps.updateStructureState !== "function") {
+      return { ok: false, reason: "Structure runtime is unavailable." };
+    }
+    const result = deps.updateStructureState(command.id || command.structureId, command.patch || {});
+    if (result && result.ok) {
+      deps.requestOverlayDraw?.();
+      deps.setStatus?.("Structure updated.");
+    } else if (result && result.reason) {
+      deps.setStatus?.(result.reason);
+    }
+    return result;
+  });
+
   commandBus.register("core/renderFx/changed", (command) => {
     const section = String(command.section || "");
     const patch = command.patch && typeof command.patch === "object" ? command.patch : null;
@@ -120,6 +165,14 @@ export function registerMainCommands(commandBus, deps) {
       return normalizeDetailSettings(
         mergePlainObject(current, patch || {}),
         deps.defaultDetailSettings,
+      );
+    }
+
+    function getApronSettings() {
+      const current = deps.serializeApronSettings();
+      return normalizeTerrainApronSettings(
+        mergePlainObject(current, patch || {}),
+        deps.defaultApronSettings,
       );
     }
 
@@ -247,6 +300,14 @@ export function registerMainCommands(commandBus, deps) {
         Promise.resolve(deps.rebuildDetailAtlas()).catch((error) => {
           console.warn("Failed to rebuild zoom-detail atlas.", error);
         });
+      }
+      return;
+    }
+
+    if (section === "apron") {
+      updateSimulationSection("apron", getApronSettings());
+      if (command.source !== "terrainApronPanel" && typeof deps.syncApronUi === "function") {
+        deps.syncApronUi();
       }
       return;
     }

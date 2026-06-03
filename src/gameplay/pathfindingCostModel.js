@@ -40,7 +40,7 @@ export function createPathfindingCostModel(deps) {
     };
   }
 
-  function computeMoveStepCost(fromX, fromY, toX, toY, moveCostContext = null) {
+  function computeTerrainStepCost(fromX, fromY, toX, toY, moveCostContext = null) {
     const context = moveCostContext || createMoveCostContext();
     const pathfinding = context.pathfindingSnapshot;
     const isDiag = fromX !== toX && fromY !== toY;
@@ -64,11 +64,19 @@ export function createPathfindingCostModel(deps) {
     return dist * (baseCost + weightedCost);
   }
 
+  function computeMoveStepCost(fromX, fromY, toX, toY, moveCostContext = null) {
+    if (typeof deps.isStructureMovementBlocked === "function" && deps.isStructureMovementBlocked(toX, toY)) {
+      return Number.POSITIVE_INFINITY;
+    }
+    return computeTerrainStepCost(fromX, fromY, toX, toY, moveCostContext);
+  }
+
   return {
     getGrayAt,
     movementWindowBounds,
     pathfindingRangeRadius,
     createMoveCostContext,
+    computeTerrainStepCost,
     computeMoveStepCost,
   };
 }

@@ -40,6 +40,8 @@ export const DEFAULT_GAMEPLAY_PATHFINDING = {
   weightWater: 0,
   slopeCutoff: 90,
   baseCost: 1,
+  allowTerrainDiagonalCornerCutting: true,
+  allowStructureDiagonalCornerCutting: false,
 };
 
 export const DEFAULT_GAMEPLAY_SWARM = {
@@ -185,6 +187,7 @@ export function createInitialState() {
         clouds: {},
         waterFx: {},
         detail: {},
+        apron: {},
         camera: {},
         audio: {},
         slime: {},

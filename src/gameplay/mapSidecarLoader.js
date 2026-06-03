@@ -16,12 +16,15 @@ export function createMapSidecarLoader(deps) {
   }
 
   async function unifyTryApplyJson(loadJson, applyFn, onAbsentOrFailed, onErrorLabel) {
+    function applyAbsentOrFailed() {
+      if (typeof onAbsentOrFailed === "function") {
+        onAbsentOrFailed();
+      }
+    }
     try {
       const payload = await loadJson();
       if (!payload || payload.absent) {
-        if (typeof onAbsentOrFailed === "function") {
-          onAbsentOrFailed();
-        }
+        applyAbsentOrFailed();
         return false;
       }
       applyFn(payload.data, payload.source);
@@ -30,10 +33,14 @@ export function createMapSidecarLoader(deps) {
       if (onErrorLabel) {
         console.warn(onErrorLabel, err);
       }
-      if (typeof onAbsentOrFailed === "function") {
-        onAbsentOrFailed();
-      }
+      applyAbsentOrFailed();
       return false;
+    }
+  }
+
+  function applyRenderLutMapLocalDefinition(rawData, source) {
+    if (typeof deps.applyRenderLutMapLocalDefinition === "function") {
+      deps.applyRenderLutMapLocalDefinition(rawData, source);
     }
   }
 
@@ -48,11 +55,14 @@ export function createMapSidecarLoader(deps) {
       waterTrails: false,
       slime: false,
       detail: false,
+      apron: false,
       camera: false,
       audio: false,
       resourceDebug: false,
       resourceStock: false,
       swarm: false,
+      renderLuts: false,
+      structures: false,
       npc: false,
     };
   }
@@ -163,6 +173,13 @@ export function createMapSidecarLoader(deps) {
         onErrorLabel: `Failed to load detail.json from ${folder}`,
       },
       {
+        key: "apron",
+        fileName: "apron.json",
+        loadJson: loadOptionalUrlJson(jsonPath("apron.json")),
+        applyFn: (rawData) => deps.applyApronSettings(rawData),
+        onErrorLabel: `Failed to load apron.json from ${folder}`,
+      },
+      {
         key: "camera",
         fileName: "camera.json",
         loadJson: loadOptionalUrlJson(jsonPath("camera.json")),
@@ -198,6 +215,22 @@ export function createMapSidecarLoader(deps) {
         loadJson: loadOptionalUrlJson(jsonPath("swarm.json")),
         applyFn: (rawData) => deps.applySwarmData(rawData),
         onErrorLabel: `Failed to load swarm.json from ${folder}`,
+      },
+      {
+        key: "renderLuts",
+        fileName: "render_luts.json",
+        loadJson: loadOptionalUrlJson(jsonPath("render_luts.json")),
+        applyFn: applyRenderLutMapLocalDefinition,
+        onAbsentOrFailed: () => applyRenderLutMapLocalDefinition(null, ""),
+        onErrorLabel: `Failed to load render_luts.json from ${folder}`,
+      },
+      {
+        key: "structures",
+        fileName: "structures.json",
+        loadJson: loadOptionalUrlJson(jsonPath("structures.json")),
+        applyFn: (rawData) => deps.applyStructureData(rawData),
+        onAbsentOrFailed: () => deps.applyStructureData(null),
+        onErrorLabel: `Failed to load structures.json from ${folder}`,
       },
       {
         key: "npc",
@@ -290,6 +323,13 @@ export function createMapSidecarLoader(deps) {
         onErrorLabel: "Failed to parse detail.json from selected folder",
       },
       {
+        key: "apron",
+        fileName: "apron.json",
+        loadJson: loadOptionalFileJson("apron.json"),
+        applyFn: (rawData) => deps.applyApronSettings(rawData),
+        onErrorLabel: "Failed to parse apron.json from selected folder",
+      },
+      {
         key: "camera",
         fileName: "camera.json",
         loadJson: loadOptionalFileJson("camera.json"),
@@ -325,6 +365,22 @@ export function createMapSidecarLoader(deps) {
         loadJson: loadOptionalFileJson("swarm.json"),
         applyFn: (rawData) => deps.applySwarmData(rawData),
         onErrorLabel: "Failed to parse swarm.json from selected folder",
+      },
+      {
+        key: "renderLuts",
+        fileName: "render_luts.json",
+        loadJson: loadOptionalFileJson("render_luts.json"),
+        applyFn: applyRenderLutMapLocalDefinition,
+        onAbsentOrFailed: () => applyRenderLutMapLocalDefinition(null, ""),
+        onErrorLabel: "Failed to parse render_luts.json from selected folder",
+      },
+      {
+        key: "structures",
+        fileName: "structures.json",
+        loadJson: loadOptionalFileJson("structures.json"),
+        applyFn: (rawData) => deps.applyStructureData(rawData),
+        onAbsentOrFailed: () => deps.applyStructureData(null),
+        onErrorLabel: "Failed to parse structures.json from selected folder",
       },
       {
         key: "npc",

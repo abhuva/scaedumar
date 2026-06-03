@@ -13,13 +13,14 @@ const DETAIL_DEBUG_SHORTCUTS = {
   "detail-alpha": "alpha",
 };
 
-const ADDITIVE_SHORTCUTS = new Set(["slime-trails"]);
+const ADDITIVE_SHORTCUTS = new Set(["slime-trails", "structure-occupancy"]);
 
 const GROUP_END_SHORTCUTS = new Set([
   "terrain-water",
   "water-trails",
   "detail-alpha",
   "slime-trails",
+  "route-knowledge",
 ]);
 
 function dispatchChange(element) {
@@ -97,6 +98,7 @@ export function createRdOverlayShortcutRailRuntime(deps) {
     setButtonActive("knowledge-map", deps.resourceDebugShowMaskOverlayInput?.checked === true);
     setButtonActive("route-cost", deps.routeDebugOverlayModeInput?.value === "dijkstra");
     setButtonActive("route-knowledge", deps.routeDebugOverlayModeInput?.value === "knowledge");
+    setButtonActive("structure-occupancy", deps.structureDebugShowOccupancyToggle?.checked === true);
   }
 
   function clearExclusiveShortcuts(keep = "") {
@@ -116,7 +118,11 @@ export function createRdOverlayShortcutRailRuntime(deps) {
 
   function handleShortcut(shortcut) {
     if (ADDITIVE_SHORTCUTS.has(shortcut)) {
-      toggleCheckbox(deps.slimeAvailabilityOverlayEnabledInput);
+      if (shortcut === "slime-trails") {
+        toggleCheckbox(deps.slimeAvailabilityOverlayEnabledInput);
+      } else if (shortcut === "structure-occupancy") {
+        toggleCheckbox(deps.structureDebugShowOccupancyToggle);
+      }
       sync();
       return;
     }
@@ -195,6 +201,7 @@ export function createRdOverlayShortcutRailRuntime(deps) {
     enforceExclusiveControlState("slime-terrain", deps.slimeShowTerrainUnderlayToggle?.checked === true);
   });
   deps.slimeAvailabilityOverlayEnabledInput?.addEventListener?.("change", sync);
+  deps.structureDebugShowOccupancyToggle?.addEventListener?.("change", sync);
   deps.resourceDebugShowMaskOverlayInput?.addEventListener?.("change", () => {
     enforceExclusiveControlState("knowledge-map", deps.resourceDebugShowMaskOverlayInput?.checked === true);
   });

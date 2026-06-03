@@ -47,7 +47,8 @@ Top-level RD tabs:
 - `Terrain`
 - `Agents`
 - `Trail`
-- `Gameplay`
+- `Knowledge`
+- `Sprites`
 - `Audio`
 - `Pathing`
 - `IO`
@@ -57,7 +58,8 @@ Planned sub-tabs:
 - `Terrain`: `Map`, `Lighting`, `Point Lights`, `Fog`, `Clouds`, `Water`, `Water Trails`, `Detail`, `Camera`
 - `Agents`: `Swarm`, `Follow`, `Stats`, future NPC controls
 - `Trail`: `Slime Runtime`, `Trail Visual`, `Terrain Coupling`, `Plant Coupling`, `Hunting/Flee`, `Tracks Knowledge`
-- `Gameplay`: `Knowledge`, `Known View`, `Stock`, later Inventory/Condition debug
+- `Knowledge`: `Knowledge`, `Known View`, `Stock`, later Inventory/Condition debug
+- `Sprites`: `Structures`, later sprite details/decals/agents debug
 - `Audio`: `Spectrogram`, `Synthesis`, `Soundscape`, later playback/IO controls if needed
 - `Pathing`: `Local`, `NAV`, `Route`
 - `IO`: `Load Map`, `Save Map Data`, `Preset Management`, `Import/Export Sidecars`
@@ -79,8 +81,8 @@ Migration access first, then remove old shell pieces once parity exists.
 ### Phase 1: RD Nested Tab Shell
 
 - [x] Add generic nested RD tab markup/CSS/runtime helpers.
-- [x] Scope nested RD tab groups so Terrain sub-tabs and Gameplay sub-tabs do not affect each other.
-- [x] Keep current resource-debug panels reachable as the first migrated `Gameplay` group.
+- [x] Scope nested RD tab groups so Terrain sub-tabs and Knowledge sub-tabs do not affect each other.
+- [x] Keep current resource-debug panels reachable as the migrated `Knowledge` group.
 - [x] Add top-level placeholder groups without moving all dev controls yet.
 - [x] Preserve fixed RD panel height above the player HUD.
 - [x] Preserve square/pixel UI style.
@@ -179,10 +181,10 @@ Migration access first, then remove old shell pieces once parity exists.
 - Gameplay currently hides the workspace switcher through CSS; the old topic dock has been deleted.
 - Audio remains a separate tool workspace for large visual surfaces; Slime is now controlled from `RD > Trail` and visualized through the terrain overlay path instead of a user-facing workspace.
 - Existing RD panel already contains gameplay-oriented resource debug tabs: Knowledge, Known View, NAV, Stock, and Slime.
-- First RD-dev shell keeps the existing resource debug panels under top-level `Gameplay` and uses separate `.rd-dev-tab` / `.rd-dev-panel` bindings so existing `.rd-tab` behavior remains isolated.
+- First RD-dev shell keeps the existing resource debug panels under top-level `Knowledge` and uses separate `.rd-dev-tab` / `.rd-dev-panel` bindings so existing `.rd-tab` behavior remains isolated.
 - Runtime readout DOM IDs were moved into hidden binding targets after the visible `RD > Info` tab was removed as redundant.
 - Map load/save DOM IDs were moved into `RD > IO`.
-- Nested RD sub-tabs are now scoped with `data-rd-tab-group`, allowing `Terrain` and `Gameplay` to each own local `.rd-tab` navigation without cross-selecting panels.
+- Nested RD sub-tabs are now scoped with `data-rd-tab-group`, allowing `Terrain`, `Knowledge`, and `Sprites` to each own local `.rd-tab` navigation without cross-selecting panels.
 - Main lighting DOM IDs were moved into `RD > Terrain > Lighting`.
 - Fog DOM IDs were moved into `RD > Terrain > Fog`.
 - Cloud DOM IDs were moved into `RD > Terrain > Clouds`.
@@ -201,7 +203,7 @@ Migration access first, then remove old shell pieces once parity exists.
 - The legacy Slime workspace and detached canvas runtime were removed. Slime visualization is canonical in the main-context world-space terrain overlay path.
 - Slime Trail splitting preserves existing DOM IDs, so Slime UI binding and preset/save/runtime code continue to target the same elements.
 - `RD > Overlays > Performance` now exposes a full-size toggle for the floating performance overlay. The HUD `O` shortcut remains wired to the same state.
-- `RD > Overlays > Route` now owns route arrow/preview drawing controls and the NAV debug overlay selector. `Gameplay > NAV` keeps route rules and committed-route actions.
+- `RD > Overlays > Route` now owns route arrow/preview drawing controls and the NAV debug overlay selector. `Pathing > NAV` keeps route rules and committed-route actions.
 - `RD > Overlays > Lighting` now owns cursor-light gizmo visibility.
 - `RD > Overlays > Swarm` now owns the Swarm stats overlay visibility toggle and hawk-range gizmo visibility. The former `Agents > Stats` tab is a pointer to the new overlay location.
 - No separate pathfinding debug-overlay control currently exists; normal PF preview and pathing tuning remain under gameplay/pathing ownership.

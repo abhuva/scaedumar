@@ -1,6 +1,14 @@
+import { DEFAULT_TERRAIN_APRON_SETTINGS } from "../render/terrainApronSettings.js";
+
 export function createMapDataSaveController(deps) {
+  function serializeApronSettings() {
+    return typeof deps.serializeApronSettings === "function"
+      ? deps.serializeApronSettings()
+      : DEFAULT_TERRAIN_APRON_SETTINGS;
+  }
+
   function createMapDataFileTexts() {
-    return {
+    const files = {
       "pointlights.json": `${JSON.stringify(deps.serializePointLights(), null, 2)}\n`,
       "lighting.json": `${JSON.stringify(deps.serializeLightingSettings(), null, 2)}\n`,
       "interaction.json": `${JSON.stringify(deps.serializeInteractionSettings(), null, 2)}\n`,
@@ -10,13 +18,20 @@ export function createMapDataSaveController(deps) {
       "watertrails.json": `${JSON.stringify(deps.serializeWaterTrailSettings(), null, 2)}\n`,
       "slime.json": `${JSON.stringify(deps.serializeSlimeSettings(), null, 2)}\n`,
       "detail.json": `${JSON.stringify(deps.serializeDetailSettings(), null, 2)}\n`,
+      "apron.json": `${JSON.stringify(serializeApronSettings(), null, 2)}\n`,
       "camera.json": `${JSON.stringify(deps.serializeCameraSettings(), null, 2)}\n`,
       "audio.json": `${JSON.stringify(deps.serializeAudioSettings(), null, 2)}\n`,
       "resource_debug.json": `${JSON.stringify(deps.serializeResourceDebugSettings(), null, 2)}\n`,
       "resource_stock.json": `${JSON.stringify(deps.serializeResourceStockSettings(), null, 2)}\n`,
       "swarm.json": `${JSON.stringify(deps.serializeSwarmData(), null, 2)}\n`,
+      "structures.json": `${JSON.stringify(deps.serializeStructureData(), null, 2)}\n`,
       "npc.json": `${JSON.stringify(deps.serializeNpcState(), null, 2)}\n`,
     };
+    if (typeof deps.serializeRenderLutMapLocalDefinition === "function") {
+      const renderLuts = deps.serializeRenderLutMapLocalDefinition();
+      if (renderLuts) files["render_luts.json"] = `${JSON.stringify(renderLuts, null, 2)}\n`;
+    }
+    return files;
   }
 
   function downloadTextFile(fileName, text) {
@@ -38,7 +53,7 @@ export function createMapDataSaveController(deps) {
     const confirmed = deps.confirm(`Save map data files (${names}) for ${folder}?`);
     if (!confirmed) {
       deps.setStatus("Save all canceled.");
-      return;
+      return false;
     }
 
     if (deps.tauriInvoke) {
@@ -48,7 +63,7 @@ export function createMapDataSaveController(deps) {
           targetFolder = await deps.pickMapFolderViaTauri();
           if (!targetFolder) {
             deps.setStatus("Save all canceled.");
-            return;
+            return false;
           }
         }
         for (const [name, text] of Object.entries(files)) {
@@ -56,7 +71,7 @@ export function createMapDataSaveController(deps) {
           await deps.invokeTauri("save_json_file", { path: targetPath, content: text });
         }
         deps.setStatus(`Saved map data (${names}) to ${targetFolder}.`);
-        return;
+        return true;
       } catch (error) {
         console.warn("Tauri Save All failed, falling back to browser flow.", error);
         deps.setStatus("Native Save All failed. Trying browser fallback...");
@@ -73,11 +88,11 @@ export function createMapDataSaveController(deps) {
           await writable.close();
         }
         deps.setStatus(`Saved map data (${names}) to selected folder. Recommended map path: ${folder}`);
-        return;
+        return true;
       } catch (error) {
         if (error && error.name === "AbortError") {
           deps.setStatus("Save canceled by user.");
-          return;
+          return false;
         }
         console.warn("Native Save All failed, falling back to downloads.", error);
         deps.setStatus("Native Save All failed. Trying browser fallback...");
@@ -88,6 +103,7 @@ export function createMapDataSaveController(deps) {
       downloadTextFile(name, text);
     }
     deps.setStatus(`Downloaded ${names}. Move them to ${folder}.`);
+    return true;
   }
 
   async function saveMapDataFile(fileName) {

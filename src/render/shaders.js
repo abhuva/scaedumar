@@ -633,8 +633,7 @@ void main() {
   vec2 baseUv = vec2(world.x / uMapAspect + 0.5, world.y + 0.5);
 
   if (baseUv.x < 0.0 || baseUv.y < 0.0 || baseUv.x > 1.0 || baseUv.y > 1.0) {
-    outColor = vec4(0.02, 0.025, 0.03, 1.0);
-    return;
+    discard;
   }
 
   vec2 uv = baseUv;

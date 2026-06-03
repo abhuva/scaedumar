@@ -13,3 +13,10 @@
 
 - check if the current render / time-advancement setup could be done independendly / not so tightly coupled. The idea is that we run the simulation - and the render just consumes what is currently there - this should fix rendering lag, it wouldnt fix the buildup in the cpu.
 - When running the Pathfinding activity, clicking outside of the range should cancel the activity while in the first path selection modus.
+
+- **idea: make local pathfinding range tied to the knowledgemap**
+  this would represent that we can identify faster and further away with more knowledge about the land.
+  It would be most likely good to have a curve with points i could define how this exactly shall scale - but essentially we say the knowledge map has x times y points. times 255 = maximum amount this can have.
+  and then we either linear scale (maybe with an offset, so we have a base range initially) or have a defined curve. And we need to define a max range (most likely 300 as this is the size of dijsktra we tested with) but within this range we scale.
+  Upside is - this is now an ever moving part. Got slacky and didnt wandered around much lately, reduced range. Made a big journey through half the world - huge range increase.
+  Essentially this is our first skill - and its entirely based on our actions and live.

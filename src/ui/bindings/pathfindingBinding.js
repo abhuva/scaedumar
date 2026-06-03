@@ -7,6 +7,10 @@ export function bindPathfindingControls(deps) {
     { element: deps.pathSlopeCutoffInput, type: "core/pathfinding/setSlopeCutoff" },
     { element: deps.pathBaseCostInput, type: "core/pathfinding/setBaseCost" },
   ];
+  const toggleBindings = [
+    { element: deps.pathAllowTerrainDiagonalCornerCuttingInput, type: "core/pathfinding/setAllowTerrainDiagonalCornerCutting" },
+    { element: deps.pathAllowStructureDiagonalCornerCuttingInput, type: "core/pathfinding/setAllowStructureDiagonalCornerCutting" },
+  ];
 
   const listeners = [];
   for (const binding of bindings) {
@@ -22,10 +26,23 @@ export function bindPathfindingControls(deps) {
     binding.element.addEventListener("input", handler);
     listeners.push({ element: binding.element, handler });
   }
+  for (const binding of toggleBindings) {
+    if (!binding.element || typeof binding.element.addEventListener !== "function") {
+      continue;
+    }
+    const handler = () => {
+      deps.dispatchCoreCommand({
+        type: binding.type,
+        value: binding.element.checked === true,
+      });
+    };
+    binding.element.addEventListener("change", handler);
+    listeners.push({ element: binding.element, handler, eventType: "change" });
+  }
 
   return () => {
     for (const listener of listeners) {
-      listener.element.removeEventListener("input", listener.handler);
+      listener.element.removeEventListener(listener.eventType || "input", listener.handler);
     }
   };
 }

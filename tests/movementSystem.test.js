@@ -180,3 +180,42 @@ test("movementSystem rebuilds movement field when owner says it is needed", () =
   assert.equal(system.getSnapshot().active, false);
   assert.equal(rebuilds, 1);
 });
+
+test("movementSystem stops before entering a newly blocked structure cell", () => {
+  const playerState = { pixelX: 0, pixelY: 0 };
+  const events = [];
+  let status = "";
+  let rebuilds = 0;
+  let blocked = false;
+  const system = createMovementSystem({
+    entityStore: null,
+    playerState,
+    getMapWidth: () => 10,
+    getMapHeight: () => 10,
+    computeMoveStepCost: () => 1,
+    isMovementStepBlocked: (toX, toY) => blocked && toX === 1 && toY === 0,
+    shouldRebuildMovementField: () => true,
+    rebuildMovementField: () => {
+      rebuilds += 1;
+    },
+    requestOverlayDraw: () => {},
+    setStatus: (message) => {
+      status = message;
+    },
+    setPlayerSnapshot: () => {},
+    setMovementSnapshot: () => {},
+    onMovementBlocked: (step) => events.push(`blocked:${step.toX},${step.toY}`),
+    onStepCompleted: (step) => events.push(`completed:${step.toX},${step.toY}`),
+  });
+
+  assert.equal(system.replaceQueue([{ x: 0, y: 0 }, { x: 1, y: 0 }], 0.01), true);
+  blocked = true;
+  system.update({ time: { systems: { movement: { ticksProcessed: 1 } } } }, {});
+
+  assert.equal(playerState.pixelX, 0);
+  assert.equal(playerState.pixelY, 0);
+  assert.equal(system.getSnapshot().active, false);
+  assert.deepEqual(events, ["blocked:1,0"]);
+  assert.equal(status, "Movement blocked at (1, 0).");
+  assert.equal(rebuilds >= 1, true);
+});

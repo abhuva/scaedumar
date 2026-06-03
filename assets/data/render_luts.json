@@ -1,0 +1,128 @@
+{
+  "version": 1,
+  "luts": {
+    "animal.bird.dark": {
+      "type": "grayscale-ramp",
+      "stops": [
+        {
+          "pos": 0,
+          "rgb": [
+            5,
+            6,
+            7
+          ]
+        },
+        {
+          "pos": 96,
+          "rgb": [
+            42,
+            35,
+            27
+          ]
+        },
+        {
+          "pos": 180,
+          "rgb": [
+            95,
+            74,
+            48
+          ]
+        },
+        {
+          "pos": 255,
+          "rgb": [
+            170,
+            142,
+            91
+          ]
+        }
+      ]
+    },
+    "animal.bird.pale": {
+      "type": "grayscale-ramp",
+      "stops": [
+        {
+          "pos": 0,
+          "rgb": [
+            34,
+            29,
+            23
+          ]
+        },
+        {
+          "pos": 112,
+          "rgb": [
+            132,
+            108,
+            72
+          ]
+        },
+        {
+          "pos": 196,
+          "rgb": [
+            204,
+            183,
+            130
+          ]
+        },
+        {
+          "pos": 255,
+          "rgb": [
+            244,
+            230,
+            180
+          ]
+        }
+      ]
+    },
+    "animal.bird.rare.white": {
+      "type": "grayscale-ramp",
+      "stops": [
+        {
+          "pos": 0,
+          "rgb": [
+            28,
+            30,
+            32
+          ]
+        },
+        {
+          "pos": 92,
+          "rgb": [
+            116,
+            122,
+            124
+          ]
+        },
+        {
+          "pos": 176,
+          "rgb": [
+            202,
+            210,
+            207
+          ]
+        },
+        {
+          "pos": 255,
+          "rgb": [
+            248,
+            245,
+            226
+          ]
+        }
+      ]
+    }
+  },
+  "variants": [
+    {
+      "family": "animal.bird.dark",
+      "baseLutId": "animal.bird.dark",
+      "type": "grayscale-ramp",
+      "count": 69,
+      "seed": 1847,
+      "positionJitter": 8,
+      "brightnessJitter": 0.12,
+      "colorJitter": 0.04
+    }
+  ]
+}

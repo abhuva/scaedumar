@@ -17,6 +17,8 @@ export function createInteractionUiAssemblyRuntime(deps) {
       getSlopeImageData: deps.getSlopeImageData,
       getHeightImageData: deps.getHeightImageData,
       getWaterImageData: deps.getWaterImageData,
+      isStructureMovementBlocked: deps.isStructureMovementBlocked,
+      getMovementBlockedCellsInBounds: deps.getMovementBlockedCellsInBounds,
       travelPlanningRuntime: deps.travelPlanningRuntime,
       getInteractionModeSnapshot: deps.getInteractionModeSnapshot,
       requestOverlayDraw: deps.requestOverlayDraw,

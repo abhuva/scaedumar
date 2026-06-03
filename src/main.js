@@ -60,6 +60,7 @@ import {
   DEFAULT_CLOUD_SETTINGS,
   DEFAULT_WATER_SETTINGS,
   DEFAULT_DETAIL_SETTINGS,
+  DEFAULT_TERRAIN_APRON_SETTINGS,
   DEFAULT_CAMERA_SETTINGS,
   DEFAULT_INTERACTION_SETTINGS,
   DEFAULT_SWARM_SETTINGS,
@@ -126,6 +127,24 @@ import { loadResourceSearches } from "./gameplay/resourceSearchRegistry.js";
 import { computeResourceSearchChance, createResourceSearchRuntime } from "./gameplay/resourceSearchRuntime.js";
 import { loadResourceStockSettings } from "./gameplay/resourceStockRegistry.js";
 import { createResourceStockRuntime } from "./gameplay/resourceStockRuntime.js";
+import { createStructureRuntime } from "./gameplay/structureRuntime.js";
+import { createPlayerSpriteRuntime } from "./gameplay/playerSpriteRuntime.js";
+import { createSwarmAgentSpriteRuntime } from "./gameplay/swarmAgentSpriteRuntime.js";
+import {
+  DEFAULT_PLAYER_SPRITE_DEFINITIONS_URL,
+  DEFAULT_SWARM_SPRITE_DEFINITIONS_URL,
+  loadAgentSpriteDefinitionFile,
+} from "./gameplay/agentSpriteDefinitionRegistry.js";
+import {
+  DEFAULT_RENDER_LUTS_URL,
+  buildGrayscaleRampRow,
+  buildRenderLutRegistry,
+  expandRenderLutRefIds,
+  formatMissingSpritePaletteLutRefs,
+  getRenderLutRowRgba,
+  validateSpritePaletteLutRefs,
+} from "./render/renderLutRegistry.js";
+import { createRenderLutRuntime } from "./render/renderLutRuntime.js";
 import { createResourceDiscoveryRuntime } from "./gameplay/resourceDiscoveryRuntime.js";
 import {
   createInspectPerceptionRuntime,
@@ -200,9 +219,12 @@ import { createPointLightIoUiRuntime } from "./ui/pointLightIoUiRuntime.js";
 import { createWorkspaceRuntime } from "./ui/workspaceRuntime.js";
 import { createGameTimeDioramaRuntime } from "./ui/gameTimeDioramaRuntime.js";
 import { createDetailPanelRuntime } from "./ui/detailPanelRuntime.js";
+import { createTerrainApronPanelRuntime } from "./ui/terrainApronPanelRuntime.js";
+import { normalizeTerrainApronSettings } from "./render/terrainApronSettings.js";
 import { createModulePresetRuntime } from "./ui/modulePresetRuntime.js";
 import { createInventoryPanelRuntime } from "./ui/inventoryPanelRuntime.js";
 import { createResourceDebugPanelRuntime } from "./ui/resourceDebugPanelRuntime.js";
+import { createStructureDebugPanelRuntime } from "./ui/structureDebugPanelRuntime.js";
 import { injectResourceDebugMarkup } from "./ui/rd/resourceDebugMarkupRuntime.js";
 import { createRdOverlayShortcutRailRuntime } from "./ui/rdOverlayShortcutRailRuntime.js";
 import { createGameplayHudRuntime } from "./ui/gameplayHudRuntime.js";
@@ -239,6 +261,37 @@ const CONDITION_EFFECTS = await loadConditionEffects();
 const RESOURCE_SEARCHES = await loadResourceSearches();
 const RESOURCE_STOCK_SETTINGS = await loadResourceStockSettings({ resourceIds: Object.keys(RESOURCE_SEARCHES) });
 const DISCOVERY_SETTINGS = await loadDiscoverySettings();
+const PLAYER_SPRITE_DEFINITION_FILE = await loadAgentSpriteDefinitionFile({
+  url: DEFAULT_PLAYER_SPRITE_DEFINITIONS_URL,
+});
+const SWARM_SPRITE_DEFINITION_FILE = await loadAgentSpriteDefinitionFile({
+  url: DEFAULT_SWARM_SPRITE_DEFINITIONS_URL,
+});
+const RENDER_LUT_SOURCE_DEFINITION = await (async () => {
+  const response = await fetch(DEFAULT_RENDER_LUTS_URL, { cache: "no-store" });
+  if (!response || !response.ok) {
+    const status = response ? `${response.status} ${response.statusText || ""}`.trim() : "no response";
+    throw new Error(`Failed to load render LUT registry from ${DEFAULT_RENDER_LUTS_URL}: ${status}`);
+  }
+  return response.json();
+})();
+const renderLutRuntime = createRenderLutRuntime({
+  sourceDefinition: RENDER_LUT_SOURCE_DEFINITION,
+});
+const RENDER_LUT_GLOBAL_SAVE_PATH = "assets/data/render_luts.json";
+let renderLutGlobalSourceDefinition = JSON.parse(JSON.stringify(RENDER_LUT_SOURCE_DEFINITION));
+let renderLutMapLocalSourceDefinition = null;
+let renderLutMapLocalSourceLabel = "";
+let renderLutLastSavedSourceText = JSON.stringify(renderLutGlobalSourceDefinition);
+let renderLutLastSavedMapLocalText = "";
+const RENDER_LUT_REGISTRY = renderLutRuntime.getRegistry();
+const RENDER_LUT_SPRITE_VALIDATION = validateSpritePaletteLutRefs([
+  { label: "player_sprites", sprites: PLAYER_SPRITE_DEFINITION_FILE.sprites },
+  { label: "swarm_sprites", sprites: SWARM_SPRITE_DEFINITION_FILE.sprites },
+], RENDER_LUT_REGISTRY);
+if (!RENDER_LUT_SPRITE_VALIDATION.ok) {
+  throw new Error(`Render LUT sprite references are invalid:\n${formatMissingSpritePaletteLutRefs(RENDER_LUT_SPRITE_VALIDATION)}`);
+}
 let EVENT_DEFINITIONS = [];
 let activeEventDefinitions = [];
 let activeMapEventDefinitionCount = 0;
@@ -260,6 +313,7 @@ const DEFAULT_HUNTING_SETTINGS = {
 const DEFAULT_RESOURCE_DEBUG_SETTINGS = createDefaultResourceDebugSettings(RESOURCE_SEARCHES, "water", DISCOVERY_SETTINGS);
 let resourceDebugSettings = normalizeResourceDebugSettings(null, DEFAULT_RESOURCE_DEBUG_SETTINGS);
 let localActivityMenuRadius = DEFAULT_LOCAL_ACTIVITY_MENU_RADIUS;
+let structureDebugPanelRuntime = null;
 
 function getActivityCostKey(activityId, costRole, fallback) {
   const definition = ACTIVITY_DEFINITIONS[activityId];
@@ -482,6 +536,17 @@ const resourceStockRevealHereBtn = getRequiredElementById("resourceStockRevealHe
 const resourceStockFillFullBtn = getRequiredElementById("resourceStockFillFullBtn");
 const resourceStockFillEmptyBtn = getRequiredElementById("resourceStockFillEmptyBtn");
 const resourceStockResetBtn = getRequiredElementById("resourceStockResetBtn");
+const structureDebugTypeSelect = getRequiredElementById("structureDebugTypeSelect");
+const structureDebugPanel = getRequiredElementById("structureDebugPanel");
+const structureDebugSelectedValue = getRequiredElementById("structureDebugSelectedValue");
+const structureDebugReadout = getRequiredElementById("structureDebugReadout");
+const structureDebugShowOccupancyToggle = getRequiredElementById("structureDebugShowOccupancyToggle");
+const structureDebugRenderVisibleToggle = getRequiredElementById("structureDebugRenderVisibleToggle");
+const structureDebugPlaceModeToggle = getRequiredElementById("structureDebugPlaceModeToggle");
+const structureDebugPlaceAtPlayerBtn = getRequiredElementById("structureDebugPlaceAtPlayerBtn");
+const structureDebugSelectNearestBtn = getRequiredElementById("structureDebugSelectNearestBtn");
+const structureDebugRemoveSelectedBtn = getRequiredElementById("structureDebugRemoveSelectedBtn");
+const structureDebugRefreshBtn = getRequiredElementById("structureDebugRefreshBtn");
 const slimeAvailabilityOverlayEnabledInput = getRequiredElementById("slimeAvailabilityOverlayEnabled");
 const slimeAvailabilityOverlayOpacityInput = getRequiredElementById("slimeAvailabilityOverlayOpacity");
 const slimeAvailabilityOverlayOpacityValue = getRequiredElementById("slimeAvailabilityOverlayOpacityValue");
@@ -569,6 +634,8 @@ const pathSlopeCutoffInput = getRequiredElementById("pathSlopeCutoff");
 const pathSlopeCutoffValue = getRequiredElementById("pathSlopeCutoffValue");
 const pathBaseCostInput = getRequiredElementById("pathBaseCost");
 const pathBaseCostValue = getRequiredElementById("pathBaseCostValue");
+const pathAllowTerrainDiagonalCornerCuttingInput = getRequiredElementById("pathAllowTerrainDiagonalCornerCutting");
+const pathAllowStructureDiagonalCornerCuttingInput = getRequiredElementById("pathAllowStructureDiagonalCornerCutting");
 const cursorLightModeToggle = getRequiredElementById("cursorLightModeToggle");
 const cursorLightFollowHeightToggle = getRequiredElementById("cursorLightFollowHeightToggle");
 const cursorLightColorInput = getRequiredElementById("cursorLightColor");
@@ -592,6 +659,60 @@ const swarmFollowCameraPositionSmoothingValue = getRequiredElementById("swarmFol
 const swarmStatsPanelToggle = getRequiredElementById("swarmStatsPanelToggle");
 const swarmShowTerrainToggle = getRequiredElementById("swarmShowTerrainToggle");
 const swarmLitModeToggle = getRequiredElementById("swarmLitModeToggle");
+const swarmSpriteRenderModeToggle = getRequiredElementById("swarmSpriteRenderModeToggle");
+const swarmBirdLutReadout = getRequiredElementById("swarmBirdLutReadout");
+const swarmBirdLutFamilySelect = getRequiredElementById("swarmBirdLutFamilySelect");
+const swarmBirdLutApplyBtn = getRequiredElementById("swarmBirdLutApplyBtn");
+const swarmBirdLutVariantCount = getRequiredElementById("swarmBirdLutVariantCount");
+const swarmBirdLutVariantCountValue = getRequiredElementById("swarmBirdLutVariantCountValue");
+const agentSpritePlayerRenderToggle = getRequiredElementById("agentSpritePlayerRenderToggle");
+const agentSpriteSwarmRenderModeToggle = getRequiredElementById("agentSpriteSwarmRenderModeToggle");
+const agentSpriteLutReadout = getRequiredElementById("agentSpriteLutReadout");
+const agentSpriteLutPreviewSelect = getRequiredElementById("agentSpriteLutPreviewSelect");
+const agentSpriteLutPreviewCanvas = getRequiredElementById("agentSpriteLutPreviewCanvas");
+const agentSpriteLutPreviewLabel = getRequiredElementById("agentSpriteLutPreviewLabel");
+const spriteLutSourceReadout = getRequiredElementById("spriteLutSourceReadout");
+const spriteLutStopEditor = getRequiredElementById("spriteLutStopEditor");
+const spriteLutOpenEditorBtn = getRequiredElementById("spriteLutOpenEditorBtn");
+const spriteLutApplyBtn = getRequiredElementById("spriteLutApplyBtn");
+const spriteLutResetBtn = getRequiredElementById("spriteLutResetBtn");
+const spriteLutEditorOverlay = getRequiredElementById("spriteLutEditorOverlay");
+const spriteLutEditorStatus = getRequiredElementById("spriteLutEditorStatus");
+const spriteLutEditorCloseBtn = getRequiredElementById("spriteLutEditorCloseBtn");
+const spriteLutEditorSelect = getRequiredElementById("spriteLutEditorSelect");
+const spriteLutEditorScopeSelect = getRequiredElementById("spriteLutEditorScopeSelect");
+const spriteLutEditorIdInput = getRequiredElementById("spriteLutEditorIdInput");
+const spriteLutEditorCreateBtn = getRequiredElementById("spriteLutEditorCreateBtn");
+const spriteLutEditorRenameBtn = getRequiredElementById("spriteLutEditorRenameBtn");
+const spriteLutEditorDeleteBtn = getRequiredElementById("spriteLutEditorDeleteBtn");
+const spriteLutEditorApplyBtn = getRequiredElementById("spriteLutEditorApplyBtn");
+const spriteLutEditorSaveGlobalBtn = getRequiredElementById("spriteLutEditorSaveGlobalBtn");
+const spriteLutEditorResetDraftBtn = getRequiredElementById("spriteLutEditorResetDraftBtn");
+const spriteLutEditorSaveReadout = getRequiredElementById("spriteLutEditorSaveReadout");
+const spriteLutEditorSurface = getRequiredElementById("spriteLutEditorSurface");
+const spriteLutEditorHandleLayer = getRequiredElementById("spriteLutEditorHandleLayer");
+const spriteLutEditorCanvas = getRequiredElementById("spriteLutEditorCanvas");
+const spriteLutEditorStopReadout = getRequiredElementById("spriteLutEditorStopReadout");
+const spriteLutEditorStopPosValue = getRequiredElementById("spriteLutEditorStopPosValue");
+const spriteLutEditorStopColor = getRequiredElementById("spriteLutEditorStopColor");
+const spriteLutEditorAddStopBtn = getRequiredElementById("spriteLutEditorAddStopBtn");
+const spriteLutEditorDeleteStopBtn = getRequiredElementById("spriteLutEditorDeleteStopBtn");
+const spriteLutEditorVariantCanvas = getRequiredElementById("spriteLutEditorVariantCanvas");
+const spriteLutEditorVariantReadout = getRequiredElementById("spriteLutEditorVariantReadout");
+const spriteLutEditorUsageReadout = getRequiredElementById("spriteLutEditorUsageReadout");
+const spriteLutEditorVariantFamily = getRequiredElementById("spriteLutEditorVariantFamily");
+const spriteLutEditorVariantIdPreview = getRequiredElementById("spriteLutEditorVariantIdPreview");
+const spriteLutEditorVariantCount = getRequiredElementById("spriteLutEditorVariantCount");
+const spriteLutEditorVariantCountValue = getRequiredElementById("spriteLutEditorVariantCountValue");
+const spriteLutEditorVariantSeed = getRequiredElementById("spriteLutEditorVariantSeed");
+const spriteLutEditorVariantSeedValue = getRequiredElementById("spriteLutEditorVariantSeedValue");
+const spriteLutEditorVariantPosition = getRequiredElementById("spriteLutEditorVariantPosition");
+const spriteLutEditorVariantPositionValue = getRequiredElementById("spriteLutEditorVariantPositionValue");
+const spriteLutEditorVariantBrightness = getRequiredElementById("spriteLutEditorVariantBrightness");
+const spriteLutEditorVariantBrightnessValue = getRequiredElementById("spriteLutEditorVariantBrightnessValue");
+const spriteLutEditorVariantColor = getRequiredElementById("spriteLutEditorVariantColor");
+const spriteLutEditorVariantColorValue = getRequiredElementById("spriteLutEditorVariantColorValue");
+document.body.appendChild(spriteLutEditorOverlay);
 const swarmBackgroundColorInput = getRequiredElementById("swarmBackgroundColor");
 const swarmAgentCountInput = getRequiredElementById("swarmAgentCount");
 const swarmAgentCountValue = getRequiredElementById("swarmAgentCountValue");
@@ -1035,6 +1156,12 @@ const mapSupportRuntime = createMapSupportRuntime(createMapSupportAssemblyRuntim
   setWetnessImageData: (value) => {
     wetnessImageData = value;
   },
+  setApronImageData: (value) => {
+    apronImageData = value;
+  },
+  setApronNormalImageData: (value) => {
+    apronNormalImageData = value;
+  },
   setFlowImageData: (value) => {
     flowImageData = value;
     if (waterParticleTrailRuntime) {
@@ -1105,6 +1232,7 @@ const SWARM_Z_MAX = 256;
 const SWARM_TERRAIN_CLEARANCE = 1;
 const SWARM_Z_NEIGHBOR_SCALE = 1;
 const LIGHTING_SAVE_PRECISION = 2;
+const swarmBirdSpriteDefinitionDraft = cloneJson(SWARM_SPRITE_DEFINITION_FILE.sprites.bird);
 
 const settingsCoreSetupRuntime = createSettingsCoreSetupRuntime(createSettingsCoreAssemblyRuntime({
   runtimeCore,
@@ -1115,6 +1243,7 @@ const settingsCoreSetupRuntime = createSettingsCoreSetupRuntime(createSettingsCo
   defaultWaterSettings: DEFAULT_WATER_SETTINGS,
   defaultWaterTrailSettings: DEFAULT_WATER_TRAIL_SETTINGS,
   defaultDetailSettings: DEFAULT_DETAIL_SETTINGS,
+  defaultApronSettings: DEFAULT_TERRAIN_APRON_SETTINGS,
   defaultCameraSettings: DEFAULT_CAMERA_SETTINGS,
   normalizeTimeRouting,
   normalizeRoutingMode,
@@ -1178,6 +1307,8 @@ const {
   applyWaterSettingsCompat,
   serializeDetailSettingsCompat,
   applyDetailSettingsCompat,
+  serializeApronSettingsCompat,
+  applyApronSettingsCompat,
   serializeCameraSettingsCompat,
   applyCameraSettingsCompat,
   serializeInteractionSettingsCompat,
@@ -1198,6 +1329,8 @@ const {
   applyWaterSettings,
   serializeDetailSettings,
   applyDetailSettings,
+  serializeApronSettings,
+  applyApronSettings,
   serializeCameraSettings,
   applyCameraSettings,
   serializeInteractionSettings,
@@ -1254,6 +1387,76 @@ function getSlimeSettings() {
 
 function getDetailSettings() {
   return getSimulationKnobSectionFromStore("detail") || getSettingsDefaults("detail", DEFAULT_DETAIL_SETTINGS);
+}
+
+function getApronSettings() {
+  return normalizeTerrainApronSettings(
+    getSimulationKnobSectionFromStore("apron") || getSettingsDefaults("apron", DEFAULT_TERRAIN_APRON_SETTINGS),
+    getSettingsDefaults("apron", DEFAULT_TERRAIN_APRON_SETTINGS),
+  );
+}
+
+function getApronDebugInfo() {
+  const settings = getApronSettings();
+  const camera = getCameraRuntimeBinding().getActiveCameraState();
+  const viewHalf = getCameraRuntimeBinding().getViewHalfExtents(camera.zoom);
+  const mapAspect = Math.max(0.0001, getMapAspect());
+  const view = {
+    left: camera.panX - viewHalf.x,
+    right: camera.panX + viewHalf.x,
+    bottom: camera.panY - viewHalf.y,
+    top: camera.panY + viewHalf.y,
+  };
+  const center = {
+    left: -0.5 * mapAspect,
+    right: 0.5 * mapAspect,
+    bottom: -0.5,
+    top: 0.5,
+  };
+  const apron = {
+    left: -1.5 * mapAspect,
+    right: 1.5 * mapAspect,
+    bottom: -1.5,
+    top: 1.5,
+  };
+  const intersectsApronFootprint = view.right > apron.left
+    && view.left < apron.right
+    && view.top > apron.bottom
+    && view.bottom < apron.top;
+  const fullyInsideCenter = view.left >= center.left
+    && view.right <= center.right
+    && view.bottom >= center.bottom
+    && view.top <= center.top;
+  return {
+    enabled: settings.enabled,
+    hasSplatData: Boolean(splatImageData && splatImageData.data && splatImageData.width && splatImageData.height),
+    hasAuthoredImage: Boolean(apronImageData && apronImageData.data && apronImageData.width && apronImageData.height),
+    hasAuthoredNormalImage: Boolean(apronNormalImageData && apronNormalImageData.data && apronNormalImageData.width && apronNormalImageData.height),
+    authoredImageSize: apronImageData && apronImageData.width && apronImageData.height
+      ? `${apronImageData.width}x${apronImageData.height}`
+      : "",
+    useAuthoredImage: settings.useAuthoredImage,
+    cameraSeesApron: intersectsApronFootprint && !fullyInsideCenter,
+    culled: fullyInsideCenter || !intersectsApronFootprint,
+    cullReason: fullyInsideCenter
+      ? "terrain-covers-view"
+      : (!intersectsApronFootprint ? "outside-apron-footprint" : "visible"),
+  };
+}
+
+function serializeApronSettingsCompatImpl() {
+  return getApronSettings();
+}
+
+function applyApronSettingsCompatImpl(rawData) {
+  const next = normalizeTerrainApronSettings(
+    rawData,
+    getSettingsDefaults("apron", DEFAULT_TERRAIN_APRON_SETTINGS),
+  );
+  mainRuntimeStateBinding.patchSimulationKnobSectionToStore("apron", next);
+  if (terrainApronPanelRuntime) {
+    terrainApronPanelRuntime.syncApronUi();
+  }
 }
 
 function getCameraSettings() {
@@ -1337,6 +1540,7 @@ function clampCameraToBounds() {
 
 let detailAtlasRuntime = null;
 let detailPanelRuntime = null;
+let terrainApronPanelRuntime = null;
 let waterParticleTrailRuntime = null;
 function rebuildDetailAtlas() {
   if (!detailAtlasRuntime) return Promise.resolve(null);
@@ -2420,8 +2624,12 @@ function downloadTextFile(fileName, text) {
   mapLifecycleRuntime.downloadTextFile(fileName, text);
 }
 
-function saveAllMapDataFiles() {
-  return mapLifecycleRuntime.saveAllMapDataFiles();
+async function saveAllMapDataFiles() {
+  const saved = await mapLifecycleRuntime.saveAllMapDataFiles();
+  if (saved) {
+    renderLutLastSavedMapLocalText = renderLutMapLocalSourceDefinition ? JSON.stringify(renderLutMapLocalSourceDefinition) : "";
+  }
+  if (lutEditorDraft.open) syncLutEditorSaveState();
 }
 
 function saveSlimeSettingsFile() {
@@ -3212,6 +3420,8 @@ let heightImageData = null;
 let slopeImageData = null;
 let waterImageData = null;
 let wetnessImageData = null;
+let apronImageData = null;
+let apronNormalImageData = null;
 let flowImageData = null;
 waterParticleTrailRuntime = createWaterParticleTrailRuntime({
   gl,
@@ -3323,6 +3533,11 @@ const playerRuntimeBinding = createPlayerRuntimeBinding({
   clamp,
   splatSize,
 });
+const playerSpriteRuntime = createPlayerSpriteRuntime({
+  playerState,
+  definition: PLAYER_SPRITE_DEFINITION_FILE.sprites.player,
+});
+let swarmAgentSpriteRuntime = null;
 const swarmFollowRuntimeState = createSwarmFollowRuntimeState({
   getStore: () => runtimeCore.store,
   swarmFollowState,
@@ -3388,6 +3603,9 @@ initializeDefaultMapImagesRuntime({
   extractImageData: extractImageDataRender,
   rebuildFlowMapTexture,
   syncPointLightWorkerMapData,
+  setSplatImageData: (value) => {
+    splatImageData = value;
+  },
   setNormalsImageData: (value) => {
     normalsImageData = value;
   },
@@ -3402,6 +3620,12 @@ initializeDefaultMapImagesRuntime({
   },
   setWetnessImageData: (value) => {
     wetnessImageData = value;
+  },
+  setApronImageData: (value) => {
+    apronImageData = value;
+  },
+  setApronNormalImageData: (value) => {
+    apronNormalImageData = value;
   },
 });
 
@@ -3465,6 +3689,14 @@ const refreshPathPreview = (...args) => pathfindingRuntimeBinding.refreshPathPre
 const updatePathPreviewFromPointer = (...args) => pathfindingRuntimeBinding.updatePathPreviewFromPointer(...args);
 const getCurrentPathMetrics = (...args) => pathfindingRuntimeBinding.getCurrentPathMetrics(...args);
 const updateRoutePreviewFromPointer = (...args) => routePlanningRuntime?.updateHoverFromPointer?.(...args);
+function updateStructurePlacementPreviewFromPointer(clientX, clientY) {
+  const pixel = clientToMapPixel(clientX, clientY);
+  if (!pixel) {
+    structureDebugPanelRuntime?.clearPlacementHover?.();
+    return;
+  }
+  structureDebugPanelRuntime?.updatePlacementHover?.(pixel);
+}
 
 const updatePathfindingRangeLabel = (...args) => pathfindingLabelRuntime.updatePathfindingRangeLabel(...args);
 const updatePathWeightLabels = (...args) => pathfindingLabelRuntime.updatePathWeightLabels(...args);
@@ -3497,6 +3729,19 @@ const updatePointLightFlickerLabel = (...args) => lightLabelRuntime.updatePointL
 const updatePointLightFlickerSpeedLabel = (...args) => lightLabelRuntime.updatePointLightFlickerSpeedLabel(...args);
 const updateCursorLightStrengthLabel = (...args) => lightLabelRuntime.updateCursorLightStrengthLabel(...args);
 const updateCursorLightHeightOffsetLabel = (...args) => lightLabelRuntime.updateCursorLightHeightOffsetLabel(...args);
+
+const structureRuntime = createStructureRuntime({
+  getMapSize: () => ({ width: splatSize.width, height: splatSize.height }),
+  onChanged: () => {
+    overlayDirtyRuntime.requestOverlayDraw();
+    structureDebugPanelRuntime?.sync?.();
+    if (pathfindingRuntimeBinding && resolveInteractionModeSnapshot({
+      getCoreGameplay: () => runtimeCore.store.getState().gameplay || null,
+    }) === "pathfinding") {
+      pathfindingRuntimeBinding?.rebuildMovementField?.();
+    }
+  },
+});
 
 ({
   pointLightRuntime,
@@ -3548,6 +3793,7 @@ const updateCursorLightHeightOffsetLabel = (...args) => lightLabelRuntime.update
   defaultWaterTrailSettings: DEFAULT_WATER_TRAIL_SETTINGS,
   defaultSlimeSettings: DEFAULT_SLIME_SETTINGS,
   defaultDetailSettings: DEFAULT_DETAIL_SETTINGS,
+  defaultApronSettings: DEFAULT_TERRAIN_APRON_SETTINGS,
   defaultCameraSettings: DEFAULT_CAMERA_SETTINGS,
   defaultAudioSettings: DEFAULT_AUDIO_SETTINGS,
   defaultSwarmSettings: DEFAULT_SWARM_SETTINGS,
@@ -3559,11 +3805,14 @@ const updateCursorLightHeightOffsetLabel = (...args) => lightLabelRuntime.update
   applyWaterTrailSettings: (...args) => applyWaterTrailSettings(...args),
   applySlimeSettings: (...args) => applySlimeSettingsCompatImpl(...args),
   applyDetailSettings: (...args) => applyDetailSettings(...args),
+  applyApronSettings: (...args) => applyApronSettings(...args),
   applyCameraSettings: (...args) => applyCameraSettings(...args),
   applyAudioSettings: (...args) => applyAudioSettings(...args),
   applyResourceDebugSettings: (...args) => applyResourceDebugSettingsRuntime(...args),
   applyResourceStockSettings: (...args) => applyResourceStockSettingsRuntime(...args),
   applySwarmSettings: (...args) => applySwarmSettings(...args),
+  applyRenderLutMapLocalDefinition: (...args) => applyRenderLutMapLocalDefinition(...args),
+  applyStructureData: (...args) => structureRuntime.applyStructureData(...args),
   reseedSwarmAgents: (...args) => reseedSwarmAgents(...args),
   getSwarmSettings: (...args) => getSwarmSettings(...args),
   applySwarmData: (...args) => applySwarmData(...args),
@@ -3590,11 +3839,14 @@ const updateCursorLightHeightOffsetLabel = (...args) => lightLabelRuntime.update
   serializeWaterTrailSettings: (...args) => serializeWaterTrailSettings(...args),
   serializeSlimeSettings: (...args) => serializeSlimeSettingsCompatImpl(...args),
   serializeDetailSettings: (...args) => serializeDetailSettings(...args),
+  serializeApronSettings: (...args) => serializeApronSettings(...args),
   serializeCameraSettings: (...args) => serializeCameraSettings(...args),
   serializeAudioSettings: (...args) => serializeAudioSettings(...args),
   serializeResourceDebugSettings: () => serializeResourceDebugSettingsRuntime(),
   serializeResourceStockSettings: () => serializeResourceStockSettingsRuntime(),
   serializeSwarmData: (...args) => serializeSwarmData(...args),
+  serializeRenderLutMapLocalDefinition: () => serializeRenderLutMapLocalDefinition(),
+  serializeStructureData: () => structureRuntime.serializeStructureData(),
   serializeNpcState: (...args) => serializeNpcStateFromBinding(...args),
   confirm: (text) => window.confirm(text),
   pickMapFolderViaTauri,
@@ -4349,6 +4601,1186 @@ function getResourceContourOverlaySnapshot() {
   };
 }
 
+const agentSpriteRenderSettings = {
+  showPlayerSprite: true,
+  useSwarmSprites: true,
+};
+
+function requestAgentSpriteRenderRefresh() {
+  overlayDirtyRuntime.requestOverlayDraw();
+}
+
+function setSwarmSpriteRenderMode(value) {
+  const enabled = Boolean(value);
+  agentSpriteRenderSettings.useSwarmSprites = enabled;
+  swarmSpriteRenderModeToggle.checked = enabled;
+  agentSpriteSwarmRenderModeToggle.checked = enabled;
+  requestAgentSpriteRenderRefresh();
+}
+
+function setPlayerSpriteRenderVisible(value) {
+  const enabled = Boolean(value);
+  agentSpriteRenderSettings.showPlayerSprite = enabled;
+  agentSpritePlayerRenderToggle.checked = enabled;
+  requestAgentSpriteRenderRefresh();
+}
+
+function isSwarmSpriteRenderMode() {
+  return agentSpriteRenderSettings.useSwarmSprites === true;
+}
+
+function isPlayerSpriteRenderVisible() {
+  return agentSpriteRenderSettings.showPlayerSprite === true;
+}
+
+function isAgentSpriteRenderVisible() {
+  return isPlayerSpriteRenderVisible() || isSwarmSpriteRenderMode();
+}
+
+function getBirdPaletteRows() {
+  const birdPalette = SWARM_SPRITE_DEFINITION_FILE.sprites.bird?.palette;
+  return birdPalette?.mode === "grayscale-lut"
+    ? renderLutRuntime.resolveRows(birdPalette.lutRefs)
+    : [];
+}
+
+function drawAgentSpriteLutPreview(rowIndex) {
+  const debug = renderLutRuntime.getDebugSnapshot();
+  const previewRow = Number.isFinite(Number(rowIndex)) ? renderLutRuntime.setSelectedRow(rowIndex) : -1;
+  const previewId = previewRow >= 0 ? debug.rowIds[previewRow] || `row ${previewRow}` : "None";
+  agentSpriteLutPreviewLabel.textContent = previewId;
+  const ctx = typeof agentSpriteLutPreviewCanvas.getContext === "function"
+    ? agentSpriteLutPreviewCanvas.getContext("2d")
+    : null;
+  if (!ctx || previewRow < 0) return;
+  const preview = renderLutRuntime.getPreviewImageData(previewRow, {
+    height: Math.max(1, Number(agentSpriteLutPreviewCanvas.height) || 12),
+  });
+  if (preview.width <= 0 || preview.height <= 0) return;
+  const imageData = new ImageData(preview.data, preview.width, preview.height);
+  ctx.imageSmoothingEnabled = false;
+  ctx.putImageData(imageData, 0, 0);
+  syncSpriteLutSourceEditor();
+}
+
+function lutRgbToHex(rgb) {
+  const channels = Array.isArray(rgb) ? rgb : [0, 0, 0];
+  return `#${channels.map((channel) => Math.max(0, Math.min(255, Math.round(Number(channel) || 0))).toString(16).padStart(2, "0")).join("")}`;
+}
+
+function lutHexToRgb(hex) {
+  if (typeof hex !== "string" || !/^#[0-9a-fA-F]{6}$/.test(hex)) return [0, 0, 0];
+  return [
+    Number.parseInt(hex.slice(1, 3), 16),
+    Number.parseInt(hex.slice(3, 5), 16),
+    Number.parseInt(hex.slice(5, 7), 16),
+  ];
+}
+
+function syncSpriteLutSourceEditor() {
+  const source = renderLutRuntime.getSelectedSourceSnapshot();
+  const stateLabel = source.editable
+    ? "editable explicit"
+    : (source.generated ? `generated ${source.family} #${String(source.variantIndex).padStart(2, "0")}` : "read-only");
+  spriteLutSourceReadout.textContent = source.id
+    ? `${source.id} | ${source.type} | ${stateLabel}`
+    : "No LUT selected.";
+  spriteLutStopEditor.innerHTML = "";
+  if (!source.editable) {
+    const note = document.createElement("p");
+    note.className = "panel-note";
+    note.textContent = source.generated
+      ? "Generated variant rows are read-only. Edit the source variant family in a later editor slice."
+      : "This LUT row is read-only.";
+    spriteLutStopEditor.appendChild(note);
+    spriteLutApplyBtn.disabled = true;
+    return;
+  }
+  spriteLutApplyBtn.disabled = false;
+  for (const stop of source.stops) {
+    const row = document.createElement("div");
+    row.className = "row";
+    row.dataset.lutStop = "true";
+
+    const label = document.createElement("label");
+    label.textContent = "Stop";
+    row.appendChild(label);
+
+    const controls = document.createElement("div");
+    controls.className = "inline-control";
+
+    const pos = document.createElement("input");
+    pos.type = "range";
+    pos.min = "0";
+    pos.max = "255";
+    pos.step = "1";
+    pos.value = String(stop.pos);
+    pos.dataset.lutStopPos = "true";
+    pos.setAttribute("aria-label", "LUT stop grayscale position");
+    controls.appendChild(pos);
+
+    const posValue = document.createElement("span");
+    posValue.textContent = String(stop.pos);
+    controls.appendChild(posValue);
+    pos.addEventListener("input", () => {
+      posValue.textContent = pos.value;
+    });
+
+    const color = document.createElement("input");
+    color.type = "color";
+    color.value = lutRgbToHex(stop.rgb);
+    color.dataset.lutStopColor = "true";
+    color.setAttribute("aria-label", "LUT stop output color");
+    controls.appendChild(color);
+
+    row.appendChild(controls);
+    spriteLutStopEditor.appendChild(row);
+  }
+}
+
+function collectEditedSpriteLutStops() {
+  return [...spriteLutStopEditor.querySelectorAll("[data-lut-stop='true']")].map((row) => {
+    const pos = row.querySelector("[data-lut-stop-pos='true']");
+    const color = row.querySelector("[data-lut-stop-color='true']");
+    return {
+      pos: Number(pos?.value) || 0,
+      rgb: lutHexToRgb(color?.value),
+    };
+  });
+}
+
+const lutEditorDraft = {
+  open: false,
+  lutId: "",
+  scope: "global",
+  stops: [],
+  variantFamily: null,
+  baselineText: "",
+  selectedIndex: 0,
+  draggingIndex: -1,
+};
+
+function cloneLutStops(stops) {
+  return (Array.isArray(stops) ? stops : []).map((stop) => ({
+    pos: Math.max(0, Math.min(255, Math.round(Number(stop.pos) || 0))),
+    rgb: Array.isArray(stop.rgb) ? stop.rgb.map((value) => Math.max(0, Math.min(255, Math.round(Number(value) || 0)))) : [0, 0, 0],
+  })).sort((a, b) => a.pos - b.pos);
+}
+
+function cloneJson(value) {
+  return value == null ? value : JSON.parse(JSON.stringify(value));
+}
+
+function normalizeRenderLutSourceDefinition(raw) {
+  const source = raw && typeof raw === "object" ? raw : {};
+  const luts = source.luts && typeof source.luts === "object" ? cloneJson(source.luts) : {};
+  const variants = Array.isArray(source.variants) ? cloneJson(source.variants) : [];
+  return {
+    version: Math.max(1, Math.round(Number(source.version) || 1)),
+    luts,
+    variants,
+  };
+}
+
+function composeRenderLutSourceDefinition() {
+  const globalSource = normalizeRenderLutSourceDefinition(renderLutGlobalSourceDefinition);
+  const mapSource = renderLutMapLocalSourceDefinition
+    ? normalizeRenderLutSourceDefinition(renderLutMapLocalSourceDefinition)
+    : null;
+  if (!mapSource) return globalSource;
+  const next = {
+    version: Math.max(globalSource.version || 1, mapSource.version || 1),
+    luts: {
+      ...(globalSource.luts || {}),
+      ...(mapSource.luts || {}),
+    },
+    variants: [...(globalSource.variants || [])],
+  };
+  const variantKey = (variant) => {
+    const source = variant && typeof variant === "object" ? variant : {};
+    return `${String(source.baseLutId || "")}|${String(source.family || "")}`;
+  };
+  const indexes = new Map(next.variants.map((variant, index) => [variantKey(variant), index]));
+  for (const variant of mapSource.variants || []) {
+    const key = variantKey(variant);
+    if (indexes.has(key)) next.variants[indexes.get(key)] = variant;
+    else next.variants.push(variant);
+  }
+  return next;
+}
+
+function rebuildRenderLutRuntimeFromSources() {
+  renderLutRuntime.rebuild(composeRenderLutSourceDefinition());
+  syncAgentSpriteLutReadout?.();
+}
+
+function getRenderLutSourceByScope(scope) {
+  if (scope === "map") {
+    if (!renderLutMapLocalSourceDefinition) {
+      renderLutMapLocalSourceDefinition = normalizeRenderLutSourceDefinition({ version: 1, luts: {}, variants: [] });
+    }
+    return renderLutMapLocalSourceDefinition;
+  }
+  return renderLutGlobalSourceDefinition;
+}
+
+function findRenderLutScope(lutId) {
+  if (renderLutMapLocalSourceDefinition?.luts && renderLutMapLocalSourceDefinition.luts[lutId]) return "map";
+  if (renderLutGlobalSourceDefinition?.luts && renderLutGlobalSourceDefinition.luts[lutId]) return "global";
+  return "global";
+}
+
+function applyRenderLutMapLocalDefinition(rawData, sourceLabel = "") {
+  renderLutMapLocalSourceDefinition = rawData ? normalizeRenderLutSourceDefinition(rawData) : null;
+  renderLutMapLocalSourceLabel = sourceLabel || "";
+  renderLutLastSavedMapLocalText = renderLutMapLocalSourceDefinition ? JSON.stringify(renderLutMapLocalSourceDefinition) : "";
+  rebuildRenderLutRuntimeFromSources();
+}
+
+function serializeRenderLutMapLocalDefinition() {
+  if (!renderLutMapLocalSourceDefinition) return null;
+  return normalizeRenderLutSourceDefinition(renderLutMapLocalSourceDefinition);
+}
+
+function cloneLutVariantFamily(variant) {
+  const source = variant && typeof variant === "object" ? variant : null;
+  if (!source) return null;
+  return {
+    family: typeof source.family === "string" ? source.family : "",
+    baseLutId: typeof source.baseLutId === "string" ? source.baseLutId : "",
+    type: source.type === "grayscale-ramp" ? "grayscale-ramp" : "grayscale-ramp",
+    count: Math.max(0, Math.min(100, Math.round(Number(source.count) || 0))),
+    seed: Math.max(0, Math.min(9999, Math.round(Number(source.seed) || 0))),
+    positionJitter: Math.max(0, Math.min(32, Math.round(Number(source.positionJitter) || 0))),
+    brightnessJitter: Math.max(0, Math.min(0.5, Number(source.brightnessJitter) || 0)),
+    colorJitter: Math.max(0, Math.min(0.5, Number(source.colorJitter) || 0)),
+  };
+}
+
+function createDefaultLutVariantFamily(baseLutId) {
+  return {
+    family: typeof baseLutId === "string" && baseLutId ? baseLutId : "lut",
+    baseLutId: typeof baseLutId === "string" ? baseLutId : "",
+    type: "grayscale-ramp",
+    count: 0,
+    seed: 0,
+    positionJitter: 0,
+    brightnessJitter: 0,
+    colorJitter: 0,
+  };
+}
+
+function serializeLutEditorDraftState() {
+  return JSON.stringify({
+    lutId: lutEditorDraft.lutId || "",
+    scope: lutEditorDraft.scope || "global",
+    stops: cloneLutStops(lutEditorDraft.stops),
+    variantFamily: lutEditorDraft.variantFamily ? cloneLutVariantFamily(lutEditorDraft.variantFamily) : null,
+  });
+}
+
+function getRenderLutRuntimeSourceText() {
+  return JSON.stringify(renderLutRuntime.serializeSourceDefinition());
+}
+
+function hasLutEditorDraftChanges() {
+  return Boolean(lutEditorDraft.lutId) && serializeLutEditorDraftState() !== lutEditorDraft.baselineText;
+}
+
+function hasRenderLutUnsavedRuntimeChanges() {
+  return JSON.stringify(renderLutGlobalSourceDefinition) !== renderLutLastSavedSourceText
+    || (renderLutMapLocalSourceDefinition ? JSON.stringify(renderLutMapLocalSourceDefinition) : "") !== renderLutLastSavedMapLocalText;
+}
+
+function hasRenderLutUnsavedGlobalChanges() {
+  return JSON.stringify(renderLutGlobalSourceDefinition) !== renderLutLastSavedSourceText;
+}
+
+function hasRenderLutUnsavedMapLocalChanges() {
+  return (renderLutMapLocalSourceDefinition ? JSON.stringify(renderLutMapLocalSourceDefinition) : "") !== renderLutLastSavedMapLocalText;
+}
+
+function getRenderLutSaveDiagnostics() {
+  const mapFolder = normalizeMapFolderPath(mapLifecycleRuntime.getCurrentMapFolderPath?.() || "");
+  const derivedPath = getRenderLutNativeSavePathFromMapFolder();
+  const hasTauri = Boolean(tauriInvoke);
+  const hasFilePicker = typeof window.showSaveFilePicker === "function";
+  const hasDirectoryPicker = typeof window.showDirectoryPicker === "function";
+  let mode = "download fallback";
+  let target = RENDER_LUT_GLOBAL_SAVE_PATH;
+  if (hasTauri && derivedPath) {
+    mode = "Tauri native path";
+    target = derivedPath;
+  } else if (hasTauri) {
+    mode = "Tauri folder prompt";
+    target = "select project assets/data";
+  } else if (hasFilePicker) {
+    mode = "browser file picker";
+    target = "choose assets/data/render_luts.json";
+  } else if (hasDirectoryPicker) {
+    mode = "browser directory picker";
+    target = "choose project assets/data";
+  }
+  return {
+    mode,
+    target,
+    mapFolder: mapFolder || "none",
+    tauri: hasTauri,
+    filePicker: hasFilePicker,
+    directoryPicker: hasDirectoryPicker,
+  };
+}
+
+function collectSpriteLutUsageDetails(lutId, variantFamilyId) {
+  const targets = [
+    { file: "player_sprites", sprites: PLAYER_SPRITE_DEFINITION_FILE.sprites },
+    { file: "swarm_sprites", sprites: SWARM_SPRITE_DEFINITION_FILE.sprites },
+  ];
+  const details = {
+    explicit: [],
+    range: [],
+    missing: [],
+  };
+  const registry = renderLutRuntime.getRegistry();
+  for (const target of targets) {
+    const sprites = target.sprites && typeof target.sprites === "object" ? target.sprites : {};
+    for (const [spriteKey, sprite] of Object.entries(sprites)) {
+      const spriteId = sprite?.id || spriteKey;
+      const palette = sprite && sprite.palette && typeof sprite.palette === "object" ? sprite.palette : null;
+      if (!palette || palette.mode !== "grayscale-lut") continue;
+      const refs = Array.isArray(palette.lutRefs) ? palette.lutRefs : [];
+      const ids = expandRenderLutRefIds(refs);
+      if (ids.includes(lutId)) details.explicit.push(`${target.file}:${spriteId}`);
+      for (const ref of refs) {
+        const range = ref && typeof ref === "object" && ref.range && typeof ref.range === "object" ? ref.range : null;
+        if (!range || String(range.family || "").trim() !== variantFamilyId) continue;
+        details.range.push(`${target.file}:${spriteId} ${range.start || 0}+${range.count || 0}`);
+      }
+      for (const id of ids) {
+        if (!Number.isFinite(Number(registry.rowsById?.[id]))) {
+          details.missing.push(`${target.file}:${spriteId} -> ${id}`);
+        }
+      }
+    }
+  }
+  return details;
+}
+
+function syncLutEditorUsageDebug(registry, rows) {
+  const family = lutEditorDraft.variantFamily || createDefaultLutVariantFamily(lutEditorDraft.lutId);
+  const details = collectSpriteLutUsageDetails(lutEditorDraft.lutId, family.family);
+  const explicitRow = Number.isFinite(Number(registry.rowsById?.[lutEditorDraft.lutId]))
+    ? registry.rowsById[lutEditorDraft.lutId]
+    : "missing";
+  const rowsText = Array.isArray(rows) && rows.length > 0
+    ? `${rows.length} (${rows[0]}..${rows[rows.length - 1]})`
+    : "0";
+  const data = [
+    ["LUT", lutEditorDraft.lutId || "none"],
+    ["Family", family.family || "none"],
+    ["Explicit Row", String(explicitRow)],
+    ["Variant Rows", rowsText],
+    ["ID Refs", details.explicit.length > 0 ? details.explicit.join(", ") : "none"],
+    ["Range Refs", details.range.length > 0 ? details.range.join(", ") : "none"],
+    ["Missing", details.missing.length > 0 ? details.missing.join(", ") : "none"],
+  ];
+  spriteLutEditorUsageReadout.innerHTML = "";
+  for (const [label, value] of data) {
+    const row = document.createElement("div");
+    row.className = "lut-editor-debug-row";
+    const key = document.createElement("strong");
+    key.textContent = label;
+    const text = document.createElement("span");
+    text.textContent = value;
+    row.append(key, text);
+    spriteLutEditorUsageReadout.appendChild(row);
+  }
+}
+
+function syncLutEditorSaveState() {
+  const draftDirty = hasLutEditorDraftChanges();
+  const runtimeDirty = hasRenderLutUnsavedRuntimeChanges();
+  const globalDirty = hasRenderLutUnsavedGlobalChanges();
+  const mapDirty = hasRenderLutUnsavedMapLocalChanges();
+  const diagnostics = getRenderLutSaveDiagnostics();
+  const dirtyText = [
+    `Draft: ${draftDirty ? "unsaved" : "clean"}`,
+    `Global: ${globalDirty ? "save needed" : "saved"}`,
+    `Map: ${mapDirty ? "Save All needed" : "saved"}`,
+  ].join(" | ");
+  spriteLutEditorStatus.textContent = lutEditorDraft.lutId
+    ? `${lutEditorDraft.lutId} | ${dirtyText}`
+    : dirtyText;
+  spriteLutEditorSaveGlobalBtn.disabled = !(globalDirty || (draftDirty && lutEditorDraft.scope === "global"));
+  spriteLutEditorApplyBtn.disabled = !draftDirty;
+  spriteLutEditorResetDraftBtn.disabled = !draftDirty;
+  spriteLutEditorSaveReadout.textContent = [
+    `Save: ${diagnostics.mode}`,
+    `Target: ${diagnostics.target}`,
+    `Map: ${diagnostics.mapFolder}`,
+    `APIs: tauri=${diagnostics.tauri ? "yes" : "no"}, file=${diagnostics.filePicker ? "yes" : "no"}, dir=${diagnostics.directoryPicker ? "yes" : "no"}`,
+  ].join(" | ");
+}
+
+function upsertLutVariantFamily(source, lutId, family) {
+  if (!Array.isArray(source.variants)) source.variants = [];
+  const variant = {
+    ...cloneLutVariantFamily(family),
+    baseLutId: lutId,
+    family: family?.family || lutId,
+    type: "grayscale-ramp",
+  };
+  const index = source.variants.findIndex((entry) => (
+    entry && typeof entry === "object" && String(entry.baseLutId || "").trim() === lutId
+  ));
+  if (index >= 0) source.variants[index] = variant;
+  else source.variants.push(variant);
+}
+
+function applyLutEditorDraftToSource() {
+  if (!lutEditorDraft.lutId) return false;
+  const source = getRenderLutSourceByScope(lutEditorDraft.scope);
+  if (!source.luts || typeof source.luts !== "object") source.luts = {};
+  source.luts[lutEditorDraft.lutId] = {
+    ...(source.luts[lutEditorDraft.lutId] || {}),
+    id: lutEditorDraft.lutId,
+    type: "grayscale-ramp",
+    stops: cloneLutStops(lutEditorDraft.stops),
+  };
+  if (lutEditorDraft.variantFamily) {
+    upsertLutVariantFamily(source, lutEditorDraft.lutId, lutEditorDraft.variantFamily);
+  }
+  rebuildRenderLutRuntimeFromSources();
+  renderLutRuntime.setSelectedRowById(lutEditorDraft.lutId);
+  lutEditorDraft.baselineText = serializeLutEditorDraftState();
+  syncLutEditorDraftUi();
+  return true;
+}
+
+function getSourceVariantFamilyForBase(source, baseLutId) {
+  const variants = Array.isArray(source?.variants) ? source.variants : [];
+  return variants.find((variant) => (
+    variant
+    && typeof variant === "object"
+    && typeof variant.baseLutId === "string"
+    && variant.baseLutId.trim() === baseLutId
+  )) || null;
+}
+
+function getDraftSelectedStop() {
+  return lutEditorDraft.stops[Math.max(0, Math.min(lutEditorDraft.stops.length - 1, lutEditorDraft.selectedIndex))] || null;
+}
+
+function drawLutEditorDraftPreview() {
+  const ctx = typeof spriteLutEditorCanvas.getContext === "function" ? spriteLutEditorCanvas.getContext("2d") : null;
+  if (!ctx) return;
+  const width = Math.max(1, Number(spriteLutEditorCanvas.width) || 768);
+  const height = Math.max(1, Number(spriteLutEditorCanvas.height) || 48);
+  const row = buildGrayscaleRampRow(lutEditorDraft.stops);
+  const imageData = ctx.createImageData(width, height);
+  for (let x = 0; x < width; x += 1) {
+    const sourceX = Math.max(0, Math.min(255, Math.round((x / Math.max(1, width - 1)) * 255)));
+    const sourceOffset = sourceX * 4;
+    for (let y = 0; y < height; y += 1) {
+      const targetOffset = ((y * width) + x) * 4;
+      imageData.data[targetOffset] = row[sourceOffset];
+      imageData.data[targetOffset + 1] = row[sourceOffset + 1];
+      imageData.data[targetOffset + 2] = row[sourceOffset + 2];
+      imageData.data[targetOffset + 3] = 255;
+    }
+  }
+  ctx.imageSmoothingEnabled = false;
+  ctx.putImageData(imageData, 0, 0);
+}
+
+function buildLutEditorDraftRegistry() {
+  const source = renderLutRuntime.getSourceDefinitionSnapshot();
+  if (!lutEditorDraft.lutId || !source.luts || !source.luts[lutEditorDraft.lutId]) {
+    return buildRenderLutRegistry(source);
+  }
+  source.luts[lutEditorDraft.lutId] = {
+    ...source.luts[lutEditorDraft.lutId],
+    type: "grayscale-ramp",
+    stops: cloneLutStops(lutEditorDraft.stops),
+  };
+  if (lutEditorDraft.variantFamily) {
+    if (!Array.isArray(source.variants)) source.variants = [];
+    const variantIndex = source.variants.findIndex((variant) => (
+      variant
+      && typeof variant === "object"
+      && typeof variant.baseLutId === "string"
+      && variant.baseLutId.trim() === lutEditorDraft.lutId
+    ));
+    if (variantIndex >= 0) {
+      source.variants[variantIndex] = {
+        ...source.variants[variantIndex],
+        ...lutEditorDraft.variantFamily,
+        baseLutId: lutEditorDraft.lutId,
+      };
+    } else {
+      source.variants.push({
+        ...lutEditorDraft.variantFamily,
+        baseLutId: lutEditorDraft.lutId,
+      });
+    }
+  }
+  return buildRenderLutRegistry(source);
+}
+
+function syncLutEditorVariantControls(family) {
+  const controls = [
+    spriteLutEditorVariantCount,
+    spriteLutEditorVariantSeed,
+    spriteLutEditorVariantPosition,
+    spriteLutEditorVariantBrightness,
+    spriteLutEditorVariantColor,
+  ];
+  if (!family) {
+    for (const control of controls) control.disabled = control !== spriteLutEditorVariantCount;
+    spriteLutEditorVariantCount.value = "0";
+    spriteLutEditorVariantCountValue.textContent = "0";
+    spriteLutEditorVariantSeedValue.textContent = "0";
+    spriteLutEditorVariantPositionValue.textContent = "0";
+    spriteLutEditorVariantBrightnessValue.textContent = "0";
+    spriteLutEditorVariantColorValue.textContent = "0";
+    return;
+  }
+  const disabled = family.count <= 0;
+  for (const control of controls) control.disabled = control !== spriteLutEditorVariantCount && disabled;
+  spriteLutEditorVariantCount.value = String(family.count);
+  spriteLutEditorVariantSeed.value = String(family.seed);
+  spriteLutEditorVariantPosition.value = String(family.positionJitter);
+  spriteLutEditorVariantBrightness.value = String(family.brightnessJitter);
+  spriteLutEditorVariantColor.value = String(family.colorJitter);
+  spriteLutEditorVariantFamily.value = family.family || lutEditorDraft.lutId;
+  spriteLutEditorVariantCountValue.textContent = String(family.count);
+  spriteLutEditorVariantSeedValue.textContent = String(family.seed);
+  spriteLutEditorVariantPositionValue.textContent = String(family.positionJitter);
+  spriteLutEditorVariantBrightnessValue.textContent = family.brightnessJitter.toFixed(2);
+  spriteLutEditorVariantColorValue.textContent = family.colorJitter.toFixed(2);
+  const end = Math.max(0, family.count - 1);
+  spriteLutEditorVariantIdPreview.textContent = family.count > 0
+    ? `${family.family}.variant.00..${String(end).padStart(2, "0")}`
+    : "none";
+}
+
+function drawLutEditorVariantPreview() {
+  const ctx = typeof spriteLutEditorVariantCanvas.getContext === "function" ? spriteLutEditorVariantCanvas.getContext("2d") : null;
+  if (!ctx) return;
+  const registry = buildLutEditorDraftRegistry();
+  const draftFamily = lutEditorDraft.variantFamily || createDefaultLutVariantFamily(lutEditorDraft.lutId);
+  const families = Array.isArray(registry.variantFamilies)
+    ? registry.variantFamilies.filter((family) => family.baseLutId === lutEditorDraft.lutId)
+    : [];
+  const rows = families.flatMap((family) => family.rows);
+  syncLutEditorUsageDebug(registry, rows);
+  if (rows.length === 0) {
+    spriteLutEditorVariantCanvas.width = 256;
+    spriteLutEditorVariantCanvas.height = 1;
+    ctx.clearRect(0, 0, spriteLutEditorVariantCanvas.width, spriteLutEditorVariantCanvas.height);
+    spriteLutEditorVariantReadout.textContent = lutEditorDraft.variantFamily
+      ? `${lutEditorDraft.variantFamily.family} | variants disabled`
+      : "Variants disabled.";
+    syncLutEditorVariantControls(lutEditorDraft.variantFamily);
+    return;
+  }
+
+  const width = Math.max(1, registry.width || 256);
+  spriteLutEditorVariantCanvas.width = width;
+  spriteLutEditorVariantCanvas.height = rows.length;
+  const imageData = ctx.createImageData(width, rows.length);
+  rows.forEach((row, index) => {
+    imageData.data.set(getRenderLutRowRgba(registry, row), index * width * 4);
+  });
+  ctx.imageSmoothingEnabled = false;
+  ctx.putImageData(imageData, 0, 0);
+
+  const family = families[0];
+  spriteLutEditorVariantReadout.textContent = `${family.family} | ${rows.length} generated rows`;
+  syncLutEditorVariantControls(lutEditorDraft.variantFamily || family);
+}
+
+function syncLutEditorStopControls() {
+  const stop = getDraftSelectedStop();
+  if (!stop) {
+    spriteLutEditorStopReadout.textContent = "No stop selected.";
+    spriteLutEditorStopPosValue.textContent = "-";
+    spriteLutEditorStopColor.disabled = true;
+    spriteLutEditorDeleteStopBtn.disabled = true;
+    return;
+  }
+  const endpoint = lutEditorDraft.selectedIndex === 0 || lutEditorDraft.selectedIndex === lutEditorDraft.stops.length - 1;
+  spriteLutEditorStopReadout.textContent = `Stop ${lutEditorDraft.selectedIndex + 1} / ${lutEditorDraft.stops.length}${endpoint ? " | endpoint locked" : ""}`;
+  spriteLutEditorStopPosValue.textContent = String(stop.pos);
+  spriteLutEditorStopColor.disabled = false;
+  spriteLutEditorStopColor.value = lutRgbToHex(stop.rgb);
+  spriteLutEditorDeleteStopBtn.disabled = endpoint || lutEditorDraft.stops.length <= 2;
+}
+
+function renderLutEditorHandles() {
+  spriteLutEditorHandleLayer.innerHTML = "";
+  lutEditorDraft.stops.forEach((stop, index) => {
+    const handle = document.createElement("button");
+    handle.type = "button";
+    handle.className = `lut-stop-handle${index === lutEditorDraft.selectedIndex ? " active" : ""}`;
+    handle.style.left = `${(stop.pos / 255) * 100}%`;
+    handle.style.background = lutRgbToHex(stop.rgb);
+    handle.dataset.stopIndex = String(index);
+    handle.setAttribute("aria-label", `Select LUT stop at ${stop.pos}`);
+    handle.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      lutEditorDraft.selectedIndex = index;
+      lutEditorDraft.draggingIndex = index;
+      handle.setPointerCapture?.(event.pointerId);
+      syncLutEditorDraftUi();
+    });
+    spriteLutEditorHandleLayer.appendChild(handle);
+  });
+}
+
+function syncLutEditorDraftUi() {
+  drawLutEditorDraftPreview();
+  drawLutEditorVariantPreview();
+  renderLutEditorHandles();
+  syncLutEditorStopControls();
+  syncLutEditorSaveState();
+}
+
+function loadLutEditorDraft(lutId) {
+  const scope = findRenderLutScope(lutId);
+  const source = getRenderLutSourceByScope(scope);
+  const lut = source.luts && source.luts[lutId];
+  const sourceVariantFamily = cloneLutVariantFamily(getSourceVariantFamilyForBase(source, lutId));
+  lutEditorDraft.lutId = lutId;
+  lutEditorDraft.scope = scope;
+  lutEditorDraft.stops = cloneLutStops(lut?.stops);
+  lutEditorDraft.variantFamily = sourceVariantFamily || createDefaultLutVariantFamily(lutId);
+  lutEditorDraft.selectedIndex = 0;
+  lutEditorDraft.draggingIndex = -1;
+  lutEditorDraft.baselineText = serializeLutEditorDraftState();
+  spriteLutEditorScopeSelect.value = scope;
+  spriteLutEditorIdInput.value = lutId;
+  syncLutEditorDraftUi();
+}
+
+function populateLutEditorSelect(preferredId = "") {
+  const source = composeRenderLutSourceDefinition();
+  const editable = Object.keys(source.luts || {}).map((id) => ({ id })).sort((a, b) => a.id.localeCompare(b.id));
+  spriteLutEditorSelect.innerHTML = "";
+  for (const lut of editable) {
+    const option = document.createElement("option");
+    option.value = lut.id;
+    option.textContent = lut.id;
+    spriteLutEditorSelect.appendChild(option);
+  }
+  const selected = editable.some((lut) => lut.id === preferredId) ? preferredId : editable[0]?.id || "";
+  if (selected) spriteLutEditorSelect.value = selected;
+  return selected;
+}
+
+function openLutEditor() {
+  const selectedSource = renderLutRuntime.getSelectedSourceSnapshot();
+  const selectedId = populateLutEditorSelect(selectedSource.editable ? selectedSource.id : "");
+  if (selectedId) loadLutEditorDraft(selectedId);
+  else syncLutEditorSaveState();
+  lutEditorDraft.open = true;
+  spriteLutEditorOverlay.classList.remove("hidden");
+  spriteLutEditorOverlay.setAttribute("aria-hidden", "false");
+}
+
+function confirmDiscardLutEditorChanges(actionLabel) {
+  const draftDirty = hasLutEditorDraftChanges();
+  const runtimeDirty = hasRenderLutUnsavedRuntimeChanges();
+  if (!draftDirty && !runtimeDirty) return true;
+  const parts = [];
+  if (draftDirty) parts.push("the current LUT draft has unapplied edits");
+  if (runtimeDirty) parts.push("runtime LUT edits have not been saved globally");
+  return window.confirm(`${actionLabel}?\n\n${parts.join(" and ")}.`);
+}
+
+function closeLutEditor() {
+  if (!confirmDiscardLutEditorChanges("Close LUT editor")) return;
+  lutEditorDraft.open = false;
+  lutEditorDraft.draggingIndex = -1;
+  spriteLutEditorOverlay.classList.add("hidden");
+  spriteLutEditorOverlay.setAttribute("aria-hidden", "true");
+}
+
+function getRenderLutNativeSavePathFromMapFolder() {
+  const folder = normalizeMapFolderPath(mapLifecycleRuntime.getCurrentMapFolderPath?.() || "");
+  if (!isAbsoluteFsPath(folder)) return "";
+  const normalized = folder.replace(/[\\/]+$/, "");
+  const separator = normalized.includes("\\") ? "\\" : "/";
+  const parts = normalized.split(/[\\/]/);
+  const tauriDistIndex = parts.lastIndexOf(".tauri-dist");
+  if (tauriDistIndex > 0) {
+    const projectRoot = parts.slice(0, tauriDistIndex).join(separator);
+    return joinFsPath(projectRoot, `assets${separator}data${separator}render_luts.json`);
+  }
+  const parent = parts.slice(0, -1).join(separator);
+  return parent ? joinFsPath(parent, `data${separator}render_luts.json`) : "";
+}
+
+async function saveRenderLutsWithBrowserFilePicker(text) {
+  if (typeof window.showSaveFilePicker !== "function") return "fallback";
+  try {
+    const handle = await window.showSaveFilePicker({
+      suggestedName: "render_luts.json",
+      types: [
+        {
+          description: "JSON",
+          accept: { "application/json": [".json"] },
+        },
+      ],
+    });
+    const writable = await handle.createWritable();
+    await writable.write(text);
+    await writable.close();
+    setStatus(`Saved render_luts.json. Expected project path: ${RENDER_LUT_GLOBAL_SAVE_PATH}.`);
+    return "saved";
+  } catch (error) {
+    if (error && error.name === "AbortError") {
+      setStatus("Render LUT save canceled.");
+      return "canceled";
+    }
+    console.warn("Browser render LUT file save failed, falling back to folder save or download.", error);
+    setStatus("Browser file save failed. Trying folder save...");
+    return "fallback";
+  }
+}
+
+async function saveRenderLutsWithBrowserDirectoryPicker(text) {
+  if (typeof window.showDirectoryPicker !== "function") return "fallback";
+  try {
+    const dir = await window.showDirectoryPicker({
+      mode: "readwrite",
+      startIn: "documents",
+    });
+    const handle = await dir.getFileHandle("render_luts.json", { create: true });
+    const writable = await handle.createWritable();
+    await writable.write(text);
+    await writable.close();
+    setStatus(`Saved render_luts.json to selected folder. Expected project folder: ${RENDER_LUT_GLOBAL_SAVE_PATH}.`);
+    return "saved";
+  } catch (error) {
+    if (error && error.name === "AbortError") {
+      setStatus("Render LUT save canceled.");
+      return "canceled";
+    }
+    console.warn("Browser render LUT directory save failed, falling back to download.", error);
+    setStatus("Browser folder save failed. Downloading render_luts.json instead.");
+    return "fallback";
+  }
+}
+
+async function resolveRenderLutNativeSavePath() {
+  const derivedPath = getRenderLutNativeSavePathFromMapFolder();
+  if (derivedPath) return derivedPath;
+  setStatus("Select the project's assets/data folder for global render LUT save.");
+  const selectedFolder = await pickMapFolderViaTauri();
+  if (!selectedFolder) return "";
+  return joinFsPath(selectedFolder, "render_luts.json");
+}
+
+async function saveRenderLutsGlobal() {
+  const confirmed = window.confirm(
+    `Save global LUT definitions to ${RENDER_LUT_GLOBAL_SAVE_PATH}?\n\n` +
+      "This is global data, not map Save All data. If prompted for a folder, select assets/data.",
+  );
+  if (!confirmed) {
+    setStatus("Render LUT save canceled.");
+    return;
+  }
+  if (lutEditorDraft.lutId) applyLutEditorDraftToSource();
+  const text = `${JSON.stringify(normalizeRenderLutSourceDefinition(renderLutGlobalSourceDefinition), null, 2)}\n`;
+  if (tauriInvoke) {
+    try {
+      const targetPath = await resolveRenderLutNativeSavePath();
+      if (!targetPath) {
+        setStatus("Render LUT save canceled.");
+        syncLutEditorSaveState();
+        return;
+      }
+      await invokeTauri("save_json_file", { path: targetPath, content: text });
+      renderLutLastSavedSourceText = JSON.stringify(normalizeRenderLutSourceDefinition(renderLutGlobalSourceDefinition));
+      setStatus(`Saved global render LUTs to ${targetPath}.`);
+      syncAgentSpriteLutReadout();
+      if (lutEditorDraft.lutId) loadLutEditorDraft(lutEditorDraft.lutId);
+      return;
+    } catch (error) {
+      console.warn("Native render LUT save failed, falling back to browser file/folder save or download.", error);
+      setStatus("Native render LUT save failed. Trying browser file save...");
+    }
+  }
+  const filePickerResult = await saveRenderLutsWithBrowserFilePicker(text);
+  if (filePickerResult === "saved") {
+    renderLutLastSavedSourceText = JSON.stringify(normalizeRenderLutSourceDefinition(renderLutGlobalSourceDefinition));
+    syncAgentSpriteLutReadout();
+    if (lutEditorDraft.lutId) loadLutEditorDraft(lutEditorDraft.lutId);
+    return;
+  }
+  if (filePickerResult === "canceled") {
+    syncLutEditorSaveState();
+    return;
+  }
+  const directoryPickerResult = await saveRenderLutsWithBrowserDirectoryPicker(text);
+  if (directoryPickerResult === "saved") {
+    renderLutLastSavedSourceText = JSON.stringify(normalizeRenderLutSourceDefinition(renderLutGlobalSourceDefinition));
+    syncAgentSpriteLutReadout();
+    if (lutEditorDraft.lutId) loadLutEditorDraft(lutEditorDraft.lutId);
+    return;
+  }
+  if (directoryPickerResult === "canceled") {
+    syncLutEditorSaveState();
+    return;
+  }
+  downloadTextFile("render_luts.json", text);
+  setStatus(`Downloaded render_luts.json. Browser could not write ${RENDER_LUT_GLOBAL_SAVE_PATH} directly.`);
+  syncLutEditorSaveState();
+}
+
+function editorPointerToPos(event) {
+  const rect = spriteLutEditorCanvas.getBoundingClientRect();
+  const x = Math.max(0, Math.min(rect.width, event.clientX - rect.left));
+  return Math.max(0, Math.min(255, Math.round((x / Math.max(1, rect.width)) * 255)));
+}
+
+function selectStopBySortedPosition(pos) {
+  lutEditorDraft.stops.sort((a, b) => a.pos - b.pos);
+  lutEditorDraft.selectedIndex = lutEditorDraft.stops.findIndex((stop) => stop.pos === pos);
+  if (lutEditorDraft.selectedIndex < 0) lutEditorDraft.selectedIndex = 0;
+}
+
+function sampleDraftColor(pos) {
+  const row = buildGrayscaleRampRow(lutEditorDraft.stops);
+  const offset = Math.max(0, Math.min(255, Math.round(pos))) * 4;
+  return [row[offset], row[offset + 1], row[offset + 2]];
+}
+
+function syncAgentSpriteLutPreviewOptions(birdRows) {
+  const rows = Array.isArray(birdRows) ? birdRows : [];
+  const debug = renderLutRuntime.getDebugSnapshot();
+  const previous = agentSpriteLutPreviewSelect.value;
+  agentSpriteLutPreviewSelect.innerHTML = "";
+  for (const row of rows) {
+    const option = document.createElement("option");
+    option.value = String(row);
+    option.textContent = debug.rowIds[row] || `row ${row}`;
+    agentSpriteLutPreviewSelect.appendChild(option);
+  }
+  if (rows.some((row) => String(row) === previous)) {
+    agentSpriteLutPreviewSelect.value = previous;
+  } else if (rows.length > 0) {
+    agentSpriteLutPreviewSelect.value = String(rows[0]);
+  }
+}
+
+function syncAgentSpriteLutReadout() {
+  const debug = renderLutRuntime.getDebugSnapshot();
+  const birdRows = getBirdPaletteRows();
+  agentSpriteLutReadout.textContent = `LUTs: ${debug.rowCount} | Bird refs: ${birdRows.length} | Duplicates: ${debug.duplicateIds.length}`;
+  syncAgentSpriteLutPreviewOptions(birdRows);
+  drawAgentSpriteLutPreview(agentSpriteLutPreviewSelect.value);
+  syncSwarmBirdLutUi();
+}
+
+function getRenderLutFamilySummaries() {
+  const registry = renderLutRuntime.getRegistry();
+  const families = Array.isArray(registry.variantFamilies) ? registry.variantFamilies : [];
+  return families.map((family) => ({
+    family: family.family,
+    count: family.count,
+    baseLutId: family.baseLutId,
+  }));
+}
+
+function syncSwarmBirdLutUi() {
+  const refs = swarmBirdSpriteDefinitionDraft.palette?.lutRefs || [];
+  const rangeRef = refs.find((ref) => ref && ref.range);
+  const activeFamily = rangeRef?.range?.family || "";
+  const activeCount = Math.max(0, Math.round(Number(rangeRef?.range?.count) || 0));
+  const families = getRenderLutFamilySummaries();
+  const previous = swarmBirdLutFamilySelect.value || activeFamily;
+  swarmBirdLutFamilySelect.innerHTML = "";
+  for (const family of families) {
+    const option = document.createElement("option");
+    option.value = family.family;
+    option.textContent = `${family.family} (${family.count})`;
+    swarmBirdLutFamilySelect.appendChild(option);
+  }
+  if (families.some((family) => family.family === previous)) swarmBirdLutFamilySelect.value = previous;
+  else if (families.some((family) => family.family === activeFamily)) swarmBirdLutFamilySelect.value = activeFamily;
+  const selectedFamily = swarmBirdLutFamilySelect.value || activeFamily;
+  swarmBirdLutVariantCount.value = String(activeCount);
+  swarmBirdLutVariantCountValue.textContent = String(activeCount);
+  swarmBirdLutReadout.textContent = refs.map((ref) => {
+    if (ref.id) return ref.id;
+    if (ref.range) return `${ref.range.family}.variant.${String(ref.range.start || 0).padStart(2, "0")} x ${ref.range.count || 0}`;
+    return "unknown";
+  }).join(" | ") || "No bird LUT refs.";
+  if (selectedFamily && selectedFamily !== activeFamily) {
+    const family = families.find((entry) => entry.family === selectedFamily);
+    if (family) {
+      swarmBirdLutVariantCount.value = String(family.count);
+      swarmBirdLutVariantCountValue.textContent = String(family.count);
+    }
+  }
+}
+
+function applySwarmBirdLutSelection() {
+  const family = String(swarmBirdLutFamilySelect.value || "").trim();
+  const count = Math.max(0, Math.min(100, Math.round(Number(swarmBirdLutVariantCount.value) || 0)));
+  if (!swarmBirdSpriteDefinitionDraft.palette || swarmBirdSpriteDefinitionDraft.palette.mode !== "grayscale-lut") {
+    swarmBirdSpriteDefinitionDraft.palette = { mode: "grayscale-lut", selection: "stable-random", lutRefs: [] };
+  }
+  const refs = (swarmBirdSpriteDefinitionDraft.palette.lutRefs || []).filter((ref) => !(ref && ref.range));
+  if (family && count > 0) refs.push({ range: { family, start: 0, count } });
+  swarmBirdSpriteDefinitionDraft.palette.lutRefs = refs;
+  syncSwarmBirdLutUi();
+  syncAgentSpriteLutReadout();
+}
+
+swarmSpriteRenderModeToggle.addEventListener("change", () => {
+  setSwarmSpriteRenderMode(swarmSpriteRenderModeToggle.checked);
+});
+agentSpriteSwarmRenderModeToggle.addEventListener("change", () => {
+  setSwarmSpriteRenderMode(agentSpriteSwarmRenderModeToggle.checked);
+});
+swarmBirdLutFamilySelect.addEventListener("change", () => {
+  const family = getRenderLutFamilySummaries().find((entry) => entry.family === swarmBirdLutFamilySelect.value);
+  if (family) {
+    swarmBirdLutVariantCount.value = String(family.count);
+    swarmBirdLutVariantCountValue.textContent = String(family.count);
+  }
+});
+swarmBirdLutVariantCount.addEventListener("input", () => {
+  swarmBirdLutVariantCountValue.textContent = String(Math.round(Number(swarmBirdLutVariantCount.value) || 0));
+});
+swarmBirdLutApplyBtn.addEventListener("click", () => {
+  applySwarmBirdLutSelection();
+});
+agentSpritePlayerRenderToggle.addEventListener("change", () => {
+  setPlayerSpriteRenderVisible(agentSpritePlayerRenderToggle.checked);
+});
+agentSpriteLutPreviewSelect.addEventListener("change", () => {
+  drawAgentSpriteLutPreview(agentSpriteLutPreviewSelect.value);
+});
+spriteLutApplyBtn.addEventListener("click", () => {
+  const source = renderLutRuntime.getSelectedSourceSnapshot();
+  if (!source.editable) return;
+  renderLutRuntime.patchExplicitLutStops(source.id, collectEditedSpriteLutStops());
+  syncAgentSpriteLutReadout();
+  if (lutEditorDraft.open) syncLutEditorSaveState();
+});
+spriteLutResetBtn.addEventListener("click", () => {
+  renderLutGlobalSourceDefinition = normalizeRenderLutSourceDefinition(JSON.parse(renderLutLastSavedSourceText));
+  renderLutMapLocalSourceDefinition = renderLutLastSavedMapLocalText
+    ? normalizeRenderLutSourceDefinition(JSON.parse(renderLutLastSavedMapLocalText))
+    : null;
+  rebuildRenderLutRuntimeFromSources();
+  syncAgentSpriteLutReadout();
+  if (lutEditorDraft.open) {
+    if (lutEditorDraft.lutId) loadLutEditorDraft(lutEditorDraft.lutId);
+    else syncLutEditorSaveState();
+  }
+});
+spriteLutOpenEditorBtn.addEventListener("click", () => {
+  openLutEditor();
+});
+spriteLutEditorCloseBtn.addEventListener("click", () => {
+  closeLutEditor();
+});
+spriteLutEditorSelect.addEventListener("change", () => {
+  if (!confirmDiscardLutEditorChanges("Switch editable LUT")) {
+    spriteLutEditorSelect.value = lutEditorDraft.lutId;
+    return;
+  }
+  loadLutEditorDraft(spriteLutEditorSelect.value);
+});
+spriteLutEditorScopeSelect.addEventListener("change", () => {
+  lutEditorDraft.scope = spriteLutEditorScopeSelect.value === "map" ? "map" : "global";
+  lutEditorDraft.baselineText = serializeLutEditorDraftState();
+  syncLutEditorSaveState();
+});
+spriteLutEditorIdInput.addEventListener("input", () => {
+  syncLutEditorSaveState();
+});
+spriteLutEditorCreateBtn.addEventListener("click", () => {
+  const id = String(spriteLutEditorIdInput.value || "").trim();
+  if (!id) {
+    setStatus("Enter a LUT id before creating.");
+    return;
+  }
+  const source = getRenderLutSourceByScope(spriteLutEditorScopeSelect.value === "map" ? "map" : "global");
+  if (!source.luts || typeof source.luts !== "object") source.luts = {};
+  if (composeRenderLutSourceDefinition().luts[id] && !window.confirm(`LUT "${id}" already exists. Override in selected scope?`)) return;
+  source.luts[id] = {
+    id,
+    type: "grayscale-ramp",
+    stops: [
+      { pos: 0, rgb: [0, 0, 0] },
+      { pos: 255, rgb: [255, 255, 255] },
+    ],
+  };
+  rebuildRenderLutRuntimeFromSources();
+  populateLutEditorSelect(id);
+  loadLutEditorDraft(id);
+});
+spriteLutEditorRenameBtn.addEventListener("click", () => {
+  const nextId = String(spriteLutEditorIdInput.value || "").trim();
+  const oldId = lutEditorDraft.lutId;
+  if (!oldId || !nextId || nextId === oldId) return;
+  const source = getRenderLutSourceByScope(lutEditorDraft.scope);
+  if (composeRenderLutSourceDefinition().luts[nextId] && !window.confirm(`LUT "${nextId}" already exists. Continue?`)) return;
+  source.luts[nextId] = { ...(source.luts[oldId] || {}), id: nextId };
+  delete source.luts[oldId];
+  if (Array.isArray(source.variants)) {
+    for (const variant of source.variants) {
+      if (variant && variant.baseLutId === oldId) {
+        variant.baseLutId = nextId;
+        if (variant.family === oldId) variant.family = nextId;
+      }
+    }
+  }
+  rebuildRenderLutRuntimeFromSources();
+  populateLutEditorSelect(nextId);
+  loadLutEditorDraft(nextId);
+});
+spriteLutEditorDeleteBtn.addEventListener("click", () => {
+  const id = lutEditorDraft.lutId;
+  if (!id || !window.confirm(`Delete LUT "${id}" from ${lutEditorDraft.scope} scope?`)) return;
+  const source = getRenderLutSourceByScope(lutEditorDraft.scope);
+  delete source.luts[id];
+  if (Array.isArray(source.variants)) {
+    source.variants = source.variants.filter((variant) => !variant || variant.baseLutId !== id);
+  }
+  rebuildRenderLutRuntimeFromSources();
+  const nextId = populateLutEditorSelect("");
+  if (nextId) loadLutEditorDraft(nextId);
+});
+spriteLutEditorApplyBtn.addEventListener("click", () => {
+  if (!lutEditorDraft.lutId) return;
+  applyLutEditorDraftToSource();
+  syncAgentSpriteLutReadout();
+});
+spriteLutEditorSaveGlobalBtn.addEventListener("click", () => {
+  saveRenderLutsGlobal().catch((error) => {
+    console.error("Failed to save global render LUTs", error);
+    setStatus("Failed to save global render LUTs.");
+  });
+});
+spriteLutEditorResetDraftBtn.addEventListener("click", () => {
+  if (hasLutEditorDraftChanges() && !window.confirm("Reset the current LUT draft to the applied runtime data?")) return;
+  if (lutEditorDraft.lutId) loadLutEditorDraft(lutEditorDraft.lutId);
+});
+spriteLutEditorStopColor.addEventListener("input", () => {
+  const stop = getDraftSelectedStop();
+  if (!stop) return;
+  stop.rgb = lutHexToRgb(spriteLutEditorStopColor.value);
+  syncLutEditorDraftUi();
+});
+function syncLutEditorVariantDraftFromControls() {
+  if (!lutEditorDraft.variantFamily) return;
+  lutEditorDraft.variantFamily.family = String(spriteLutEditorVariantFamily.value || lutEditorDraft.lutId).trim() || lutEditorDraft.lutId;
+  lutEditorDraft.variantFamily.count = Math.max(0, Math.min(100, Math.round(Number(spriteLutEditorVariantCount.value) || 0)));
+  lutEditorDraft.variantFamily.seed = Math.max(0, Math.min(9999, Math.round(Number(spriteLutEditorVariantSeed.value) || 0)));
+  lutEditorDraft.variantFamily.positionJitter = Math.max(0, Math.min(32, Math.round(Number(spriteLutEditorVariantPosition.value) || 0)));
+  lutEditorDraft.variantFamily.brightnessJitter = Math.max(0, Math.min(0.5, Number(spriteLutEditorVariantBrightness.value) || 0));
+  lutEditorDraft.variantFamily.colorJitter = Math.max(0, Math.min(0.5, Number(spriteLutEditorVariantColor.value) || 0));
+  syncLutEditorDraftUi();
+}
+for (const input of [
+  spriteLutEditorVariantFamily,
+  spriteLutEditorVariantCount,
+  spriteLutEditorVariantSeed,
+  spriteLutEditorVariantPosition,
+  spriteLutEditorVariantBrightness,
+  spriteLutEditorVariantColor,
+]) {
+  input.addEventListener("input", syncLutEditorVariantDraftFromControls);
+}
+spriteLutEditorDeleteStopBtn.addEventListener("click", () => {
+  const endpoint = lutEditorDraft.selectedIndex === 0 || lutEditorDraft.selectedIndex === lutEditorDraft.stops.length - 1;
+  if (endpoint || lutEditorDraft.stops.length <= 2) return;
+  lutEditorDraft.stops.splice(lutEditorDraft.selectedIndex, 1);
+  lutEditorDraft.selectedIndex = Math.max(0, Math.min(lutEditorDraft.selectedIndex, lutEditorDraft.stops.length - 1));
+  syncLutEditorDraftUi();
+});
+spriteLutEditorAddStopBtn.addEventListener("click", () => {
+  const pos = 128;
+  lutEditorDraft.stops.push({ pos, rgb: sampleDraftColor(pos) });
+  selectStopBySortedPosition(pos);
+  syncLutEditorDraftUi();
+});
+spriteLutEditorCanvas.addEventListener("click", (event) => {
+  const pos = editorPointerToPos(event);
+  lutEditorDraft.stops.push({ pos, rgb: sampleDraftColor(pos) });
+  selectStopBySortedPosition(pos);
+  syncLutEditorDraftUi();
+});
+spriteLutEditorSurface.addEventListener("pointermove", (event) => {
+  if (lutEditorDraft.draggingIndex < 0) return;
+  const endpoint = lutEditorDraft.draggingIndex === 0 || lutEditorDraft.draggingIndex === lutEditorDraft.stops.length - 1;
+  if (endpoint) return;
+  const stop = lutEditorDraft.stops[lutEditorDraft.draggingIndex];
+  stop.pos = editorPointerToPos(event);
+  const selectedPos = stop.pos;
+  selectStopBySortedPosition(selectedPos);
+  lutEditorDraft.draggingIndex = lutEditorDraft.selectedIndex;
+  syncLutEditorDraftUi();
+});
+spriteLutEditorSurface.addEventListener("pointerup", () => {
+  lutEditorDraft.draggingIndex = -1;
+});
+spriteLutEditorSurface.addEventListener("pointercancel", () => {
+  lutEditorDraft.draggingIndex = -1;
+});
+setSwarmSpriteRenderMode(swarmSpriteRenderModeToggle.checked);
+setPlayerSpriteRenderVisible(agentSpritePlayerRenderToggle.checked);
+syncAgentSpriteLutReadout();
+
+function getAgentSpriteRenderSnapshot(frame = null) {
+  const renderTimeSec = Number(frame?.time?.nowSec);
+  const playerSnapshot = isPlayerSpriteRenderVisible()
+    ? playerSpriteRuntime.getPlayerSpriteRenderSnapshot()
+    : null;
+  const swarmSnapshot = isSwarmSpriteRenderMode()
+    ? (swarmAgentSpriteRuntime?.getSwarmAgentSpriteRenderSnapshot?.({
+      renderTimeSec: Number.isFinite(renderTimeSec) ? renderTimeSec : 0,
+    }) || null)
+    : null;
+  return {
+    version: Math.max(
+      Number(playerSnapshot && playerSnapshot.version) || 0,
+      Number(swarmSnapshot && swarmSnapshot.version) || 0,
+    ),
+    atlas: {
+      filter: "nearest",
+      slotWidth: Math.max(
+        1,
+        Number(playerSnapshot?.atlas?.slotWidth) || 0,
+        Number(swarmSnapshot?.atlas?.slotWidth) || 0,
+      ),
+      slotHeight: Math.max(
+        1,
+        Number(playerSnapshot?.atlas?.slotHeight) || 0,
+        Number(swarmSnapshot?.atlas?.slotHeight) || 0,
+      ),
+      gridColumns: 16,
+      gridRows: Math.max(
+        1,
+        Number(playerSnapshot?.atlas?.gridRows) || 0,
+        Number(swarmSnapshot?.atlas?.gridRows) || 0,
+      ),
+    },
+    lutAtlas: swarmSnapshot?.lutAtlas || null,
+    agents: [
+      ...(Array.isArray(playerSnapshot && playerSnapshot.agents) ? playerSnapshot.agents : []),
+      ...(Array.isArray(swarmSnapshot && swarmSnapshot.agents) ? swarmSnapshot.agents : []),
+    ],
+  };
+}
+
 function getDiscoveryMaskOverlaySnapshot() {
   if (resourceDebugSettings.discovery.showMaskOverlay !== true) return null;
   const snapshot = resourceDiscoveryRuntime?.getSnapshot(WORLD_KNOWLEDGE_MAP_ID);
@@ -4572,6 +6004,7 @@ const movementSystem = createMovementSystem(createMovementAssemblyRuntime({
   getMapWidth: () => splatSize.width,
   getMapHeight: () => splatSize.height,
   computeMoveStepCost,
+  isMovementStepBlocked: (toX, toY) => structureRuntime.isMovementBlocked(toX, toY),
   getMoveCostContext,
   rebuildMovementField,
   shouldRebuildMovementField: () => getInteractionModeSnapshot() === "pathfinding",
@@ -4580,6 +6013,9 @@ const movementSystem = createMovementSystem(createMovementAssemblyRuntime({
   setPlayerSnapshot: movementStoreSyncRuntime.setPlayerSnapshot,
   setMovementSnapshot: movementStoreSyncRuntime.setMovementSnapshot,
   onMovementSnapshot: updateMovementStatusPanel,
+  onStepStarted: (step) => {
+    playerSpriteRuntime.recordMovementStep(step);
+  },
   onStepCompleted: (step, snapshot) => {
     revealPlayerLocalResourceKnowledge();
     emitInspectChanged({ reason: "movement-step" });
@@ -4604,6 +6040,14 @@ const movementSystem = createMovementSystem(createMovementAssemblyRuntime({
   onMovementCanceled: (...args) => {
     const activityWasActive = Boolean(playerActivityRuntime?.isActivityActive());
     playerActivityRuntime?.onMovementCanceled(...args);
+    if (!activityWasActive) {
+      setActivityTimeSpeed1x();
+    }
+    clearCommittedTravelPathPreview();
+  },
+  onMovementBlocked: (...args) => {
+    const activityWasActive = Boolean(playerActivityRuntime?.isActivityActive());
+    playerActivityRuntime?.onMovementCanceled?.(...args);
     if (!activityWasActive) {
       setActivityTimeSpeed1x();
     }
@@ -5022,6 +6466,30 @@ resourceDebugPanelRuntime = createResourceDebugPanelRuntime({
   saveSettings: () => saveAllMapDataFiles(),
 });
 
+structureDebugPanelRuntime = createStructureDebugPanelRuntime({
+  document,
+  panelEl: structureDebugPanel,
+  typeSelect: structureDebugTypeSelect,
+  selectedValue: structureDebugSelectedValue,
+  readout: structureDebugReadout,
+  showOccupancyToggle: structureDebugShowOccupancyToggle,
+  renderVisibleToggle: structureDebugRenderVisibleToggle,
+  placeModeToggle: structureDebugPlaceModeToggle,
+  placeAtPlayerBtn: structureDebugPlaceAtPlayerBtn,
+  selectNearestBtn: structureDebugSelectNearestBtn,
+  removeSelectedBtn: structureDebugRemoveSelectedBtn,
+  refreshBtn: structureDebugRefreshBtn,
+  getStructureSnapshot: () => structureRuntime.getStructureSnapshot(),
+  getStructureIdAt: (x, y) => structureRuntime.getStructureIdAt(x, y),
+  getOccupiedCells: (id) => structureRuntime.getOccupiedCells(id),
+  getNearestStructureByType: (typeId, x, y) => structureRuntime.getNearestStructureByType(typeId, x, y),
+  canPlaceStructure: (typeId, x, y) => structureRuntime.canPlaceStructure(typeId, x, y),
+  getPlayerPixel: () => ({ x: playerState.pixelX, y: playerState.pixelY }),
+  dispatchCommand: dispatchCoreCommand,
+  requestOverlayDraw: () => overlayDirtyRuntime.requestOverlayDraw(),
+  setStatus,
+});
+
 terrainDebugViewModeInput.addEventListener("change", () => {
   const next = terrainDebugViewModeInput.value;
   terrainDebugViewMode = next === "height" || next === "slope" || next === "wetness" || next === "water" ? next : "none";
@@ -5039,6 +6507,7 @@ rdOverlayShortcutRailRuntime = createRdOverlayShortcutRailRuntime({
   slimeAvailabilityOverlayEnabledInput,
   resourceDebugShowMaskOverlayInput,
   routeDebugOverlayModeInput,
+  structureDebugShowOccupancyToggle,
 });
 
 for (const [layer, button] of [
@@ -5494,6 +6963,8 @@ registerMainSettingsContracts(runtimeCore.settingsRegistry, {
   applyWater: applyWaterSettingsCompat,
   serializeDetail: serializeDetailSettingsCompat,
   applyDetail: applyDetailSettingsCompat,
+  serializeApron: serializeApronSettingsCompat,
+  applyApron: applyApronSettingsCompat,
   serializeCamera: serializeCameraSettingsCompat,
   applyCamera: applyCameraSettingsCompat,
   serializeInteraction: serializeInteractionSettingsCompat,
@@ -5508,6 +6979,7 @@ registerMainSettingsContracts(runtimeCore.settingsRegistry, {
 const renderPipelineRuntime = createRenderPipelineRuntime(createRenderPipelineAssemblyRuntime({
   gl,
   document,
+  loadImageFromUrl,
   canvas,
   program,
   uniforms,
@@ -5532,15 +7004,25 @@ const renderPipelineRuntime = createRenderPipelineRuntime(createRenderPipelineAs
   discoveryMaskTextureState,
   slimeTracksMaskTextureState,
   detailAtlasState,
+  defaultTerrainApronSettings: DEFAULT_TERRAIN_APRON_SETTINGS,
+  getTerrainApronSettings: () => getApronSettings(),
+  getSplatImageData: () => splatImageData,
+  getApronImageData: () => apronImageData,
+  getApronNormalImageData: () => apronNormalImageData,
   heightSize,
   splatSize,
   getViewHalfExtents: (...args) => getViewHalfExtents(...args),
+  getMapAspect: () => getMapAspect(),
   cursorLightState,
   applyPointLightUsagePass,
   getDiscoveryVisibilitySettings,
   getDiscoveryVisibilitySnapshot,
   getSlimeTrailOverlaySnapshot,
   getSlimeTerrainUnderlaySnapshot,
+  getStructureRenderSnapshot: () => structureRuntime.getStructureRenderSnapshot(),
+  isStructureRenderVisible: () => structureDebugPanelRuntime?.isRenderVisible?.() !== false,
+  getAgentSpriteRenderSnapshot: (frame) => getAgentSpriteRenderSnapshot(frame),
+  isAgentSpriteRenderVisible: () => isAgentSpriteRenderVisible(),
   renderShadowPipeline,
   shadowSize,
   shadowBlurFbo,
@@ -5561,6 +7043,14 @@ detailPanelRuntime = createDetailPanelRuntime({
   dispatchCoreCommand,
   setTimeout: (fn, ms) => window.setTimeout(fn, ms),
   clearTimeout: (id) => window.clearTimeout(id),
+  requestAnimationFrame: (fn) => window.requestAnimationFrame(fn),
+});
+terrainApronPanelRuntime = createTerrainApronPanelRuntime({
+  document,
+  serializeApronSettings,
+  defaultApronSettings: DEFAULT_TERRAIN_APRON_SETTINGS,
+  dispatchCoreCommand,
+  getApronDebugInfo,
   requestAnimationFrame: (fn) => window.requestAnimationFrame(fn),
 });
 
@@ -5672,6 +7162,7 @@ registerMainCommands(runtimeCore.commandBus, createMainCommandAssemblyRuntime({
   syncRenderFxCloudUi,
   syncRenderFxWaterUi,
   syncDetailUi,
+  syncApronUi: () => terrainApronPanelRuntime?.syncApronUi?.(),
   rebuildFlowMapTexture,
   rebuildDetailAtlas,
   schedulePointLightBake,
@@ -5680,7 +7171,9 @@ registerMainCommands(runtimeCore.commandBus, createMainCommandAssemblyRuntime({
   serializeCloudSettings,
   serializeWaterSettings,
   serializeDetailSettings,
+  serializeApronSettings,
   defaultDetailSettings: DEFAULT_DETAIL_SETTINGS,
+  defaultApronSettings: DEFAULT_TERRAIN_APRON_SETTINGS,
   serializeAudioSettingsCompat,
   serializeAudioSettings,
   syncAudioUi,
@@ -5736,6 +7229,12 @@ registerMainCommands(runtimeCore.commandBus, createMainCommandAssemblyRuntime({
   syncSimTickHoursInput: (value) => syncSimTickHoursInput(value),
   syncCycleSpeedInput: (value) => syncCycleSpeedInput(value),
   syncRoutingInput: (target, mode) => syncRoutingInput(target, mode),
+  placeStructure: (...args) => structureRuntime.placeStructure(...args),
+  removeStructure: (...args) => structureRuntime.removeStructure(...args),
+  updateStructureState: (...args) => structureRuntime.updateStructureState(...args),
+  canPlaceStructure: (...args) => structureRuntime.canPlaceStructure(...args),
+  tryPlaceStructureAtPixel: (x, y) => structureDebugPanelRuntime?.tryPlaceAtPixel?.(x, y) === true,
+  trySelectStructureAtPixel: (x, y) => structureDebugPanelRuntime?.trySelectAtPixel?.(x, y) === true,
 }));
 
 pointLightGizmoToggle.addEventListener("change", () => {
@@ -5973,6 +7472,7 @@ const swarmIntegrationSetupRuntime = createSwarmIntegrationSetupRuntime(
       defaultCloudSettings: DEFAULT_CLOUD_SETTINGS,
     defaultWaterSettings: DEFAULT_WATER_SETTINGS,
     defaultDetailSettings: DEFAULT_DETAIL_SETTINGS,
+    defaultApronSettings: DEFAULT_TERRAIN_APRON_SETTINGS,
     defaultCameraSettings: DEFAULT_CAMERA_SETTINGS,
     defaultInteractionSettings: DEFAULT_INTERACTION_SETTINGS,
     defaultSwarmSettings: DEFAULT_SWARM_SETTINGS,
@@ -6033,6 +7533,8 @@ const swarmIntegrationSetupRuntime = createSwarmIntegrationSetupRuntime(
       pathWeightWaterInput,
       pathSlopeCutoffInput,
       pathBaseCostInput,
+      pathAllowTerrainDiagonalCornerCuttingInput,
+      pathAllowStructureDiagonalCornerCuttingInput,
       updatePathfindingRangeLabel,
       updatePathWeightLabels,
       updatePathSlopeCutoffLabel,
@@ -6056,6 +7558,8 @@ const swarmIntegrationSetupRuntime = createSwarmIntegrationSetupRuntime(
       getCloudSettings: () => getSimulationKnobSectionFromStore("clouds") || getSettingsDefaults("clouds", DEFAULT_CLOUD_SETTINGS),
       getWaterSettings: () => getSimulationKnobSectionFromStore("waterFx") || getSettingsDefaults("waterfx", DEFAULT_WATER_SETTINGS),
       getDetailSettings,
+      serializeApronSettingsCompat: () => serializeApronSettingsCompatImpl(),
+      applyApronSettingsCompat: (rawData) => applyApronSettingsCompatImpl(rawData),
       getCameraSettings,
       getCameraState: () => runtimeCore.store.getState().camera || {},
       clampCameraToBounds,
@@ -6259,10 +7763,20 @@ const reseedSwarmAgents = swarmIntegrationSetupRuntime.reseedSwarmAgents;
 settingsCompatBindings = swarmIntegrationSetupRuntime.settingsCompatBindings;
 settingsRuntimeBinding = swarmIntegrationSetupRuntime.settingsRuntimeBinding;
 detailPanelRuntime.bindDetailControls();
+terrainApronPanelRuntime.bindApronControls();
 const swarmRenderSetupRuntime = swarmIntegrationSetupRuntime.swarmRenderSetupRuntime;
 const swarmLoopRuntime = swarmRenderSetupRuntime.swarmLoopRuntime;
 const writeInterpolatedSwarmAgentPos = swarmLoopRuntime.writeInterpolatedSwarmAgentPos;
 const writeInterpolatedSwarmHawkPos = swarmLoopRuntime.writeInterpolatedSwarmHawkPos;
+swarmAgentSpriteRuntime = createSwarmAgentSpriteRuntime({
+  swarmState,
+  birdDefinition: SWARM_SPRITE_DEFINITION_FILE.sprites.bird,
+  hawkDefinition: SWARM_SPRITE_DEFINITION_FILE.sprites.hawk,
+  getBirdDefinition: () => swarmBirdSpriteDefinitionDraft,
+  getLutRegistry: () => renderLutRuntime.getRegistry(),
+  writeInterpolatedSwarmAgentPos,
+  writeInterpolatedSwarmHawkPos,
+});
 const updateSwarm = swarmLoopRuntime.updateSwarm;
 const updateSwarmFollowCamera = swarmLoopRuntime.updateSwarmFollowCamera;
 function updateSwarmFollowAndScoutCamera(nowMs) {
@@ -6396,6 +7910,9 @@ const interactionUiSetupRuntime = createInteractionUiSetupRuntime(createInteract
   getSlopeImageData: () => slopeImageData,
   getHeightImageData: () => heightImageData,
   getWaterImageData: () => waterImageData,
+  isStructureMovementBlocked: (x, y) => structureRuntime.isMovementBlocked(x, y),
+  getMovementBlockedCellsInBounds: (minX, minY, maxX, maxY) =>
+    structureRuntime.getMovementBlockedCellsInBounds(minX, minY, maxX, maxY),
   travelPlanningRuntime,
   getInteractionModeSnapshot,
   requestOverlayDraw: () => overlayDirtyRuntime.requestOverlayDraw(),
@@ -6549,12 +8066,16 @@ const renderShellSetupRuntime = createRenderShellSetupRuntime(createRenderShellA
   getResourceContourOverlaySnapshot,
   getDiscoveryMaskOverlaySnapshot,
   getDiscoveryTerrainVisibilityOverlaySnapshot,
+  getStructureOccupancyOverlaySnapshot: () => structureDebugPanelRuntime?.getOccupancyOverlaySnapshot?.() || null,
+  getStructurePlacementPreviewOverlaySnapshot: () => structureDebugPanelRuntime?.getPlacementPreviewOverlaySnapshot?.() || null,
   getInventoryBundles: () => inventoryRuntime.listBundles(),
   playerState,
   drawSwarmUnlitOverlay,
   drawSwarmGizmos,
   updateSwarm,
   updateSwarmFollowCamera: updateSwarmFollowAndScoutCamera,
+  isSwarmSpriteRenderMode: () => isSwarmSpriteRenderMode(),
+  isPlayerSpriteRenderVisible: () => isPlayerSpriteRenderVisible(),
   computeFrameTiming,
   runtimeFrame: runtimeCore.frame,
   getCoreState: () => runtimeCore.store.getState(),
@@ -6580,7 +8101,10 @@ const renderShellSetupRuntime = createRenderShellSetupRuntime(createRenderShellA
   defaultWaterSettings: DEFAULT_WATER_SETTINGS,
   defaultDetailSettings: DEFAULT_DETAIL_SETTINGS,
   hexToRgb01,
-  updateInfoPanel,
+  updateInfoPanel: () => {
+    updateInfoPanel();
+    terrainApronPanelRuntime?.syncApronStatus?.();
+  },
   updateSwarmStatsPanel,
   updateCycleHourLabel,
   updateGameTimeDiorama: (hour, cycleSpeed) => gameTimeDioramaRuntime.update(hour, cycleSpeed),
@@ -6625,6 +8149,7 @@ runAppShellLifecycleRuntime(createAppShellLifecycleAssemblyRuntime({
     updateCursorLightFromPointer,
     updatePathPreviewFromPointer,
     updateRoutePreviewFromPointer,
+    updateStructurePlacementPreviewFromPointer,
     updateInspectFromPointer,
     openLocalActivityMenu: (input) => localActivityMenuRuntime?.openAt(input),
     canHandleTerrainClicks: () => getRuntimeMode() === "gameplay" && titleScreenEl.classList.contains("hidden"),
@@ -6646,6 +8171,8 @@ runAppShellLifecycleRuntime(createAppShellLifecycleAssemblyRuntime({
     pathWeightWaterInput,
     pathSlopeCutoffInput,
     pathBaseCostInput,
+    pathAllowTerrainDiagonalCornerCuttingInput,
+    pathAllowStructureDiagonalCornerCuttingInput,
     swarmShowTerrainToggle,
     swarmLitModeToggle,
     swarmFollowZoomInInput,

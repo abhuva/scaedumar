@@ -62,6 +62,12 @@ export function createRenderer(deps) {
         executePass("shadow", frame);
         executePass("shadowBlur", frame);
         executePass("mainTerrain", frame);
+        if (passes.has("structures")) {
+          executePass("structures", frame);
+        }
+        if (passes.has("agentSprites")) {
+          executePass("agentSprites", frame);
+        }
         return;
       }
       executePass("backgroundClear", frame);

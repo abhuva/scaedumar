@@ -12,11 +12,14 @@ export function createPathfindingRuntimeBinding(deps) {
     getSlopeImageData: deps.getSlopeImageData,
     getHeightImageData: deps.getHeightImageData,
     getWaterImageData: deps.getWaterImageData,
+    isStructureMovementBlocked: deps.isStructureMovementBlocked,
   });
 
   const pathfindingPreviewRuntime = createPathfindingPreviewRuntime({
     movementWindowBounds: () => pathfindingCostModel.movementWindowBounds(),
     getPathfindingRangeRadius: () => pathfindingCostModel.pathfindingRangeRadius(),
+    computeTerrainStepCost: (fromX, fromY, toX, toY, moveCostContext = null) =>
+      pathfindingCostModel.computeTerrainStepCost(fromX, fromY, toX, toY, moveCostContext),
     computeMoveStepCost: (fromX, fromY, toX, toY, moveCostContext = null) =>
       pathfindingCostModel.computeMoveStepCost(fromX, fromY, toX, toY, moveCostContext),
     playerState: deps.playerState,
@@ -24,6 +27,7 @@ export function createPathfindingRuntimeBinding(deps) {
     setMovementField: (value) => {
       movementField = value;
     },
+    getMovementBlockedCellsInBounds: deps.getMovementBlockedCellsInBounds,
     travelPlanningRuntime: deps.travelPlanningRuntime,
     getPathfindingStateSnapshot: deps.getPathfindingStateSnapshot,
     getInteractionModeSnapshot: deps.getInteractionModeSnapshot,
@@ -40,6 +44,8 @@ export function createPathfindingRuntimeBinding(deps) {
     movementWindowBounds: () => pathfindingCostModel.movementWindowBounds(),
     pathfindingRangeRadius: () => pathfindingCostModel.pathfindingRangeRadius(),
     createMoveCostContext: () => pathfindingCostModel.createMoveCostContext(),
+    computeTerrainStepCost: (fromX, fromY, toX, toY, moveCostContext = null) =>
+      pathfindingCostModel.computeTerrainStepCost(fromX, fromY, toX, toY, moveCostContext),
     computeMoveStepCost: (fromX, fromY, toX, toY, moveCostContext = null) =>
       pathfindingCostModel.computeMoveStepCost(fromX, fromY, toX, toY, moveCostContext),
     rebuildMovementField: () => pathfindingPreviewRuntime.rebuildMovementField(),

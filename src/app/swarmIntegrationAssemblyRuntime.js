@@ -28,6 +28,7 @@ export function createSwarmIntegrationAssemblyRuntime(deps) {
       defaultCloudSettings: deps.defaultCloudSettings,
       defaultWaterSettings: deps.defaultWaterSettings,
       defaultDetailSettings: deps.defaultDetailSettings,
+      defaultApronSettings: deps.defaultApronSettings,
       defaultCameraSettings: deps.defaultCameraSettings,
       defaultInteractionSettings: deps.defaultInteractionSettings,
       defaultSwarmSettings: deps.defaultSwarmSettings,

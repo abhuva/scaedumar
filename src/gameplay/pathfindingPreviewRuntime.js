@@ -45,6 +45,69 @@ export function createPathfindingPreviewRuntime(deps) {
     return (dx * dx + dy * dy) <= radius * radius;
   }
 
+  function buildBlockedMask(bounds, width, height) {
+    if (typeof deps.getMovementBlockedCellsInBounds !== "function") return null;
+    const cells = deps.getMovementBlockedCellsInBounds(bounds.minX, bounds.minY, bounds.maxX, bounds.maxY);
+    if (!Array.isArray(cells) || cells.length === 0) return null;
+    const mask = new Uint8Array(width * height);
+    for (const cell of cells) {
+      const x = Math.floor(Number(cell && cell.x)) - bounds.minX;
+      const y = Math.floor(Number(cell && cell.y)) - bounds.minY;
+      if (!Number.isFinite(x) || !Number.isFinite(y) || x < 0 || y < 0 || x >= width || y >= height) continue;
+      mask[y * width + x] = 1;
+    }
+    return mask;
+  }
+
+  function isBlockedLocal(blockedMask, width, height, x, y) {
+    if (!blockedMask) return false;
+    if (x < 0 || y < 0 || x >= width || y >= height) return false;
+    return blockedMask[y * width + x] !== 0;
+  }
+
+  function canEnterCell(x, y, fromX, fromY, bounds, width, height, blockedMask, moveCostContext) {
+    if (!isInsidePathfindingRange(bounds.minX + x, bounds.minY + y)) return false;
+    if (isBlockedLocal(blockedMask, width, height, x, y)) return false;
+
+    const dx = x - fromX;
+    const dy = y - fromY;
+    if (dx === 0 || dy === 0) return true;
+
+    const pathfinding = typeof deps.getPathfindingStateSnapshot === "function"
+      ? deps.getPathfindingStateSnapshot()
+      : {};
+    if (pathfinding.allowStructureDiagonalCornerCutting !== true) {
+      if (
+        isBlockedLocal(blockedMask, width, height, fromX + dx, fromY)
+        || isBlockedLocal(blockedMask, width, height, fromX, fromY + dy)
+      ) {
+        return false;
+      }
+    }
+
+    if (pathfinding.allowTerrainDiagonalCornerCutting === false && typeof deps.computeTerrainStepCost === "function") {
+      const worldFromX = bounds.minX + fromX;
+      const worldFromY = bounds.minY + fromY;
+      const sideACost = deps.computeTerrainStepCost(
+        worldFromX,
+        worldFromY,
+        bounds.minX + fromX + dx,
+        worldFromY,
+        moveCostContext,
+      );
+      const sideBCost = deps.computeTerrainStepCost(
+        worldFromX,
+        worldFromY,
+        worldFromX,
+        bounds.minY + fromY + dy,
+        moveCostContext,
+      );
+      if (!Number.isFinite(sideACost) || !Number.isFinite(sideBCost)) return false;
+    }
+
+    return true;
+  }
+
   function extractPathTo(pixelX, pixelY) {
     const movementField = deps.getMovementField();
     if (!movementField) return [];
@@ -87,12 +150,20 @@ export function createPathfindingPreviewRuntime(deps) {
     }
 
     const moveCostContext = typeof deps.getMoveCostContext === "function" ? deps.getMoveCostContext() : null;
+    const blockedMask = buildBlockedMask(bounds, width, height);
+    const sourceLocalX = deps.playerState.pixelX - bounds.minX;
+    const sourceLocalY = deps.playerState.pixelY - bounds.minY;
+    const sourceIndex = sourceLocalY * width + sourceLocalX;
+    if (blockedMask && sourceIndex >= 0 && sourceIndex < blockedMask.length) {
+      blockedMask[sourceIndex] = 0;
+    }
     const field = buildGridDijkstraField({
       width,
       height,
-      sourceX: deps.playerState.pixelX - bounds.minX,
-      sourceY: deps.playerState.pixelY - bounds.minY,
-      isAllowedCell: (x, y) => isInsidePathfindingRange(bounds.minX + x, bounds.minY + y),
+      sourceX: sourceLocalX,
+      sourceY: sourceLocalY,
+      isAllowedCell: (x, y, fromX, fromY) =>
+        canEnterCell(x, y, fromX, fromY, bounds, width, height, blockedMask, moveCostContext),
       getStepCost: (fromX, fromY, toX, toY) =>
         deps.computeMoveStepCost(
           bounds.minX + fromX,

@@ -35,6 +35,7 @@ export function bindCanvasControls(deps) {
     deps.updateCursorLightFromPointer(clientX, clientY);
     deps.updatePathPreviewFromPointer(clientX, clientY);
     deps.updateRoutePreviewFromPointer?.(clientX, clientY);
+    deps.updateStructurePlacementPreviewFromPointer?.(clientX, clientY);
     if (typeof deps.updateInspectFromPointer === "function") {
       deps.updateInspectFromPointer(clientX, clientY);
     }
