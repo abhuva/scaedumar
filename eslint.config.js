@@ -27,6 +27,7 @@ const browserGlobals = {
 
 const nodeGlobals = {
   Buffer: "readonly",
+  console: "readonly",
   process: "readonly",
   setImmediate: "readonly",
   setTimeout: "readonly",
@@ -71,7 +72,7 @@ export default [
     },
   },
   {
-    files: ["*.js"],
+    files: ["*.js", "scripts/**/*.js"],
     languageOptions: {
       ecmaVersion: "latest",
       globals: nodeGlobals,

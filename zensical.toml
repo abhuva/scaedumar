@@ -1,16 +1,36 @@
 [project]
 site_name = "Scaedumar"
-site_description = "World and development portal for Scaedumar."
+site_description = "Player and technical documentation portal for Scaedumar."
 site_url = "https://abhuva.github.io/scaedumar/"
 site_author = "abhuva"
 copyright = "Copyright &copy; 2026 Scaedumar contributors"
 extra_css = ["stylesheets/game-theme.css"]
 nav = [
-  { "Home" = "index.md" },
-  { "Architecture" = "ARCHITECTURE.md" },
-  { "Visual Baselines" = "visual-baselines/README.md" },
-  { "Setup & Release" = "plans+setups/SMOKE_CHECKLIST.md" },
-  { "Project Ideas" = "notes/Ideas.md" }
+  { "Player Site" = [
+    { "Home" = "index.md" },
+    { "Game Overview" = "game/overview.md" },
+    { "World And Setting" = "game/world.md" },
+    { "Survival Loop" = "game/survival-loop.md" },
+    { "Current Prototype" = "game/current-prototype.md" },
+    { "Getting Started" = "guide/getting-started.md" },
+    { "Controls" = "guide/controls.md" },
+    { "Field Notes" = "wiki/index.md" }
+  ] },
+  { "Technical Wiki" = [
+    { "Map Of Content" = "moc.md" },
+    { "Architecture" = "ARCHITECTURE.md" },
+    { "Gameplay Design" = "GAMEPLAY_DESIGN.md" },
+    { "Activity Model" = "ACTIVITY_MODEL.md" },
+    { "Content Authoring" = "WIKI_EVENT_DIALOG_DESIGN.md" },
+    { "Rendering" = "RENDER_LUT_DESIGN.md" },
+    { "UI Architecture" = "RD_UI_ARCHITECTURE.md" }
+  ] },
+  { "Design Notes" = [
+    { "Setting Direction" = "design/setting-direction.md" },
+    { "Core Worldview" = "design/core-worldview.md" },
+    { "Systems As Meaning" = "design/systems-as-meaning.md" },
+    { "Meaning And Worldview" = "design/meaning-and-worldview.md" }
+  ] }
 ]
 
 [project.theme]

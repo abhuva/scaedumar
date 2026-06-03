@@ -1,7 +1,7 @@
 # AGENTS.md
 
 ALWAYS read `AI_CONTEXT.md` first.
-Gamedesign and Architectural Overview: read [[moc]]
+Gamedesign and Architectural Overview: read [moc](docs/moc.md)
 
 ## Project Goal
 
